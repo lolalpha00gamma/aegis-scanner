@@ -37,7 +37,7 @@ enum StrategyID: String, CaseIterable, Identifiable, Codable {
         case .temporal:
             return "Qualitätsgewichteter Mittelwert über Video-Tracks."
         case .featurePrint:
-            return "VNGenerateImageFeaturePrintRequest auf ausgerichtetem Crop."
+            return "VNGenerateImageFeaturePrintRequest auf ausgerichtetem Gesicht."
         case .aegis:
             return "Fusion aller Signale. Hält schwierige Frames, statt sie zu löschen."
         }
