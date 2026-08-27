@@ -85,75 +85,75 @@ enum FaceEngine {
 
         return tracked.map { face in
             var hits: [StrategyHit] = []
-            func best(_ score: (IdentityModel) -> Double) -> (UUID?, Double) {
-                var id: UUID?
-                var p = 0.0
-                for m in models {
-                    let s = score(m)
-                    if s > p { p = s; id = m.identity.id }
-                }
-                return (id, p)
-            }
 
-            let photos = best { m in
+            let photos = rank(models, minMargin: embedMargin) { m in
                 guard face.quality.capture >= 0.35, let g = m.photos else { return 0 }
                 return printPercent(face.featurePrint, g.featurePrint)
             }
-            hits.append(StrategyHit(strategy: .photosStyle, identityId: face.quality.capture < 0.35 ? nil : photos.0, percent: face.quality.capture < 0.35 ? 0 : photos.1))
+            hits.append(toHit(.photosStyle, face.quality.capture < 0.35
+                ? Ranked(identityId: nil, percent: 0, margin: photos.margin, versus: photos.versus)
+                : photos))
 
-            let box = best { m in
+            let box = rank(models, minMargin: embedMargin) { m in
                 guard let g = m.meanPrint.first ?? m.photos else { return 0 }
                 return printPercent(face.featurePrint, g.featurePrint)
             }
-            hits.append(StrategyHit(strategy: .visionBox, identityId: box.0, percent: box.1))
+            hits.append(toHit(.visionBox, box))
 
-            let geo = best { m in
+            let geo = rank(models, minMargin: landmarkMargin) { m in
                 landmarkPercent(distance(face.aligned, m.meanLandmarks))
             }
-            hits.append(StrategyHit(strategy: .landmarkGeo, identityId: geo.0, percent: geo.1))
+            hits.append(toHit(.landmarkGeo, geo))
 
-            let gated = best { m in
+            let gated = rank(models, minMargin: embedMargin) { m in
                 guard let g = m.meanPrint.first ?? m.photos else { return 0 }
                 let raw = printPercent(face.featurePrint, g.featurePrint)
                 if face.quality.capture >= 0.35 { return raw }
                 return raw * (0.45 + 0.55 * (face.quality.capture / 0.35))
             }
-            hits.append(StrategyHit(strategy: .qualityGate, identityId: gated.0, percent: gated.1))
+            hits.append(toHit(.qualityGate, gated))
 
-            let temporal = best { m in
+            let temporal = rank(models, minMargin: embedMargin) { m in
                 let probe = face.trackId.flatMap { trackPrint[$0] } ?? face.featurePrint
                 let gallery = averagePrint(m.temporal.isEmpty ? m.meanPrint : m.temporal)
                 return printPercent(probe, gallery)
             }
-            hits.append(StrategyHit(strategy: .temporal, identityId: temporal.0, percent: temporal.1))
+            hits.append(toHit(.temporal, temporal))
 
-            let fp = best { m in
+            let fp = rank(models, minMargin: embedMargin) { m in
                 printPercent(face.featurePrint, averagePrint(m.meanPrint))
             }
-            hits.append(StrategyHit(strategy: .featurePrint, identityId: fp.0, percent: fp.1))
+            hits.append(toHit(.featurePrint, fp))
 
-            func ensemble(_ id: UUID) -> Double {
-                func pct(_ s: StrategyID) -> Double {
-                    guard let h = hits.first(where: { $0.strategy == s }), h.identityId == id else { return 0 }
-                    return h.percent
-                }
-                let embed = max(pct(.featurePrint), pct(.visionBox), pct(.temporal), pct(.photosStyle), pct(.qualityGate))
-                if embed <= 0 { return pct(.landmarkGeo) * 0.5 }
-                let temporal = pct(.temporal)
-                return min(99.6, embed * 0.82 + (temporal > 0 ? temporal : embed) * 0.12 + pct(.landmarkGeo) * 0.06)
+            func pctVs(_ s: StrategyID, _ id: UUID) -> Double {
+                hits.first { $0.strategy == s }?.versus.first { $0.identityId == id }?.percent ?? 0
             }
-            var aegisId: UUID?
-            var aegisP = 0.0
-            for m in models {
-                let p = ensemble(m.identity.id)
-                if p > aegisP { aegisP = p; aegisId = m.identity.id }
+            let tdesc = face.trackId.flatMap { trackPrint[$0] }
+            let ensemble = rank(models, minMargin: embedMargin) { m in
+                let id = m.identity.id
+                let embed = max(
+                    pctVs(.featurePrint, id),
+                    pctVs(.visionBox, id),
+                    pctVs(.temporal, id),
+                    pctVs(.photosStyle, id),
+                    pctVs(.qualityGate, id)
+                )
+                let tP = pctVs(.temporal, id)
+                let geoP = pctVs(.landmarkGeo, id)
+                let trackBoost = tdesc != nil && tP > embed ? (tP - embed) * 0.4 : 0
+                let geoBonus = box.identityId == id && geoP >= 70 ? 1.5 : 0
+                return min(99.6, embed + trackBoost + geoBonus)
             }
-            hits.append(StrategyHit(strategy: .aegis, identityId: aegisId, percent: aegisP))
+            hits.append(toHit(.aegis, ensemble))
             return MatchResult(faceId: face.id, hits: hits)
         }
     }
 
     // MARK: - geometry / prints
+
+    private static let matchFloor = 72.0
+    private static let embedMargin = 8.0
+    private static let landmarkMargin = 10.0
 
     private struct IdentityModel {
         var identity: Identity
@@ -161,6 +161,42 @@ enum FaceEngine {
         var meanPrint: [FaceObservation]
         var meanLandmarks: [Point2]
         var temporal: [FaceObservation]
+    }
+
+    private struct Ranked {
+        var identityId: UUID?
+        var percent: Double
+        var margin: Double
+        var versus: [IdentityScore]
+    }
+
+    private static func rank(
+        _ models: [IdentityModel],
+        minMargin: Double,
+        scoreOf: (IdentityModel) -> Double
+    ) -> Ranked {
+        var versus = models.map { IdentityScore(identityId: $0.identity.id, percent: scoreOf($0)) }
+        versus.sort { $0.percent > $1.percent }
+        let best = versus.first
+        let second = versus.dropFirst().first
+        let margin = (best?.percent ?? 0) - (second?.percent ?? 0)
+        let assign = (best?.percent ?? 0) >= matchFloor && margin >= minMargin
+        return Ranked(
+            identityId: assign ? best?.identityId : nil,
+            percent: best?.percent ?? 0,
+            margin: margin,
+            versus: versus
+        )
+    }
+
+    private static func toHit(_ strategy: StrategyID, _ ranked: Ranked) -> StrategyHit {
+        StrategyHit(
+            strategy: strategy,
+            identityId: ranked.identityId,
+            percent: ranked.percent,
+            margin: ranked.margin,
+            versus: ranked.versus
+        )
     }
 
     private static func vnToPixels(_ r: CGRect, width: Double, height: Double) -> FaceBox {
@@ -281,7 +317,13 @@ enum FaceEngine {
 
     private static func printPercent(_ a: Data, _ b: Data) -> Double {
         let d = printDistance(a, b)
-        return max(0, min(100, (1 - d / 22) * 100))
+        let t = 11.0
+        let k = 0.45
+        return 100.0 / (1.0 + exp(k * (d - t)))
+    }
+
+    private static func landmarkPercent(_ d: Double) -> Double {
+        100.0 / (1.0 + exp(28.0 * (d - 0.11)))
     }
 
     private static func averagePrint(_ faces: [FaceObservation]) -> Data {
@@ -315,10 +357,6 @@ enum FaceEngine {
         var s = 0.0
         for i in 0 ..< n { s += hypot(a[i].x - b[i].x, a[i].y - b[i].y) }
         return s / Double(n)
-    }
-
-    private static func landmarkPercent(_ d: Double) -> Double {
-        max(0, min(100, (1 - d / 0.55) * 100))
     }
 
     private static func assignTracks(faces: inout [FaceObservation], media: [MediaItem]) {

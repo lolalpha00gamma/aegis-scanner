@@ -30,6 +30,13 @@ final class LibraryStore: ObservableObject {
         return matches.first { $0.faceId == id }?.hits ?? []
     }
 
+    func selectMedia(_ id: UUID?) {
+        selectedMediaId = id
+        if let id, let face = faces.first(where: { $0.mediaId == id }) {
+            selectedFaceId = face.id
+        }
+    }
+
     func pickFolder() {
         let panel = NSOpenPanel()
         panel.canChooseDirectories = true

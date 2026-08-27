@@ -96,9 +96,9 @@ struct ContentView: View {
                     ForEach(store.media.filter { $0.kind != .frame }) { item in
                         Button {
                             if item.kind == .video {
-                                store.selectedMediaId = store.media.first { $0.parentId == item.id }?.id ?? item.id
+                                store.selectMedia(store.media.first { $0.parentId == item.id }?.id ?? item.id)
                             } else {
-                                store.selectedMediaId = item.id
+                                store.selectMedia(item.id)
                             }
                         } label: {
                             MediaThumb(item: item, frames: store.media.filter { $0.parentId == item.id })
@@ -123,7 +123,7 @@ struct ContentView: View {
                     HStack(spacing: 6) {
                         ForEach(frames) { frame in
                             Button {
-                                store.selectedMediaId = frame.id
+                                store.selectMedia(frame.id)
                             } label: {
                                 if let img = frame.preview {
                                     Image(nsImage: NSImage(cgImage: img, size: NSSize(width: img.width, height: img.height)))
@@ -163,7 +163,9 @@ struct ContentView: View {
                     .foregroundStyle(.secondary)
                 ForEach(StrategyID.allCases) { id in
                     let hit = store.selectedHits.first { $0.strategy == id }
-                    let name = store.identities.first { $0.id == hit?.identityId }?.name ?? "—"
+                    let assigned = store.identities.first { $0.id == hit?.identityId }?.name
+                    let guess = store.identities.first { $0.id == hit?.versus.first?.identityId }?.name
+                    let name = assigned ?? (guess.map { "\($0) · unsicher" } ?? "keine Zuordnung")
                     let pct = hit?.percent ?? 0
                     Button {
                         store.strategy = id
@@ -193,6 +195,29 @@ struct ContentView: View {
                 let aegis = store.selectedHits.first { $0.strategy == .aegis }?.percent ?? 0
                 let photos = store.selectedHits.first { $0.strategy == .photosStyle }?.percent ?? 0
                 let delta = aegis - photos
+                if let versus = store.selectedHits.first(where: { $0.strategy == store.strategy })?.versus, versus.count > 1 {
+                    let gap = (versus.first?.percent ?? 0) - (versus.dropFirst().first?.percent ?? 0)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("UNTERSCHEIDUNG")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .tracking(1.2)
+                        ForEach(versus, id: \.identityId) { row in
+                            let name = store.identities.first { $0.id == row.identityId }?.name ?? "—"
+                            HStack {
+                                Text(name)
+                                    .font(.caption)
+                                Spacer()
+                                Text(String(format: "%.0f%%", row.percent))
+                                    .font(.caption.monospacedDigit())
+                            }
+                        }
+                        Text(String(format: "Abstand %.1f Pkt", gap))
+                            .font(.caption.monospaced())
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.top, 6)
+                }
                 VStack(alignment: .leading, spacing: 4) {
                     Text("VORSPRUNG GEGEN FOTOS-STIL")
                         .font(.caption)

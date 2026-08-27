@@ -98,10 +98,19 @@ struct Identity: Identifiable, Hashable {
     var faceIds: [UUID]
 }
 
+struct IdentityScore: Hashable {
+    var identityId: UUID
+    var percent: Double
+    var distance: Double? = nil
+}
+
 struct StrategyHit: Hashable {
     var strategy: StrategyID
     var identityId: UUID?
     var percent: Double
+    var distance: Double? = nil
+    var margin: Double = 0
+    var versus: [IdentityScore] = []
 }
 
 struct MatchResult: Hashable {
