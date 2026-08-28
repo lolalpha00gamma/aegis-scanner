@@ -73,9 +73,9 @@ jobs:
           )"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" Aegis.dmg --clobber
-            gh release edit "$TAG" --title "$TITLE" --notes "$NOTES" --prerelease
+            gh release edit "$TAG" --title "$TITLE" --notes "$NOTES" --latest
           else
-            gh release create "$TAG" Aegis.dmg --title "$TITLE" --prerelease --notes "$NOTES"
+            gh release create "$TAG" Aegis.dmg --title "$TITLE" --latest --notes "$NOTES"
           fi
 
       - name: Put Aegis.dmg in Code tab
