@@ -1,12 +1,20 @@
 # Aegis
 
-Lokaler Image- & Video-Scanner für macOS. Extrahiert Frames, erkennt Gesichter und zeigt **Übereinstimmung in Prozent** für sieben Strategien — gebaut, um die konservative Apple-Fotos-Personenpipeline zu schlagen.
+Lokaler Image- & Video-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
 
-Alles läuft **offline auf dem Gerät**. Keine Cloud, keine Fotomediathek-API.
+## Image-Datei
 
-## Warum Aegis
+[**Aegis.dmg herunterladen**](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
 
-Apple Fotos ist präzise, aber konservativ: schlechte Qualität, starke Pose oder kleine Gesichter werden oft verworfen. Aegis macht das Gegenteil der harten Grenze:
+1. Image öffnen
+2. **Aegis** in den Ordner Programme ziehen
+3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
+
+macOS 14 Sonoma oder neuer. Die Datei ist ad-hoc signiert (kein Apple-Developer-Account) — deshalb der Rechtsklick beim ersten Start.
+
+## Was die App macht
+
+Ordner mit Fotos und Videos wählen. Aegis zieht Frames, erkennt Gesichter und zeigt Übereinstimmung in Prozent für sieben Strategien — offline auf dem Gerät.
 
 | Strategie | Signal |
 |---|---|
@@ -17,34 +25,6 @@ Apple Fotos ist präzise, aber konservativ: schlechte Qualität, starke Pose ode
 | **Temporal** | Qualitätsgewichteter Mittelwert über Video-Tracks |
 | **Feature Print** | `VNGenerateImageFeaturePrintRequest` auf ausgerichtetem Crop |
 | **Aegis Ensemble** | Fusion aller Signale |
-
-Der Vorsprung sitzt in drei Stellen: Video-Tracks statt Einzelbild, weiche Qualitätsgewichte statt Drop, Ensemble statt einem Embedding.
-
-## Voraussetzungen
-
-- macOS 14 Sonoma oder neuer
-- Xcode 15.4+
-
-## Start
-
-```bash
-git clone https://github.com/lolalpha00gamma/aegis-scanner.git
-cd aegis-scanner
-open macos/AegisScanner.xcodeproj
-```
-
-In Xcode: Team unter Signing wählen, dann **⌘R**.
-
-1. **Ordner** — Fotos und Videos (JPEG, HEIC, PNG, MP4, MOV)
-2. Aegis zieht Video-Frames und erkennt Gesichter
-3. Gesicht wählen → Namen eintragen → **Anlegen**
-4. Jede Strategie zeigt Prozent. Schwelle per Slider.
-
-CSV-Export über die Toolbar.
-
-## Web-Labor
-
-Dasselbe Experiment läuft im Browser mit FaceNet-128d (TinyFace + SSD + Landmark + Temporal + Ensemble), inklusive Labor-Datensatz.
 
 ## Lizenz
 

@@ -1,0 +1,63 @@
+name: Aegis.dmg
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Aegis.app
+        run: |
+          xcodebuild \
+            -project macos/AegisScanner.xcodeproj \
+            -scheme AegisScanner \
+            -configuration Release \
+            -derivedDataPath .derived \
+            ARCHS="arm64 x86_64" \
+            ONLY_ACTIVE_ARCH=NO \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            ENABLE_HARDENED_RUNTIME=NO \
+            CODE_SIGN_ENTITLEMENTS="" \
+            build
+
+      - name: Make disk image
+        run: |
+          APP=".derived/Build/Products/Release/Aegis.app"
+          test -d "$APP"
+          rm -rf dmgroot
+          mkdir dmgroot
+          cp -R "$APP" dmgroot/Aegis.app
+          codesign --force --deep --sign - dmgroot/Aegis.app || true
+          ln -s /Applications dmgroot/Applications
+          hdiutil create -volname Aegis -srcfolder dmgroot -ov -format UDZO Aegis.dmg
+          ls -lh Aegis.dmg
+
+      - name: Publish Aegis.dmg
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          NOTES="$(cat <<'EOF'
+          macOS-Image von Aegis — kein Xcode, kein Python, kein Browser.
+
+          1. Aegis.dmg öffnen
+          2. Aegis in den Ordner Programme ziehen
+          3. Beim ersten Start: Rechtsklick auf Aegis → Öffnen
+
+          Die Datei ist ad-hoc signiert (kein Apple-Developer-Account).
+          EOF
+          )"
+          if gh release view v1.0 >/dev/null 2>&1; then
+            gh release upload v1.0 Aegis.dmg --clobber
+          else
+            gh release create v1.0 Aegis.dmg --title "Aegis 1.0" --notes "$NOTES"
+          fi
