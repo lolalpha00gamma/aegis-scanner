@@ -112,15 +112,19 @@ final class LiveCapture: NSObject {
             queue: .main
         ) { [weak self] note in
             let err = (note.userInfo?[AVPlayerItemFailedToPlayToEndTimeErrorKey] as? Error)?.localizedDescription
-            self?.onError?(err ?? "Stream abgebrochen")
+            let capture = self
+            Task { @MainActor in
+                capture?.onError?(err ?? "Stream abgebrochen")
+            }
         }
     }
 
     private func startTimer() {
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 0.48, repeats: true) { [weak self] _ in
+            let capture = self
             Task { @MainActor in
-                self?.grab()
+                capture?.grab()
             }
         }
     }
@@ -128,12 +132,13 @@ final class LiveCapture: NSObject {
     private func grab() {
         if let snapshotURL {
             URLSession.shared.dataTask(with: bust(snapshotURL)) { [weak self] data, _, err in
+                let capture = self
                 if let err {
-                    Task { @MainActor in self?.onError?(err.localizedDescription) }
+                    Task { @MainActor in capture?.onError?(err.localizedDescription) }
                     return
                 }
                 guard let data, let image = cgImage(from: data) else { return }
-                Task { @MainActor in self?.onFrame?(image) }
+                Task { @MainActor in capture?.onFrame?(image) }
             }.resume()
             return
         }

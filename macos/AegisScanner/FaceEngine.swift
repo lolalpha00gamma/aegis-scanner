@@ -50,7 +50,6 @@ enum FaceEngine {
         let handler = VNImageRequestHandler(cgImage: image, orientation: .up, options: [:])
         let facesReq = VNDetectFaceRectanglesRequest()
         facesReq.revision = VNDetectFaceRectanglesRequestRevision3
-        facesReq.maximumObservations = 64
         let landReq = VNDetectFaceLandmarksRequest()
         let qualityReq = VNDetectFaceCaptureQualityRequest()
         try handler.perform([facesReq, landReq, qualityReq])
