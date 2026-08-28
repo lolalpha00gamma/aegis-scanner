@@ -1,16 +1,18 @@
 # Aegis
 
+**Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
+
+Direkt laden: [Aegis.dmg](https://github.com/lolalpha00gamma/aegis-scanner/raw/main/Aegis.dmg) · [Release v1.0](https://github.com/lolalpha00gamma/aegis-scanner/releases/download/v1.0/Aegis.dmg)
+
 Lokaler Image- & Video-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
 
-## Image-Datei
+## Installieren
 
-[**Aegis.dmg herunterladen**](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
-
-1. Image öffnen
+1. [`Aegis.dmg`](./Aegis.dmg) öffnen (Datei im Stammverzeichnis dieses Repos)
 2. **Aegis** in den Ordner Programme ziehen
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
-macOS 14 Sonoma oder neuer. Die Datei ist ad-hoc signiert (kein Apple-Developer-Account) — deshalb der Rechtsklick beim ersten Start.
+macOS 14 Sonoma oder neuer. Ad-hoc signiert — deshalb der Rechtsklick beim ersten Start.
 
 ## Was die App macht
 
