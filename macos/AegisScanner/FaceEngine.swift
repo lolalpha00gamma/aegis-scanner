@@ -3,10 +3,54 @@ import Foundation
 import Vision
 
 enum FaceEngine {
-    static func detect(in image: CGImage, mediaId: UUID) throws -> [FaceObservation] {
+    static func detect(in image: CGImage, mediaId: UUID, tiles: Bool = true) throws -> [FaceObservation] {
+        let w = Double(image.width)
+        let h = Double(image.height)
+        var out = try detectOnce(in: image, mediaId: mediaId, originX: 0, originY: 0, imageWidth: w, imageHeight: h)
+        let largest = out.map { max($0.box.width, $0.box.height) }.max() ?? 0
+        let covered = out.reduce(0.0) { $0 + $1.box.width * $1.box.height }
+        let coverage = covered / max(1, w * h)
+        let crowd = out.isEmpty || largest < min(w, h) * 0.22 || (coverage < 0.14 && max(w, h) >= 1000)
+        if tiles, crowd, max(image.width, image.height) >= 900 {
+            let tw = max(280, Int((w * 0.58).rounded()))
+            let th = max(280, Int((h * 0.58).rounded()))
+            let origins: [(Int, Int)] = [
+                (0, 0),
+                (max(0, image.width - tw), 0),
+                (0, max(0, image.height - th)),
+                (max(0, image.width - tw), max(0, image.height - th)),
+                (max(0, (image.width - tw) / 2), max(0, (image.height - th) / 2)),
+            ]
+            for (ox, oy) in origins {
+                let tileBox = FaceBox(x: Double(ox), y: Double(oy), width: Double(tw), height: Double(th))
+                guard let tile = crop(image, box: tileBox, pad: 0) else { continue }
+                let found = try detectOnce(
+                    in: tile,
+                    mediaId: mediaId,
+                    originX: Double(ox),
+                    originY: Double(oy),
+                    imageWidth: w,
+                    imageHeight: h
+                )
+                out.append(contentsOf: found)
+            }
+            out = nms(out, iouThresh: 0.4)
+        }
+        return out
+    }
+
+    private static func detectOnce(
+        in image: CGImage,
+        mediaId: UUID,
+        originX: Double,
+        originY: Double,
+        imageWidth: Double,
+        imageHeight: Double
+    ) throws -> [FaceObservation] {
         let handler = VNImageRequestHandler(cgImage: image, orientation: .up, options: [:])
         let facesReq = VNDetectFaceRectanglesRequest()
         facesReq.revision = VNDetectFaceRectanglesRequestRevision3
+        facesReq.maximumObservations = 64
         let landReq = VNDetectFaceLandmarksRequest()
         let qualityReq = VNDetectFaceCaptureQualityRequest()
         try handler.perform([facesReq, landReq, qualityReq])
@@ -18,22 +62,31 @@ enum FaceEngine {
         let w = Double(image.width)
         let h = Double(image.height)
 
-        for face in observations {
-            let box = vnToPixels(face.boundingBox, width: w, height: h)
+        for face in observations where face.confidence >= 0.15 {
+            var box = vnToPixels(face.boundingBox, width: w, height: h)
+            box = FaceBox(
+                x: box.x + originX,
+                y: box.y + originY,
+                width: box.width,
+                height: box.height
+            )
             let lm = landmarks.first { $0.uuid == face.uuid } ?? landmarks.first {
                 hypot($0.boundingBox.midX - face.boundingBox.midX, $0.boundingBox.midY - face.boundingBox.midY) < 0.04
             }
-            let points = extractPoints(lm, imageWidth: w, imageHeight: h)
+            var points = extractPoints(lm, imageWidth: w, imageHeight: h)
+            if originX != 0 || originY != 0 {
+                points = points.map { Point2(x: $0.x + originX, y: $0.y + originY) }
+            }
             let aligned = procrustes(points)
             let captureApple = Double(
                 (qualities.first { $0.uuid == face.uuid }?.faceCaptureQuality ??
                     qualities.first?.faceCaptureQuality ?? 0.5)
             )
             let frontal = frontalScore(points)
-            let size = min(1, (box.width * box.height) / max(1, w * h) / 0.12)
-            let sharpness = sharpnessScore(crop(image, box: box))
+            let size = min(1, (box.width * box.height) / max(1, imageWidth * imageHeight) / 0.12)
+            let sharpness = sharpnessScore(crop(image, box: vnToPixels(face.boundingBox, width: w, height: h)))
             let capture = clamp01(0.40 * captureApple + 0.22 * sharpness + 0.18 * size + 0.20 * frontal)
-            let printData = featurePrint(of: crop(image, box: box, pad: 0.18)) ?? Data()
+            let printData = featurePrint(of: crop(image, box: vnToPixels(face.boundingBox, width: w, height: h), pad: 0.18)) ?? Data()
 
             out.append(
                 FaceObservation(
@@ -50,6 +103,16 @@ enum FaceEngine {
             )
         }
         return out
+    }
+
+    private static func nms(_ faces: [FaceObservation], iouThresh: Double) -> [FaceObservation] {
+        let ranked = faces.sorted { $0.score > $1.score }
+        var kept: [FaceObservation] = []
+        for face in ranked {
+            if kept.contains(where: { iou($0.box, face.box) > iouThresh }) { continue }
+            kept.append(face)
+        }
+        return kept.sorted { $0.box.x + $0.box.y * 0.15 < $1.box.x + $1.box.y * 0.15 }
     }
 
     static func match(
@@ -129,19 +192,25 @@ enum FaceEngine {
                 hits.first { $0.strategy == s }?.versus.first { $0.identityId == id }?.percent ?? 0
             }
             let tdesc = face.trackId.flatMap { trackPrint[$0] }
+            let lowCapture = face.quality.capture < 0.35
             let ensemble = rank(models, minMargin: embedMargin) { m in
                 let id = m.identity.id
-                let embed = max(
-                    pctVs(.featurePrint, id),
-                    pctVs(.visionBox, id),
-                    pctVs(.temporal, id),
-                    pctVs(.photosStyle, id),
-                    pctVs(.qualityGate, id)
-                )
+                let embed: Double
+                if lowCapture {
+                    embed = max(pctVs(.qualityGate, id), pctVs(.photosStyle, id))
+                } else {
+                    embed = max(
+                        pctVs(.featurePrint, id),
+                        pctVs(.visionBox, id),
+                        pctVs(.temporal, id),
+                        pctVs(.photosStyle, id),
+                        pctVs(.qualityGate, id)
+                    )
+                }
                 let tP = pctVs(.temporal, id)
                 let geoP = pctVs(.landmarkGeo, id)
-                let trackBoost = tdesc != nil && tP > embed ? (tP - embed) * 0.4 : 0
-                let geoBonus = box.identityId == id && geoP >= 70 ? 1.5 : 0
+                let trackBoost = !lowCapture && tdesc != nil && tP > embed ? (tP - embed) * 0.4 : 0
+                let geoBonus = !lowCapture && box.identityId == id && geoP >= 70 ? 1.5 : 0
                 return min(99.6, embed + trackBoost + geoBonus)
             }
             hits.append(toHit(.aegis, ensemble))

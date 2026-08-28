@@ -15,13 +15,18 @@ struct ContentView: View {
                 .navigationSplitViewColumnWidth(min: 260, ideal: 300, max: 360)
         }
         .toolbar { toolbar }
-        .navigationTitle("Aegis")
+        .navigationTitle("Aegis \(AppVersion.display)")
     }
 
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
         ToolbarItemGroup(placement: .primaryAction) {
             Button("Ordner") { store.pickFolder() }
+            Button("Live") { store.startLiveFromField() }
+            Button("Webcam") { store.startWebcam() }
+            if store.liveActive {
+                Button("Stop") { store.stopLive() }
+            }
             Button("Erkennen") { Task { await store.scan() } }
                 .disabled(store.busy || store.media.isEmpty)
             Button("CSV") { store.exportCSV() }
@@ -38,6 +43,8 @@ struct ContentView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .tracking(1.4)
+            TextField("rtsp:// oder http://kamera/…", text: $store.liveURLText)
+                .textFieldStyle(.roundedBorder)
             HStack {
                 TextField("Name", text: $store.newPersonName)
                     .textFieldStyle(.roundedBorder)
@@ -77,7 +84,9 @@ struct ContentView: View {
                     FaceOverlay(
                         image: preview,
                         item: item,
-                        faces: store.faces.filter { $0.mediaId == item.id },
+                        faces: store.faces.filter { $0.mediaId == item.id }.sorted {
+                            $0.box.x + $0.box.y * 0.15 < $1.box.x + $1.box.y * 0.15
+                        },
                         store: store
                     )
                 } else if store.media.isEmpty {
@@ -89,6 +98,48 @@ struct ContentView: View {
                 } else {
                     ProgressView(store.status)
                 }
+            }
+            let onImage = store.faces.filter { $0.mediaId == store.selectedMediaId }.sorted {
+                $0.box.x + $0.box.y * 0.15 < $1.box.x + $1.box.y * 0.15
+            }
+            if !onImage.isEmpty {
+                Divider()
+                ScrollView(.horizontal) {
+                    HStack(spacing: 8) {
+                        ForEach(Array(onImage.enumerated()), id: \.element.id) { index, face in
+                            let hit = store.matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == store.strategy }
+                            let ident = store.identities.first { $0.id == hit?.identityId }
+                            let assigned = ident != nil && (hit?.percent ?? 0) >= store.threshold
+                            Button {
+                                store.selectedFaceId = face.id
+                            } label: {
+                                HStack(spacing: 8) {
+                                    Text("\(index + 1)")
+                                        .font(.caption.monospacedDigit())
+                                        .frame(width: 18)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(assigned ? (ident?.name ?? "offen") : "nicht zugeordnet")
+                                            .font(.caption)
+                                            .lineLimit(1)
+                                        Text(assigned ? String(format: "%.0f%%", hit?.percent ?? 0) : "kein Match")
+                                            .font(.caption2.monospacedDigit())
+                                            .foregroundStyle(assigned ? Color.primary : Color.secondary)
+                                    }
+                                }
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 6)
+                                .frame(minHeight: 44)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(store.selectedFaceId == face.id ? Color.primary : Color.secondary.opacity(0.3))
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(10)
+                }
+                .frame(height: 68)
             }
             Divider()
             ScrollView(.horizontal) {
@@ -151,21 +202,42 @@ struct ContentView: View {
     private var strategyList: some View {
         VStack(alignment: .leading, spacing: 10) {
             if let face = store.selectedFace {
-                Text("STRATEGIEN")
+                let hit = store.selectedHits.first { $0.strategy == store.strategy }
+                let assignedIdent = store.identities.first { $0.id == hit?.identityId }
+                let assignedPass = assignedIdent != nil && (hit?.percent ?? 0) >= store.threshold
+                Text(assignedPass ? "ZUGEORDNET" : "NICHT ZUGEORDNET")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .tracking(1.4)
+                Text(assignedPass ? (assignedIdent?.name ?? "") : "kein Match")
+                    .font(.title3)
+                if assignedPass {
+                    Text(String(format: "%.0f%%", hit?.percent ?? 0))
+                        .font(.body.monospacedDigit())
+                } else if let guess = store.identities.first(where: { $0.id == hit?.versus.first?.identityId }) {
+                    Text("Nähe \(guess.name) · unter Schwelle oder zu nah")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
                 Text(String(format: "Qualität %.0f%%  ·  Schärfe %.0f%%  ·  Frontal %.0f%%",
                             face.quality.capture * 100,
                             face.quality.sharpness * 100,
                             face.quality.frontal * 100))
                     .font(.caption.monospaced())
                     .foregroundStyle(.secondary)
+                Text("STRATEGIEN")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .tracking(1.4)
+                    .padding(.top, 4)
                 ForEach(StrategyID.allCases) { id in
                     let hit = store.selectedHits.first { $0.strategy == id }
                     let assigned = store.identities.first { $0.id == hit?.identityId }?.name
                     let guess = store.identities.first { $0.id == hit?.versus.first?.identityId }?.name
-                    let name = assigned ?? (guess.map { "\($0) · unsicher" } ?? "keine Zuordnung")
+                    let pass = assigned != nil && (hit?.percent ?? 0) >= store.threshold
+                    let name = pass
+                        ? (assigned ?? "")
+                        : (guess.map { "Nähe \($0) · nicht zugeordnet" } ?? "nicht zugeordnet")
                     let pct = hit?.percent ?? 0
                     Button {
                         store.strategy = id
@@ -174,11 +246,11 @@ struct ContentView: View {
                             HStack {
                                 Text(id.label)
                                 Spacer()
-                                Text(String(format: "%.0f%%", pct))
+                                Text(pass ? String(format: "%.0f%%", pct) : "kein Match")
                                     .font(.body.monospacedDigit())
-                                    .foregroundStyle(pct >= store.threshold ? Color.primary : Color.secondary)
+                                    .foregroundStyle(pass ? Color.primary : Color.secondary)
                             }
-                            ProgressView(value: min(100, pct), total: 100)
+                            ProgressView(value: min(100, pass ? pct : 0), total: 100)
                             Text(name)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
@@ -204,12 +276,15 @@ struct ContentView: View {
                             .tracking(1.2)
                         ForEach(versus, id: \.identityId) { row in
                             let name = store.identities.first { $0.id == row.identityId }?.name ?? "—"
+                            let isHit = assignedPass && row.identityId == hit?.identityId
                             HStack {
-                                Text(name)
+                                Text(isHit ? name : "\(name) · Nähe")
                                     .font(.caption)
+                                    .foregroundStyle(isHit ? Color.primary : Color.secondary)
                                 Spacer()
-                                Text(String(format: "%.0f%%", row.percent))
+                                Text(isHit ? String(format: "%.0f%%", row.percent) : "—")
                                     .font(.caption.monospacedDigit())
+                                    .foregroundStyle(isHit ? Color.primary : Color.secondary)
                             }
                         }
                         Text(String(format: "Abstand %.1f Pkt", gap))
@@ -259,24 +334,35 @@ struct FaceOverlay: View {
                     .interpolation(.high)
                     .frame(width: dw, height: dh)
                     .offset(x: ox, y: oy)
-                ForEach(faces) { face in
+                ForEach(Array(faces.enumerated()), id: \.element.id) { index, face in
                     let hit = store.matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == store.strategy }
                     let ident = store.identities.first { $0.id == hit?.identityId }
                     let pct = hit?.percent ?? 0
                     let pass = pct >= store.threshold && ident != nil
+                    let selected = store.selectedFaceId == face.id
                     Button {
                         store.selectedFaceId = face.id
                         store.selectedMediaId = item.id
                     } label: {
                         Rectangle()
-                            .stroke(store.selectedFaceId == face.id ? Color.white : (pass ? Color.green.opacity(0.85) : Color.white.opacity(0.45)), lineWidth: 1.5)
+                            .stroke(selected ? Color.white : (pass ? Color.green.opacity(0.85) : Color.white.opacity(0.45)), lineWidth: selected ? 2 : 1.5)
                             .overlay(alignment: .topLeading) {
-                                Text(ident != nil && pass ? "\(ident!.name) \(Int(pct))%" : "\(Int(pct))%")
-                                    .font(.caption2.monospaced())
-                                    .padding(.horizontal, 4)
+                                Text("\(index + 1)")
+                                    .font(.caption2.monospacedDigit())
+                                    .padding(.horizontal, 5)
                                     .padding(.vertical, 1)
-                                    .background(.black.opacity(0.55))
-                                    .offset(y: -16)
+                                    .background(.black.opacity(0.7))
+                                    .offset(x: -4, y: -10)
+                            }
+                            .overlay(alignment: .bottomLeading) {
+                                if selected {
+                                    Text(pass ? "\(ident!.name) \(Int(pct))%" : "nicht zugeordnet")
+                                        .font(.caption2.monospaced())
+                                        .padding(.horizontal, 4)
+                                        .padding(.vertical, 1)
+                                        .background(.black.opacity(0.7))
+                                        .offset(y: 16)
+                                }
                             }
                     }
                     .buttonStyle(.plain)

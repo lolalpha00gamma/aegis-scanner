@@ -16,6 +16,11 @@ final class LibraryStore: ObservableObject {
     @Published var status: String = "Bereit"
     @Published var busy = false
     @Published var newPersonName = ""
+    @Published var liveURLText = ""
+    @Published var liveActive = false
+
+    private let liveCapture = LiveCapture()
+    private var liveMediaId: UUID?
 
     var selectedMedia: MediaItem? {
         media.first { $0.id == selectedMediaId }
@@ -60,6 +65,7 @@ final class LibraryStore: ObservableObject {
     }
 
     func ingest(urls: [URL]) {
+        var skipped = 0
         for url in urls {
             if FrameExtractor.isVideo(url) {
                 media.append(
@@ -73,21 +79,32 @@ final class LibraryStore: ObservableObject {
                         duration: nil
                     )
                 )
-            } else if FrameExtractor.isImage(url), let image = FrameExtractor.loadCGImage(url: url) {
-                media.append(
-                    MediaItem(
-                        id: UUID(),
-                        url: url,
-                        name: url.lastPathComponent,
-                        kind: .photo,
-                        width: image.width,
-                        height: image.height,
-                        preview: image
+            } else if FrameExtractor.isImage(url) {
+                if let image = FrameExtractor.loadCGImage(url: url) {
+                    media.append(
+                        MediaItem(
+                            id: UUID(),
+                            url: url,
+                            name: url.lastPathComponent,
+                            kind: .photo,
+                            width: image.width,
+                            height: image.height,
+                            preview: image
+                        )
                     )
-                )
+                } else {
+                    skipped += 1
+                }
+            } else {
+                skipped += 1
             }
         }
         selectedMediaId = media.first { $0.kind == .photo }?.id ?? media.first?.id
+        if media.isEmpty {
+            status = skipped > 0 ? "\(skipped) Dateien unlesbar" : "Keine Medien"
+        } else if skipped > 0 {
+            status = "\(media.count) geladen, \(skipped) übersprungen"
+        }
     }
 
     func scan() async {
@@ -98,21 +115,30 @@ final class LibraryStore: ObservableObject {
             let haveFrames = Set(media.compactMap { $0.parentId })
             for video in videos where !haveFrames.contains(video.id) {
                 status = "Video · \(video.name)"
-                let frames = try await FrameExtractor.extract(from: video.url)
-                for frame in frames {
-                    media.append(
-                        MediaItem(
-                            id: UUID(),
-                            url: video.url,
-                            name: String(format: "%@ · %.2fs", video.name, frame.time),
-                            kind: .frame,
-                            width: frame.image.width,
-                            height: frame.image.height,
-                            parentId: video.id,
-                            timeSec: frame.time,
-                            preview: frame.image
+                do {
+                    let frames = try await FrameExtractor.extract(from: video.url)
+                    if frames.isEmpty {
+                        status = "\(video.name): keine Frames"
+                        continue
+                    }
+                    for frame in frames {
+                        media.append(
+                            MediaItem(
+                                id: UUID(),
+                                url: video.url,
+                                name: String(format: "%@ · %.2fs", video.name, frame.time),
+                                kind: .frame,
+                                width: frame.image.width,
+                                height: frame.image.height,
+                                parentId: video.id,
+                                timeSec: frame.time,
+                                preview: frame.image
+                            )
                         )
-                    )
+                    }
+                } catch {
+                    status = "\(video.name): \(error.localizedDescription)"
+                    continue
                 }
             }
             let pending = media.filter { item in
@@ -167,6 +193,83 @@ final class LibraryStore: ObservableObject {
     func removeIdentity(_ id: UUID) {
         identities.removeAll { $0.id == id }
         rematch()
+    }
+
+    func startLiveFromField() {
+        let raw = liveURLText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let parsed = sniffLiveKind(raw) else {
+            status = "Keine gültige Kamera-Adresse"
+            return
+        }
+        startLive(url: parsed.1, kind: parsed.0, name: parsed.1.host ?? "Kamera")
+    }
+
+    func startWebcam() {
+        startLive(url: URL(string: "webcam://local")!, kind: .webcam, name: "Webcam")
+    }
+
+    func stopLive() {
+        liveCapture.stop()
+        liveActive = false
+        if let id = liveMediaId {
+            faces.removeAll { $0.mediaId == id }
+            media.removeAll { $0.id == id }
+            liveMediaId = nil
+            selectedMediaId = media.first?.id
+            rematch()
+        }
+        status = "Live beendet"
+    }
+
+    private func startLive(url: URL, kind: LiveKind, name: String) {
+        stopLive()
+        let id = UUID()
+        liveMediaId = id
+        media.append(
+            MediaItem(
+                id: id,
+                url: url,
+                name: name,
+                kind: .live,
+                width: 1280,
+                height: 720
+            )
+        )
+        selectedMediaId = id
+        liveActive = true
+        status = "Live · verbindet"
+        liveCapture.onReady = { [weak self] in
+            self?.status = "Live"
+        }
+        liveCapture.onError = { [weak self] msg in
+            self?.status = msg
+            self?.liveActive = false
+        }
+        liveCapture.onFrame = { [weak self] image in
+            self?.ingestLiveFrame(image, mediaId: id)
+        }
+        liveCapture.start(url: url, kind: kind)
+    }
+
+    private func ingestLiveFrame(_ image: CGImage, mediaId: UUID) {
+        if busy { return }
+        guard let idx = media.firstIndex(where: { $0.id == mediaId }) else { return }
+        media[idx].width = image.width
+        media[idx].height = image.height
+        media[idx].preview = image
+        do {
+            let found = try FaceEngine.detect(in: image, mediaId: mediaId, tiles: false)
+            let enrolled = Set(identities.flatMap(\.faceIds))
+            let pinned = faces.filter { $0.mediaId == mediaId && enrolled.contains($0.id) }
+            faces.removeAll { $0.mediaId == mediaId }
+            faces.append(contentsOf: pinned + found)
+            if selectedMediaId == mediaId {
+                selectedFaceId = found.first?.id ?? pinned.first?.id
+            }
+            rematch()
+        } catch {
+            status = error.localizedDescription
+        }
     }
 
     func exportCSV() {

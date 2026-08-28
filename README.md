@@ -1,10 +1,12 @@
-# Aegis
+# Aegis **1.0.3 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
-Direkt laden: [Aegis.dmg](https://github.com/lolalpha00gamma/aegis-scanner/raw/main/Aegis.dmg) · [Release v1.0](https://github.com/lolalpha00gamma/aegis-scanner/releases/download/v1.0/Aegis.dmg)
+Direkt laden:
+- [Aegis.dmg (Code)](https://github.com/lolalpha00gamma/aegis-scanner/raw/main/Aegis.dmg)
+- [Release 1.0.3 alpha](https://github.com/lolalpha00gamma/aegis-scanner/releases/tag/v1.0.3-alpha)
 
-Lokaler Image- & Video-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
+Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
 
 ## Installieren
 
@@ -16,7 +18,7 @@ macOS 14 Sonoma oder neuer. Ad-hoc signiert — deshalb der Rechtsklick beim ers
 
 ## Was die App macht
 
-Ordner mit Fotos und Videos wählen. Aegis zieht Frames, erkennt Gesichter und zeigt Übereinstimmung in Prozent für sieben Strategien — offline auf dem Gerät.
+Ordner mit Fotos und Videos wählen, oder einen Live-Stream (Webcam, RTSP, HLS, MJPEG, Snapshot) einspeisen. Aegis zieht Frames, erkennt Gesichter und zeigt Übereinstimmung in Prozent für sieben Strategien — offline auf dem Gerät.
 
 | Strategie | Signal |
 |---|---|

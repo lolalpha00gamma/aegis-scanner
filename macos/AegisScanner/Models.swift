@@ -1,6 +1,12 @@
 import CoreGraphics
 import Foundation
 
+enum AppVersion {
+    static let marketing = "1.0.3"
+    static let channel = "alpha"
+    static let display = "1.0.3 alpha"
+}
+
 enum StrategyID: String, CaseIterable, Identifiable, Codable {
     case photosStyle
     case visionBox
@@ -76,7 +82,7 @@ struct MediaItem: Identifiable, Hashable {
     var preview: CGImage?
 
     enum Kind: String, Hashable {
-        case photo, video, frame
+        case photo, video, frame, live
     }
 }
 

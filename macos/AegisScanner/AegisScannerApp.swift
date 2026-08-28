@@ -17,6 +17,13 @@ struct AegisScannerApp: App {
                     store.pickFolder()
                 }
                 .keyboardShortcut("o", modifiers: [.command])
+                Button("Live-Stream…") {
+                    store.startLiveFromField()
+                }
+                .keyboardShortcut("l", modifiers: [.command])
+                Button("Webcam") {
+                    store.startWebcam()
+                }
                 Button("Erkennen") {
                     Task { await store.scan() }
                 }

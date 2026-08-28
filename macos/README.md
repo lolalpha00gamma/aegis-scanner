@@ -1,6 +1,7 @@
 # Aegis
 
-Lokaler Image- & Video-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
+Lokaler Image- & Video-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**  
+Version **1.0.3 alpha**.
 
 ## Image-Datei
 
@@ -14,7 +15,7 @@ macOS 14 Sonoma oder neuer. Die Datei ist ad-hoc signiert (kein Apple-Developer-
 
 ## Was die App macht
 
-Ordner mit Fotos und Videos wählen. Aegis zieht Frames, erkennt Gesichter und zeigt Übereinstimmung in Prozent für sieben Strategien — offline auf dem Gerät.
+Ordner mit Fotos und Videos wählen, oder einen Live-Stream (Webcam, RTSP, HLS, MJPEG, Snapshot) einspeisen. Aegis zieht Frames, erkennt Gesichter und zeigt Übereinstimmung in Prozent für sieben Strategien — offline auf dem Gerät.
 
 | Strategie | Signal |
 |---|---|
