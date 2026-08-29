@@ -87,6 +87,14 @@ enum FaceEngine {
             let capture = clamp01(0.40 * captureApple + 0.22 * sharpness + 0.18 * size + 0.20 * frontal)
             let inner = crop(image, box: vnToPixels(face.boundingBox, width: w, height: h), pad: 0.04)
             let printData = featurePrint(of: crop(image, box: vnToPixels(face.boundingBox, width: w, height: h), pad: 0.18)) ?? Data()
+            let leftEye = regionCenter(lm?.landmarks?.leftEye, box: face.boundingBox, imageWidth: w, imageHeight: h)
+            let rightEye = regionCenter(lm?.landmarks?.rightEye, box: face.boundingBox, imageWidth: w, imageHeight: h)
+            let appearance: [Double]
+            if let leftEye, let rightEye, let warped = warpEyes(image, left: leftEye, right: rightEye) {
+                appearance = appearanceVector(of: warped)
+            } else {
+                appearance = appearanceVector(of: inner)
+            }
 
             out.append(
                 FaceObservation(
@@ -97,7 +105,7 @@ enum FaceEngine {
                     landmarks: points,
                     aligned: aligned,
                     featurePrint: printData,
-                    appearance: appearanceVector(of: inner),
+                    appearance: appearance,
                     quality: FaceQuality(sharpness: sharpness, size: size, frontal: frontal, capture: capture),
                     trackId: nil
                 )
@@ -251,6 +259,7 @@ enum FaceEngine {
             let geoRanked = models.map { (id: $0.identity.id, p: geoMixOf($0.identity.id)) }
                 .sorted { $0.p > $1.p }
             let appearanceBest = pctVs(.texture, ensemble.versus.first?.identityId ?? UUID())
+            let others = ensemble.versus.dropFirst().map(\.percent)
             let decided = decide(
                 percent: ensemble.percent,
                 margin: ensemble.margin,
@@ -261,7 +270,8 @@ enum FaceEngine {
                 geoMargin: (geoRanked.first?.p ?? 0) - (geoRanked.dropFirst().first?.p ?? 0),
                 lowCapture: lowCapture,
                 appearance: face.appearance.isEmpty ? nil : appearanceBest,
-                geoMix: geoRanked.first?.p ?? 0
+                geoMix: geoRanked.first?.p ?? 0,
+                galleryZ: galleryZScore(ensemble.percent, Array(others))
             )
             var aegis = ensemble
             aegis.identityId = decided.id
@@ -296,6 +306,7 @@ enum FaceEngine {
     private static let embedMargin = 12.0
     private static let landmarkMargin = 14.0
     private static let appearanceFloor = 70.0
+    private static let zFloor = 1.5
 
     private struct IdentityModel {
         var identity: Identity
@@ -383,7 +394,8 @@ enum FaceEngine {
         geoMargin: Double,
         lowCapture: Bool,
         appearance: Double?,
-        geoMix: Double
+        geoMix: Double,
+        galleryZ: Double
     ) -> (id: UUID?, note: String) {
         let best = bestName ?? "Beste"
         let second = secondName ?? "Zweite"
@@ -403,6 +415,9 @@ enum FaceEngine {
         }
         if percent < matchFloor {
             return (nil, String(format: "Beste Nähe %.0f%% liegt unter %.0f%%. Nicht zugeordnet.", percent, matchFloor))
+        }
+        if galleryZ < zFloor && percent < 96 {
+            return (nil, String(format: "Kein Ausreißer in der Galerie (z=%.1f). Alle Personen ähnlich nah — nicht zugeordnet.", galleryZ))
         }
         if hasAppearance && appear < appearanceFloor {
             return (nil, String(format: "Aussehen passt nicht (%.0f%%). %@ %.0f%% — nicht zugeordnet.", appear, best, percent))
@@ -611,6 +626,66 @@ enum FaceEngine {
         let norm = sqrt(out.reduce(0) { $0 + $1 * $1 })
         let n = max(norm, 1e-9)
         return out.map { $0 / n }
+    }
+
+    private static func galleryZScore(_ best: Double, _ others: [Double]) -> Double {
+        guard !others.isEmpty else { return 99 }
+        let mean = others.reduce(0, +) / Double(others.count)
+        let v = others.reduce(0.0) { $0 + ($1 - mean) * ($1 - mean) } / Double(others.count)
+        let denom = max(sqrt(v), 6)
+        return (best - mean) / denom
+    }
+
+    private static func regionCenter(
+        _ region: VNFaceLandmarkRegion2D?,
+        box: CGRect,
+        imageWidth: Double,
+        imageHeight: Double
+    ) -> Point2? {
+        guard let region, region.pointCount > 0 else { return nil }
+        var x = 0.0
+        var y = 0.0
+        for i in 0 ..< region.pointCount {
+            let p = region.normalizedPoints[i]
+            x += Double(p.x)
+            y += Double(p.y)
+        }
+        x /= Double(region.pointCount)
+        y /= Double(region.pointCount)
+        let px = (Double(box.origin.x) + x * Double(box.width)) * imageWidth
+        let py = (1 - (Double(box.origin.y) + y * Double(box.height))) * imageHeight
+        return Point2(x: px, y: py)
+    }
+
+    private static func warpEyes(_ image: CGImage, left: Point2, right: Point2) -> CGImage? {
+        let size = 64
+        guard let ctx = CGContext(
+            data: nil,
+            width: size,
+            height: size,
+            bitsPerComponent: 8,
+            bytesPerRow: size * 4,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
+        let dx = right.x - left.x
+        let dy = right.y - left.y
+        let dist = max(hypot(dx, dy), 1e-6)
+        let s = 32 / dist
+        let ang = -atan2(dy, dx)
+        let cosA = cos(ang)
+        let sinA = sin(ang)
+        let a = s * cosA
+        let b = s * sinA
+        let c = -s * sinA
+        let d = s * cosA
+        let cx = (left.x + right.x) / 2
+        let cy = (left.y + right.y) / 2
+        let e = 32 - a * cx - c * cy
+        let f = 24 - b * cx - d * cy
+        ctx.concatenate(CGAffineTransform(a: a, b: b, c: c, d: d, tx: e, ty: f))
+        ctx.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+        return ctx.makeImage()
     }
 
     private static func measures(_ pts: [Point2]) -> (ratios: [Double], shape: [Double], eyes: [Double], midface: [Double], jaw: [Double]) {
