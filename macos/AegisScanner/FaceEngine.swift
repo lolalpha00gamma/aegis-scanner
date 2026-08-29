@@ -73,6 +73,7 @@ enum FaceEngine {
                 hypot($0.boundingBox.midX - face.boundingBox.midX, $0.boundingBox.midY - face.boundingBox.midY) < 0.04
             }
             var strokes = extractStrokes(lm, imageWidth: w, imageHeight: h)
+
             if originX != 0 || originY != 0 {
                 strokes = strokes.map { stroke in
                     LandmarkStroke(
@@ -518,6 +519,7 @@ enum FaceEngine {
         return best
     }
 
+    /// Vision face boxes: origin lower-left of the image, normalized 0…1.
     private static func vnToPixels(_ r: CGRect, width: Double, height: Double) -> FaceBox {
         FaceBox(
             x: r.origin.x * width,
@@ -527,12 +529,22 @@ enum FaceEngine {
         )
     }
 
+    /// VNFaceLandmarkRegion2D.normalizedPoints are relative to the *face box*,
+    /// origin lower-left of that box — not the full image.
+    private static func landmarkToPixels(_ p: CGPoint, box: CGRect, imageWidth: Double, imageHeight: Double) -> Point2 {
+        Point2(
+            x: (Double(box.origin.x) + Double(p.x) * Double(box.width)) * imageWidth,
+            y: (1 - Double(box.origin.y) - Double(p.y) * Double(box.height)) * imageHeight
+        )
+    }
+
     private static func extractPoints(_ obs: VNFaceObservation?, imageWidth: Double, imageHeight: Double) -> [Point2] {
         extractStrokes(obs, imageWidth: imageWidth, imageHeight: imageHeight).flatMap(\.points)
     }
 
     private static func extractStrokes(_ obs: VNFaceObservation?, imageWidth: Double, imageHeight: Double) -> [LandmarkStroke] {
-        guard let lm = obs?.landmarks else { return [] }
+        guard let obs, let lm = obs.landmarks else { return [] }
+        let box = obs.boundingBox
         let regions: [(String, VNFaceLandmarkRegion2D?, Bool)] = [
             ("Kontur", lm.faceContour, false),
             ("Braue L", lm.leftEyebrow, false),
@@ -549,8 +561,7 @@ enum FaceEngine {
             guard let region, region.pointCount >= 2 else { continue }
             var pts: [Point2] = []
             for i in 0 ..< region.pointCount {
-                let p = region.normalizedPoints[i]
-                pts.append(Point2(x: Double(p.x) * imageWidth, y: (1 - Double(p.y)) * imageHeight))
+                pts.append(landmarkToPixels(region.normalizedPoints[i], box: box, imageWidth: imageWidth, imageHeight: imageHeight))
             }
             if closed, let first = pts.first { pts.append(first) }
             strokes.append(LandmarkStroke(label: label, closed: closed, points: pts))
@@ -749,9 +760,7 @@ enum FaceEngine {
         }
         x /= Double(region.pointCount)
         y /= Double(region.pointCount)
-        let px = (Double(box.origin.x) + x * Double(box.width)) * imageWidth
-        let py = (1 - (Double(box.origin.y) + y * Double(box.height))) * imageHeight
-        return Point2(x: px, y: py)
+        return landmarkToPixels(CGPoint(x: x, y: y), box: box, imageWidth: imageWidth, imageHeight: imageHeight)
     }
 
     private static func warpEyes(_ image: CGImage, left: Point2, right: Point2) -> CGImage? {

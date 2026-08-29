@@ -1,7 +1,7 @@
 # Aegis
 
 Lokaler Image- & Video-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**  
-Version **1.0.11 alpha**.
+Version **1.0.12 alpha**.
 
 ## Image-Datei
 
@@ -12,6 +12,10 @@ Version **1.0.11 alpha**.
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Die Datei ist ad-hoc signiert (kein Apple-Developer-Account) — deshalb der Rechtsklick beim ersten Start.
+
+## Neu in 1.0.12 alpha
+
+Anatomie-Overlay sitzt auf Augen, Nase und Mund. Vision-Punkte liegen in der Face-Box, nicht im ganzen Bild — der Fehler, der Augen auf die Stirn gelegt hat.
 
 ## Neu in 1.0.11 alpha
 
