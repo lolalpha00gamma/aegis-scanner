@@ -2,15 +2,17 @@ import CoreGraphics
 import Foundation
 
 enum AppVersion {
-    static let marketing = "1.0.3"
+    static let marketing = "1.0.4"
     static let channel = "alpha"
-    static let display = "1.0.3 alpha"
+    static let display = "1.0.4 alpha"
 }
 
 enum StrategyID: String, CaseIterable, Identifiable, Codable {
     case photosStyle
     case visionBox
     case landmarkGeo
+    case ratios
+    case faceShape
     case qualityGate
     case temporal
     case featurePrint
@@ -23,6 +25,8 @@ enum StrategyID: String, CaseIterable, Identifiable, Codable {
         case .photosStyle: return "Fotos-Stil"
         case .visionBox: return "Vision Box"
         case .landmarkGeo: return "Landmark-Geometrie"
+        case .ratios: return "Gesichtsmaße"
+        case .faceShape: return "Gesichtsform"
         case .qualityGate: return "Quality-Gate"
         case .temporal: return "Temporal"
         case .featurePrint: return "Feature Print"
@@ -38,6 +42,10 @@ enum StrategyID: String, CaseIterable, Identifiable, Codable {
             return "Vision-Detektor (Revision 3) plus Feature Print auf dem Zuschnitt."
         case .landmarkGeo:
             return "Landmark-Form, Procrustes-normalisiert. Lichtunabhängig."
+        case .ratios:
+            return "Nasenhöhe zu Augen, Augenbreite, Mund — trennt ähnliche Gesichter."
+        case .faceShape:
+            return "Kiefer, Wangen, Aspekt, Kinn. Unabhängig vom Feature Print."
         case .qualityGate:
             return "Feature Print, gewichtet mit VNFaceCaptureQuality statt Verwerfung."
         case .temporal:

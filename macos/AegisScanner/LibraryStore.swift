@@ -176,6 +176,18 @@ final class LibraryStore: ObservableObject {
         guard let face = selectedFace else { return }
         let name = newPersonName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else { return }
+        if let clash = identities.first(where: { id in
+            id.faceIds.contains(where: { fid in
+                guard let owned = faces.first(where: { $0.id == fid }) else { return false }
+                if owned.id == face.id { return true }
+                return FaceEngine.boxesOverlap(owned.box, face.box)
+            })
+        }) {
+            addSelectedTo(clash.id)
+            status = "Dieses Gesicht gehört schon zu \(clash.name)"
+            newPersonName = ""
+            return
+        }
         identities.append(Identity(id: UUID(), name: name, faceIds: [face.id]))
         newPersonName = ""
         rematch()

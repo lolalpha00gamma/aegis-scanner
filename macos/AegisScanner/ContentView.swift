@@ -108,8 +108,9 @@ struct ContentView: View {
                     HStack(spacing: 8) {
                         ForEach(Array(onImage.enumerated()), id: \.element.id) { index, face in
                             let hit = store.matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == store.strategy }
-                            let ident = store.identities.first { $0.id == hit?.identityId }
-                            let assigned = ident != nil && (hit?.percent ?? 0) >= store.threshold
+                            let owner = store.identities.first { $0.faceIds.contains(face.id) }
+                            let ident = owner ?? store.identities.first { $0.id == hit?.identityId }
+                            let assigned = ident != nil && (owner != nil || (hit?.percent ?? 0) >= store.threshold)
                             Button {
                                 store.selectedFaceId = face.id
                             } label: {
@@ -121,7 +122,7 @@ struct ContentView: View {
                                         Text(assigned ? (ident?.name ?? "offen") : "nicht zugeordnet")
                                             .font(.caption)
                                             .lineLimit(1)
-                                        Text(assigned ? String(format: "%.0f%%", hit?.percent ?? 0) : "kein Match")
+                                        Text(String(format: "%.0f%%", hit?.percent ?? 0))
                                             .font(.caption2.monospacedDigit())
                                             .foregroundStyle(assigned ? Color.primary : Color.secondary)
                                     }
@@ -203,19 +204,19 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 10) {
             if let face = store.selectedFace {
                 let hit = store.selectedHits.first { $0.strategy == store.strategy }
-                let assignedIdent = store.identities.first { $0.id == hit?.identityId }
-                let assignedPass = assignedIdent != nil && (hit?.percent ?? 0) >= store.threshold
-                Text(assignedPass ? "ZUGEORDNET" : "NICHT ZUGEORDNET")
+                let owner = store.identities.first { $0.faceIds.contains(face.id) }
+                let assignedIdent = owner ?? store.identities.first { $0.id == hit?.identityId }
+                let assignedPass = assignedIdent != nil && (owner != nil || (hit?.percent ?? 0) >= store.threshold)
+                Text(owner != nil ? "REFERENZ" : (assignedPass ? "ZUGEORDNET" : "NICHT ZUGEORDNET"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .tracking(1.4)
                 Text(assignedPass ? (assignedIdent?.name ?? "") : "kein Match")
                     .font(.title3)
-                if assignedPass {
-                    Text(String(format: "%.0f%%", hit?.percent ?? 0))
-                        .font(.body.monospacedDigit())
-                } else if let guess = store.identities.first(where: { $0.id == hit?.versus.first?.identityId }) {
-                    Text("Nähe \(guess.name) · unter Schwelle oder zu nah")
+                Text(String(format: "%.0f%%", hit?.percent ?? 0))
+                    .font(.body.monospacedDigit())
+                if !assignedPass, let guess = store.identities.first(where: { $0.id == hit?.versus.first?.identityId }) {
+                    Text("Nähe \(guess.name) · Prozent bleibt sichtbar")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -246,11 +247,11 @@ struct ContentView: View {
                             HStack {
                                 Text(id.label)
                                 Spacer()
-                                Text(pass ? String(format: "%.0f%%", pct) : "kein Match")
+                                Text(String(format: "%.0f%%", pct))
                                     .font(.body.monospacedDigit())
                                     .foregroundStyle(pass ? Color.primary : Color.secondary)
                             }
-                            ProgressView(value: min(100, pass ? pct : 0), total: 100)
+                            ProgressView(value: min(100, pct), total: 100)
                             Text(name)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
@@ -282,7 +283,7 @@ struct ContentView: View {
                                     .font(.caption)
                                     .foregroundStyle(isHit ? Color.primary : Color.secondary)
                                 Spacer()
-                                Text(isHit ? String(format: "%.0f%%", row.percent) : "—")
+                                Text(String(format: "%.0f%%", row.percent))
                                     .font(.caption.monospacedDigit())
                                     .foregroundStyle(isHit ? Color.primary : Color.secondary)
                             }

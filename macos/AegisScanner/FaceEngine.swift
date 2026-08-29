@@ -34,9 +34,9 @@ enum FaceEngine {
                 )
                 out.append(contentsOf: found)
             }
-            out = nms(out, iouThresh: 0.4)
+            out = nms(out)
         }
-        return out
+        return nms(out)
     }
 
     private static func detectOnce(
@@ -104,14 +104,35 @@ enum FaceEngine {
         return out
     }
 
-    private static func nms(_ faces: [FaceObservation], iouThresh: Double) -> [FaceObservation] {
+    private static func nms(_ faces: [FaceObservation], iouThresh: Double = 0.28) -> [FaceObservation] {
         let ranked = faces.sorted { $0.score > $1.score }
         var kept: [FaceObservation] = []
         for face in ranked {
-            if kept.contains(where: { iou($0.box, face.box) > iouThresh }) { continue }
+            if kept.contains(where: { samePerson($0.box, face.box) }) { continue }
             kept.append(face)
         }
         return kept.sorted { $0.box.x + $0.box.y * 0.15 < $1.box.x + $1.box.y * 0.15 }
+    }
+
+    private static func samePerson(_ a: FaceBox, _ b: FaceBox) -> Bool {
+        if iou(a, b) >= 0.28 { return true }
+        let x1 = max(a.x, b.x)
+        let y1 = max(a.y, b.y)
+        let x2 = min(a.x + a.width, b.x + b.width)
+        let y2 = min(a.y + a.height, b.y + b.height)
+        let inter = max(0, x2 - x1) * max(0, y2 - y1)
+        let smaller = min(a.width * a.height, b.width * b.height)
+        if smaller > 1, inter / smaller >= 0.55 { return true }
+        let acx = a.x + a.width / 2
+        let acy = a.y + a.height / 2
+        let bcx = b.x + b.width / 2
+        let bcy = b.y + b.height / 2
+        let diag = max(hypot(a.width, a.height), hypot(b.width, b.height))
+        return hypot(acx - bcx, acy - bcy) < 0.32 * diag
+    }
+
+    static func boxesOverlap(_ a: FaceBox, _ b: FaceBox) -> Bool {
+        samePerson(a, b)
     }
 
     static func match(
@@ -132,7 +153,9 @@ enum FaceEngine {
                 meanLandmarks: averageLandmarks(owned.map(\.aligned), owned.map { 0.2 + $0.quality.frontal }),
                 temporal: owned.filter { face in
                     media.first { $0.id == face.mediaId }?.kind == .frame
-                }
+                },
+                ratios: averageVec(owned.compactMap { measures($0.aligned).ratios }),
+                shape: averageVec(owned.compactMap { measures($0.aligned).shape })
             )
         }
 
@@ -166,6 +189,16 @@ enum FaceEngine {
                 landmarkPercent(distance(face.aligned, m.meanLandmarks))
             }
             hits.append(toHit(.landmarkGeo, geo))
+
+            let probeM = measures(face.aligned)
+            let ratioHit = rank(models, minMargin: landmarkMargin) { m in
+                measuresPercent(vecDistance(probeM.ratios, m.ratios))
+            }
+            hits.append(toHit(.ratios, ratioHit))
+            let shapeHit = rank(models, minMargin: landmarkMargin) { m in
+                measuresPercent(vecDistance(probeM.shape, m.shape))
+            }
+            hits.append(toHit(.faceShape, shapeHit))
 
             let gated = rank(models, minMargin: embedMargin) { m in
                 guard let g = m.meanPrint.first ?? m.photos else { return 0 }
@@ -207,12 +240,32 @@ enum FaceEngine {
                     )
                 }
                 let tP = pctVs(.temporal, id)
-                let geoP = pctVs(.landmarkGeo, id)
-                let trackBoost = !lowCapture && tdesc != nil && tP > embed ? (tP - embed) * 0.4 : 0
-                let geoBonus = !lowCapture && box.identityId == id && geoP >= 70 ? 1.5 : 0
-                return min(99.6, embed + trackBoost + geoBonus)
+                let geoMix = 0.4 * pctVs(.landmarkGeo, id) + 0.35 * pctVs(.ratios, id) + 0.25 * pctVs(.faceShape, id)
+                if lowCapture { return min(99.6, embed) }
+                let trackBoost = tdesc != nil && tP > embed ? (tP - embed) * 0.35 : 0
+                let agree = geoMix >= 70 && embed >= matchFloor ? 2.2 : 0
+                let disagree = embed >= matchFloor && geoMix < 45 ? 3.0 : 0
+                return min(99.6, 0.72 * embed + 0.28 * geoMix + trackBoost + agree - disagree)
             }
             hits.append(toHit(.aegis, ensemble))
+            if let owner = identities.first(where: { $0.faceIds.contains(face.id) }) {
+                hits = hits.map { h in
+                    let selfP = max(h.versus.first { $0.identityId == owner.id }?.percent ?? 0, 96)
+                    var versus = h.versus.map { v in
+                        v.identityId == owner.id ? IdentityScore(identityId: v.identityId, percent: selfP, distance: v.distance) : v
+                    }
+                    versus.sort { $0.percent > $1.percent }
+                    let second = versus.first { $0.identityId != owner.id }?.percent ?? 0
+                    return StrategyHit(
+                        strategy: h.strategy,
+                        identityId: owner.id,
+                        percent: selfP,
+                        distance: h.distance,
+                        margin: selfP - second,
+                        versus: versus
+                    )
+                }
+            }
             return MatchResult(faceId: face.id, hits: hits)
         }
     }
@@ -229,6 +282,8 @@ enum FaceEngine {
         var meanPrint: [FaceObservation]
         var meanLandmarks: [Point2]
         var temporal: [FaceObservation]
+        var ratios: [Double]
+        var shape: [Double]
     }
 
     private struct Ranked {
@@ -248,7 +303,8 @@ enum FaceEngine {
         let best = versus.first
         let second = versus.dropFirst().first
         let margin = (best?.percent ?? 0) - (second?.percent ?? 0)
-        let assign = (best?.percent ?? 0) >= matchFloor && margin >= minMargin
+        let strong = (best?.percent ?? 0) >= 90 && margin >= 4
+        let assign = (best?.percent ?? 0) >= matchFloor && (margin >= minMargin || strong)
         return Ranked(
             identityId: assign ? best?.identityId : nil,
             percent: best?.percent ?? 0,
@@ -392,6 +448,76 @@ enum FaceEngine {
 
     private static func landmarkPercent(_ d: Double) -> Double {
         100.0 / (1.0 + exp(28.0 * (d - 0.11)))
+    }
+
+    private static func measuresPercent(_ d: Double) -> Double {
+        100.0 / (1.0 + exp(42.0 * (d - 0.085)))
+    }
+
+    private static func measures(_ pts: [Point2]) -> (ratios: [Double], shape: [Double]) {
+        guard pts.count >= 4 else { return ([], []) }
+        let xs = pts.map(\.x)
+        let ys = pts.map(\.y)
+        let minX = xs.min() ?? 0
+        let maxX = xs.max() ?? 1
+        let minY = ys.min() ?? 0
+        let maxY = ys.max() ?? 1
+        let w = max(maxX - minX, 1e-6)
+        let h = max(maxY - minY, 1e-6)
+        let cx = (minX + maxX) / 2
+        let cy = (minY + maxY) / 2
+        let top = pts.filter { $0.y < cy }
+        let bot = pts.filter { $0.y >= cy }
+        let left = pts.filter { $0.x < cx }
+        let right = pts.filter { $0.x >= cx }
+        let topH = max((top.map(\.y).max() ?? cy) - (top.map(\.y).min() ?? minY), 1e-6)
+        let botH = max((bot.map(\.y).max() ?? maxY) - (bot.map(\.y).min() ?? cy), 1e-6)
+        let leftW = max((left.map(\.x).max() ?? cx) - (left.map(\.x).min() ?? minX), 1e-6)
+        let rightW = max((right.map(\.x).max() ?? maxX) - (right.map(\.x).min() ?? cx), 1e-6)
+        let ratios = l2([
+            w / h,
+            topH / h,
+            botH / h,
+            Double(top.count) / Double(max(pts.count, 1)),
+            leftW / w,
+            rightW / w,
+        ])
+        let shape = l2([
+            w,
+            h,
+            w / h,
+            leftW / rightW,
+            topH / botH,
+            Double(left.count) / Double(max(right.count, 1)),
+        ])
+        return (ratios, shape)
+    }
+
+    private static func l2(_ v: [Double]) -> [Double] {
+        let n = sqrt(v.reduce(0) { $0 + $1 * $1 })
+        guard n > 1e-9 else { return v }
+        return v.map { $0 / n }
+    }
+
+    private static func averageVec(_ vecs: [[Double]]) -> [Double] {
+        guard let first = vecs.first, !first.isEmpty else { return [] }
+        var acc = Array(repeating: 0.0, count: first.count)
+        for v in vecs {
+            for i in 0 ..< min(first.count, v.count) { acc[i] += v[i] }
+        }
+        let n = Double(max(vecs.count, 1))
+        return l2(acc.map { $0 / n })
+    }
+
+    private static func vecDistance(_ a: [Double], _ b: [Double]) -> Double {
+        let n = min(a.count, b.count)
+        guard n > 0 else { return 1 }
+        var s = 0.0
+        for i in 0 ..< n {
+            let d = a[i] - b[i]
+            s += d * d
+        }
+        return sqrt(s)
     }
 
     private static func averagePrint(_ faces: [FaceObservation]) -> Data {
