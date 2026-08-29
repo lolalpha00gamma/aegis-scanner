@@ -258,7 +258,7 @@ enum FaceEngine {
                     + 0.14 * pctVs(.jawline, id)
                 if lowCapture { return min(99.6, embed) }
                 let trackBoost = tdesc != nil && tP > embed ? (tP - embed) * 0.35 : 0
-                let agree = geoMix >= 70 && embed >= matchFloor ? 2.2 : 0
+                let agree = models.count >= 2 && geoMix >= 70 && embed >= matchFloor ? 2.2 : 0
                 let disagree = embed >= matchFloor && geoMix < 45 ? 3.0 : 0
                 return min(99.6, 0.72 * embed + 0.28 * geoMix + trackBoost + agree - disagree)
             }
@@ -311,6 +311,7 @@ enum FaceEngine {
     // MARK: - geometry / prints
 
     private static let matchFloor = 72.0
+    private static let soloFloor = 82.0
     private static let embedMargin = 8.0
     private static let landmarkMargin = 10.0
 
@@ -345,7 +346,13 @@ enum FaceEngine {
         let second = versus.dropFirst().first
         let margin = (best?.percent ?? 0) - (second?.percent ?? 0)
         let strong = (best?.percent ?? 0) >= 90 && margin >= 4
-        let assign = (best?.percent ?? 0) >= matchFloor && (margin >= minMargin || strong)
+        let hasRival = second != nil
+        let assign: Bool
+        if hasRival {
+            assign = (best?.percent ?? 0) >= matchFloor && (margin >= minMargin || strong)
+        } else {
+            assign = (best?.percent ?? 0) >= soloFloor && minMargin <= embedMargin
+        }
         return Ranked(
             identityId: assign ? best?.identityId : nil,
             percent: best?.percent ?? 0,
@@ -360,6 +367,8 @@ enum FaceEngine {
             text = note
         } else if ranked.identityId != nil {
             text = String(format: "Abstand %.1f Pkt.", ranked.margin)
+        } else if ranked.versus.count < 2 {
+            text = String(format: "Nur eine Person eingeschrieben. Nähe %.0f%% reicht nicht (braucht %.0f%%).", ranked.percent, soloFloor)
         } else if ranked.percent < matchFloor {
             text = String(format: "Beste Nähe %.0f%% liegt unter %.0f%%.", ranked.percent, matchFloor)
         } else {
@@ -392,6 +401,12 @@ enum FaceEngine {
         }
         if lowCapture && percent < matchFloor {
             return (nil, String(format: "Aufnahme zu schwach, Nähe %.0f%%.", percent))
+        }
+        if secondName == nil {
+            if percent >= soloFloor {
+                return (bestId, String(format: "Nur eine Person eingeschrieben. Nähe %.0f%% reicht.", percent))
+            }
+            return (nil, String(format: "Nur eine Person eingeschrieben. Nähe %.0f%% reicht nicht (braucht %.0f%%). Andere Gesichter bleiben offen.", percent, soloFloor))
         }
         if percent < matchFloor {
             return (nil, String(format: "Beste Nähe %.0f%% liegt unter %.0f%%.", percent, matchFloor))
