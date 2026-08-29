@@ -1,10 +1,10 @@
-# Aegis **1.0.6 alpha**
+# Aegis **1.0.7 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
 Direkt laden:
 - [Aegis.dmg (Code)](https://github.com/lolalpha00gamma/aegis-scanner/raw/main/Aegis.dmg)
-- [Release 1.0.6 alpha](https://github.com/lolalpha00gamma/aegis-scanner/releases/tag/v1.0.6-alpha)
+- [Release 1.0.7 alpha](https://github.com/lolalpha00gamma/aegis-scanner/releases/tag/v1.0.7-alpha)
 
 Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
 
@@ -16,17 +16,19 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert.
 
+## Neu in 1.0.7 alpha
+
+Identifikation ist jetzt ein **Beweissystem**. Unbekannt ist der Normalzustand.
+
+- Niemand bekommt einen Namen, nur weil er der Nächste in der Liste ist.
+- Unter **84 %** echte Nähe gibt es keine Zuordnung. Eine einzelne Person braucht **90 %**.
+- Maße, Form und Aussehen dürfen nur **widersprechen**, nie einen schwachen Treffer zum Namen machen.
+- Feature Print (allgemeines Bildähnlichkeits-Signal) ordnet nicht mehr zu. Identität kommt vom Helligkeitsraster des Gesichts plus Vetos.
+- 80 % bei irgendeiner Person, die nicht ähnlich sieht, bleibt **offen** — mit Begründung.
+
 ## Neu in 1.0.6 alpha
 
-- **Eine eingeschriebene Person macht nicht alle Gesichter zu dieser Person.** Andere bleiben offen, Prozent und Begründung bleiben sichtbar.
-- Allein eingeschrieben braucht es mindestens **82 %** echte Nähe. 72 % reichen nur, wenn mindestens zwei Personen zum Vergleich da sind.
-- Maße und Form dürfen niemanden erraten, solange nur eine Person angelegt ist.
-
-## Neu in 1.0.5 alpha
-
-- Vergleich gegen das nächste eingeschriebene Foto, nicht gegen einen Mittelwert
-- Klassifizierer Augenregion, Mittelgesicht, Kieferlinie
-- Enge Rennen bleiben offen und werden erklärt
+- Eine eingeschriebene Person macht nicht alle Gesichter zu dieser Person.
 
 ## Lizenz
 

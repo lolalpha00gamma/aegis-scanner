@@ -31,7 +31,7 @@ struct ContentView: View {
                 .disabled(store.busy || store.media.isEmpty)
             Button("CSV") { store.exportCSV() }
                 .disabled(store.matches.isEmpty)
-            Slider(value: $store.threshold, in: 50 ... 92)
+            Slider(value: $store.threshold, in: 70 ... 96)
                 .frame(width: 110)
                 .help("Schwelle")
         }

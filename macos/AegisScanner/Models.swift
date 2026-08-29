@@ -2,9 +2,9 @@ import CoreGraphics
 import Foundation
 
 enum AppVersion {
-    static let marketing = "1.0.6"
+    static let marketing = "1.0.7"
     static let channel = "alpha"
-    static let display = "1.0.6 alpha"
+    static let display = "1.0.7 alpha"
 }
 
 enum StrategyID: String, CaseIterable, Identifiable, Codable {
@@ -16,6 +16,7 @@ enum StrategyID: String, CaseIterable, Identifiable, Codable {
     case eyeRegion
     case midface
     case jawline
+    case texture
     case qualityGate
     case temporal
     case featurePrint
@@ -33,6 +34,7 @@ enum StrategyID: String, CaseIterable, Identifiable, Codable {
         case .eyeRegion: return "Augenregion"
         case .midface: return "Mittelgesicht"
         case .jawline: return "Kieferlinie"
+        case .texture: return "Aussehen"
         case .qualityGate: return "Quality-Gate"
         case .temporal: return "Temporal"
         case .featurePrint: return "Feature Print"
@@ -58,6 +60,8 @@ enum StrategyID: String, CaseIterable, Identifiable, Codable {
             return "Nase, Philtrum, Mund. Trennt Lookalikes über das Mittelgesicht."
         case .jawline:
             return "Kieferbreite, Wangen, Kinn. Unabhängig von Augen und Nase."
+        case .texture:
+            return "Helligkeitsraster des ausgerichteten Gesichts. Kann nur widersprechen, nie zuordnen."
         case .qualityGate:
             return "Nächstes Exemplar, gewichtet mit VNFaceCaptureQuality statt Verwerfung."
         case .temporal:
@@ -65,7 +69,7 @@ enum StrategyID: String, CaseIterable, Identifiable, Codable {
         case .featurePrint:
             return "VNGenerateImageFeaturePrintRequest auf ausgerichtetem Gesicht."
         case .aegis:
-            return "Nächstes Exemplar plus fünf Geometrie-Klassifikatoren. Enge Rennen werden erklärt."
+            return "Beweis-Identifikation: Aussehen muss hoch liegen, Maße dürfen widersprechen. Unbekannt ist der Normalzustand."
         }
     }
 }
@@ -114,6 +118,7 @@ struct FaceObservation: Identifiable, Hashable {
     var landmarks: [Point2]
     var aligned: [Point2]
     var featurePrint: Data
+    var appearance: [Double]
     var quality: FaceQuality
     var trackId: UUID?
 }

@@ -85,6 +85,7 @@ enum FaceEngine {
             let size = min(1, (box.width * box.height) / max(1, imageWidth * imageHeight) / 0.12)
             let sharpness = sharpnessScore(crop(image, box: vnToPixels(face.boundingBox, width: w, height: h)))
             let capture = clamp01(0.40 * captureApple + 0.22 * sharpness + 0.18 * size + 0.20 * frontal)
+            let inner = crop(image, box: vnToPixels(face.boundingBox, width: w, height: h), pad: 0.04)
             let printData = featurePrint(of: crop(image, box: vnToPixels(face.boundingBox, width: w, height: h), pad: 0.18)) ?? Data()
 
             out.append(
@@ -96,6 +97,7 @@ enum FaceEngine {
                     landmarks: points,
                     aligned: aligned,
                     featurePrint: printData,
+                    appearance: appearanceVector(of: inner),
                     quality: FaceQuality(sharpness: sharpness, size: size, frontal: frontal, capture: capture),
                     trackId: nil
                 )
@@ -158,109 +160,85 @@ enum FaceEngine {
                 shape: averageVec(owned.compactMap { measures($0.aligned).shape }),
                 eyes: averageVec(owned.compactMap { measures($0.aligned).eyes }),
                 midface: averageVec(owned.compactMap { measures($0.aligned).midface }),
-                jaw: averageVec(owned.compactMap { measures($0.aligned).jaw })
+                jaw: averageVec(owned.compactMap { measures($0.aligned).jaw }),
+                appearances: owned.map(\.appearance).filter { !$0.isEmpty }
             )
-        }
-
-        var trackPrint: [UUID: Data] = [:]
-        let groups = Dictionary(grouping: tracked.compactMap { f -> (UUID, FaceObservation)? in
-            guard let t = f.trackId else { return nil }
-            return (t, f)
-        }, by: { $0.0 })
-        for (tid, pairs) in groups {
-            trackPrint[tid] = averagePrint(pairs.map(\.1))
         }
 
         return tracked.map { face in
             var hits: [StrategyHit] = []
 
             let photos = rank(models, minMargin: embedMargin) { m in
-                guard face.quality.capture >= 0.35, let g = m.photos else { return 0 }
-                return printPercent(face.featurePrint, g.featurePrint)
+                guard face.quality.capture >= 0.35 else { return 0 }
+                return bestAppearance(face.appearance, m.appearances)
             }
             hits.append(toHit(.photosStyle, face.quality.capture < 0.35
                 ? Ranked(identityId: nil, percent: 0, margin: photos.margin, versus: photos.versus)
                 : photos))
 
             let box = rank(models, minMargin: embedMargin) { m in
-                bestPrintPercent(face.featurePrint, m.meanPrint)
+                bestAppearance(face.appearance, m.appearances)
             }
             hits.append(toHit(.visionBox, box))
 
             let geo = rank(models, minMargin: landmarkMargin) { m in
                 landmarkPercent(distance(face.aligned, m.meanLandmarks))
             }
-            hits.append(toHit(.landmarkGeo, geo))
+            hits.append(hint(.landmarkGeo, geo))
 
             let probeM = measures(face.aligned)
-            let ratioHit = rank(models, minMargin: landmarkMargin) { m in
+            hits.append(hint(.ratios, rank(models, minMargin: landmarkMargin) { m in
                 measuresPercent(vecDistance(probeM.ratios, m.ratios))
-            }
-            hits.append(toHit(.ratios, ratioHit))
-            let shapeHit = rank(models, minMargin: landmarkMargin) { m in
+            }))
+            hits.append(hint(.faceShape, rank(models, minMargin: landmarkMargin) { m in
                 measuresPercent(vecDistance(probeM.shape, m.shape))
-            }
-            hits.append(toHit(.faceShape, shapeHit))
-            hits.append(toHit(.eyeRegion, rank(models, minMargin: landmarkMargin) { m in
+            }))
+            hits.append(hint(.eyeRegion, rank(models, minMargin: landmarkMargin) { m in
                 measuresPercent(vecDistance(probeM.eyes, m.eyes))
             }))
-            hits.append(toHit(.midface, rank(models, minMargin: landmarkMargin) { m in
+            hits.append(hint(.midface, rank(models, minMargin: landmarkMargin) { m in
                 measuresPercent(vecDistance(probeM.midface, m.midface))
             }))
-            hits.append(toHit(.jawline, rank(models, minMargin: landmarkMargin) { m in
+            hits.append(hint(.jawline, rank(models, minMargin: landmarkMargin) { m in
                 measuresPercent(vecDistance(probeM.jaw, m.jaw))
+            }))
+            hits.append(hint(.texture, rank(models, minMargin: landmarkMargin) { m in
+                bestAppearance(face.appearance, m.appearances)
             }))
 
             let gated = rank(models, minMargin: embedMargin) { m in
-                let raw = bestPrintPercent(face.featurePrint, m.meanPrint)
+                let raw = bestAppearance(face.appearance, m.appearances)
                 if face.quality.capture >= 0.35 { return raw }
                 return raw * (0.45 + 0.55 * (face.quality.capture / 0.35))
             }
             hits.append(toHit(.qualityGate, gated))
 
             let temporal = rank(models, minMargin: embedMargin) { m in
-                let probe = face.trackId.flatMap { trackPrint[$0] } ?? face.featurePrint
-                let gallery = m.temporal.isEmpty ? m.meanPrint : m.temporal
-                return bestPrintPercent(probe, gallery)
+                let gallery = m.temporal.isEmpty ? m.appearances : m.temporal.map(\.appearance)
+                return bestAppearance(face.appearance, gallery)
             }
             hits.append(toHit(.temporal, temporal))
 
             let fp = rank(models, minMargin: embedMargin) { m in
                 bestPrintPercent(face.featurePrint, m.meanPrint)
             }
-            hits.append(toHit(.featurePrint, fp))
+            hits.append(hint(.featurePrint, fp))
 
             func pctVs(_ s: StrategyID, _ id: UUID) -> Double {
                 hits.first { $0.strategy == s }?.versus.first { $0.identityId == id }?.percent ?? 0
             }
-            let tdesc = face.trackId.flatMap { trackPrint[$0] }
             let lowCapture = face.quality.capture < 0.35
             let ensemble = rank(models, minMargin: embedMargin) { m in
                 let id = m.identity.id
-                let embed: Double
                 if lowCapture {
-                    embed = max(pctVs(.qualityGate, id), pctVs(.photosStyle, id))
-                } else {
-                    embed = max(
-                        pctVs(.featurePrint, id),
-                        pctVs(.visionBox, id),
-                        pctVs(.temporal, id),
-                        pctVs(.photosStyle, id),
-                        pctVs(.qualityGate, id)
-                    )
+                    return max(pctVs(.qualityGate, id), pctVs(.photosStyle, id))
                 }
-                let tP = pctVs(.temporal, id)
-                let geoMix = 0.22 * pctVs(.landmarkGeo, id)
-                    + 0.16 * pctVs(.ratios, id)
-                    + 0.14 * pctVs(.faceShape, id)
-                    + 0.18 * pctVs(.eyeRegion, id)
-                    + 0.16 * pctVs(.midface, id)
-                    + 0.14 * pctVs(.jawline, id)
-                if lowCapture { return min(99.6, embed) }
-                let trackBoost = tdesc != nil && tP > embed ? (tP - embed) * 0.35 : 0
-                let agree = models.count >= 2 && geoMix >= 70 && embed >= matchFloor ? 2.2 : 0
-                let disagree = embed >= matchFloor && geoMix < 45 ? 3.0 : 0
-                return min(99.6, 0.72 * embed + 0.28 * geoMix + trackBoost + agree - disagree)
+                return max(
+                    pctVs(.visionBox, id),
+                    pctVs(.temporal, id),
+                    pctVs(.photosStyle, id),
+                    pctVs(.qualityGate, id)
+                )
             }
             func geoMixOf(_ id: UUID) -> Double {
                 0.22 * pctVs(.landmarkGeo, id)
@@ -272,6 +250,7 @@ enum FaceEngine {
             }
             let geoRanked = models.map { (id: $0.identity.id, p: geoMixOf($0.identity.id)) }
                 .sorted { $0.p > $1.p }
+            let appearanceBest = pctVs(.texture, ensemble.versus.first?.identityId ?? UUID())
             let decided = decide(
                 percent: ensemble.percent,
                 margin: ensemble.margin,
@@ -280,10 +259,12 @@ enum FaceEngine {
                 secondName: models.first { $0.identity.id == ensemble.versus.dropFirst().first?.identityId }?.identity.name,
                 geoAgrees: geoRanked.first?.id == ensemble.versus.first?.identityId,
                 geoMargin: (geoRanked.first?.p ?? 0) - (geoRanked.dropFirst().first?.p ?? 0),
-                lowCapture: lowCapture
+                lowCapture: lowCapture,
+                appearance: face.appearance.isEmpty ? nil : appearanceBest,
+                geoMix: geoRanked.first?.p ?? 0
             )
             var aegis = ensemble
-            if aegis.identityId == nil { aegis.identityId = decided.id }
+            aegis.identityId = decided.id
             hits.append(toHit(.aegis, aegis, note: decided.note))
             if let owner = identities.first(where: { $0.faceIds.contains(face.id) }) {
                 hits = hits.map { h in
@@ -310,10 +291,11 @@ enum FaceEngine {
 
     // MARK: - geometry / prints
 
-    private static let matchFloor = 72.0
-    private static let soloFloor = 82.0
-    private static let embedMargin = 8.0
-    private static let landmarkMargin = 10.0
+    private static let matchFloor = 84.0
+    private static let soloFloor = 90.0
+    private static let embedMargin = 12.0
+    private static let landmarkMargin = 14.0
+    private static let appearanceFloor = 70.0
 
     private struct IdentityModel {
         var identity: Identity
@@ -326,6 +308,7 @@ enum FaceEngine {
         var eyes: [Double]
         var midface: [Double]
         var jaw: [Double]
+        var appearances: [[Double]]
     }
 
     private struct Ranked {
@@ -361,6 +344,12 @@ enum FaceEngine {
         )
     }
 
+    private static func hint(_ strategy: StrategyID, _ ranked: Ranked) -> StrategyHit {
+        var copy = ranked
+        copy.identityId = nil
+        return toHit(strategy, copy)
+    }
+
     private static func toHit(_ strategy: StrategyID, _ ranked: Ranked, note: String = "") -> StrategyHit {
         let text: String
         if !note.isEmpty {
@@ -392,29 +381,42 @@ enum FaceEngine {
         secondName: String?,
         geoAgrees: Bool,
         geoMargin: Double,
-        lowCapture: Bool
+        lowCapture: Bool,
+        appearance: Double?,
+        geoMix: Double
     ) -> (id: UUID?, note: String) {
         let best = bestName ?? "Beste"
         let second = secondName ?? "Zweite"
+        let appear = appearance ?? 100
+        let hasAppearance = appearance != nil
         guard let bestId, percent > 0 else {
             return (nil, "Keine Vergleichsperson.")
         }
-        if lowCapture && percent < matchFloor {
-            return (nil, String(format: "Aufnahme zu schwach, Nähe %.0f%%.", percent))
+        if lowCapture {
+            return (nil, String(format: "Aufnahme zu schwach für eine Zuordnung, Nähe %.0f%%.", percent))
         }
         if secondName == nil {
-            if percent >= soloFloor {
+            if percent >= soloFloor && appear >= appearanceFloor && geoMix >= 30 {
                 return (bestId, String(format: "Nur eine Person eingeschrieben. Nähe %.0f%% reicht.", percent))
             }
             return (nil, String(format: "Nur eine Person eingeschrieben. Nähe %.0f%% reicht nicht (braucht %.0f%%). Andere Gesichter bleiben offen.", percent, soloFloor))
         }
         if percent < matchFloor {
-            return (nil, String(format: "Beste Nähe %.0f%% liegt unter %.0f%%.", percent, matchFloor))
+            return (nil, String(format: "Beste Nähe %.0f%% liegt unter %.0f%%. Nicht zugeordnet.", percent, matchFloor))
         }
-        if margin >= embedMargin || (percent >= 90 && margin >= 4) {
+        if hasAppearance && appear < appearanceFloor {
+            return (nil, String(format: "Aussehen passt nicht (%.0f%%). %@ %.0f%% — nicht zugeordnet.", appear, best, percent))
+        }
+        if geoMix < 32 && percent < 94 {
+            return (nil, String(format: "Gesichtsmaße widersprechen (%.0f%%). Nicht zugeordnet.", geoMix))
+        }
+        if !geoAgrees && geoMargin >= 10 && percent < 94 {
+            return (nil, String(format: "Maße sehen %@ näher. Embedding allein reicht nicht.", second))
+        }
+        if margin >= embedMargin || (percent >= 94 && margin >= 6) {
             return (bestId, String(format: "Abstand %.1f Pkt zu %@.", margin, second))
         }
-        if geoAgrees && geoMargin >= 8 {
+        if geoAgrees && geoMargin >= 12 && appear >= 75 {
             return (bestId, String(format: "Embedding nur %.1f Pkt Abstand, Maße trennen %.1f Pkt (%@).", margin, geoMargin, second))
         }
         return (nil, String(format: "%@ %.0f%% und %@ %.0f%% zu nah — nicht zugeordnet.", best, percent, second, percent - margin))
@@ -547,17 +549,68 @@ enum FaceEngine {
 
     private static func printPercent(_ a: Data, _ b: Data) -> Double {
         let d = printDistance(a, b)
-        let t = 11.0
-        let k = 0.45
+        let t = 8.0
+        let k = 0.7
         return 100.0 / (1.0 + exp(k * (d - t)))
     }
 
     private static func landmarkPercent(_ d: Double) -> Double {
-        100.0 / (1.0 + exp(28.0 * (d - 0.11)))
+        100.0 / (1.0 + exp(32.0 * (d - 0.10)))
     }
 
     private static func measuresPercent(_ d: Double) -> Double {
-        100.0 / (1.0 + exp(42.0 * (d - 0.085)))
+        100.0 / (1.0 + exp(48.0 * (d - 0.07)))
+    }
+
+    private static func appearancePercent(_ d: Double) -> Double {
+        100.0 / (1.0 + exp(14.0 * (d - 0.55)))
+    }
+
+    private static func bestAppearance(_ probe: [Double], _ gallery: [[Double]]) -> Double {
+        var best = 0.0
+        for g in gallery {
+            let p = appearancePercent(vecDistance(probe, g))
+            if p > best { best = p }
+        }
+        return best
+    }
+
+    private static func appearanceVector(of image: CGImage?) -> [Double] {
+        guard let image else { return [] }
+        let size = 64
+        let cells = 16
+        guard let ctx = CGContext(
+            data: nil,
+            width: size,
+            height: size,
+            bitsPerComponent: 8,
+            bytesPerRow: size * 4,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return [] }
+        ctx.interpolationQuality = .medium
+        ctx.draw(image, in: CGRect(x: 0, y: 0, width: size, height: size))
+        guard let data = ctx.data else { return [] }
+        let ptr = data.bindMemory(to: UInt8.self, capacity: size * size * 4)
+        var sum = [Double](repeating: 0, count: cells * cells)
+        var counts = [Double](repeating: 0, count: cells * cells)
+        for y in 0..<size {
+            let cy = min(cells - 1, y * cells / size)
+            for x in 0..<size {
+                let cx = min(cells - 1, x * cells / size)
+                let i = (y * size + x) * 4
+                let g = 0.299 * Double(ptr[i]) + 0.587 * Double(ptr[i + 1]) + 0.114 * Double(ptr[i + 2])
+                let c = cy * cells + cx
+                sum[c] += g
+                counts[c] += 1
+            }
+        }
+        var out = (0..<(cells * cells)).map { sum[$0] / max(1, counts[$0]) }
+        let mean = out.reduce(0, +) / Double(max(out.count, 1))
+        out = out.map { $0 - mean }
+        let norm = sqrt(out.reduce(0) { $0 + $1 * $1 })
+        let n = max(norm, 1e-9)
+        return out.map { $0 / n }
     }
 
     private static func measures(_ pts: [Point2]) -> (ratios: [Double], shape: [Double], eyes: [Double], midface: [Double], jaw: [Double]) {
@@ -649,10 +702,6 @@ enum FaceEngine {
             s += d * d
         }
         return sqrt(s)
-    }
-
-    private static func averagePrint(_ faces: [FaceObservation]) -> Data {
-        faces.max { $0.quality.capture < $1.quality.capture }?.featurePrint ?? Data()
     }
 
     private static func averageLandmarks(_ sets: [[Point2]], _ weights: [Double]) -> [Point2] {

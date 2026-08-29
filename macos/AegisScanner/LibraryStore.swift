@@ -11,7 +11,7 @@ final class LibraryStore: ObservableObject {
     @Published var matches: [MatchResult] = []
     @Published var selectedMediaId: UUID?
     @Published var selectedFaceId: UUID?
-    @Published var threshold: Double = 72
+    @Published var threshold: Double = 86
     @Published var strategy: StrategyID = .aegis
     @Published var status: String = "Bereit"
     @Published var busy = false
