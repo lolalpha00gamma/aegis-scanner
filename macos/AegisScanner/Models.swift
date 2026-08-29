@@ -2,9 +2,9 @@ import CoreGraphics
 import Foundation
 
 enum AppVersion {
-    static let marketing = "1.0.4"
+    static let marketing = "1.0.5"
     static let channel = "alpha"
-    static let display = "1.0.4 alpha"
+    static let display = "1.0.5 alpha"
 }
 
 enum StrategyID: String, CaseIterable, Identifiable, Codable {
@@ -13,6 +13,9 @@ enum StrategyID: String, CaseIterable, Identifiable, Codable {
     case landmarkGeo
     case ratios
     case faceShape
+    case eyeRegion
+    case midface
+    case jawline
     case qualityGate
     case temporal
     case featurePrint
@@ -27,6 +30,9 @@ enum StrategyID: String, CaseIterable, Identifiable, Codable {
         case .landmarkGeo: return "Landmark-Geometrie"
         case .ratios: return "Gesichtsmaße"
         case .faceShape: return "Gesichtsform"
+        case .eyeRegion: return "Augenregion"
+        case .midface: return "Mittelgesicht"
+        case .jawline: return "Kieferlinie"
         case .qualityGate: return "Quality-Gate"
         case .temporal: return "Temporal"
         case .featurePrint: return "Feature Print"
@@ -39,21 +45,27 @@ enum StrategyID: String, CaseIterable, Identifiable, Codable {
         case .photosStyle:
             return "Einzelnes Best-Frame, harte Qualitätsgrenze — analog zur Apple-Fotos-Pipeline."
         case .visionBox:
-            return "Vision-Detektor (Revision 3) plus Feature Print auf dem Zuschnitt."
+            return "Vision-Detektor (Revision 3) plus nächstes Feature-Print-Exemplar."
         case .landmarkGeo:
             return "Landmark-Form, Procrustes-normalisiert. Lichtunabhängig."
         case .ratios:
             return "Nasenhöhe zu Augen, Augenbreite, Mund — trennt ähnliche Gesichter."
         case .faceShape:
             return "Kiefer, Wangen, Aspekt, Kinn. Unabhängig vom Feature Print."
+        case .eyeRegion:
+            return "Augenbreite und Brauen — eigenes Klassifizierungssystem."
+        case .midface:
+            return "Nase, Philtrum, Mund. Trennt Lookalikes über das Mittelgesicht."
+        case .jawline:
+            return "Kieferbreite, Wangen, Kinn. Unabhängig von Augen und Nase."
         case .qualityGate:
-            return "Feature Print, gewichtet mit VNFaceCaptureQuality statt Verwerfung."
+            return "Nächstes Exemplar, gewichtet mit VNFaceCaptureQuality statt Verwerfung."
         case .temporal:
-            return "Qualitätsgewichteter Mittelwert über Video-Tracks."
+            return "Nächstes Video-Exemplar über Tracks, ohne Kreuzer zu tauschen."
         case .featurePrint:
             return "VNGenerateImageFeaturePrintRequest auf ausgerichtetem Gesicht."
         case .aegis:
-            return "Fusion aller Signale. Hält schwierige Frames, statt sie zu löschen."
+            return "Nächstes Exemplar plus fünf Geometrie-Klassifikatoren. Enge Rennen werden erklärt."
         }
     }
 }
@@ -125,6 +137,7 @@ struct StrategyHit: Hashable {
     var distance: Double? = nil
     var margin: Double = 0
     var versus: [IdentityScore] = []
+    var note: String = ""
 }
 
 struct MatchResult: Hashable {

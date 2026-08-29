@@ -155,7 +155,10 @@ enum FaceEngine {
                     media.first { $0.id == face.mediaId }?.kind == .frame
                 },
                 ratios: averageVec(owned.compactMap { measures($0.aligned).ratios }),
-                shape: averageVec(owned.compactMap { measures($0.aligned).shape })
+                shape: averageVec(owned.compactMap { measures($0.aligned).shape }),
+                eyes: averageVec(owned.compactMap { measures($0.aligned).eyes }),
+                midface: averageVec(owned.compactMap { measures($0.aligned).midface }),
+                jaw: averageVec(owned.compactMap { measures($0.aligned).jaw })
             )
         }
 
@@ -180,8 +183,7 @@ enum FaceEngine {
                 : photos))
 
             let box = rank(models, minMargin: embedMargin) { m in
-                guard let g = m.meanPrint.first ?? m.photos else { return 0 }
-                return printPercent(face.featurePrint, g.featurePrint)
+                bestPrintPercent(face.featurePrint, m.meanPrint)
             }
             hits.append(toHit(.visionBox, box))
 
@@ -199,10 +201,18 @@ enum FaceEngine {
                 measuresPercent(vecDistance(probeM.shape, m.shape))
             }
             hits.append(toHit(.faceShape, shapeHit))
+            hits.append(toHit(.eyeRegion, rank(models, minMargin: landmarkMargin) { m in
+                measuresPercent(vecDistance(probeM.eyes, m.eyes))
+            }))
+            hits.append(toHit(.midface, rank(models, minMargin: landmarkMargin) { m in
+                measuresPercent(vecDistance(probeM.midface, m.midface))
+            }))
+            hits.append(toHit(.jawline, rank(models, minMargin: landmarkMargin) { m in
+                measuresPercent(vecDistance(probeM.jaw, m.jaw))
+            }))
 
             let gated = rank(models, minMargin: embedMargin) { m in
-                guard let g = m.meanPrint.first ?? m.photos else { return 0 }
-                let raw = printPercent(face.featurePrint, g.featurePrint)
+                let raw = bestPrintPercent(face.featurePrint, m.meanPrint)
                 if face.quality.capture >= 0.35 { return raw }
                 return raw * (0.45 + 0.55 * (face.quality.capture / 0.35))
             }
@@ -210,13 +220,13 @@ enum FaceEngine {
 
             let temporal = rank(models, minMargin: embedMargin) { m in
                 let probe = face.trackId.flatMap { trackPrint[$0] } ?? face.featurePrint
-                let gallery = averagePrint(m.temporal.isEmpty ? m.meanPrint : m.temporal)
-                return printPercent(probe, gallery)
+                let gallery = m.temporal.isEmpty ? m.meanPrint : m.temporal
+                return bestPrintPercent(probe, gallery)
             }
             hits.append(toHit(.temporal, temporal))
 
             let fp = rank(models, minMargin: embedMargin) { m in
-                printPercent(face.featurePrint, averagePrint(m.meanPrint))
+                bestPrintPercent(face.featurePrint, m.meanPrint)
             }
             hits.append(toHit(.featurePrint, fp))
 
@@ -240,14 +250,41 @@ enum FaceEngine {
                     )
                 }
                 let tP = pctVs(.temporal, id)
-                let geoMix = 0.4 * pctVs(.landmarkGeo, id) + 0.35 * pctVs(.ratios, id) + 0.25 * pctVs(.faceShape, id)
+                let geoMix = 0.22 * pctVs(.landmarkGeo, id)
+                    + 0.16 * pctVs(.ratios, id)
+                    + 0.14 * pctVs(.faceShape, id)
+                    + 0.18 * pctVs(.eyeRegion, id)
+                    + 0.16 * pctVs(.midface, id)
+                    + 0.14 * pctVs(.jawline, id)
                 if lowCapture { return min(99.6, embed) }
                 let trackBoost = tdesc != nil && tP > embed ? (tP - embed) * 0.35 : 0
                 let agree = geoMix >= 70 && embed >= matchFloor ? 2.2 : 0
                 let disagree = embed >= matchFloor && geoMix < 45 ? 3.0 : 0
                 return min(99.6, 0.72 * embed + 0.28 * geoMix + trackBoost + agree - disagree)
             }
-            hits.append(toHit(.aegis, ensemble))
+            func geoMixOf(_ id: UUID) -> Double {
+                0.22 * pctVs(.landmarkGeo, id)
+                    + 0.16 * pctVs(.ratios, id)
+                    + 0.14 * pctVs(.faceShape, id)
+                    + 0.18 * pctVs(.eyeRegion, id)
+                    + 0.16 * pctVs(.midface, id)
+                    + 0.14 * pctVs(.jawline, id)
+            }
+            let geoRanked = models.map { (id: $0.identity.id, p: geoMixOf($0.identity.id)) }
+                .sorted { $0.p > $1.p }
+            let decided = decide(
+                percent: ensemble.percent,
+                margin: ensemble.margin,
+                bestId: ensemble.versus.first?.identityId,
+                bestName: models.first { $0.identity.id == ensemble.versus.first?.identityId }?.identity.name,
+                secondName: models.first { $0.identity.id == ensemble.versus.dropFirst().first?.identityId }?.identity.name,
+                geoAgrees: geoRanked.first?.id == ensemble.versus.first?.identityId,
+                geoMargin: (geoRanked.first?.p ?? 0) - (geoRanked.dropFirst().first?.p ?? 0),
+                lowCapture: lowCapture
+            )
+            var aegis = ensemble
+            if aegis.identityId == nil { aegis.identityId = decided.id }
+            hits.append(toHit(.aegis, aegis, note: decided.note))
             if let owner = identities.first(where: { $0.faceIds.contains(face.id) }) {
                 hits = hits.map { h in
                     let selfP = max(h.versus.first { $0.identityId == owner.id }?.percent ?? 0, 96)
@@ -262,7 +299,8 @@ enum FaceEngine {
                         percent: selfP,
                         distance: h.distance,
                         margin: selfP - second,
-                        versus: versus
+                        versus: versus,
+                        note: "Referenz dieser Person."
                     )
                 }
             }
@@ -284,6 +322,9 @@ enum FaceEngine {
         var temporal: [FaceObservation]
         var ratios: [Double]
         var shape: [Double]
+        var eyes: [Double]
+        var midface: [Double]
+        var jaw: [Double]
     }
 
     private struct Ranked {
@@ -313,14 +354,65 @@ enum FaceEngine {
         )
     }
 
-    private static func toHit(_ strategy: StrategyID, _ ranked: Ranked) -> StrategyHit {
-        StrategyHit(
+    private static func toHit(_ strategy: StrategyID, _ ranked: Ranked, note: String = "") -> StrategyHit {
+        let text: String
+        if !note.isEmpty {
+            text = note
+        } else if ranked.identityId != nil {
+            text = String(format: "Abstand %.1f Pkt.", ranked.margin)
+        } else if ranked.percent < matchFloor {
+            text = String(format: "Beste Nähe %.0f%% liegt unter %.0f%%.", ranked.percent, matchFloor)
+        } else {
+            text = String(format: "Zu nah (%.1f Pkt Abstand) — nicht zugeordnet.", ranked.margin)
+        }
+        return StrategyHit(
             strategy: strategy,
             identityId: ranked.identityId,
             percent: ranked.percent,
             margin: ranked.margin,
-            versus: ranked.versus
+            versus: ranked.versus,
+            note: text
         )
+    }
+
+    private static func decide(
+        percent: Double,
+        margin: Double,
+        bestId: UUID?,
+        bestName: String?,
+        secondName: String?,
+        geoAgrees: Bool,
+        geoMargin: Double,
+        lowCapture: Bool
+    ) -> (id: UUID?, note: String) {
+        let best = bestName ?? "Beste"
+        let second = secondName ?? "Zweite"
+        guard let bestId, percent > 0 else {
+            return (nil, "Keine Vergleichsperson.")
+        }
+        if lowCapture && percent < matchFloor {
+            return (nil, String(format: "Aufnahme zu schwach, Nähe %.0f%%.", percent))
+        }
+        if percent < matchFloor {
+            return (nil, String(format: "Beste Nähe %.0f%% liegt unter %.0f%%.", percent, matchFloor))
+        }
+        if margin >= embedMargin || (percent >= 90 && margin >= 4) {
+            return (bestId, String(format: "Abstand %.1f Pkt zu %@.", margin, second))
+        }
+        if geoAgrees && geoMargin >= 8 {
+            return (bestId, String(format: "Embedding nur %.1f Pkt Abstand, Maße trennen %.1f Pkt (%@).", margin, geoMargin, second))
+        }
+        return (nil, String(format: "%@ %.0f%% und %@ %.0f%% zu nah — nicht zugeordnet.", best, percent, second, percent - margin))
+    }
+
+    private static func bestPrintPercent(_ probe: Data, _ faces: [FaceObservation]) -> Double {
+        var best = 0.0
+        for f in faces {
+            let p = printPercent(probe, f.featurePrint)
+            if p > best { best = p }
+        }
+        return best
+    }
     }
 
     private static func vnToPixels(_ r: CGRect, width: Double, height: Double) -> FaceBox {
@@ -454,8 +546,8 @@ enum FaceEngine {
         100.0 / (1.0 + exp(42.0 * (d - 0.085)))
     }
 
-    private static func measures(_ pts: [Point2]) -> (ratios: [Double], shape: [Double]) {
-        guard pts.count >= 4 else { return ([], []) }
+    private static func measures(_ pts: [Point2]) -> (ratios: [Double], shape: [Double], eyes: [Double], midface: [Double], jaw: [Double]) {
+        guard pts.count >= 4 else { return ([], [], [], [], []) }
         let xs = pts.map(\.x)
         let ys = pts.map(\.y)
         let minX = xs.min() ?? 0
@@ -466,14 +558,19 @@ enum FaceEngine {
         let h = max(maxY - minY, 1e-6)
         let cx = (minX + maxX) / 2
         let cy = (minY + maxY) / 2
-        let top = pts.filter { $0.y < cy }
-        let bot = pts.filter { $0.y >= cy }
+        let top = pts.filter { $0.y < minY + h * 0.38 }
+        let mid = pts.filter { $0.y >= minY + h * 0.32 && $0.y <= minY + h * 0.68 }
+        let bot = pts.filter { $0.y > minY + h * 0.62 }
         let left = pts.filter { $0.x < cx }
         let right = pts.filter { $0.x >= cx }
         let topH = max((top.map(\.y).max() ?? cy) - (top.map(\.y).min() ?? minY), 1e-6)
         let botH = max((bot.map(\.y).max() ?? maxY) - (bot.map(\.y).min() ?? cy), 1e-6)
+        let midH = max((mid.map(\.y).max() ?? cy) - (mid.map(\.y).min() ?? cy), 1e-6)
         let leftW = max((left.map(\.x).max() ?? cx) - (left.map(\.x).min() ?? minX), 1e-6)
         let rightW = max((right.map(\.x).max() ?? maxX) - (right.map(\.x).min() ?? cx), 1e-6)
+        let topLeft = top.filter { $0.x < cx }
+        let topRight = top.filter { $0.x >= cx }
+        let botW = max((bot.map(\.x).max() ?? maxX) - (bot.map(\.x).min() ?? minX), 1e-6)
         let ratios = l2([
             w / h,
             topH / h,
@@ -490,7 +587,27 @@ enum FaceEngine {
             topH / botH,
             Double(left.count) / Double(max(right.count, 1)),
         ])
-        return (ratios, shape)
+        let eyes = l2([
+            topH / h,
+            Double(topLeft.count) / Double(max(topRight.count, 1)),
+            leftW / w,
+            rightW / w,
+            Double(top.count) / Double(max(pts.count, 1)),
+        ])
+        let midface = l2([
+            midH / h,
+            Double(mid.count) / Double(max(pts.count, 1)),
+            w / h,
+            (mid.map(\.x).max() ?? maxX) - (mid.map(\.x).min() ?? minX),
+        ])
+        let jaw = l2([
+            botH / h,
+            botW / w,
+            botW / h,
+            Double(bot.count) / Double(max(pts.count, 1)),
+            w / h,
+        ])
+        return (ratios, shape, eyes, midface, jaw)
     }
 
     private static func l2(_ v: [Double]) -> [Double] {
@@ -566,13 +683,18 @@ enum FaceEngine {
             var tracks: [[Int]] = []
             for i in sorted {
                 var best = -1
-                var bestIou = 0.28
+                var bestScore = 0.0
                 for t in tracks.indices {
                     let last = tracks[t].last!
-                    let v = iou(faces[i].box, faces[last].box)
-                    if v > bestIou { bestIou = v; best = t }
+                    let overlap = iou(faces[i].box, faces[last].box)
+                    let pp = printPercent(faces[i].featurePrint, faces[last].featurePrint)
+                    var score = 0.0
+                    if overlap >= 0.28 { score = overlap + pp / 400 }
+                    else if overlap >= 0.12 && pp >= 78 { score = 0.32 + overlap + (pp - 78) / 200 }
+                    else if pp >= 92 && overlap >= 0.05 { score = 0.28 + pp / 400 }
+                    if score > bestScore { bestScore = score; best = t }
                 }
-                if best >= 0 {
+                if best >= 0, bestScore >= 0.28 {
                     tracks[best].append(i)
                     faces[i].trackId = faces[tracks[best][0]].trackId
                 } else {

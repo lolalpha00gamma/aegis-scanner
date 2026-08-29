@@ -215,7 +215,11 @@ struct ContentView: View {
                     .font(.title3)
                 Text(String(format: "%.0f%%", hit?.percent ?? 0))
                     .font(.body.monospacedDigit())
-                if !assignedPass, let guess = store.identities.first(where: { $0.id == hit?.versus.first?.identityId }) {
+                if let note = hit?.note, !note.isEmpty {
+                    Text(note)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else if !assignedPass, let guess = store.identities.first(where: { $0.id == hit?.versus.first?.identityId }) {
                     Text("Nähe \(guess.name) · Prozent bleibt sichtbar")
                         .font(.caption)
                         .foregroundStyle(.secondary)

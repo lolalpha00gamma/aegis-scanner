@@ -1,7 +1,7 @@
 # Aegis
 
 Lokaler Image- & Video-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**  
-Version **1.0.4 alpha**.
+Version **1.0.5 alpha**.
 
 ## Image-Datei
 
@@ -20,14 +20,17 @@ Ordner mit Fotos und Videos wählen, oder einen Live-Stream (Webcam, RTSP, HLS, 
 | Strategie | Signal |
 |---|---|
 | **Fotos-Stil** | Einzelnes Best-Frame, harte Qualitätsgrenze (Baseline) |
-| **Vision Box** | `VNDetectFaceRectanglesRequest` Rev. 3 |
+| **Vision Box** | Nächstes Feature-Print-Exemplar, Vision Rev. 3 |
 | **Landmark-Geometrie** | Landmark-Form, Procrustes-normalisiert |
 | **Gesichtsmaße** | Nase/Augen, Augenbreite, Mund, Philtrum |
 | **Gesichtsform** | Kiefer, Wangen, Aspekt, Kinn |
-| **Quality-Gate** | Feature Print × `VNDetectFaceCaptureQuality` |
-| **Temporal** | Qualitätsgewichteter Mittelwert über Video-Tracks |
+| **Augenregion** | Augenbreite, Lidöffnung, Brauen |
+| **Mittelgesicht** | Nase, Philtrum, Mund |
+| **Kieferlinie** | Kieferbreite, Wangen, Kinn |
+| **Quality-Gate** | Nächstes Exemplar × `VNDetectFaceCaptureQuality` |
+| **Temporal** | Nächstes Video-Exemplar, Tracks ohne Kreuzer-Tausch |
 | **Feature Print** | `VNGenerateImageFeaturePrintRequest` auf ausgerichtetem Crop |
-| **Aegis Ensemble** | Fusion aller Signale |
+| **Aegis Ensemble** | Fusion. Enge Rennen bleiben offen und werden erklärt |
 
 ## Lizenz
 
