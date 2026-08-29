@@ -1,4 +1,4 @@
-# Aegis **1.0.12 alpha**
+# Aegis **1.0.13 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,12 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 1.0.13 alpha
+
+- **Gesichtsform = Verhältnisse, nicht Lage.** Nase, Kiefer, Wangen, Höhe in Einheiten des Augenabstands. Unabhängig von Position im Bild, Größe und Mimik (Mundöffnung und Lidschlag zählen nicht).
+- **Feature Print ist die macOS-Identität.** Das 16×16-Helligkeitsraster darf nur widersprechen, nie zuordnen. Die Prozentkurve ist auf echte Feature-Print-Distanzen kalibriert.
+- **Sichtbare Verhältnisse** in der Seitenleiste, mit Abweichung zur Referenz in Prozent.
 
 ## Neu in 1.0.12 alpha
 
@@ -40,7 +46,7 @@ Aus den Papieren (Varghese, Cheese3D, Jain, Wu/Wan, Hassan):
 - **EER / FAR / FRR** — im Laborbericht (Jain Kap. 1).
 - Soft Biometrics nur als **alterungsstabile Geometrie-Veto**. Keine Geschlechts- oder Ethnizitätsklassifikation.
 
-Aegis Ensemble bleibt beweisbasiert: FaceNet muss hoch liegen. Geometrie und Textur dürfen nur widersprechen.
+Aegis Ensemble bleibt beweisbasiert: Embedding muss hoch liegen. Verhältnisse und Textur dürfen nur widersprechen.
 
 ## Lizenz
 

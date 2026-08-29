@@ -2,9 +2,9 @@ import CoreGraphics
 import Foundation
 
 enum AppVersion {
-    static let marketing = "1.0.12"
+    static let marketing = "1.0.13"
     static let channel = "alpha"
-    static let display = "1.0.12 alpha"
+    static let display = "1.0.13 alpha"
 }
 
 enum StrategyID: String, CaseIterable, Identifiable, Codable {
@@ -55,33 +55,33 @@ enum StrategyID: String, CaseIterable, Identifiable, Codable {
         case .visionBox:
             return "Vision-Detektor (Revision 3) plus nächstes Feature-Print-Exemplar."
         case .landmarkGeo:
-            return "Landmark-Form, Procrustes-normalisiert. Lichtunabhängig."
+            return "Landmark-Form, Augen-Procrustes IOD=1. Lichtunabhängig, diagnostisch."
         case .ratios:
-            return "Nasenhöhe zu Augen, Augenbreite, Mund — trennt ähnliche Gesichter."
+            return "Reproduzierbare Verhältnisse zur Augenabstands-Einheit. Unabhängig von Lage, Größe und Mimik."
         case .faceShape:
-            return "Kiefer, Wangen, Aspekt, Kinn. Unabhängig vom Feature Print."
+            return "Kiefer/Höhe, Wangen/Höhe, Kiefer/Wangen, Nase/Kiefer. Keine Bildposition, keine Boxgröße."
         case .eyeRegion:
-            return "Augenbreite und Brauen — eigenes Klassifizierungssystem."
+            return "Lidspalten und Augenwinkel / IOD. Nicht Lidöffnung (Mimik)."
         case .midface:
-            return "Nase, Philtrum, Mund. Trennt Lookalikes über das Mittelgesicht."
+            return "Nasenlänge, Nasenbreite, Nasenindex, Philtrum/Nase."
         case .jawline:
-            return "Kieferbreite, Wangen, Kinn. Unabhängig von Augen und Nase."
+            return "Kieferbreite/IOD, Untergesicht/Höhe, Kinn. Unabhängig vom Lächeln."
         case .graphBio:
-            return "KNN-6 Landmark-Graph: fünf Spektralenergien. Alterungsstabil, unabhängig von Textur."
+            return "KNN-6 über feste anatomische Punkte (ohne Mund). Alterungsstabil, unabhängig von Textur."
         case .geom3d:
-            return "Distanzen, Winkel und Flächen aus Landmark-Formen — Cheese3D-Analog in 2D."
+            return "IOD-Verhältnisse, Kieferwinkel, Nasenfläche — keine Punktzählung, keine Box."
         case .texture:
             return "Helligkeitsraster des ausgerichteten Gesichts. Kann nur widersprechen, nie zuordnen."
         case .qualityGate:
-            return "Nächstes Exemplar, gewichtet mit VNFaceCaptureQuality statt Verwerfung."
+            return "Nächstes Feature-Print-Exemplar, gewichtet mit VNFaceCaptureQuality statt Verwerfung."
         case .temporal:
-            return "Nächstes Video-Exemplar über Tracks, ohne Kreuzer zu tauschen."
+            return "Nächstes Video-Feature-Print über Tracks, ohne Kreuzer zu tauschen."
         case .featurePrint:
-            return "VNGenerateImageFeaturePrintRequest auf ausgerichtetem Gesicht."
+            return "VN-Feature-Print auf augenausgerichtetem Gesicht. Das macOS-Identitäts-Embedding."
         case .terFusion:
             return "Wu/Wan: Scores → Total Error Rate, min-max nach Jain, probabilistisch gewichtet."
         case .aegis:
-            return "Beweis-Identifikation: Aussehen muss hoch liegen, Maße dürfen widersprechen. Unbekannt ist der Normalzustand."
+            return "Beweis-Identifikation: Feature Print muss hoch liegen, Verhältnisse dürfen widersprechen. Unbekannt ist der Normalzustand."
         }
     }
 }
@@ -128,6 +128,14 @@ struct LandmarkStroke: Hashable {
     var points: [Point2]
 }
 
+struct NamedRatio: Hashable {
+    var id: String
+    var label: String
+    var value: Double
+    var group: String
+    var identity: Bool
+}
+
 struct FaceObservation: Identifiable, Hashable {
     let id: UUID
     var mediaId: UUID
@@ -142,6 +150,8 @@ struct FaceObservation: Identifiable, Hashable {
     var quality: FaceQuality
     var trackId: UUID?
     var strokes: [LandmarkStroke] = []
+    var namedAligned: [Point2] = []
+    var ratioSheet: [NamedRatio] = []
 }
 
 struct Identity: Identifiable, Hashable {

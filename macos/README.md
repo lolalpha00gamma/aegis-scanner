@@ -1,7 +1,7 @@
 # Aegis
 
 Lokaler Image- & Video-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**  
-Version **1.0.12 alpha**.
+Version **1.0.13 alpha**.
 
 ## Image-Datei
 
@@ -12,6 +12,10 @@ Version **1.0.12 alpha**.
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Die Datei ist ad-hoc signiert (kein Apple-Developer-Account) — deshalb der Rechtsklick beim ersten Start.
+
+## Neu in 1.0.13 alpha
+
+Gesichtsform aus **reproduzierbaren Verhältnissen** (Augenabstand = 1), nicht aus Lage im Bild, Boxgröße oder Punktzählung. Feature Print ist das Identitäts-Embedding; das Helligkeitsraster darf nur widersprechen. Mimik (Mundöffnung, Lidschlag) zählt nicht als Identität.
 
 ## Neu in 1.0.12 alpha
 
@@ -35,20 +39,20 @@ Ordner mit Fotos und Videos wählen, oder einen Live-Stream (Webcam, RTSP, HLS, 
 
 | Strategie | Signal |
 |---|---|
-| **Fotos-Stil** | Einzelnes Best-Frame, harte Qualitätsgrenze (Baseline) |
+| **Fotos-Stil** | Best-Frame Feature Print, harte Qualitätsgrenze (Baseline) |
 | **Vision Box** | Nächstes Feature-Print-Exemplar, Vision Rev. 3 |
-| **Landmark-Geometrie** | Landmark-Form, Procrustes-normalisiert |
-| **Gesichtsmaße** | Nase/Augen, Augenbreite, Mund, Philtrum |
-| **Gesichtsform** | Kiefer, Wangen, Aspekt, Kinn |
-| **Augenregion** | Augenbreite, Lidöffnung, Brauen |
-| **Mittelgesicht** | Nase, Philtrum, Mund |
-| **Kieferlinie** | Kieferbreite, Wangen, Kinn |
-| **Graph-Biomarker** | KNN-6 Spektralenergie, alterungsstabil (Varghese 2026) |
-| **3D-Geometrie** | Distanzen, Winkel, Flächen (Cheese3D-Analog) |
+| **Landmark-Geometrie** | Anatomische Punkte, Augen-Procrustes IOD=1 (diagnostisch) |
+| **Gesichtsmaße** | Verhältnisse zur Augenabstands-Einheit, unabhängig von Lage/Größe/Mimik |
+| **Gesichtsform** | Kiefer/Höhe, Wangen/Höhe, Kiefer/Wangen — keine Box |
+| **Augenregion** | Lidspalten und Augenwinkel / IOD, nicht Lidöffnung |
+| **Mittelgesicht** | Nasenlänge, Nasenbreite, Nasenindex, Philtrum/Nase |
+| **Kieferlinie** | Kieferbreite/IOD, Untergesicht/Höhe, Kinn |
+| **Graph-Biomarker** | KNN-6 über feste Knochenpunkte, ohne Mund |
+| **3D-Geometrie** | IOD-Verhältnisse, Kieferwinkel, Nasenfläche |
 | **Aussehen** | Helligkeitsraster; darf nur vetoen, nie zuweisen |
-| **Quality-Gate** | Nächstes Exemplar × `VNDetectFaceCaptureQuality` |
-| **Temporal** | Nächstes Video-Exemplar, Tracks ohne Kreuzer-Tausch |
-| **Feature Print** | `VNGenerateImageFeaturePrintRequest` auf ausgerichtetem Crop |
+| **Quality-Gate** | Feature Print × `VNDetectFaceCaptureQuality` |
+| **Temporal** | Video-Feature-Print über Tracks, ohne Kreuzer-Tausch |
+| **Feature Print** | Augenausgerichteter Crop — das macOS-Identitäts-Embedding |
 | **TER-Fusion** | Scores → Total Error Rate, min-max nach Jain |
 | **Aegis Ensemble** | Beweis-Identifikation. Enge Rennen bleiben offen und werden erklärt |
 

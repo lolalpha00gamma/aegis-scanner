@@ -232,6 +232,40 @@ struct ContentView: View {
                             face.quality.frontal * 100))
                     .font(.caption.monospaced())
                     .foregroundStyle(.secondary)
+                if !face.ratioSheet.isEmpty {
+                    let refSheet = referenceSheet(for: face)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("VERHÄLTNISSE · IOD = 1")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .tracking(1.2)
+                        Text("Unabhängig von Lage, Größe, Mimik")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        ForEach(face.ratioSheet.filter(\.identity), id: \.id) { row in
+                            let refVal = refSheet[row.id]
+                            let signed: Double = {
+                                guard let refVal else { return 0 }
+                                return (row.value - refVal) / max(abs(refVal), 0.08)
+                            }()
+                            HStack {
+                                Text(row.label)
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                                Spacer()
+                                Text(String(format: "%.2f", row.value))
+                                    .font(.caption.monospacedDigit())
+                                if refVal != nil {
+                                    Text(abs(signed) < 0.005 ? "±0%" : String(format: "%+.0f%%", signed * 100))
+                                        .font(.caption2.monospacedDigit())
+                                        .foregroundStyle(abs(signed) < 0.08 ? Color.primary : (abs(signed) < 0.16 ? Color.orange : Color.red))
+                                }
+                            }
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
                 Text("STRATEGIEN")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -318,6 +352,28 @@ struct ContentView: View {
             Spacer()
         }
         .padding(16)
+    }
+
+    private func referenceSheet(for face: FaceObservation) -> [String: Double] {
+        let owner = store.identities.first { $0.faceIds.contains(face.id) }
+        let target = owner ?? store.identities.first { ident in
+            store.selectedHits.first(where: { $0.strategy == store.strategy })?.versus.first?.identityId == ident.id
+        }
+        guard let target else { return [:] }
+        let others = store.faces.filter {
+            target.faceIds.contains($0.id) && $0.id != face.id && !$0.ratioSheet.isEmpty
+        }
+        guard !others.isEmpty else { return [:] }
+        var acc: [String: (Double, Double)] = [:]
+        for f in others {
+            for row in f.ratioSheet where row.identity {
+                let cur = acc[row.id] ?? (0, 0)
+                acc[row.id] = (cur.0 + row.value, cur.1 + 1)
+            }
+        }
+        var out: [String: Double] = [:]
+        for (k, v) in acc { out[k] = v.0 / max(v.1, 1) }
+        return out
     }
 }
 

@@ -120,25 +120,36 @@ enum FaceEngine {
                 let mRight = mouth.points.max { $0.x < $1.x }!
                 strokes.append(LandmarkStroke(label: "Mundbreite", closed: false, points: [mLeft, mRight]))
             }
-            let aligned = procrustes(points)
+            let frame = namedFromStrokes(strokes)
+            let aligned = procrustes(points, left: frame?.leftEye, right: frame?.rightEye)
+            let namedImg = frame.map(namedList) ?? []
+            let namedAligned = procrustes(namedImg, left: frame?.leftEye, right: frame?.rightEye)
+            let sheet = frame.map(ratioSheet) ?? []
             let captureApple = Double(
                 (qualities.first { $0.uuid == face.uuid }?.faceCaptureQuality ??
                     qualities.first?.faceCaptureQuality ?? 0.5)
             )
-            let frontal = frontalScore(points)
+            let frontal = frame.map(frontalScore) ?? frontalScore(points)
             let size = min(1, (box.width * box.height) / max(1, imageWidth * imageHeight) / 0.12)
             let sharpness = sharpnessScore(crop(image, box: vnToPixels(face.boundingBox, width: w, height: h)))
             let capture = clamp01(0.40 * captureApple + 0.22 * sharpness + 0.18 * size + 0.20 * frontal)
             let inner = crop(image, box: vnToPixels(face.boundingBox, width: w, height: h), pad: 0.04)
-            let printData = featurePrint(of: crop(image, box: vnToPixels(face.boundingBox, width: w, height: h), pad: 0.18)) ?? Data()
-            let leftEye = regionCenter(lm?.landmarks?.leftEye, box: face.boundingBox, imageWidth: w, imageHeight: h)
-            let rightEye = regionCenter(lm?.landmarks?.rightEye, box: face.boundingBox, imageWidth: w, imageHeight: h)
+            let leftEye = frame?.leftEye ?? regionCenter(lm?.landmarks?.leftEye, box: face.boundingBox, imageWidth: w, imageHeight: h)
+            let rightEye = frame?.rightEye ?? regionCenter(lm?.landmarks?.rightEye, box: face.boundingBox, imageWidth: w, imageHeight: h)
             let appearance: [Double]
-            if let leftEye, let rightEye, let warped = warpEyes(image, left: leftEye, right: rightEye) {
+            if let leftEye, let rightEye, let warped = warpEyes(image, left: leftEye, right: rightEye, size: 64) {
                 appearance = appearanceVector(of: warped)
             } else {
                 appearance = appearanceVector(of: inner)
             }
+            let printSource: CGImage?
+            if let leftEye, let rightEye {
+                printSource = warpEyes(image, left: leftEye, right: rightEye, size: 256)
+            } else {
+                printSource = crop(image, box: vnToPixels(face.boundingBox, width: w, height: h), pad: 0.18)
+            }
+            let printData = featurePrint(of: printSource) ?? Data()
+            let bone = boneKeypoints(namedAligned)
 
             out.append(
                 FaceObservation(
@@ -150,11 +161,13 @@ enum FaceEngine {
                     aligned: aligned,
                     featurePrint: printData,
                     appearance: appearance,
-                    graph: graphBiomarkers(points),
-                    geom3d: geom3dFeatures(aligned),
+                    graph: graphBiomarkers(bone.isEmpty ? points : bone),
+                    geom3d: geom3dFromNamed(namedAligned),
                     quality: FaceQuality(sharpness: sharpness, size: size, frontal: frontal, capture: capture),
                     trackId: nil,
-                    strokes: strokes
+                    strokes: strokes,
+                    namedAligned: namedAligned,
+                    ratioSheet: sheet
                 )
             )
         }
@@ -203,19 +216,20 @@ enum FaceEngine {
             let owned = tracked.filter { identity.faceIds.contains($0.id) }
             let best = owned.max { $0.quality.capture < $1.quality.capture }
             let photos = (best?.quality.capture ?? 0) >= 0.35 ? best : nil
+            let namedSets = owned.map { $0.namedAligned.isEmpty ? $0.aligned : $0.namedAligned }
             return IdentityModel(
                 identity: identity,
                 photos: photos,
                 meanPrint: owned,
-                meanLandmarks: averageLandmarks(owned.map(\.aligned), owned.map { 0.2 + $0.quality.frontal }),
+                meanLandmarks: averageLandmarks(namedSets, owned.map { 0.2 + $0.quality.frontal }),
                 temporal: owned.filter { face in
                     media.first { $0.id == face.mediaId }?.kind == .frame
                 },
-                ratios: averageVec(owned.compactMap { measures($0.aligned).ratios }),
-                shape: averageVec(owned.compactMap { measures($0.aligned).shape }),
-                eyes: averageVec(owned.compactMap { measures($0.aligned).eyes }),
-                midface: averageVec(owned.compactMap { measures($0.aligned).midface }),
-                jaw: averageVec(owned.compactMap { measures($0.aligned).jaw }),
+                ratios: averageRaw(owned.compactMap { measures($0).ratios }),
+                shape: averageRaw(owned.compactMap { measures($0).shape }),
+                eyes: averageRaw(owned.compactMap { measures($0).eyes }),
+                midface: averageRaw(owned.compactMap { measures($0).midface }),
+                jaw: averageRaw(owned.compactMap { measures($0).jaw }),
                 appearances: owned.map(\.appearance).filter { !$0.isEmpty },
                 graphs: owned.map(\.graph).filter { !$0.isEmpty },
                 geom3ds: owned.map(\.geom3d).filter { !$0.isEmpty }
@@ -227,84 +241,85 @@ enum FaceEngine {
 
             let photos = rank(models, minMargin: embedMargin) { m in
                 guard face.quality.capture >= 0.35 else { return 0 }
-                return bestAppearance(face.appearance, m.appearances)
+                return bestPrintPercent(face.featurePrint, m.meanPrint)
             }
             hits.append(toHit(.photosStyle, face.quality.capture < 0.35
                 ? Ranked(identityId: nil, percent: 0, margin: photos.margin, versus: photos.versus)
                 : photos))
 
             let box = rank(models, minMargin: embedMargin) { m in
-                bestAppearance(face.appearance, m.appearances)
+                bestPrintPercent(face.featurePrint, m.meanPrint)
             }
             hits.append(toHit(.visionBox, box))
 
+            let geoPts = face.namedAligned.isEmpty ? face.aligned : face.namedAligned
             let geo = rank(models, minMargin: landmarkMargin) { m in
-                landmarkPercent(distance(face.aligned, m.meanLandmarks))
+                landmarkPercent(distance(geoPts, m.meanLandmarks))
             }
             hits.append(hint(.landmarkGeo, geo))
 
-            let probeM = measures(face.aligned)
+            let probeM = measures(face)
             hits.append(hint(.ratios, rank(models, minMargin: landmarkMargin) { m in
-                measuresPercent(vecDistance(probeM.ratios, m.ratios))
+                ratioScore(probeM.ratios, m.ratios)
             }))
             hits.append(hint(.faceShape, rank(models, minMargin: landmarkMargin) { m in
-                measuresPercent(vecDistance(probeM.shape, m.shape))
+                ratioScore(probeM.shape, m.shape)
             }))
             hits.append(hint(.eyeRegion, rank(models, minMargin: landmarkMargin) { m in
-                measuresPercent(vecDistance(probeM.eyes, m.eyes))
+                ratioScore(probeM.eyes, m.eyes)
             }))
             hits.append(hint(.midface, rank(models, minMargin: landmarkMargin) { m in
-                measuresPercent(vecDistance(probeM.midface, m.midface))
+                ratioScore(probeM.midface, m.midface)
             }))
             hits.append(hint(.jawline, rank(models, minMargin: landmarkMargin) { m in
-                measuresPercent(vecDistance(probeM.jaw, m.jaw))
+                ratioScore(probeM.jaw, m.jaw)
             }))
             hits.append(hint(.graphBio, rank(models, minMargin: landmarkMargin) { m in
                 bestVecPercent(face.graph, m.graphs)
             }))
             hits.append(hint(.geom3d, rank(models, minMargin: landmarkMargin) { m in
-                bestVecPercent(face.geom3d, m.geom3ds)
+                bestRatioPercent(face.geom3d, m.geom3ds)
             }))
             hits.append(hint(.texture, rank(models, minMargin: landmarkMargin) { m in
                 bestAppearance(face.appearance, m.appearances)
             }))
 
             let gated = rank(models, minMargin: embedMargin) { m in
-                let raw = bestAppearance(face.appearance, m.appearances)
+                let raw = bestPrintPercent(face.featurePrint, m.meanPrint)
                 if face.quality.capture >= 0.35 { return raw }
                 return raw * (0.45 + 0.55 * (face.quality.capture / 0.35))
             }
             hits.append(toHit(.qualityGate, gated))
 
             let temporal = rank(models, minMargin: embedMargin) { m in
-                let gallery = m.temporal.isEmpty ? m.appearances : m.temporal.map(\.appearance)
-                return bestAppearance(face.appearance, gallery)
+                let gallery = m.temporal.isEmpty ? m.meanPrint : m.temporal
+                return bestPrintPercent(face.featurePrint, gallery)
             }
             hits.append(toHit(.temporal, temporal))
 
             let fp = rank(models, minMargin: embedMargin) { m in
                 bestPrintPercent(face.featurePrint, m.meanPrint)
             }
-            hits.append(hint(.featurePrint, fp))
+            hits.append(toHit(.featurePrint, fp))
 
             func pctVs(_ s: StrategyID, _ id: UUID) -> Double {
                 hits.first { $0.strategy == s }?.versus.first { $0.identityId == id }?.percent ?? 0
             }
             let lowCapture = face.quality.capture < 0.35
             func geoMixOf(_ id: UUID) -> Double {
-                0.16 * pctVs(.landmarkGeo, id)
-                    + 0.12 * pctVs(.ratios, id)
-                    + 0.10 * pctVs(.faceShape, id)
-                    + 0.14 * pctVs(.eyeRegion, id)
-                    + 0.12 * pctVs(.midface, id)
-                    + 0.10 * pctVs(.jawline, id)
-                    + 0.14 * pctVs(.graphBio, id)
-                    + 0.12 * pctVs(.geom3d, id)
+                0.22 * pctVs(.ratios, id)
+                    + 0.18 * pctVs(.faceShape, id)
+                    + 0.16 * pctVs(.eyeRegion, id)
+                    + 0.16 * pctVs(.midface, id)
+                    + 0.14 * pctVs(.jawline, id)
+                    + 0.08 * pctVs(.graphBio, id)
+                    + 0.06 * pctVs(.geom3d, id)
             }
             let ids = models.map(\.identity.id)
             let embedRow = ids.map { id -> Double in
-                if lowCapture { return max(pctVs(.qualityGate, id), pctVs(.photosStyle, id)) }
+                if lowCapture { return max(pctVs(.qualityGate, id), pctVs(.featurePrint, id)) }
                 return max(
+                    pctVs(.featurePrint, id),
                     pctVs(.visionBox, id),
                     pctVs(.temporal, id),
                     pctVs(.photosStyle, id),
@@ -579,7 +594,22 @@ enum FaceEngine {
         )
     }
 
-    private static func procrustes(_ pts: [Point2]) -> [Point2] {
+    private static func procrustes(_ pts: [Point2], left: Point2? = nil, right: Point2? = nil) -> [Point2] {
+        if let left, let right {
+            let cx = (left.x + right.x) / 2
+            let cy = (left.y + right.y) / 2
+            let dx = right.x - left.x
+            let dy = right.y - left.y
+            let dist = max(hypot(dx, dy), 1e-6)
+            let ang = -atan2(dy, dx)
+            let c = cos(ang)
+            let s = sin(ang)
+            return pts.map { p in
+                let x = p.x - cx
+                let y = p.y - cy
+                return Point2(x: (x * c - y * s) / dist, y: (x * s + y * c) / dist)
+            }
+        }
         guard pts.count >= 8 else { return pts }
         let n = pts.count
         let cx = pts.map(\.x).reduce(0, +) / Double(n)
@@ -588,6 +618,14 @@ enum FaceEngine {
         for p in pts { scale += hypot(p.x - cx, p.y - cy) }
         scale = max(scale / Double(n), 1e-6)
         return pts.map { Point2(x: ($0.x - cx) / scale, y: ($0.y - cy) / scale) }
+    }
+
+    private static func frontalScore(_ frame: NamedFace) -> Double {
+        let iod = max(hypot(frame.rightEye.x - frame.leftEye.x, frame.rightEye.y - frame.leftEye.y), 1e-6)
+        let midX = (frame.leftEye.x + frame.rightEye.x) / 2
+        let offset = abs(frame.noseTip.x - midX) / iod
+        let tilt = abs(frame.rightEye.y - frame.leftEye.y) / iod
+        return clamp01(1 - offset * 1.8) * clamp01(1 - tilt * 2.4)
     }
 
     private static func frontalScore(_ pts: [Point2]) -> Double {
@@ -672,8 +710,13 @@ enum FaceEngine {
 
     private static func printPercent(_ a: Data, _ b: Data) -> Double {
         let d = printDistance(a, b)
-        let t = 8.0
-        let k = 0.7
+        if d >= 3 {
+            let t = 8.0
+            let k = 0.7
+            return 100.0 / (1.0 + exp(k * (d - t)))
+        }
+        let t = 0.72
+        let k = 8.0
         return 100.0 / (1.0 + exp(k * (d - t)))
     }
 
@@ -763,8 +806,7 @@ enum FaceEngine {
         return landmarkToPixels(CGPoint(x: x, y: y), box: box, imageWidth: imageWidth, imageHeight: imageHeight)
     }
 
-    private static func warpEyes(_ image: CGImage, left: Point2, right: Point2) -> CGImage? {
-        let size = 64
+    private static func warpEyes(_ image: CGImage, left: Point2, right: Point2, size: Int = 64) -> CGImage? {
         guard let ctx = CGContext(
             data: nil,
             width: size,
@@ -777,7 +819,9 @@ enum FaceEngine {
         let dx = right.x - left.x
         let dy = right.y - left.y
         let dist = max(hypot(dx, dy), 1e-6)
-        let s = 32 / dist
+        let half = Double(size) / 2
+        let eyeY = Double(size) * 0.38
+        let s = half / dist
         let ang = -atan2(dy, dx)
         let cosA = cos(ang)
         let sinA = sin(ang)
@@ -787,75 +831,236 @@ enum FaceEngine {
         let d = s * cosA
         let cx = (left.x + right.x) / 2
         let cy = (left.y + right.y) / 2
-        let e = 32 - a * cx - c * cy
-        let f = 24 - b * cx - d * cy
+        let e = half - a * cx - c * cy
+        let f = eyeY - b * cx - d * cy
         ctx.concatenate(CGAffineTransform(a: a, b: b, c: c, d: d, tx: e, ty: f))
         ctx.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
         return ctx.makeImage()
     }
 
-    private static func measures(_ pts: [Point2]) -> (ratios: [Double], shape: [Double], eyes: [Double], midface: [Double], jaw: [Double]) {
-        guard pts.count >= 4 else { return ([], [], [], [], []) }
-        let xs = pts.map(\.x)
-        let ys = pts.map(\.y)
-        let minX = xs.min() ?? 0
-        let maxX = xs.max() ?? 1
-        let minY = ys.min() ?? 0
-        let maxY = ys.max() ?? 1
-        let w = max(maxX - minX, 1e-6)
+    private struct NamedFace {
+        var leftEye: Point2
+        var rightEye: Point2
+        var leftOuter: Point2
+        var leftInner: Point2
+        var rightInner: Point2
+        var rightOuter: Point2
+        var nasion: Point2
+        var noseTip: Point2
+        var noseLeft: Point2
+        var noseRight: Point2
+        var mouthLeft: Point2
+        var mouthRight: Point2
+        var mouthTop: Point2
+        var mouthBottom: Point2
+        var chin: Point2
+        var jawLeft: Point2
+        var jawRight: Point2
+        var cheekLeft: Point2
+        var cheekRight: Point2
+        var browLeft: Point2
+        var browRight: Point2
+        var eyeOpenL: Double
+        var eyeOpenR: Double
+    }
+
+    private static func namedList(_ n: NamedFace) -> [Point2] {
+        [
+            n.leftOuter, n.leftInner, n.rightInner, n.rightOuter,
+            n.nasion, n.noseTip, n.noseLeft, n.noseRight,
+            n.mouthLeft, n.mouthRight, n.mouthTop, n.mouthBottom,
+            n.chin, n.jawLeft, n.jawRight, n.cheekLeft, n.cheekRight,
+            n.browLeft, n.browRight, n.leftEye, n.rightEye,
+        ]
+    }
+
+    private static func boneKeypoints(_ list: [Point2]) -> [Point2] {
+        guard list.count >= 21 else { return list }
+        return list.enumerated().filter { $0.offset < 8 || $0.offset > 11 }.map(\.element)
+    }
+
+    private static func meanPts(_ p: [Point2]) -> Point2? {
+        guard !p.isEmpty else { return nil }
+        return Point2(
+            x: p.map(\.x).reduce(0, +) / Double(p.count),
+            y: p.map(\.y).reduce(0, +) / Double(p.count)
+        )
+    }
+
+    private static func namedFromStrokes(_ strokes: [LandmarkStroke]) -> NamedFace? {
+        func pts(_ label: String) -> [Point2] {
+            strokes.first { $0.label == label }?.points ?? []
+        }
+        let eyeL = pts("Auge L")
+        let eyeR = pts("Auge R")
+        guard let leftEye = meanPts(eyeL), let rightEye = meanPts(eyeR) else { return nil }
+        let leftOuter = eyeL.min { $0.x < $1.x } ?? leftEye
+        let leftInner = eyeL.max { $0.x < $1.x } ?? leftEye
+        let rightInner = eyeR.min { $0.x < $1.x } ?? rightEye
+        let rightOuter = eyeR.max { $0.x < $1.x } ?? rightEye
+        let nose = pts("Nase")
+        let crest = pts("Nasenrücken")
+        let noseAll = nose + crest
+        guard !noseAll.isEmpty else { return nil }
+        let nasion = (crest + nose).min { $0.y < $1.y } ?? leftEye
+        let noseTip = (crest + nose).max { $0.y < $1.y } ?? nasion
+        let noseLeft = noseAll.min { $0.x < $1.x } ?? nasion
+        let noseRight = noseAll.max { $0.x < $1.x } ?? nasion
+        let mouth = pts("Mund")
+        let mouthLeft = mouth.min { $0.x < $1.x } ?? Point2(x: (leftEye.x + noseTip.x) / 2, y: noseTip.y + 20)
+        let mouthRight = mouth.max { $0.x < $1.x } ?? Point2(x: (rightEye.x + noseTip.x) / 2, y: noseTip.y + 20)
+        let mouthTop = mouth.min { $0.y < $1.y } ?? noseTip
+        let mouthBottom = mouth.max { $0.y < $1.y } ?? noseTip
+        let contour = pts("Kontur")
+        let chin = contour.max { $0.y < $1.y } ?? mouthBottom
+        let ys = contour.map(\.y)
+        let minY = ys.min() ?? leftEye.y
+        let maxY = ys.max() ?? chin.y
         let h = max(maxY - minY, 1e-6)
-        let cx = (minX + maxX) / 2
-        let cy = (minY + maxY) / 2
-        let top = pts.filter { $0.y < minY + h * 0.38 }
-        let mid = pts.filter { $0.y >= minY + h * 0.32 && $0.y <= minY + h * 0.68 }
-        let bot = pts.filter { $0.y > minY + h * 0.62 }
-        let left = pts.filter { $0.x < cx }
-        let right = pts.filter { $0.x >= cx }
-        let topH = max((top.map(\.y).max() ?? cy) - (top.map(\.y).min() ?? minY), 1e-6)
-        let botH = max((bot.map(\.y).max() ?? maxY) - (bot.map(\.y).min() ?? cy), 1e-6)
-        let midH = max((mid.map(\.y).max() ?? cy) - (mid.map(\.y).min() ?? cy), 1e-6)
-        let leftW = max((left.map(\.x).max() ?? cx) - (left.map(\.x).min() ?? minX), 1e-6)
-        let rightW = max((right.map(\.x).max() ?? maxX) - (right.map(\.x).min() ?? cx), 1e-6)
-        let topLeft = top.filter { $0.x < cx }
-        let topRight = top.filter { $0.x >= cx }
-        let botW = max((bot.map(\.x).max() ?? maxX) - (bot.map(\.x).min() ?? minX), 1e-6)
-        let ratios = l2([
-            w / h,
-            topH / h,
-            botH / h,
-            Double(top.count) / Double(max(pts.count, 1)),
-            leftW / w,
-            rightW / w,
-        ])
-        let shape = l2([
-            w,
-            h,
-            w / h,
-            leftW / rightW,
-            topH / botH,
-            Double(left.count) / Double(max(right.count, 1)),
-        ])
-        let eyes = l2([
-            topH / h,
-            Double(topLeft.count) / Double(max(topRight.count, 1)),
-            leftW / w,
-            rightW / w,
-            Double(top.count) / Double(max(pts.count, 1)),
-        ])
-        let midface = l2([
-            midH / h,
-            Double(mid.count) / Double(max(pts.count, 1)),
-            w / h,
-            (mid.map(\.x).max() ?? maxX) - (mid.map(\.x).min() ?? minX),
-        ])
-        let jaw = l2([
-            botH / h,
-            botW / w,
-            botW / h,
-            Double(bot.count) / Double(max(pts.count, 1)),
-            w / h,
-        ])
-        return (ratios, shape, eyes, midface, jaw)
+        let lower = contour.filter { $0.y > minY + h * 0.55 }
+        let jawLeft = lower.min { $0.x < $1.x } ?? contour.min { $0.x < $1.x } ?? leftEye
+        let jawRight = lower.max { $0.x < $1.x } ?? contour.max { $0.x < $1.x } ?? rightEye
+        let cheekLeft = contour.min { $0.x < $1.x } ?? jawLeft
+        let cheekRight = contour.max { $0.x < $1.x } ?? jawRight
+        let browLeft = meanPts(pts("Braue L")) ?? Point2(x: leftEye.x, y: leftEye.y - 12)
+        let browRight = meanPts(pts("Braue R")) ?? Point2(x: rightEye.x, y: rightEye.y - 12)
+        let eyeH: ([Point2]) -> Double = { p in
+            guard let lo = p.map(\.y).min(), let hi = p.map(\.y).max() else { return 0 }
+            return hi - lo
+        }
+        return NamedFace(
+            leftEye: leftEye, rightEye: rightEye,
+            leftOuter: leftOuter, leftInner: leftInner,
+            rightInner: rightInner, rightOuter: rightOuter,
+            nasion: nasion, noseTip: noseTip, noseLeft: noseLeft, noseRight: noseRight,
+            mouthLeft: mouthLeft, mouthRight: mouthRight, mouthTop: mouthTop, mouthBottom: mouthBottom,
+            chin: chin, jawLeft: jawLeft, jawRight: jawRight, cheekLeft: cheekLeft, cheekRight: cheekRight,
+            browLeft: browLeft, browRight: browRight,
+            eyeOpenL: eyeH(eyeL), eyeOpenR: eyeH(eyeR)
+        )
+    }
+
+    private static func d(_ a: Point2, _ b: Point2) -> Double {
+        hypot(b.x - a.x, b.y - a.y)
+    }
+
+    private static func ratioSheet(_ n: NamedFace) -> [NamedRatio] {
+        let iod = max(d(n.leftEye, n.rightEye), 1e-6)
+        let noseW = d(n.noseLeft, n.noseRight)
+        let noseL = d(n.nasion, n.noseTip)
+        let icd = d(n.leftInner, n.rightInner)
+        let ocd = d(n.leftOuter, n.rightOuter)
+        let eyeWL = d(n.leftOuter, n.leftInner)
+        let eyeWR = d(n.rightInner, n.rightOuter)
+        let brow = d(n.browLeft, n.browRight)
+        let jawW = d(n.jawLeft, n.jawRight)
+        let cheekW = d(n.cheekLeft, n.cheekRight)
+        let faceH = max(d(n.nasion, n.chin), 1e-6)
+        let midH = d(n.nasion, n.noseTip)
+        let lowH = d(n.noseTip, n.chin)
+        let philtrum = d(n.noseTip, n.mouthTop)
+        let chinL = (d(n.jawLeft, n.chin) + d(n.jawRight, n.chin)) / 2
+        let mouthW = d(n.mouthLeft, n.mouthRight)
+        let mouthH = d(n.mouthTop, n.mouthBottom)
+        let eyeOpen = (n.eyeOpenL + n.eyeOpenR) / 2
+        func row(_ id: String, _ label: String, _ value: Double, _ group: String, _ identity: Bool = true) -> NamedRatio {
+            NamedRatio(id: id, label: label, value: value.isFinite ? value : 0, group: group, identity: identity)
+        }
+        return [
+            row("noseW_iod", "Nasenbreite / Augenabstand", noseW / iod, "mid"),
+            row("noseL_iod", "Nasenlänge / Augenabstand", noseL / iod, "mid"),
+            row("nasalIndex", "Nasenindex (Breite/Länge)", noseW / max(noseL, 1e-6), "mid"),
+            row("icd_iod", "Innerer Augenwinkel / IOD", icd / iod, "eyes"),
+            row("ocd_iod", "Äußerer Augenwinkel / IOD", ocd / iod, "eyes"),
+            row("eyeWL_iod", "Lidspalte L / IOD", eyeWL / iod, "eyes"),
+            row("eyeWR_iod", "Lidspalte R / IOD", eyeWR / iod, "eyes"),
+            row("brow_iod", "Brauenabstand / IOD", brow / iod, "eyes"),
+            row("jaw_iod", "Kieferbreite / IOD", jawW / iod, "jaw"),
+            row("cheek_iod", "Wangenbreite / IOD", cheekW / iod, "shape"),
+            row("faceH_iod", "Gesichtshöhe / IOD", faceH / iod, "shape"),
+            row("jaw_faceH", "Kiefer / Gesichtshöhe", jawW / faceH, "shape"),
+            row("cheek_faceH", "Wangen / Gesichtshöhe", cheekW / faceH, "shape"),
+            row("jaw_cheek", "Kiefer / Wangen", jawW / max(cheekW, 1e-6), "shape"),
+            row("mid_faceH", "Mittelgesicht / Höhe", midH / faceH, "mid"),
+            row("low_faceH", "Untergesicht / Höhe", lowH / faceH, "jaw"),
+            row("philtrum_nose", "Philtrum / Nasenlänge", philtrum / max(noseL, 1e-6), "mid"),
+            row("noseW_jaw", "Nase / Kiefer", noseW / max(jawW, 1e-6), "shape"),
+            row("icd_cheek", "Augenwinkel / Wangen", icd / max(cheekW, 1e-6), "eyes"),
+            row("chin_iod", "Kinn / IOD", chinL / iod, "jaw"),
+            row("mouthW_iod", "Mundbreite / IOD (Mimik)", mouthW / iod, "mimik", false),
+            row("mouthH_iod", "Mundöffnung / IOD (Mimik)", mouthH / iod, "mimik", false),
+            row("eyeOpen_iod", "Lidöffnung / IOD (Mimik)", eyeOpen / iod, "mimik", false),
+        ]
+    }
+
+    private static func measures(_ face: FaceObservation) -> (ratios: [Double], shape: [Double], eyes: [Double], midface: [Double], jaw: [Double]) {
+        let sheet = face.ratioSheet
+        guard !sheet.isEmpty else { return ([], [], [], [], []) }
+        func group(_ g: String) -> [Double] {
+            sheet.filter { $0.group == g && $0.identity }.map(\.value)
+        }
+        return (
+            sheet.filter(\.identity).map(\.value),
+            group("shape"),
+            group("eyes"),
+            group("mid"),
+            group("jaw")
+        )
+    }
+
+    private static func geom3dFromNamed(_ named: [Point2]) -> [Double] {
+        guard named.count >= 21 else { return [] }
+        let n = NamedFace(
+            leftEye: named[19], rightEye: named[20],
+            leftOuter: named[0], leftInner: named[1],
+            rightInner: named[2], rightOuter: named[3],
+            nasion: named[4], noseTip: named[5], noseLeft: named[6], noseRight: named[7],
+            mouthLeft: named[8], mouthRight: named[9], mouthTop: named[10], mouthBottom: named[11],
+            chin: named[12], jawLeft: named[13], jawRight: named[14],
+            cheekLeft: named[15], cheekRight: named[16],
+            browLeft: named[17], browRight: named[18],
+            eyeOpenL: 0, eyeOpenR: 0
+        )
+        let iod = max(d(n.leftEye, n.rightEye), 1e-6)
+        let sheet = ratioSheet(n).filter(\.identity).map(\.value)
+        let noseArea = shoelace([n.nasion, n.noseLeft, n.noseRight]) / (iod * iod)
+        let jawAng = angleAt(n.jawLeft, n.chin, n.jawRight) / .pi
+        return Array(sheet.prefix(15)) + [noseArea, jawAng]
+    }
+
+    private static func ratioScore(_ a: [Double], _ b: [Double]) -> Double {
+        let n = min(a.count, b.count)
+        guard n > 0 else { return 0 }
+        var s = 0.0
+        for i in 0 ..< n {
+            let denom = max(abs(a[i]), abs(b[i]), 0.08)
+            s += abs(a[i] - b[i]) / denom
+        }
+        let mre = s / Double(n)
+        return 100.0 / (1.0 + exp(28.0 * (mre - 0.18)))
+    }
+
+    private static func bestRatioPercent(_ probe: [Double], _ gallery: [[Double]]) -> Double {
+        guard !probe.isEmpty, !gallery.isEmpty else { return 0 }
+        var best = 0.0
+        for g in gallery {
+            let p = ratioScore(probe, g)
+            if p > best { best = p }
+        }
+        return best
+    }
+
+    private static func averageRaw(_ vecs: [[Double]]) -> [Double] {
+        guard let first = vecs.first, !first.isEmpty else { return [] }
+        var acc = Array(repeating: 0.0, count: first.count)
+        var n = 0.0
+        for v in vecs {
+            guard v.count == first.count else { continue }
+            for i in 0 ..< first.count { acc[i] += v[i] }
+            n += 1
+        }
+        guard n > 0 else { return [] }
+        return acc.map { $0 / n }
     }
 
     private static func l2(_ v: [Double]) -> [Double] {
