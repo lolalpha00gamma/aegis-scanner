@@ -413,7 +413,6 @@ enum FaceEngine {
         }
         return best
     }
-    }
 
     private static func vnToPixels(_ r: CGRect, width: Double, height: Double) -> FaceBox {
         FaceBox(
