@@ -97,9 +97,28 @@ enum FaceEngine {
                let browR = strokes.first(where: { $0.label == "Braue R" })?.points.last {
                 strokes.append(LandmarkStroke(label: "Haaransatz", closed: false, points: [browL, hair, browR]))
             }
-            if let left { strokes.append(LandmarkStroke(label: "Ohr L", closed: false, points: [left])) }
-            if let right { strokes.append(LandmarkStroke(label: "Ohr R", closed: false, points: [right])) }
-            if let chin { strokes.append(LandmarkStroke(label: "Kinn", closed: false, points: [chin])) }
+            if let left {
+                let tick = Point2(x: left.x - max(8, box.width * 0.06), y: left.y)
+                strokes.append(LandmarkStroke(label: "Ohr L", closed: false, points: [left, tick]))
+            }
+            if let right {
+                let tick = Point2(x: right.x + max(8, box.width * 0.06), y: right.y)
+                strokes.append(LandmarkStroke(label: "Ohr R", closed: false, points: [right, tick]))
+            }
+            if let chin {
+                let tick = Point2(x: chin.x, y: chin.y + max(8, box.height * 0.05))
+                strokes.append(LandmarkStroke(label: "Kinn", closed: false, points: [chin, tick]))
+            }
+            if let nose = strokes.first(where: { $0.label == "Nase" }), nose.points.count >= 2 {
+                let nLeft = nose.points.min { $0.x < $1.x }!
+                let nRight = nose.points.max { $0.x < $1.x }!
+                strokes.append(LandmarkStroke(label: "Nasenbreite", closed: false, points: [nLeft, nRight]))
+            }
+            if let mouth = strokes.first(where: { $0.label == "Mund" }), mouth.points.count >= 2 {
+                let mLeft = mouth.points.min { $0.x < $1.x }!
+                let mRight = mouth.points.max { $0.x < $1.x }!
+                strokes.append(LandmarkStroke(label: "Mundbreite", closed: false, points: [mLeft, mRight]))
+            }
             let aligned = procrustes(points)
             let captureApple = Double(
                 (qualities.first { $0.uuid == face.uuid }?.faceCaptureQuality ??

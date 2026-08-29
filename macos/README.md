@@ -1,7 +1,7 @@
 # Aegis
 
 Lokaler Image- & Video-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**  
-Version **1.0.10 alpha**.
+Version **1.0.11 alpha**.
 
 ## Image-Datei
 
@@ -12,6 +12,10 @@ Version **1.0.10 alpha**.
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Die Datei ist ad-hoc signiert (kein Apple-Developer-Account) — deshalb der Rechtsklick beim ersten Start.
+
+## Neu in 1.0.11 alpha
+
+Sichtbare Anatomie mit Nasenbreite, Mundbreite, Ohren und Haaransatz. Gestrichelte Referenz auf dem zweiten Foto. Ein leerer FaceNet-Vektor ist kein 0 %-Match mehr, sondern „nicht gemessen“.
 
 ## Neu in 1.0.10 alpha
 
