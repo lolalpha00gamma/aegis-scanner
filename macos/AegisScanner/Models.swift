@@ -2,9 +2,9 @@ import CoreGraphics
 import Foundation
 
 enum AppVersion {
-    static let marketing = "1.0.9"
+    static let marketing = "1.0.10"
     static let channel = "alpha"
-    static let display = "1.0.9 alpha"
+    static let display = "1.0.10 alpha"
 }
 
 enum StrategyID: String, CaseIterable, Identifiable, Codable {
@@ -122,6 +122,12 @@ struct MediaItem: Identifiable, Hashable {
     }
 }
 
+struct LandmarkStroke: Hashable {
+    var label: String
+    var closed: Bool
+    var points: [Point2]
+}
+
 struct FaceObservation: Identifiable, Hashable {
     let id: UUID
     var mediaId: UUID
@@ -135,6 +141,7 @@ struct FaceObservation: Identifiable, Hashable {
     var geom3d: [Double]
     var quality: FaceQuality
     var trackId: UUID?
+    var strokes: [LandmarkStroke] = []
 }
 
 struct Identity: Identifiable, Hashable {

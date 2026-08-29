@@ -72,10 +72,34 @@ enum FaceEngine {
             let lm = landmarks.first { $0.uuid == face.uuid } ?? landmarks.first {
                 hypot($0.boundingBox.midX - face.boundingBox.midX, $0.boundingBox.midY - face.boundingBox.midY) < 0.04
             }
-            var points = extractPoints(lm, imageWidth: w, imageHeight: h)
+            var strokes = extractStrokes(lm, imageWidth: w, imageHeight: h)
             if originX != 0 || originY != 0 {
-                points = points.map { Point2(x: $0.x + originX, y: $0.y + originY) }
+                strokes = strokes.map { stroke in
+                    LandmarkStroke(
+                        label: stroke.label,
+                        closed: stroke.closed,
+                        points: stroke.points.map { Point2(x: $0.x + originX, y: $0.y + originY) }
+                    )
+                }
             }
+            var points = strokes.flatMap(\.points)
+            if points.isEmpty {
+                points = extractPoints(lm, imageWidth: w, imageHeight: h)
+                if originX != 0 || originY != 0 {
+                    points = points.map { Point2(x: $0.x + originX, y: $0.y + originY) }
+                }
+            }
+            let hair = hairline(from: points)
+            let chin = points.max { $0.y < $1.y }
+            let left = points.min { $0.x < $1.x }
+            let right = points.max { $0.x < $1.x }
+            if let hair, let browL = strokes.first(where: { $0.label == "Braue L" })?.points.first,
+               let browR = strokes.first(where: { $0.label == "Braue R" })?.points.last {
+                strokes.append(LandmarkStroke(label: "Haaransatz", closed: false, points: [browL, hair, browR]))
+            }
+            if let left { strokes.append(LandmarkStroke(label: "Ohr L", closed: false, points: [left])) }
+            if let right { strokes.append(LandmarkStroke(label: "Ohr R", closed: false, points: [right])) }
+            if let chin { strokes.append(LandmarkStroke(label: "Kinn", closed: false, points: [chin])) }
             let aligned = procrustes(points)
             let captureApple = Double(
                 (qualities.first { $0.uuid == face.uuid }?.faceCaptureQuality ??
@@ -109,7 +133,8 @@ enum FaceEngine {
                     graph: graphBiomarkers(points),
                     geom3d: geom3dFeatures(aligned),
                     quality: FaceQuality(sharpness: sharpness, size: size, frontal: frontal, capture: capture),
-                    trackId: nil
+                    trackId: nil,
+                    strokes: strokes
                 )
             )
         }
@@ -484,19 +509,44 @@ enum FaceEngine {
     }
 
     private static func extractPoints(_ obs: VNFaceObservation?, imageWidth: Double, imageHeight: Double) -> [Point2] {
+        extractStrokes(obs, imageWidth: imageWidth, imageHeight: imageHeight).flatMap(\.points)
+    }
+
+    private static func extractStrokes(_ obs: VNFaceObservation?, imageWidth: Double, imageHeight: Double) -> [LandmarkStroke] {
         guard let lm = obs?.landmarks else { return [] }
-        let regions: [VNFaceLandmarkRegion2D?] = [
-            lm.faceContour, lm.leftEyebrow, lm.rightEyebrow, lm.leftEye, lm.rightEye,
-            lm.nose, lm.noseCrest, lm.medianLine, lm.outerLips, lm.innerLips,
+        let regions: [(String, VNFaceLandmarkRegion2D?, Bool)] = [
+            ("Kontur", lm.faceContour, false),
+            ("Braue L", lm.leftEyebrow, false),
+            ("Braue R", lm.rightEyebrow, false),
+            ("Auge L", lm.leftEye, true),
+            ("Auge R", lm.rightEye, true),
+            ("Nase", lm.nose, false),
+            ("Nasenrücken", lm.noseCrest, false),
+            ("Mund", lm.outerLips, true),
+            ("Lippen", lm.innerLips, true),
         ]
-        var pts: [Point2] = []
-        for region in regions.compactMap({ $0 }) {
+        var strokes: [LandmarkStroke] = []
+        for (label, region, closed) in regions {
+            guard let region, region.pointCount >= 2 else { continue }
+            var pts: [Point2] = []
             for i in 0 ..< region.pointCount {
                 let p = region.normalizedPoints[i]
                 pts.append(Point2(x: Double(p.x) * imageWidth, y: (1 - Double(p.y)) * imageHeight))
             }
+            if closed, let first = pts.first { pts.append(first) }
+            strokes.append(LandmarkStroke(label: label, closed: closed, points: pts))
         }
-        return pts
+        return strokes
+    }
+
+    private static func hairline(from pts: [Point2]) -> Point2? {
+        guard pts.count >= 3 else { return nil }
+        let chin = pts.max { $0.y < $1.y }!
+        let brow = pts.min { $0.y < $1.y }!
+        return Point2(
+            x: brow.x + (brow.x - chin.x) * 0.18,
+            y: brow.y + (brow.y - chin.y) * 0.18
+        )
     }
 
     private static func procrustes(_ pts: [Point2]) -> [Point2] {

@@ -1,4 +1,4 @@
-# Aegis **1.0.9 alpha**
+# Aegis **1.0.10 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,11 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 1.0.10 alpha
+
+- **Anatomie-Overlay** — Augen, Brauen, Nase, Nasenflügel, Mundwinkel, Mundmitte, Kinn, Kontur, Haaransatz, Ohren direkt auf dem Foto.
+- Abweichung zur eingeschriebenen Referenz pro Region, wenn das zweite Bild 0 % zeigt.
 
 ## Neu in 1.0.9 alpha
 

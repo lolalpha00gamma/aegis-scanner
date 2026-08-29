@@ -13,6 +13,7 @@ final class LibraryStore: ObservableObject {
     @Published var selectedFaceId: UUID?
     @Published var threshold: Double = 86
     @Published var strategy: StrategyID = .aegis
+    @Published var showAnatomy = true
     @Published var status: String = "Bereit"
     @Published var busy = false
     @Published var newPersonName = ""

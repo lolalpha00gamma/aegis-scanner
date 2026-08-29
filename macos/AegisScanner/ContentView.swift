@@ -34,6 +34,8 @@ struct ContentView: View {
             Slider(value: $store.threshold, in: 70 ... 96)
                 .frame(width: 110)
                 .help("Schwelle")
+            Toggle("Anatomie", isOn: $store.showAnatomy)
+                .toggleStyle(.button)
         }
     }
 
@@ -379,10 +381,63 @@ struct FaceOverlay: View {
                         x: ox + CGFloat(face.box.x) * scale,
                         y: oy + CGFloat(face.box.y) * scale
                     )
+                    if store.showAnatomy {
+                        AnatomyMesh(face: face, scale: scale, selected: selected)
+                            .offset(x: ox, y: oy)
+                            .allowsHitTesting(false)
+                    }
                 }
             }
         }
         .padding(12)
+    }
+}
+
+struct AnatomyMesh: View {
+    var face: FaceObservation
+    var scale: CGFloat
+    var selected: Bool
+
+    var body: some View {
+        let strokes = face.strokes.isEmpty
+            ? [LandmarkStroke(label: "Punkte", closed: false, points: face.landmarks)]
+            : face.strokes
+        ZStack(alignment: .topLeading) {
+            ForEach(Array(strokes.enumerated()), id: \.offset) { _, stroke in
+                Path { path in
+                    guard let first = stroke.points.first else { return }
+                    path.move(to: CGPoint(x: first.x * scale, y: first.y * scale))
+                    for p in stroke.points.dropFirst() {
+                        path.addLine(to: CGPoint(x: p.x * scale, y: p.y * scale))
+                    }
+                }
+                .stroke(selected ? Color.white.opacity(0.9) : Color.white.opacity(0.45), lineWidth: selected ? 1.4 : 0.8)
+            }
+            if selected {
+                ForEach(labelPoints(face), id: \.label) { item in
+                    Text(item.label)
+                        .font(.system(size: 9, design: .monospaced))
+                        .padding(.horizontal, 3)
+                        .padding(.vertical, 1)
+                        .background(.black.opacity(0.65))
+                        .offset(
+                            x: CGFloat(item.point.x) * scale + 4,
+                            y: CGFloat(item.point.y) * scale - 8
+                        )
+                }
+            }
+        }
+    }
+
+    private func labelPoints(_ face: FaceObservation) -> [(label: String, point: Point2)] {
+        var out: [(String, Point2)] = []
+        for stroke in face.strokes {
+            guard let mid = stroke.points.dropFirst(stroke.points.count / 2).first ?? stroke.points.first else { continue }
+            if ["Auge L", "Auge R", "Nase", "Mund", "Kinn", "Haaransatz", "Ohr L", "Ohr R", "Braue L", "Braue R"].contains(stroke.label) {
+                out.append((stroke.label, mid))
+            }
+        }
+        return out
     }
 }
 
