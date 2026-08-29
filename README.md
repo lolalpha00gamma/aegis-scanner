@@ -1,10 +1,10 @@
-# Aegis **1.0.8 alpha**
+# Aegis **1.0.9 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
 Direkt laden:
-- [Aegis.dmg (Code)](https://github.com/lolalpha00gamma/aegis-scanner/raw/main/Aegis.dmg)
-- [Release 1.0.8 alpha](https://github.com/lolalpha00gamma/aegis-scanner/releases/tag/v1.0.8-alpha)
+- [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
+- [Releases](https://github.com/lolalpha00gamma/aegis-scanner/releases)
 
 Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
 
@@ -14,15 +14,19 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 2. **Aegis** in den Ordner Programme ziehen
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
-macOS 14 Sonoma oder neuer. Ad-hoc signiert.
+macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
 
-## Neu in 1.0.8 alpha
+## Neu in 1.0.9 alpha
 
-Aus NIST FRVT, InsightFace und MagFace:
+Aus den Papieren (Varghese, Cheese3D, Jain, Wu/Wan, Hassan):
 
-- Ein Treffer muss ein **Ausreißer gegen die ganze Galerie** sein (Z-Norm). Wenn alle angelegten Personen ähnlich nah sind, bleibt das Gesicht offen.
-- Aussehen wird über die **Augen ausgerichtet** (5-Punkt / Similarity-Transform), nicht über die lose Box.
-- Unbekannt bleibt der Normalzustand.
+- **Graph-Biomarker** — KNN-6 Spektralenergie (GE, LE, DE, DistE, SLE), alterungsstabil. Jetzt auch in der macOS-App.
+- **3D-Geometrie** — Distanzen, Winkel, Flächen aus Landmark-Formen (Cheese3D-Analog).
+- **TER-Fusion** — Matcher-Scores → Total Error Rate, min-max nach Jain. Diagnostisch: nennt keine Personen.
+- **EER / FAR / FRR** — im Laborbericht (Jain Kap. 1).
+- Soft Biometrics nur als **alterungsstabile Geometrie-Veto**. Keine Geschlechts- oder Ethnizitätsklassifikation.
+
+Aegis Ensemble bleibt beweisbasiert: FaceNet muss hoch liegen. Geometrie und Textur dürfen nur widersprechen.
 
 ## Lizenz
 

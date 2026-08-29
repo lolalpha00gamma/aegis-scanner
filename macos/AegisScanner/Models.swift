@@ -2,9 +2,9 @@ import CoreGraphics
 import Foundation
 
 enum AppVersion {
-    static let marketing = "1.0.8"
+    static let marketing = "1.0.9"
     static let channel = "alpha"
-    static let display = "1.0.8 alpha"
+    static let display = "1.0.9 alpha"
 }
 
 enum StrategyID: String, CaseIterable, Identifiable, Codable {
@@ -16,10 +16,13 @@ enum StrategyID: String, CaseIterable, Identifiable, Codable {
     case eyeRegion
     case midface
     case jawline
+    case graphBio
+    case geom3d
     case texture
     case qualityGate
     case temporal
     case featurePrint
+    case terFusion
     case aegis
 
     var id: String { rawValue }
@@ -34,10 +37,13 @@ enum StrategyID: String, CaseIterable, Identifiable, Codable {
         case .eyeRegion: return "Augenregion"
         case .midface: return "Mittelgesicht"
         case .jawline: return "Kieferlinie"
+        case .graphBio: return "Graph-Biomarker"
+        case .geom3d: return "3D-Geometrie"
         case .texture: return "Aussehen"
         case .qualityGate: return "Quality-Gate"
         case .temporal: return "Temporal"
         case .featurePrint: return "Feature Print"
+        case .terFusion: return "TER-Fusion"
         case .aegis: return "Aegis Ensemble"
         }
     }
@@ -60,6 +66,10 @@ enum StrategyID: String, CaseIterable, Identifiable, Codable {
             return "Nase, Philtrum, Mund. Trennt Lookalikes über das Mittelgesicht."
         case .jawline:
             return "Kieferbreite, Wangen, Kinn. Unabhängig von Augen und Nase."
+        case .graphBio:
+            return "KNN-6 Landmark-Graph: fünf Spektralenergien. Alterungsstabil, unabhängig von Textur."
+        case .geom3d:
+            return "Distanzen, Winkel und Flächen aus Landmark-Formen — Cheese3D-Analog in 2D."
         case .texture:
             return "Helligkeitsraster des ausgerichteten Gesichts. Kann nur widersprechen, nie zuordnen."
         case .qualityGate:
@@ -68,6 +78,8 @@ enum StrategyID: String, CaseIterable, Identifiable, Codable {
             return "Nächstes Video-Exemplar über Tracks, ohne Kreuzer zu tauschen."
         case .featurePrint:
             return "VNGenerateImageFeaturePrintRequest auf ausgerichtetem Gesicht."
+        case .terFusion:
+            return "Wu/Wan: Scores → Total Error Rate, min-max nach Jain, probabilistisch gewichtet."
         case .aegis:
             return "Beweis-Identifikation: Aussehen muss hoch liegen, Maße dürfen widersprechen. Unbekannt ist der Normalzustand."
         }
@@ -119,6 +131,8 @@ struct FaceObservation: Identifiable, Hashable {
     var aligned: [Point2]
     var featurePrint: Data
     var appearance: [Double]
+    var graph: [Double]
+    var geom3d: [Double]
     var quality: FaceQuality
     var trackId: UUID?
 }

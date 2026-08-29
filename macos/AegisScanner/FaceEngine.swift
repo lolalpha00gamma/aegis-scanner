@@ -106,6 +106,8 @@ enum FaceEngine {
                     aligned: aligned,
                     featurePrint: printData,
                     appearance: appearance,
+                    graph: graphBiomarkers(points),
+                    geom3d: geom3dFeatures(aligned),
                     quality: FaceQuality(sharpness: sharpness, size: size, frontal: frontal, capture: capture),
                     trackId: nil
                 )
@@ -169,7 +171,9 @@ enum FaceEngine {
                 eyes: averageVec(owned.compactMap { measures($0.aligned).eyes }),
                 midface: averageVec(owned.compactMap { measures($0.aligned).midface }),
                 jaw: averageVec(owned.compactMap { measures($0.aligned).jaw }),
-                appearances: owned.map(\.appearance).filter { !$0.isEmpty }
+                appearances: owned.map(\.appearance).filter { !$0.isEmpty },
+                graphs: owned.map(\.graph).filter { !$0.isEmpty },
+                geom3ds: owned.map(\.geom3d).filter { !$0.isEmpty }
             )
         }
 
@@ -210,6 +214,12 @@ enum FaceEngine {
             hits.append(hint(.jawline, rank(models, minMargin: landmarkMargin) { m in
                 measuresPercent(vecDistance(probeM.jaw, m.jaw))
             }))
+            hits.append(hint(.graphBio, rank(models, minMargin: landmarkMargin) { m in
+                bestVecPercent(face.graph, m.graphs)
+            }))
+            hits.append(hint(.geom3d, rank(models, minMargin: landmarkMargin) { m in
+                bestVecPercent(face.geom3d, m.geom3ds)
+            }))
             hits.append(hint(.texture, rank(models, minMargin: landmarkMargin) { m in
                 bestAppearance(face.appearance, m.appearances)
             }))
@@ -236,11 +246,19 @@ enum FaceEngine {
                 hits.first { $0.strategy == s }?.versus.first { $0.identityId == id }?.percent ?? 0
             }
             let lowCapture = face.quality.capture < 0.35
-            let ensemble = rank(models, minMargin: embedMargin) { m in
-                let id = m.identity.id
-                if lowCapture {
-                    return max(pctVs(.qualityGate, id), pctVs(.photosStyle, id))
-                }
+            func geoMixOf(_ id: UUID) -> Double {
+                0.16 * pctVs(.landmarkGeo, id)
+                    + 0.12 * pctVs(.ratios, id)
+                    + 0.10 * pctVs(.faceShape, id)
+                    + 0.14 * pctVs(.eyeRegion, id)
+                    + 0.12 * pctVs(.midface, id)
+                    + 0.10 * pctVs(.jawline, id)
+                    + 0.14 * pctVs(.graphBio, id)
+                    + 0.12 * pctVs(.geom3d, id)
+            }
+            let ids = models.map(\.identity.id)
+            let embedRow = ids.map { id -> Double in
+                if lowCapture { return max(pctVs(.qualityGate, id), pctVs(.photosStyle, id)) }
                 return max(
                     pctVs(.visionBox, id),
                     pctVs(.temporal, id),
@@ -248,13 +266,21 @@ enum FaceEngine {
                     pctVs(.qualityGate, id)
                 )
             }
-            func geoMixOf(_ id: UUID) -> Double {
-                0.22 * pctVs(.landmarkGeo, id)
-                    + 0.16 * pctVs(.ratios, id)
-                    + 0.14 * pctVs(.faceShape, id)
-                    + 0.18 * pctVs(.eyeRegion, id)
-                    + 0.16 * pctVs(.midface, id)
-                    + 0.14 * pctVs(.jawline, id)
+            let textureRow = ids.map { pctVs(.texture, $0) }
+            let graphRow = ids.map { pctVs(.graphBio, $0) }
+            let geoRow = ids.map { geoMixOf($0) }
+            let geom3dRow = ids.map { pctVs(.geom3d, $0) }
+            let terFused = terFusion(
+                [embedRow, textureRow, graphRow, geoRow, geom3dRow],
+                [0.42, 0.20, 0.14, 0.14, 0.10]
+            )
+            hits.append(hint(.terFusion, rank(models, minMargin: embedMargin) { m in
+                let i = ids.firstIndex(of: m.identity.id) ?? 0
+                return i < terFused.count ? terFused[i] : 0
+            }))
+            let ensemble = rank(models, minMargin: embedMargin) { m in
+                let i = ids.firstIndex(of: m.identity.id) ?? 0
+                return i < embedRow.count ? embedRow[i] : 0
             }
             let geoRanked = models.map { (id: $0.identity.id, p: geoMixOf($0.identity.id)) }
                 .sorted { $0.p > $1.p }
@@ -320,6 +346,8 @@ enum FaceEngine {
         var midface: [Double]
         var jaw: [Double]
         var appearances: [[Double]]
+        var graphs: [[Double]]
+        var geom3ds: [[Double]]
     }
 
     private struct Ranked {
@@ -855,4 +883,266 @@ enum FaceEngine {
     }
 
     private static func clamp01(_ n: Double) -> Double { min(1, max(0, n)) }
+
+    private static func bestVecPercent(_ probe: [Double], _ gallery: [[Double]]) -> Double {
+        guard !probe.isEmpty, !gallery.isEmpty else { return 0 }
+        var best = 0.0
+        for g in gallery {
+            let p = measuresPercent(vecDistance(probe, g))
+            if p > best { best = p }
+        }
+        return best
+    }
+
+    private static func shoelace(_ pts: [Point2]) -> Double {
+        guard pts.count >= 3 else { return 0 }
+        var a = 0.0
+        for i in 0 ..< pts.count {
+            let p = pts[i]
+            let q = pts[(i + 1) % pts.count]
+            a += p.x * q.y - q.x * p.y
+        }
+        return abs(a) / 2
+    }
+
+    private static func angleAt(_ a: Point2, _ b: Point2, _ c: Point2) -> Double {
+        let abx = a.x - b.x, aby = a.y - b.y
+        let cbx = c.x - b.x, cby = c.y - b.y
+        let den = max(hypot(abx, aby) * hypot(cbx, cby), 1e-9)
+        let cos = min(1, max(-1, (abx * cbx + aby * cby) / den))
+        return acos(cos)
+    }
+
+    private static func geom3dFeatures(_ pts: [Point2]) -> [Double] {
+        guard pts.count >= 8 else { return [] }
+        let xs = pts.map(\.x)
+        let ys = pts.map(\.y)
+        let minX = xs.min() ?? 0
+        let maxX = xs.max() ?? 1
+        let minY = ys.min() ?? 0
+        let maxY = ys.max() ?? 1
+        let w = max(maxX - minX, 1e-6)
+        let h = max(maxY - minY, 1e-6)
+        let cx = (minX + maxX) / 2
+        let cy = (minY + maxY) / 2
+        let top = pts.filter { $0.y < minY + h * 0.38 }
+        let mid = pts.filter { $0.y >= minY + h * 0.32 && $0.y <= minY + h * 0.68 }
+        let bot = pts.filter { $0.y > minY + h * 0.62 }
+        let left = pts.filter { $0.x < cx }
+        let right = pts.filter { $0.x >= cx }
+        let leftTip = pts.min(by: { $0.x < $1.x }) ?? pts[0]
+        let rightTip = pts.max(by: { $0.x < $1.x }) ?? pts[0]
+        let chin = pts.max(by: { $0.y < $1.y }) ?? pts[0]
+        let crown = pts.min(by: { $0.y < $1.y }) ?? pts[0]
+        let topH = max((top.map(\.y).max() ?? cy) - (top.map(\.y).min() ?? minY), 1e-6)
+        let botH = max((bot.map(\.y).max() ?? maxY) - (bot.map(\.y).min() ?? cy), 1e-6)
+        let midW = max((mid.map(\.x).max() ?? maxX) - (mid.map(\.x).min() ?? minX), 1e-6)
+        if pts.count >= 68 {
+            func P(_ i: Int) -> Point2 { pts[i] }
+            func d(_ i: Int, _ j: Int) -> Double { hypot(P(i).x - P(j).x, P(i).y - P(j).y) }
+            let faceH = max(abs(P(8).y - P(27).y), 1e-6)
+            let leftEye = Array(pts[36 ..< 42])
+            let rightEye = Array(pts[42 ..< 48])
+            let mouth = Array(pts[48 ..< min(60, pts.count)])
+            let eyeL = Point2(
+                x: leftEye.map(\.x).reduce(0, +) / Double(leftEye.count),
+                y: leftEye.map(\.y).reduce(0, +) / Double(leftEye.count)
+            )
+            let eyeR = Point2(
+                x: rightEye.map(\.x).reduce(0, +) / Double(rightEye.count),
+                y: rightEye.map(\.y).reduce(0, +) / Double(rightEye.count)
+            )
+            let mouthC = Point2(
+                x: mouth.map(\.x).reduce(0, +) / Double(max(mouth.count, 1)),
+                y: mouth.map(\.y).reduce(0, +) / Double(max(mouth.count, 1))
+            )
+            func u(_ x: Double) -> Double { x / faceH }
+            return l2([
+                u(d(36, 39)),
+                u((d(37, 41) + d(38, 40)) / 2),
+                u(sqrt(shoelace(leftEye))),
+                u(d(42, 45)),
+                u((d(43, 47) + d(44, 46)) / 2),
+                u(sqrt(shoelace(rightEye))),
+                u(d(48, 54)),
+                u(d(51, 57)),
+                u(sqrt(shoelace(mouth))),
+                u(d(31, 35)),
+                u(sqrt(shoelace([P(27), P(31), P(35)]))),
+                u(d(4, 12)),
+                1,
+                angleAt(P(0), P(8), P(16)),
+                u(hypot(eyeR.x - eyeL.x, eyeR.y - eyeL.y)),
+                u(abs(eyeL.y - mouthC.y)),
+                d(4, 12) / faceH,
+            ])
+        }
+        return l2([
+            w / h,
+            topH / h,
+            botH / h,
+            midW / w,
+            Double(top.count) / Double(pts.count),
+            Double(bot.count) / Double(pts.count),
+            Double(left.count) / Double(max(right.count, 1)),
+            angleAt(leftTip, chin, rightTip),
+            hypot(crown.x - chin.x, crown.y - chin.y) / h,
+            shoelace([leftTip, crown, rightTip, chin]) / (w * h),
+            (left.reduce(0.0) { $0 + abs($1.x - cx) } / Double(max(left.count, 1))) / w,
+            (right.reduce(0.0) { $0 + abs($1.x - cx) } / Double(max(right.count, 1))) / w,
+            abs(topH - botH) / h,
+            cy / h,
+            cx / w,
+        ])
+    }
+
+    private static func graphBiomarkers(_ pts: [Point2]) -> [Double] {
+        let n = pts.count
+        guard n >= 8 else { return [] }
+        var dist = Array(repeating: Array(repeating: 0.0, count: n), count: n)
+        var maxd = 1e-9
+        for i in 0 ..< n {
+            for j in (i + 1) ..< n {
+                let d = hypot(pts[i].x - pts[j].x, pts[i].y - pts[j].y)
+                dist[i][j] = d
+                dist[j][i] = d
+                if d > maxd { maxd = d }
+            }
+        }
+        let k = min(6, n - 1)
+        var A = Array(repeating: Array(repeating: 0.0, count: n), count: n)
+        for i in 0 ..< n {
+            let order = (0 ..< n).filter { $0 != i }.sorted { dist[i][$0] < dist[i][$1] }
+            for t in 0 ..< k {
+                let j = order[t]
+                let w = dist[i][j] / maxd
+                if w > A[i][j] {
+                    A[i][j] = w
+                    A[j][i] = w
+                }
+            }
+        }
+        let deg = A.map { $0.reduce(0, +) }
+        var L = Array(repeating: Array(repeating: 0.0, count: n), count: n)
+        var Q = Array(repeating: Array(repeating: 0.0, count: n), count: n)
+        for i in 0 ..< n {
+            for j in 0 ..< n {
+                L[i][j] = (i == j ? deg[i] : 0) - A[i][j]
+                Q[i][j] = (i == j ? deg[i] : 0) + A[i][j]
+            }
+        }
+        let W = deg.reduce(0, +) / 2
+        let shift = (2 * W) / Double(n)
+        func absSum(_ eigs: [Double], off: Double = 0) -> Double {
+            eigs.reduce(0) { $0 + abs($1 - off) }
+        }
+        let GE = absSum(jacobiEigs(A))
+        let LE = absSum(jacobiEigs(L), off: shift)
+        let SLE = absSum(jacobiEigs(Q), off: shift)
+        let inf = 1e9
+        var D = Array(repeating: Array(repeating: 0.0, count: n), count: n)
+        for i in 0 ..< n {
+            for j in 0 ..< n {
+                D[i][j] = i == j ? 0 : (A[i][j] > 0 ? A[i][j] : inf)
+            }
+        }
+        for kk in 0 ..< n {
+            for i in 0 ..< n {
+                for j in 0 ..< n {
+                    let v = D[i][kk] + D[kk][j]
+                    if v < D[i][j] { D[i][j] = v }
+                }
+            }
+        }
+        for i in 0 ..< n {
+            for j in 0 ..< n where D[i][j] >= inf / 2 {
+                D[i][j] = 0
+            }
+        }
+        let DistE = absSum(jacobiEigs(D))
+        var M = Array(repeating: Array(repeating: 0.0, count: n), count: n)
+        for i in 0 ..< n {
+            for j in 0 ..< n {
+                M[i][j] = (i == j || A[i][j] > 0) ? 1 : 0
+            }
+        }
+        let DE = absSum(jacobiEigs(M))
+        return l2([GE, LE, DE, DistE, SLE])
+    }
+
+    private static func jacobiEigs(_ src: [[Double]]) -> [Double] {
+        let n = src.count
+        var a = src.map { $0 }
+        for _ in 0 ..< 14 {
+            var off = 0.0
+            for i in 0 ..< n {
+                for j in (i + 1) ..< n { off += a[i][j] * a[i][j] }
+            }
+            if off < 1e-10 { break }
+            for p in 0 ..< n {
+                for q in (p + 1) ..< n {
+                    let apq = a[p][q]
+                    if abs(apq) < 1e-12 { continue }
+                    let app = a[p][p]
+                    let aqq = a[q][q]
+                    let tau = (aqq - app) / (2 * apq)
+                    let t = (tau >= 0 ? 1.0 : -1.0) / (abs(tau) + sqrt(1 + tau * tau))
+                    let c = 1 / sqrt(1 + t * t)
+                    let s = t * c
+                    a[p][p] = app - t * apq
+                    a[q][q] = aqq + t * apq
+                    a[p][q] = 0
+                    a[q][p] = 0
+                    for k in 0 ..< n where k != p && k != q {
+                        let akp = a[k][p]
+                        let akq = a[k][q]
+                        a[k][p] = c * akp - s * akq
+                        a[p][k] = a[k][p]
+                        a[k][q] = s * akp + c * akq
+                        a[q][k] = a[k][q]
+                    }
+                }
+            }
+        }
+        return (0 ..< n).map { a[$0][$0] }
+    }
+
+    private static func pairTer(_ percent: Double) -> Double {
+        let s = clamp01(percent / 100)
+        return clamp01(1 / (1 + exp(10 * (s - 0.48))))
+    }
+
+    private static func terToProb(_ ter: Double) -> Double {
+        1 / (1 + exp(6 * (clamp01(ter) - 0.5)))
+    }
+
+    private static func minMaxNorm(_ values: [Double]) -> [Double] {
+        guard !values.isEmpty else { return [] }
+        let lo = values.min() ?? 0
+        let hi = values.max() ?? 0
+        let span = max(hi - lo, 1e-6)
+        return values.map { ($0 - lo) / span }
+    }
+
+    private static func terFusion(_ matchers: [[Double]], _ weights: [Double]) -> [Double] {
+        guard let first = matchers.first, !first.isEmpty else { return [] }
+        let n = first.count
+        let P: [[Double]] = matchers.map { row in
+            guard row.count == n else { return Array(repeating: 0.0, count: n) }
+            let scaled = n == 1 ? row.map { clamp01($0 / 100) } : minMaxNorm(row)
+            return scaled.map { terToProb(pairTer($0 * 100)) }
+        }
+        var alpha = P.enumerated().map { j, row -> Double in
+            (row.max() ?? 0) * (j < weights.count ? max(0, weights[j]) : 1)
+        }
+        let asum = max(alpha.reduce(0, +), 1e-9)
+        alpha = alpha.map { $0 / asum }
+        var fused = Array(repeating: 0.0, count: n)
+        for i in 0 ..< n {
+            for j in 0 ..< P.count {
+                fused[i] += alpha[j] * P[j][i]
+            }
+        }
+        return fused.map { $0 * 100 }
+    }
 }
