@@ -2,9 +2,9 @@ import CoreGraphics
 import Foundation
 
 enum AppVersion {
-    static let marketing = "1.0.14"
+    static let marketing = "1.0.15"
     static let channel = "alpha"
-    static let display = "1.0.14 alpha"
+    static let display = "1.0.15 alpha"
 }
 
 enum StrategyID: String, CaseIterable, Identifiable, Codable {
@@ -53,7 +53,7 @@ enum StrategyID: String, CaseIterable, Identifiable, Codable {
         case .photosStyle:
             return "Einzelnes Best-Frame, harte Qualitätsgrenze — analog zur Apple-Fotos-Pipeline."
         case .visionBox:
-            return "Vision-Detektor (Revision 3) plus nächstes Feature-Print-Exemplar."
+            return "Vision-Detektor (Revision 3) plus nächstes Face-Print-Exemplar."
         case .landmarkGeo:
             return "Landmark-Form, Augen-Procrustes IOD=1. Lichtunabhängig, diagnostisch."
         case .ratios:
@@ -77,11 +77,11 @@ enum StrategyID: String, CaseIterable, Identifiable, Codable {
         case .temporal:
             return "Nächstes Video-Feature-Print über Tracks, ohne Kreuzer zu tauschen."
         case .featurePrint:
-            return "VN-Feature-Print auf augenausgerichtetem Gesicht. Das macOS-Identitäts-Embedding."
+            return "Gesichts-Print (VNGenerateFacePrintRequest), sonst Bild-Print. Cosinus auf dem Rohvektor — wie Fotos, nicht das 16×16-Raster."
         case .terFusion:
             return "Wu/Wan: Scores → Total Error Rate, min-max nach Jain, probabilistisch gewichtet."
         case .aegis:
-            return "Beweis-Identifikation: Feature Print muss tragen. Bei schlechtem Licht zählen Verhältnisse stärker. Unbekannt ist der Normalzustand."
+            return "Beweis-Identifikation: Face-Print muss tragen. Brille und Licht dürfen das Aussehen-Veto nicht mehr killen. Unbekannt bleibt der Normalzustand."
         }
     }
 }

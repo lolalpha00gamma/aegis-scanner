@@ -1,7 +1,7 @@
 # Aegis
 
 Lokaler Image- & Video-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**  
-Version **1.0.14 alpha**.
+Version **1.0.15 alpha**.
 
 ## Image-Datei
 
@@ -13,9 +13,13 @@ Version **1.0.14 alpha**.
 
 macOS 14 Sonoma oder neuer. Die Datei ist ad-hoc signiert (kein Apple-Developer-Account) — deshalb der Rechtsklick beim ersten Start.
 
+## Neu in 1.0.15 alpha
+
+Echte Gesichtserkennung statt Bildähnlichkeit. Aegis nutzt `VNGenerateFacePrintRequest` (dieselbe Klasse von Modell wie Fotos), Cosinus auf dem Rohvektor, und eine Kurve, auf der dieselbe Person 95–99 % landet. Histogram-Equalize vor dem Print ist raus — das hat Identität zerstört. Brille und Licht dürfen das Aussehen-Veto nicht mehr killen.
+
 ## Neu in 1.0.14 alpha
 
-Erkennung bei schlechtem Licht: Dunkelheit ist keine Unschärfe. Das Gesicht wird vor dem Feature Print helligkeitsausgeglichen. Verhältnisse zählen im Dunkeln stärker in der Prozentzahl. Winzige Crowd-Gesichter bleiben unbekannt.
+Erkennung bei schlechtem Licht: Dunkelheit ist keine Unschärfe. Das Gesicht wird vor der Detektion helligkeitsausgeglichen. Verhältnisse zählen im Dunkeln stärker in der Prozentzahl. Winzige Crowd-Gesichter bleiben unbekannt.
 
 ## Neu in 1.0.13 alpha
 
@@ -43,8 +47,8 @@ Ordner mit Fotos und Videos wählen, oder einen Live-Stream (Webcam, RTSP, HLS, 
 
 | Strategie | Signal |
 |---|---|
-| **Fotos-Stil** | Best-Frame Feature Print, harte Qualitätsgrenze (Baseline) |
-| **Vision Box** | Nächstes Feature-Print-Exemplar, Vision Rev. 3 |
+| **Fotos-Stil** | Best-Frame Face-Print, harte Qualitätsgrenze (Baseline) |
+| **Vision Box** | Nächstes Face-Print-Exemplar, Vision Rev. 3 |
 | **Landmark-Geometrie** | Anatomische Punkte, Augen-Procrustes IOD=1 (diagnostisch) |
 | **Gesichtsmaße** | Verhältnisse zur Augenabstands-Einheit, unabhängig von Lage/Größe/Mimik |
 | **Gesichtsform** | Kiefer/Höhe, Wangen/Höhe, Kiefer/Wangen — keine Box |
@@ -53,12 +57,12 @@ Ordner mit Fotos und Videos wählen, oder einen Live-Stream (Webcam, RTSP, HLS, 
 | **Kieferlinie** | Kieferbreite/IOD, Untergesicht/Höhe, Kinn |
 | **Graph-Biomarker** | KNN-6 über feste Knochenpunkte, ohne Mund |
 | **3D-Geometrie** | IOD-Verhältnisse, Kieferwinkel, Nasenfläche |
-| **Aussehen** | Helligkeitsraster nach Lichtausgleich; darf nur vetoen, und nur bei brauchbarem Licht |
-| **Quality-Gate** | Feature Print, Dunkelheit zählt nicht als Unschärfe |
-| **Temporal** | Video-Feature-Print über Tracks, ohne Kreuzer-Tausch |
-| **Feature Print** | Augenausgerichteter, luma-ausgeglichener Crop — das macOS-Identitäts-Embedding |
+| **Aussehen** | Helligkeitsraster; darf nur vetoen, und nur bei klarem Widerspruch |
+| **Quality-Gate** | Face-Print, Dunkelheit zählt nicht als Unschärfe |
+| **Temporal** | Video-Face-Print über Tracks, ohne Kreuzer-Tausch |
+| **Feature Print** | `VNGenerateFacePrintRequest` auf augenausgerichtetem Crop — das macOS-Identitäts-Embedding |
 | **TER-Fusion** | Scores → Total Error Rate, min-max nach Jain |
-| **Aegis Ensemble** | Beweis-Identifikation. Im Dunkeln zählen Verhältnisse stärker |
+| **Aegis Ensemble** | Beweis-Identifikation. Dieselbe Person landet bei 95–99 % |
 
 ## Lizenz
 

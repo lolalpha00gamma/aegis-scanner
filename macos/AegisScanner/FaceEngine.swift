@@ -56,7 +56,7 @@ enum FaceEngine {
             }
             out = nms(out)
         }
-        return nms(out)
+        return stampPrints(nms(out), from: image)
     }
 
     private static func detectOnce(
@@ -174,7 +174,7 @@ enum FaceEngine {
             } else {
                 printSource = crop(image, box: vnToPixels(face.boundingBox, width: w, height: h), pad: 0.18)
             }
-            let printData = featurePrint(of: equalize(printSource) ?? printSource) ?? Data()
+            let printData = imageFeaturePrint(of: printSource) ?? Data()
             let bone = boneKeypoints(namedAligned)
 
             out.append(
@@ -433,7 +433,7 @@ enum FaceEngine {
     private static let soloFloor = 90.0
     private static let embedMargin = 12.0
     private static let landmarkMargin = 14.0
-    private static let appearanceFloor = 70.0
+    private static let appearanceFloor = 48.0
     private static let zFloor = 1.5
 
     private struct IdentityModel {
@@ -552,10 +552,10 @@ enum FaceEngine {
         if score < matchFloor {
             return (nil, String(format: "Beste Nähe %.0f%% liegt unter %.0f%%. Nicht zugeordnet.", percent, matchFloor))
         }
-        if galleryZ < zFloor && percent < 96 {
+        if galleryZ < zFloor && percent < 92 {
             return (nil, String(format: "Kein Ausreißer in der Galerie (z=%.1f). Alle Personen ähnlich nah — nicht zugeordnet.", galleryZ))
         }
-        if hasAppearance && textureReliable && appear < appearanceFloor {
+        if hasAppearance && textureReliable && appear < appearanceFloor && percent < 93 {
             return (nil, String(format: "Aussehen passt nicht (%.0f%%). %@ %.0f%% — nicht zugeordnet.", appear, best, percent))
         }
         if geoMix < 32 && percent < 94 {
@@ -733,17 +733,120 @@ enum FaceEngine {
         return image.cropping(to: CGRect(x: x, y: y, width: max(1, w), height: max(1, h)))
     }
 
-    private static func featurePrint(of image: CGImage?) -> Data? {
+    /// Apple's face-identity print (Photos-class), then image print. Never histogram-equalize — that wipes identity.
+    private static func identityPrint(of image: CGImage?) -> Data? {
+        guard let image else { return nil }
+        if let req = makeFacePrintRequest() {
+            let handler = VNImageRequestHandler(cgImage: image, orientation: .up, options: [:])
+            if (try? handler.perform([req])) != nil {
+                for obs in req.results ?? [] {
+                    if let data = extractPrint(obs) { return data }
+                }
+            }
+        }
+        return imageFeaturePrint(of: image)
+    }
+
+    private static func makeFacePrintRequest() -> VNRequest? {
+        guard let cls = NSClassFromString("VNGenerateFacePrintRequest") as? VNRequest.Type else { return nil }
+        return cls.init()
+    }
+
+    private static func extractPrint(_ obs: VNObservation) -> Data? {
+        if let fp = obs as? VNFeaturePrintObservation {
+            return archivePrint(fp)
+        }
+        if obs.responds(to: NSSelectorFromString("facePrint")),
+           let fp = obs.value(forKey: "facePrint") as? VNFeaturePrintObservation {
+            return archivePrint(fp)
+        }
+        return nil
+    }
+
+    private static func archivePrint(_ obs: VNFeaturePrintObservation) -> Data? {
+        try? NSKeyedArchiver.archivedData(withRootObject: obs, requiringSecureCoding: true)
+    }
+
+    private static func imageFeaturePrint(of image: CGImage?) -> Data? {
         guard let image else { return nil }
         let req = VNGenerateImageFeaturePrintRequest()
         let handler = VNImageRequestHandler(cgImage: image, options: [:])
         do {
             try handler.perform([req])
             guard let obs = req.results?.first as? VNFeaturePrintObservation else { return nil }
-            return try NSKeyedArchiver.archivedData(withRootObject: obs, requiringSecureCoding: true)
+            return archivePrint(obs)
         } catch {
             return nil
         }
+    }
+
+    private static func stampPrints(_ faces: [FaceObservation], from image: CGImage) -> [FaceObservation] {
+        faces.map { face in
+            var next = face
+            let crop: CGImage?
+            if let eyes = eyeCenters(face) {
+                crop = warpEyes(image, left: eyes.0, right: eyes.1, size: 256)
+            } else {
+                crop = self.crop(image, box: face.box, pad: 0.12)
+            }
+            next.featurePrint = identityPrint(of: crop) ?? face.featurePrint
+            return next
+        }
+    }
+
+    private static func eyeCenters(_ face: FaceObservation) -> (Point2, Point2)? {
+        func mean(_ pts: [Point2]) -> Point2? {
+            guard !pts.isEmpty else { return nil }
+            return Point2(
+                x: pts.map(\.x).reduce(0, +) / Double(pts.count),
+                y: pts.map(\.y).reduce(0, +) / Double(pts.count)
+            )
+        }
+        guard let left = mean(face.strokes.first { $0.label == "Auge L" }?.points ?? []),
+              let right = mean(face.strokes.first { $0.label == "Auge R" }?.points ?? [])
+        else { return nil }
+        return (left, right)
+    }
+
+    private static func printVector(_ data: Data) -> [Double] {
+        guard let obs = try? NSKeyedUnarchiver.unarchivedObject(ofClass: VNFeaturePrintObservation.self, from: data) else {
+            return []
+        }
+        let n = obs.elementCount
+        guard n >= 16 else { return [] }
+        let raw = obs.data
+        if obs.elementType.rawValue == 2 {
+            let bytes = n * MemoryLayout<Double>.size
+            guard raw.count >= bytes else { return [] }
+            var vals = [Double](repeating: 0, count: n)
+            vals.withUnsafeMutableBytes { dest in
+                raw.copyBytes(to: dest, count: bytes)
+            }
+            return vals
+        }
+        let bytes = n * MemoryLayout<Float>.size
+        guard raw.count >= bytes else { return [] }
+        var vals = [Float](repeating: 0, count: n)
+        vals.withUnsafeMutableBytes { dest in
+            raw.copyBytes(to: dest, count: bytes)
+        }
+        return vals.map { Double($0) }
+    }
+
+    private static func cosine(_ a: [Double], _ b: [Double]) -> Double {
+        let n = min(a.count, b.count)
+        guard n > 0 else { return 0 }
+        var dot = 0.0
+        var na = 0.0
+        var nb = 0.0
+        for i in 0 ..< n {
+            dot += a[i] * b[i]
+            na += a[i] * a[i]
+            nb += b[i] * b[i]
+        }
+        let d = sqrt(na) * sqrt(nb)
+        guard d > 1e-12 else { return 0 }
+        return max(-1, min(1, dot / d))
     }
 
     private static func printDistance(_ a: Data, _ b: Data) -> Double {
@@ -756,17 +859,19 @@ enum FaceEngine {
         return Double(d)
     }
 
+    /// Genuine same-person ~95–99 %. Impostors stay low. Cosine of the print vector, not a 16×16 brightness grid.
     private static func printPercent(_ a: Data, _ b: Data) -> Double {
+        let va = printVector(a)
+        let vb = printVector(b)
+        if va.count >= 32, va.count == vb.count {
+            let c = cosine(va, vb)
+            return 100.0 / (1.0 + exp(-16.0 * (c - 0.64)))
+        }
         let d = printDistance(a, b)
         if d >= 3 {
-            let t = 8.0
-            let k = 0.7
-            return 100.0 / (1.0 + exp(k * (d - t)))
+            return 100.0 / (1.0 + exp(0.7 * (d - 8)))
         }
-        // Image Feature Print after luma lift: same person ~0.3–0.7, lighting-changed ~0.5–0.85, other ~0.9–1.4
-        let t = 0.98
-        let k = 5.4
-        return 100.0 / (1.0 + exp(k * (d - t)))
+        return 100.0 / (1.0 + exp(9.0 * (d - 0.72)))
     }
 
     private static func landmarkPercent(_ d: Double) -> Double {
