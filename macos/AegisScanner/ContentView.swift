@@ -71,9 +71,14 @@ struct ContentView: View {
             HStack {
                 TextField("Name", text: $store.newPersonName)
                     .textFieldStyle(.roundedBorder)
+                    .onSubmit { store.createIdentity() }
                 Button("Anlegen", action: store.createIdentity)
+                    .keyboardShortcut(.defaultAction)
                     .disabled(store.selectedFace == nil || store.newPersonName.isEmpty)
             }
+            Text("Anlegen = neue Person.  + = weitere Referenz derselben Person.")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
             List(store.identities) { identity in
                 HStack {
                     VStack(alignment: .leading) {
@@ -85,6 +90,7 @@ struct ContentView: View {
                     Spacer()
                     Button("+") { store.addSelectedTo(identity.id) }
                         .disabled(store.selectedFace == nil)
+                        .help("Weitere Referenz dieser Person — nicht für eine neue Person")
                     Button(role: .destructive) { store.removeIdentity(identity.id) } label: {
                         Image(systemName: "trash")
                     }

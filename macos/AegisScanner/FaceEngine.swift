@@ -231,6 +231,53 @@ enum FaceEngine {
         samePerson(a, b)
     }
 
+    /// Same face id, or overlapping boxes on the same photo. Never across photos —
+    /// two portraits share similar pixel coords and used to swallow person 3 into person 2.
+    static func identityOwning(face: FaceObservation, identities: [Identity], faces: [FaceObservation]) -> Identity? {
+        for identity in identities {
+            for fid in identity.faceIds {
+                if fid == face.id { return identity }
+                guard let owned = faces.first(where: { $0.id == fid }) else { continue }
+                if owned.mediaId == face.mediaId, boxesOverlap(owned.box, face.box) {
+                    return identity
+                }
+            }
+        }
+        return nil
+    }
+
+    static func unnamedFace(on mediaId: UUID, faces: [FaceObservation], identities: [Identity]) -> FaceObservation? {
+        let enrolled = Set(identities.flatMap(\.faceIds))
+        let owned = faces.filter { $0.mediaId == mediaId && enrolled.contains($0.id) }
+        return faces
+            .filter { face in
+                face.mediaId == mediaId
+                    && !enrolled.contains(face.id)
+                    && !owned.contains { boxesOverlap($0.box, face.box) }
+            }
+            .sorted { $0.box.x + $0.box.y * 0.15 < $1.box.x + $1.box.y * 0.15 }
+            .first
+    }
+
+    /// Face that Anlegen must enroll. Never an already-named person, never a silent + reference.
+    static func faceForNewIdentity(
+        selected: FaceObservation?,
+        visibleMediaId: UUID?,
+        faces: [FaceObservation],
+        identities: [Identity]
+    ) -> FaceObservation? {
+        if let selected, identityOwning(face: selected, identities: identities, faces: faces) == nil {
+            return selected
+        }
+        if let visibleMediaId, let next = unnamedFace(on: visibleMediaId, faces: faces, identities: identities) {
+            return next
+        }
+        if let selected {
+            return unnamedFace(on: selected.mediaId, faces: faces, identities: identities)
+        }
+        return nil
+    }
+
     static func match(
         faces: [FaceObservation],
         identities: [Identity],

@@ -1,7 +1,7 @@
 # Aegis
 
 Lokaler Image- & Video-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**  
-Version **1.0.16 alpha**.
+Version **1.0.17 alpha**.
 
 ## Image-Datei
 
@@ -12,6 +12,10 @@ Version **1.0.16 alpha**.
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Die Datei ist ad-hoc signiert (kein Apple-Developer-Account) — deshalb der Rechtsklick beim ersten Start.
+
+## Neu in 1.0.17 alpha
+
+Anlegen erzeugt eine neue Person. Zwei Porträts auf verschiedenen Fotos werden nicht mehr zusammengeworfen, nur weil die Boxen ähnlich liegen. Sitzt die Auswahl noch auf Person 2, nimmt Anlegen das unbenannte Gesicht auf dem sichtbaren Foto. Return legt an. `+` hängt nur extra Referenzen an dieselbe Person.
 
 ## Neu in 1.0.16 alpha
 

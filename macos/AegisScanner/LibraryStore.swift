@@ -51,7 +51,13 @@ final class LibraryStore: ObservableObject {
     }
 
     var selectedFace: FaceObservation? {
-        faces.first { $0.id == selectedFaceId } ?? faces.first
+        if let id = selectedFaceId, let face = faces.first(where: { $0.id == id }) {
+            return face
+        }
+        if let mediaId = selectedMediaId {
+            return faces.first { $0.mediaId == mediaId }
+        }
+        return nil
     }
 
     var selectedHits: [StrategyHit] {
@@ -61,8 +67,14 @@ final class LibraryStore: ObservableObject {
 
     func selectMedia(_ id: UUID?) {
         selectedMediaId = id
-        if let id, let face = faces.first(where: { $0.mediaId == id }) {
-            selectedFaceId = face.id
+        if let id {
+            if let current = selectedFaceId,
+               faces.contains(where: { $0.id == current && $0.mediaId == id }) {
+                return
+            }
+            selectedFaceId = faces.first { $0.mediaId == id }?.id
+        } else {
+            selectedFaceId = nil
         }
     }
 
@@ -217,7 +229,11 @@ final class LibraryStore: ObservableObject {
             }
             status = "Abgleich"
             rematch()
-            if selectedFaceId == nil {
+            if let mediaId = selectedMediaId {
+                if selectedFaceId == nil || !(faces.contains { $0.id == selectedFaceId && $0.mediaId == mediaId }) {
+                    selectedFaceId = faces.first { $0.mediaId == mediaId }?.id
+                }
+            } else if selectedFaceId == nil {
                 selectedFaceId = faces.first?.id
             }
             status = "Fertig · \(faces.count) Gesichter"
@@ -232,33 +248,52 @@ final class LibraryStore: ObservableObject {
     }
 
     func createIdentity() {
-        guard let face = selectedFace else { return }
         let name = newPersonName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else { return }
-        if let clash = identities.first(where: { id in
-            id.faceIds.contains(where: { fid in
-                guard let owned = faces.first(where: { $0.id == fid }) else { return false }
-                if owned.id == face.id { return true }
-                return FaceEngine.boxesOverlap(owned.box, face.box)
-            })
-        }) {
-            addSelectedTo(clash.id)
-            status = "Dieses Gesicht gehört schon zu \(clash.name)"
-            newPersonName = ""
+        guard let face = FaceEngine.faceForNewIdentity(
+            selected: selectedFace,
+            visibleMediaId: selectedMediaId,
+            faces: faces,
+            identities: identities
+        ) else {
+            if let selected = selectedFace,
+               let owner = FaceEngine.identityOwning(face: selected, identities: identities, faces: faces) {
+                status = "Dieses Gesicht gehört schon zu \(owner.name). Anderes Gesicht anklicken für eine neue Person."
+            } else if selectedFace == nil {
+                status = "Zuerst ein Gesicht auf dem Foto anklicken"
+            } else {
+                status = "Kein unbenanntes Gesicht auf diesem Foto"
+            }
             return
         }
         identities.append(Identity(id: UUID(), name: name, faceIds: [face.id]))
         newPersonName = ""
+        selectedFaceId = face.id
         rematch()
+        if let next = FaceEngine.unnamedFace(on: face.mediaId, faces: faces, identities: identities) {
+            selectedFaceId = next.id
+            status = "\(name) angelegt · nächstes Gesicht gewählt"
+        } else {
+            status = "\(name) angelegt"
+        }
     }
 
     func addSelectedTo(_ identityId: UUID) {
         guard let face = selectedFace else { return }
         guard let idx = identities.firstIndex(where: { $0.id == identityId }) else { return }
+        if let owner = FaceEngine.identityOwning(face: face, identities: identities, faces: faces) {
+            if owner.id == identityId {
+                status = "Dieses Gesicht ist schon Referenz von \(owner.name)"
+                return
+            }
+            status = "Dieses Gesicht gehört zu \(owner.name). Anlegen für eine neue Person, nicht +."
+            return
+        }
         if !identities[idx].faceIds.contains(face.id) {
             identities[idx].faceIds.append(face.id)
         }
         rematch()
+        status = "Referenz zu \(identities[idx].name) hinzugefügt"
     }
 
     func removeIdentity(_ id: UUID) {

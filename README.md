@@ -1,4 +1,4 @@
-# Aegis **1.0.16 alpha**
+# Aegis **1.0.17 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,10 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 1.0.17 alpha
+
+- **Dritte Person anlegen.** Anlegen hängt nicht mehr still an Person 2, nur weil zwei Porträts ähnliche Pixel-Boxen haben. Boxen zählen nur auf demselben Foto. Sitzt die Auswahl noch auf Person 2, nimmt Anlegen das unbenannte Gesicht auf dem sichtbaren Foto. Return legt an. `+` bleibt nur für extra Referenzen derselben Person.
 
 ## Neu in 1.0.16 alpha
 
