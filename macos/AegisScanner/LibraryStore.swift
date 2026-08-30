@@ -22,9 +22,32 @@ final class LibraryStore: ObservableObject {
 
     private let liveCapture = LiveCapture()
     private var liveMediaId: UUID?
+    private var scopedRoots: [URL] = []
 
     var selectedMedia: MediaItem? {
         media.first { $0.id == selectedMediaId }
+    }
+
+    var browseItems: [MediaItem] {
+        media.filter { $0.kind != .frame }
+    }
+
+    var browseIndex: Int {
+        let id: UUID?
+        if let item = selectedMedia, item.kind == .frame {
+            id = item.parentId
+        } else {
+            id = selectedMediaId
+        }
+        guard let id else { return 0 }
+        return browseItems.firstIndex { $0.id == id } ?? 0
+    }
+
+    var browseLabel: String {
+        let n = browseItems.count
+        guard n > 0 else { return "0 / 0" }
+        let name = selectedMedia?.name ?? browseItems[browseIndex].name
+        return "\(browseIndex + 1) / \(n)  ·  \(name)"
     }
 
     var selectedFace: FaceObservation? {
@@ -43,6 +66,18 @@ final class LibraryStore: ObservableObject {
         }
     }
 
+    func stepMedia(_ delta: Int) {
+        let items = browseItems
+        guard items.count >= 2 else { return }
+        let next = (browseIndex + delta % items.count + items.count) % items.count
+        let item = items[next]
+        if item.kind == .video {
+            selectMedia(media.first { $0.parentId == item.id }?.id ?? item.id)
+        } else {
+            selectMedia(item.id)
+        }
+    }
+
     func pickFolder() {
         let panel = NSOpenPanel()
         panel.canChooseDirectories = true
@@ -50,19 +85,38 @@ final class LibraryStore: ObservableObject {
         panel.allowsMultipleSelection = true
         panel.allowedContentTypes = [.folder, .image, .movie, .jpeg, .png, .heic, .mpeg4Movie, .quickTimeMovie]
         panel.prompt = "Scannen"
+        panel.message = "Ordner oder mehrere Fotos wählen — danach mit ← → blättern."
         guard panel.runModal() == .OK else { return }
         var urls: [URL] = []
+        var roots: [URL] = []
         for url in panel.urls {
+            roots.append(url)
             var isDir: ObjCBool = false
             FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir)
             if isDir.boolValue {
+                _ = url.startAccessingSecurityScopedResource()
                 urls.append(contentsOf: FrameExtractor.walk(folder: url))
             } else {
                 urls.append(url)
             }
         }
+        retainAccess(roots)
+        let before = media.count
         ingest(urls: urls)
+        if let firstNew = media.dropFirst(before).first(where: { $0.kind == .photo })
+            ?? media.dropFirst(before).first {
+            selectedMediaId = firstNew.id
+        }
         Task { await scan() }
+    }
+
+    private func retainAccess(_ urls: [URL]) {
+        let previous = scopedRoots
+        scopedRoots = urls
+        for url in scopedRoots {
+            _ = url.startAccessingSecurityScopedResource()
+        }
+        previous.forEach { $0.stopAccessingSecurityScopedResource() }
     }
 
     func ingest(urls: [URL]) {
@@ -101,10 +155,14 @@ final class LibraryStore: ObservableObject {
             }
         }
         selectedMediaId = media.first { $0.kind == .photo }?.id ?? media.first?.id
+        let photos = media.filter { $0.kind == .photo }.count
+        let videos = media.filter { $0.kind == .video }.count
         if media.isEmpty {
             status = skipped > 0 ? "\(skipped) Dateien unlesbar" : "Keine Medien"
         } else if skipped > 0 {
-            status = "\(media.count) geladen, \(skipped) übersprungen"
+            status = "\(photos) Fotos, \(videos) Videos · \(skipped) übersprungen · ← → blättern"
+        } else {
+            status = "\(photos) Fotos, \(videos) Videos · ← → blättern"
         }
     }
 

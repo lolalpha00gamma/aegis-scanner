@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject private var store: LibraryStore
+    @FocusState private var stageFocused: Bool
 
     var body: some View {
         NavigationSplitView {
@@ -20,6 +21,26 @@ struct ContentView: View {
 
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
+        ToolbarItemGroup(placement: .principal) {
+            Button {
+                store.stepMedia(-1)
+            } label: {
+                Image(systemName: "chevron.left")
+            }
+            .disabled(store.browseItems.count < 2)
+            .help("Vorheriges Bild (←)")
+            Text(store.browseItems.isEmpty ? "kein Bild" : "\(store.browseIndex + 1) / \(store.browseItems.count)")
+                .font(.caption.monospacedDigit())
+                .frame(minWidth: 64)
+                .help(store.browseLabel)
+            Button {
+                store.stepMedia(1)
+            } label: {
+                Image(systemName: "chevron.right")
+            }
+            .disabled(store.browseItems.count < 2)
+            .help("Nächstes Bild (→)")
+        }
         ToolbarItemGroup(placement: .primaryAction) {
             Button("Ordner") { store.pickFolder() }
             Button("Live") { store.startLiveFromField() }
@@ -95,11 +116,65 @@ struct ContentView: View {
                     ContentUnavailableView(
                         "Ordner oder Dateien wählen",
                         systemImage: "faceid",
-                        description: Text("Aegis extrahiert Video-Frames, erkennt Gesichter und zeigt Übereinstimmung je Strategie in Prozent.")
+                        description: Text("Aegis extrahiert Video-Frames, erkennt Gesichter und zeigt Übereinstimmung je Strategie in Prozent. Danach mit ← → durch den Ordner blättern.")
                     )
                 } else {
                     ProgressView(store.status)
                 }
+                if store.browseItems.count > 1 {
+                    HStack {
+                        Button {
+                            store.stepMedia(-1)
+                        } label: {
+                            Image(systemName: "chevron.left")
+                                .font(.title2.weight(.semibold))
+                                .foregroundStyle(.white)
+                                .frame(width: 44, height: 44)
+                                .background(.black.opacity(0.55))
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(.plain)
+                        .help("Vorheriges Bild (←)")
+                        Spacer()
+                        Button {
+                            store.stepMedia(1)
+                        } label: {
+                            Image(systemName: "chevron.right")
+                                .font(.title2.weight(.semibold))
+                                .foregroundStyle(.white)
+                                .frame(width: 44, height: 44)
+                                .background(.black.opacity(0.55))
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(.plain)
+                        .help("Nächstes Bild (→)")
+                    }
+                    .padding(16)
+                    VStack {
+                        Spacer()
+                        Text(store.browseLabel)
+                            .font(.caption.monospaced())
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(.black.opacity(0.6))
+                            .clipShape(Capsule())
+                            .padding(.bottom, 12)
+                    }
+                    .allowsHitTesting(false)
+                }
+            }
+            .focusable()
+            .focused($stageFocused)
+            .focusEffectDisabled()
+            .onAppear { stageFocused = true }
+            .onKeyPress(.leftArrow) {
+                store.stepMedia(-1)
+                return .handled
+            }
+            .onKeyPress(.rightArrow) {
+                store.stepMedia(1)
+                return .handled
             }
             let onImage = store.faces.filter { $0.mediaId == store.selectedMediaId }.sorted {
                 $0.box.x + $0.box.y * 0.15 < $1.box.x + $1.box.y * 0.15
@@ -145,31 +220,55 @@ struct ContentView: View {
                 .frame(height: 68)
             }
             Divider()
-            ScrollView(.horizontal) {
-                HStack(spacing: 8) {
-                    ForEach(store.media.filter { $0.kind != .frame }) { item in
-                        Button {
-                            if item.kind == .video {
-                                store.selectMedia(store.media.first { $0.parentId == item.id }?.id ?? item.id)
-                            } else {
-                                store.selectMedia(item.id)
-                            }
-                        } label: {
-                            MediaThumb(item: item, frames: store.media.filter { $0.parentId == item.id })
-                                .frame(width: 72, height: 72)
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                                .overlay {
-                                    if store.selectedMediaId == item.id || store.media.contains(where: { $0.parentId == item.id && $0.id == store.selectedMediaId }) {
-                                        RoundedRectangle(cornerRadius: 8).stroke(.primary, lineWidth: 2)
-                                    }
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal) {
+                    HStack(spacing: 8) {
+                        ForEach(store.browseItems) { item in
+                            Button {
+                                if item.kind == .video {
+                                    store.selectMedia(store.media.first { $0.parentId == item.id }?.id ?? item.id)
+                                } else {
+                                    store.selectMedia(item.id)
                                 }
+                            } label: {
+                                MediaThumb(item: item, frames: store.media.filter { $0.parentId == item.id })
+                                    .frame(width: 80, height: 80)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    .overlay(alignment: .bottom) {
+                                        Text(item.name)
+                                            .font(.caption2)
+                                            .lineLimit(1)
+                                            .padding(.horizontal, 4)
+                                            .padding(.vertical, 2)
+                                            .frame(maxWidth: .infinity)
+                                            .background(.black.opacity(0.55))
+                                            .foregroundStyle(.white)
+                                    }
+                                    .overlay {
+                                        if store.selectedMediaId == item.id || store.media.contains(where: { $0.parentId == item.id && $0.id == store.selectedMediaId }) {
+                                            RoundedRectangle(cornerRadius: 8).stroke(.primary, lineWidth: 2)
+                                        }
+                                    }
+                            }
+                            .buttonStyle(.plain)
+                            .id(item.id)
                         }
-                        .buttonStyle(.plain)
+                    }
+                    .padding(10)
+                }
+                .onChange(of: store.selectedMediaId) { _, _ in
+                    let id: UUID?
+                    if let item = store.selectedMedia, item.kind == .frame {
+                        id = item.parentId
+                    } else {
+                        id = store.selectedMediaId
+                    }
+                    if let id {
+                        withAnimation { proxy.scrollTo(id, anchor: .center) }
                     }
                 }
-                .padding(10)
             }
-            .frame(height: 92)
+            .frame(height: 100)
             let frames = store.media.filter { $0.kind == .frame && $0.parentId == (store.selectedMedia?.kind == .frame ? store.selectedMedia?.parentId : store.selectedMedia?.id) }
             if !frames.isEmpty {
                 Divider()

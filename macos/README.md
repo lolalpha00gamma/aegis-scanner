@@ -1,7 +1,7 @@
 # Aegis
 
 Lokaler Image- & Video-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**  
-Version **1.0.15 alpha**.
+Version **1.0.16 alpha**.
 
 ## Image-Datei
 
@@ -12,6 +12,10 @@ Version **1.0.15 alpha**.
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Die Datei ist ad-hoc signiert (kein Apple-Developer-Account) — deshalb der Rechtsklick beim ersten Start.
+
+## Neu in 1.0.16 alpha
+
+Ordner blättern: Pfeile links/rechts auf dem Bild, Tastatur `←` `→`, Zähler in der Titelleiste. Filmstrip scrollt zum aktuellen Foto.
 
 ## Neu in 1.0.15 alpha
 

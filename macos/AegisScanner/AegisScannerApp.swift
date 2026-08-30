@@ -28,6 +28,15 @@ struct AegisScannerApp: App {
                     Task { await store.scan() }
                 }
                 .keyboardShortcut("r", modifiers: [.command])
+                Divider()
+                Button("Vorheriges Bild") {
+                    store.stepMedia(-1)
+                }
+                .keyboardShortcut(.leftArrow, modifiers: [.command])
+                Button("Nächstes Bild") {
+                    store.stepMedia(1)
+                }
+                .keyboardShortcut(.rightArrow, modifiers: [.command])
             }
         }
     }
