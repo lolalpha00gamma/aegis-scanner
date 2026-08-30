@@ -227,6 +227,19 @@ enum FaceEngine {
         return hypot(acx - bcx, acy - bcy) < 0.32 * diag
     }
 
+    /// High-IoU / nested twin of the same detection. Two people standing
+    /// together overlap a bit — that is not a duplicate.
+    private static func duplicateDetection(_ a: FaceBox, _ b: FaceBox) -> Bool {
+        if iou(a, b) >= 0.42 { return true }
+        let x1 = max(a.x, b.x)
+        let y1 = max(a.y, b.y)
+        let x2 = min(a.x + a.width, b.x + b.width)
+        let y2 = min(a.y + a.height, b.y + b.height)
+        let inter = max(0, x2 - x1) * max(0, y2 - y1)
+        let smaller = min(a.width * a.height, b.width * b.height)
+        return smaller > 1 && inter / smaller >= 0.7
+    }
+
     static func boxesOverlap(_ a: FaceBox, _ b: FaceBox) -> Bool {
         samePerson(a, b)
     }
@@ -238,7 +251,7 @@ enum FaceEngine {
             for fid in identity.faceIds {
                 if fid == face.id { return identity }
                 guard let owned = faces.first(where: { $0.id == fid }) else { continue }
-                if owned.mediaId == face.mediaId, boxesOverlap(owned.box, face.box) {
+                if owned.mediaId == face.mediaId, duplicateDetection(owned.box, face.box) {
                     return identity
                 }
             }
@@ -253,7 +266,7 @@ enum FaceEngine {
             .filter { face in
                 face.mediaId == mediaId
                     && !enrolled.contains(face.id)
-                    && !owned.contains { boxesOverlap($0.box, face.box) }
+                    && !owned.contains { duplicateDetection($0.box, face.box) }
             }
             .sorted { $0.box.x + $0.box.y * 0.15 < $1.box.x + $1.box.y * 0.15 }
             .first

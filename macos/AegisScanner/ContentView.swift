@@ -76,7 +76,7 @@ struct ContentView: View {
                     .keyboardShortcut(.defaultAction)
                     .disabled(store.selectedFace == nil || store.newPersonName.isEmpty)
             }
-            Text("Anlegen = neue Person.  + = weitere Referenz derselben Person.")
+            Text("Anlegen = neue Person. + nur wenn das Namensfeld leer ist: extra Foto derselben Person.")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
             List(store.identities) { identity in
@@ -89,8 +89,8 @@ struct ContentView: View {
                     }
                     Spacer()
                     Button("+") { store.addSelectedTo(identity.id) }
-                        .disabled(store.selectedFace == nil)
-                        .help("Weitere Referenz dieser Person — nicht für eine neue Person")
+                        .disabled(store.selectedFace == nil || !store.newPersonName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        .help("Weitere Aufnahme dieser Person. Name im Feld → Anlegen, nicht +.")
                     Button(role: .destructive) { store.removeIdentity(identity.id) } label: {
                         Image(systemName: "trash")
                     }
@@ -193,7 +193,8 @@ struct ContentView: View {
                             let hit = store.matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == store.strategy }
                             let owner = store.identities.first { $0.faceIds.contains(face.id) }
                             let ident = owner ?? store.identities.first { $0.id == hit?.identityId }
-                            let assigned = ident != nil && (owner != nil || (hit?.percent ?? 0) >= store.threshold)
+                            let pinned = owner != nil
+                            let near = !pinned && ident != nil && (hit?.percent ?? 0) >= store.threshold
                             Button {
                                 store.selectedFaceId = face.id
                             } label: {
@@ -202,12 +203,12 @@ struct ContentView: View {
                                         .font(.caption.monospacedDigit())
                                         .frame(width: 18)
                                     VStack(alignment: .leading, spacing: 2) {
-                                        Text(assigned ? (ident?.name ?? "offen") : "nicht zugeordnet")
+                                        Text(pinned ? (owner!.name) : (near ? "Nähe \(ident!.name)" : "nicht zugeordnet"))
                                             .font(.caption)
                                             .lineLimit(1)
                                         Text(String(format: "%.0f%%", hit?.percent ?? 0))
                                             .font(.caption2.monospacedDigit())
-                                            .foregroundStyle(assigned ? Color.primary : Color.secondary)
+                                            .foregroundStyle(pinned ? Color.primary : Color.secondary)
                                     }
                                 }
                                 .padding(.horizontal, 8)
@@ -314,15 +315,19 @@ struct ContentView: View {
                 let owner = store.identities.first { $0.faceIds.contains(face.id) }
                 let assignedIdent = owner ?? store.identities.first { $0.id == hit?.identityId }
                 let assignedPass = assignedIdent != nil && (owner != nil || (hit?.percent ?? 0) >= store.threshold)
-                Text(owner != nil ? "REFERENZ" : (assignedPass ? "ZUGEORDNET" : "NICHT ZUGEORDNET"))
+                Text(owner != nil ? "REFERENZ" : (assignedPass ? "NÄHE" : "NICHT ZUGEORDNET"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .tracking(1.4)
-                Text(assignedPass ? (assignedIdent?.name ?? "") : "kein Match")
+                Text(owner != nil ? (assignedIdent?.name ?? "") : (assignedPass ? "Nähe \(assignedIdent?.name ?? "")" : "kein Match"))
                     .font(.title3)
                 Text(String(format: "%.0f%%", hit?.percent ?? 0))
                     .font(.body.monospacedDigit())
-                if let note = hit?.note, !note.isEmpty {
+                if owner == nil, assignedPass {
+                    Text("Noch keine Referenz. Anlegen für eine neue Person, + nur für ein extra Foto von \(assignedIdent?.name ?? "dieser Person").")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else if let note = hit?.note, !note.isEmpty {
                     Text(note)
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -378,13 +383,13 @@ struct ContentView: View {
                     .padding(.top, 4)
                 ForEach(StrategyID.allCases) { id in
                     let hit = store.selectedHits.first { $0.strategy == id }
-                    let assigned = store.identities.first { $0.id == hit?.identityId }?.name
+                    let pinnedName = store.identities.first { $0.faceIds.contains(face.id) }?.name
+                    let matchName = store.identities.first { $0.id == hit?.identityId }?.name
                     let guess = store.identities.first { $0.id == hit?.versus.first?.identityId }?.name
-                    let pass = assigned != nil && (hit?.percent ?? 0) >= store.threshold
-                    let name = pass
-                        ? (assigned ?? "")
-                        : (guess.map { "Nähe \($0) · nicht zugeordnet" } ?? "nicht zugeordnet")
                     let pct = hit?.percent ?? 0
+                    let pass = pinnedName != nil
+                    let name = pinnedName
+                        ?? ((matchName != nil && pct >= store.threshold) ? "Nähe \(matchName!)" : (guess.map { "Nähe \($0) · nicht zugeordnet" } ?? "nicht zugeordnet"))
                     Button {
                         store.strategy = id
                     } label: {
@@ -504,16 +509,18 @@ struct FaceOverlay: View {
                     .offset(x: ox, y: oy)
                 ForEach(Array(faces.enumerated()), id: \.element.id) { index, face in
                     let hit = store.matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == store.strategy }
-                    let ident = store.identities.first { $0.id == hit?.identityId }
+                    let owner = store.identities.first { $0.faceIds.contains(face.id) }
+                    let ident = owner ?? store.identities.first { $0.id == hit?.identityId }
                     let pct = hit?.percent ?? 0
-                    let pass = pct >= store.threshold && ident != nil
+                    let pinned = owner != nil
+                    let near = !pinned && ident != nil && pct >= store.threshold
                     let selected = store.selectedFaceId == face.id
                     Button {
                         store.selectedFaceId = face.id
                         store.selectedMediaId = item.id
                     } label: {
                         Rectangle()
-                            .stroke(selected ? Color.white : (pass ? Color.green.opacity(0.85) : Color.white.opacity(0.45)), lineWidth: selected ? 2 : 1.5)
+                            .stroke(selected ? Color.white : (pinned ? Color.green.opacity(0.85) : Color.white.opacity(0.45)), lineWidth: selected ? 2 : 1.5)
                             .overlay(alignment: .topLeading) {
                                 Text("\(index + 1)")
                                     .font(.caption2.monospacedDigit())
@@ -524,7 +531,7 @@ struct FaceOverlay: View {
                             }
                             .overlay(alignment: .bottomLeading) {
                                 if selected {
-                                    Text(pass ? "\(ident!.name) \(Int(pct))%" : "nicht zugeordnet")
+                                    Text(pinned ? "\(owner!.name) \(Int(pct))%" : (near ? "Nähe \(ident!.name) \(Int(pct))%" : "nicht zugeordnet"))
                                         .font(.caption2.monospaced())
                                         .padding(.horizontal, 4)
                                         .padding(.vertical, 1)

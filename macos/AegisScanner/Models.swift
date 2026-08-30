@@ -2,9 +2,9 @@ import CoreGraphics
 import Foundation
 
 enum AppVersion {
-    static let marketing = "1.0.17"
+    static let marketing = "1.0.18"
     static let channel = "alpha"
-    static let display = "1.0.17 alpha"
+    static let display = "1.0.18 alpha"
 }
 
 enum StrategyID: String, CaseIterable, Identifiable, Codable {

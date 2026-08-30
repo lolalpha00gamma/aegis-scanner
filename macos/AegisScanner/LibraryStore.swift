@@ -279,6 +279,11 @@ final class LibraryStore: ObservableObject {
     }
 
     func addSelectedTo(_ identityId: UUID) {
+        let typed = newPersonName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !typed.isEmpty {
+            createIdentity()
+            return
+        }
         guard let face = selectedFace else { return }
         guard let idx = identities.firstIndex(where: { $0.id == identityId }) else { return }
         if let owner = FaceEngine.identityOwning(face: face, identities: identities, faces: faces) {
