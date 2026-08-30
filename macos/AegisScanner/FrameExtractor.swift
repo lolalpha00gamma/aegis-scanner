@@ -56,7 +56,7 @@ enum FrameExtractor {
             let cm = CMTime(seconds: time, preferredTimescale: 600)
             do {
                 let image = try generator.copyCGImage(at: cm, actualTime: nil)
-                scored.append((time, image, sharpness(image)))
+                scored.append((time, image, structure(image)))
             } catch {
                 continue
             }
@@ -64,6 +64,62 @@ enum FrameExtractor {
         scored.sort { $0.2 > $1.2 }
         let kept = Array(scored.prefix(maxFrames)).sorted { $0.0 < $1.0 }
         return kept.map { ($0.0, $0.1) }
+    }
+
+    static func structure(_ image: CGImage) -> Double {
+        sharpness(equalizeGray(image) ?? image)
+    }
+
+    private static func equalizeGray(_ image: CGImage) -> CGImage? {
+        let width = min(96, image.width)
+        let height = min(96, image.height)
+        guard width > 2, height > 2 else { return nil }
+        var pixels = [UInt8](repeating: 0, count: width * height)
+        return pixels.withUnsafeMutableBytes { raw -> CGImage? in
+            guard let base = raw.baseAddress,
+                  let ctx = CGContext(
+                    data: base,
+                    width: width,
+                    height: height,
+                    bitsPerComponent: 8,
+                    bytesPerRow: width,
+                    space: CGColorSpaceCreateDeviceGray(),
+                    bitmapInfo: CGImageAlphaInfo.none.rawValue
+                  ) else { return nil }
+            ctx.interpolationQuality = .low
+            ctx.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+            let ptr = base.bindMemory(to: UInt8.self, capacity: width * height)
+            var hist = [Int](repeating: 0, count: 256)
+            var sum = 0.0
+            let n = width * height
+            for i in 0 ..< n {
+                hist[Int(ptr[i])] += 1
+                sum += Double(ptr[i])
+            }
+            let mean = sum / Double(max(n, 1))
+            func percentile(_ p: Double) -> Double {
+                let target = p * Double(n)
+                var acc = 0.0
+                for i in 0 ..< 256 {
+                    acc += Double(hist[i])
+                    if acc >= target { return Double(i) }
+                }
+                return 255
+            }
+            let p5 = percentile(0.05)
+            let p95 = percentile(0.95)
+            if mean >= 78 && p5 >= 22 { return ctx.makeImage() }
+            let span = max(p95 - p5, 12.0)
+            let gamma = mean < 55 ? 0.55 : mean < 70 ? 0.62 : 0.78
+            for i in 0 ..< n {
+                let y = Double(ptr[i])
+                var y2 = ((y - p5) / span) * 240 + 8
+                y2 = min(255, max(0, y2))
+                y2 = 255 * pow(y2 / 255, gamma)
+                ptr[i] = UInt8(min(255, max(0, y2.rounded())))
+            }
+            return ctx.makeImage()
+        }
     }
 
     static func sharpness(_ image: CGImage) -> Double {

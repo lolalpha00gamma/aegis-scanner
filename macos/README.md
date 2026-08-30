@@ -1,7 +1,7 @@
 # Aegis
 
 Lokaler Image- & Video-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**  
-Version **1.0.13 alpha**.
+Version **1.0.14 alpha**.
 
 ## Image-Datei
 
@@ -12,6 +12,10 @@ Version **1.0.13 alpha**.
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Die Datei ist ad-hoc signiert (kein Apple-Developer-Account) — deshalb der Rechtsklick beim ersten Start.
+
+## Neu in 1.0.14 alpha
+
+Erkennung bei schlechtem Licht: Dunkelheit ist keine Unschärfe. Das Gesicht wird vor dem Feature Print helligkeitsausgeglichen. Verhältnisse zählen im Dunkeln stärker in der Prozentzahl. Winzige Crowd-Gesichter bleiben unbekannt.
 
 ## Neu in 1.0.13 alpha
 
@@ -49,12 +53,12 @@ Ordner mit Fotos und Videos wählen, oder einen Live-Stream (Webcam, RTSP, HLS, 
 | **Kieferlinie** | Kieferbreite/IOD, Untergesicht/Höhe, Kinn |
 | **Graph-Biomarker** | KNN-6 über feste Knochenpunkte, ohne Mund |
 | **3D-Geometrie** | IOD-Verhältnisse, Kieferwinkel, Nasenfläche |
-| **Aussehen** | Helligkeitsraster; darf nur vetoen, nie zuweisen |
-| **Quality-Gate** | Feature Print × `VNDetectFaceCaptureQuality` |
+| **Aussehen** | Helligkeitsraster nach Lichtausgleich; darf nur vetoen, und nur bei brauchbarem Licht |
+| **Quality-Gate** | Feature Print, Dunkelheit zählt nicht als Unschärfe |
 | **Temporal** | Video-Feature-Print über Tracks, ohne Kreuzer-Tausch |
-| **Feature Print** | Augenausgerichteter Crop — das macOS-Identitäts-Embedding |
+| **Feature Print** | Augenausgerichteter, luma-ausgeglichener Crop — das macOS-Identitäts-Embedding |
 | **TER-Fusion** | Scores → Total Error Rate, min-max nach Jain |
-| **Aegis Ensemble** | Beweis-Identifikation. Enge Rennen bleiben offen und werden erklärt |
+| **Aegis Ensemble** | Beweis-Identifikation. Im Dunkeln zählen Verhältnisse stärker |
 
 ## Lizenz
 

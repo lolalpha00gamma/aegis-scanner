@@ -7,6 +7,24 @@ enum FaceEngine {
         let w = Double(image.width)
         let h = Double(image.height)
         var out = try detectOnce(in: image, mediaId: mediaId, originX: 0, originY: 0, imageWidth: w, imageHeight: h)
+        let stats = lumaStats(image)
+        if stats.dark || out.isEmpty, let lifted = equalize(image) {
+            let extra = try detectOnce(
+                in: lifted,
+                mediaId: mediaId,
+                originX: 0,
+                originY: 0,
+                imageWidth: w,
+                imageHeight: h,
+                minConfidence: out.isEmpty ? 0.12 : 0.15
+            )
+            if stats.dark {
+                out = extra + out
+            } else {
+                out.append(contentsOf: extra)
+            }
+            out = nms(out)
+        }
         let largest = out.map { max($0.box.width, $0.box.height) }.max() ?? 0
         let covered = out.reduce(0.0) { $0 + $1.box.width * $1.box.height }
         let coverage = covered / max(1, w * h)
@@ -24,13 +42,15 @@ enum FaceEngine {
             for (ox, oy) in origins {
                 let tileBox = FaceBox(x: Double(ox), y: Double(oy), width: Double(tw), height: Double(th))
                 guard let tile = crop(image, box: tileBox, pad: 0) else { continue }
+                let source = stats.dark ? (equalize(tile) ?? tile) : tile
                 let found = try detectOnce(
-                    in: tile,
+                    in: source,
                     mediaId: mediaId,
                     originX: Double(ox),
                     originY: Double(oy),
                     imageWidth: w,
-                    imageHeight: h
+                    imageHeight: h,
+                    minConfidence: stats.dark ? 0.12 : 0.15
                 )
                 out.append(contentsOf: found)
             }
@@ -45,7 +65,8 @@ enum FaceEngine {
         originX: Double,
         originY: Double,
         imageWidth: Double,
-        imageHeight: Double
+        imageHeight: Double,
+        minConfidence: Float = 0.15
     ) throws -> [FaceObservation] {
         let handler = VNImageRequestHandler(cgImage: image, orientation: .up, options: [:])
         let facesReq = VNDetectFaceRectanglesRequest()
@@ -61,7 +82,7 @@ enum FaceEngine {
         let w = Double(image.width)
         let h = Double(image.height)
 
-        for face in observations where face.confidence >= 0.15 {
+        for face in observations where face.confidence >= minConfidence {
             var box = vnToPixels(face.boundingBox, width: w, height: h)
             box = FaceBox(
                 x: box.x + originX,
@@ -131,16 +152,21 @@ enum FaceEngine {
             )
             let frontal = frame.map(frontalScore) ?? frontalScore(points)
             let size = min(1, (box.width * box.height) / max(1, imageWidth * imageHeight) / 0.12)
-            let sharpness = sharpnessScore(crop(image, box: vnToPixels(face.boundingBox, width: w, height: h)))
-            let capture = clamp01(0.40 * captureApple + 0.22 * sharpness + 0.18 * size + 0.20 * frontal)
+            let faceCrop = crop(image, box: vnToPixels(face.boundingBox, width: w, height: h))
+            let sharpness = sharpnessScore(faceCrop)
+            let structure = sharpnessScore(equalize(faceCrop) ?? faceCrop)
+            let edge = max(structure, sharpness * 0.4)
+            let capture = clamp01(
+                0.16 * captureApple + 0.30 * edge + 0.22 * size + 0.24 * frontal + 0.08 * (edge > 0.12 ? 1 : 0.45)
+            )
             let inner = crop(image, box: vnToPixels(face.boundingBox, width: w, height: h), pad: 0.04)
             let leftEye = frame?.leftEye ?? regionCenter(lm?.landmarks?.leftEye, box: face.boundingBox, imageWidth: w, imageHeight: h)
             let rightEye = frame?.rightEye ?? regionCenter(lm?.landmarks?.rightEye, box: face.boundingBox, imageWidth: w, imageHeight: h)
             let appearance: [Double]
             if let leftEye, let rightEye, let warped = warpEyes(image, left: leftEye, right: rightEye, size: 64) {
-                appearance = appearanceVector(of: warped)
+                appearance = appearanceVector(of: equalize(warped) ?? warped)
             } else {
-                appearance = appearanceVector(of: inner)
+                appearance = appearanceVector(of: equalize(inner) ?? inner)
             }
             let printSource: CGImage?
             if let leftEye, let rightEye {
@@ -148,7 +174,7 @@ enum FaceEngine {
             } else {
                 printSource = crop(image, box: vnToPixels(face.boundingBox, width: w, height: h), pad: 0.18)
             }
-            let printData = featurePrint(of: printSource) ?? Data()
+            let printData = featurePrint(of: equalize(printSource) ?? printSource) ?? Data()
             let bone = boneKeypoints(namedAligned)
 
             out.append(
@@ -286,8 +312,10 @@ enum FaceEngine {
 
             let gated = rank(models, minMargin: embedMargin) { m in
                 let raw = bestPrintPercent(face.featurePrint, m.meanPrint)
-                if face.quality.capture >= 0.35 { return raw }
-                return raw * (0.45 + 0.55 * (face.quality.capture / 0.35))
+                if tinyUnreliable(face.quality) {
+                    return raw * (0.45 + 0.55 * (face.quality.capture / 0.35))
+                }
+                return raw
             }
             hits.append(toHit(.qualityGate, gated))
 
@@ -305,7 +333,7 @@ enum FaceEngine {
             func pctVs(_ s: StrategyID, _ id: UUID) -> Double {
                 hits.first { $0.strategy == s }?.versus.first { $0.identityId == id }?.percent ?? 0
             }
-            let lowCapture = face.quality.capture < 0.35
+            let lowCapture = tinyUnreliable(face.quality)
             func geoMixOf(_ id: UUID) -> Double {
                 0.22 * pctVs(.ratios, id)
                     + 0.18 * pctVs(.faceShape, id)
@@ -346,6 +374,15 @@ enum FaceEngine {
                 .sorted { $0.p > $1.p }
             let appearanceBest = pctVs(.texture, ensemble.versus.first?.identityId ?? UUID())
             let others = ensemble.versus.dropFirst().map(\.percent)
+            let fusedVersus = ensemble.versus.map { v in
+                IdentityScore(
+                    identityId: v.identityId,
+                    percent: fuseIdentity(v.percent, geoMixOf(v.identityId), face.quality),
+                    distance: v.distance
+                )
+            }
+            let fusedBest = fusedVersus.first?.percent ?? fuseIdentity(ensemble.percent, geoRanked.first?.p ?? 0, face.quality)
+            let fusedSecond = fusedVersus.dropFirst().first?.percent ?? 0
             let decided = decide(
                 percent: ensemble.percent,
                 margin: ensemble.margin,
@@ -357,10 +394,15 @@ enum FaceEngine {
                 lowCapture: lowCapture,
                 appearance: face.appearance.isEmpty ? nil : appearanceBest,
                 geoMix: geoRanked.first?.p ?? 0,
-                galleryZ: galleryZScore(ensemble.percent, Array(others))
+                galleryZ: galleryZScore(ensemble.percent, Array(others)),
+                textureReliable: textureIsReliable(face.quality),
+                evidence: fusedBest
             )
             var aegis = ensemble
             aegis.identityId = decided.id
+            aegis.percent = fusedBest
+            aegis.margin = fusedBest - fusedSecond
+            aegis.versus = fusedVersus
             hits.append(toHit(.aegis, aegis, note: decided.note))
             if let owner = identities.first(where: { $0.faceIds.contains(face.id) }) {
                 hits = hits.map { h in
@@ -483,12 +525,15 @@ enum FaceEngine {
         lowCapture: Bool,
         appearance: Double?,
         geoMix: Double,
-        galleryZ: Double
+        galleryZ: Double,
+        textureReliable: Bool = true,
+        evidence: Double? = nil
     ) -> (id: UUID?, note: String) {
         let best = bestName ?? "Beste"
         let second = secondName ?? "Zweite"
         let appear = appearance ?? 100
         let hasAppearance = appearance != nil
+        let score = evidence ?? percent
         guard let bestId, percent > 0 else {
             return (nil, "Keine Vergleichsperson.")
         }
@@ -496,18 +541,21 @@ enum FaceEngine {
             return (nil, String(format: "Aufnahme zu schwach für eine Zuordnung, Nähe %.0f%%.", percent))
         }
         if secondName == nil {
-            if percent >= soloFloor && appear >= appearanceFloor && geoMix >= 30 {
+            if score >= soloFloor && (textureReliable ? appear >= appearanceFloor : true) && geoMix >= 30 && percent >= 70 {
                 return (bestId, String(format: "Nur eine Person eingeschrieben. Nähe %.0f%% reicht.", percent))
             }
             return (nil, String(format: "Nur eine Person eingeschrieben. Nähe %.0f%% reicht nicht (braucht %.0f%%). Andere Gesichter bleiben offen.", percent, soloFloor))
         }
-        if percent < matchFloor {
+        if percent < 70 {
+            return (nil, String(format: "Beste Nähe %.0f%% liegt unter %.0f%%. Nicht zugeordnet.", percent, matchFloor))
+        }
+        if score < matchFloor {
             return (nil, String(format: "Beste Nähe %.0f%% liegt unter %.0f%%. Nicht zugeordnet.", percent, matchFloor))
         }
         if galleryZ < zFloor && percent < 96 {
             return (nil, String(format: "Kein Ausreißer in der Galerie (z=%.1f). Alle Personen ähnlich nah — nicht zugeordnet.", galleryZ))
         }
-        if hasAppearance && appear < appearanceFloor {
+        if hasAppearance && textureReliable && appear < appearanceFloor {
             return (nil, String(format: "Aussehen passt nicht (%.0f%%). %@ %.0f%% — nicht zugeordnet.", appear, best, percent))
         }
         if geoMix < 32 && percent < 94 {
@@ -519,7 +567,7 @@ enum FaceEngine {
         if margin >= embedMargin || (percent >= 94 && margin >= 6) {
             return (bestId, String(format: "Abstand %.1f Pkt zu %@.", margin, second))
         }
-        if geoAgrees && geoMargin >= 12 && appear >= 75 {
+        if geoAgrees && geoMargin >= 12 && (appear >= 75 || !textureReliable) {
             return (bestId, String(format: "Embedding nur %.1f Pkt Abstand, Maße trennen %.1f Pkt (%@).", margin, geoMargin, second))
         }
         return (nil, String(format: "%@ %.0f%% und %@ %.0f%% zu nah — nicht zugeordnet.", best, percent, second, percent - margin))
@@ -715,8 +763,9 @@ enum FaceEngine {
             let k = 0.7
             return 100.0 / (1.0 + exp(k * (d - t)))
         }
-        let t = 0.72
-        let k = 8.0
+        // Image Feature Print after luma lift: same person ~0.3–0.7, lighting-changed ~0.5–0.85, other ~0.9–1.4
+        let t = 0.98
+        let k = 5.4
         return 100.0 / (1.0 + exp(k * (d - t)))
     }
 
@@ -1166,6 +1215,113 @@ enum FaceEngine {
     }
 
     private static func clamp01(_ n: Double) -> Double { min(1, max(0, n)) }
+
+    private static func tinyUnreliable(_ q: FaceQuality) -> Bool {
+        q.capture < 0.35 && q.size < 0.16
+    }
+
+    private static func textureIsReliable(_ q: FaceQuality) -> Bool {
+        q.capture >= 0.42 && q.sharpness >= 0.22
+    }
+
+    private static func fuseIdentity(_ embed: Double, _ geo: Double, _ q: FaceQuality) -> Double {
+        if tinyUnreliable(q) { return embed }
+        let trust = clamp01((q.capture - 0.18) / 0.5)
+        let printW = 0.52 + 0.48 * trust
+        return printW * embed + (1 - printW) * geo
+    }
+
+    private struct LumaStats {
+        var mean: Double
+        var p5: Double
+        var p95: Double
+        var dark: Bool
+    }
+
+    private static func lumaStats(_ image: CGImage?) -> LumaStats {
+        guard let image else { return LumaStats(mean: 0, p5: 0, p95: 0, dark: true) }
+        let w = min(96, image.width)
+        let h = min(96, image.height)
+        guard w > 1, h > 1, let ctx = CGContext(
+            data: nil,
+            width: w,
+            height: h,
+            bitsPerComponent: 8,
+            bytesPerRow: w,
+            space: CGColorSpaceCreateDeviceGray(),
+            bitmapInfo: CGImageAlphaInfo.none.rawValue
+        ) else { return LumaStats(mean: 128, p5: 40, p95: 220, dark: false) }
+        ctx.interpolationQuality = .low
+        ctx.draw(image, in: CGRect(x: 0, y: 0, width: w, height: h))
+        guard let data = ctx.data else { return LumaStats(mean: 128, p5: 40, p95: 220, dark: false) }
+        let buf = data.bindMemory(to: UInt8.self, capacity: w * h)
+        var hist = [Int](repeating: 0, count: 256)
+        var sum = 0.0
+        let n = w * h
+        for i in 0 ..< n {
+            let v = Int(buf[i])
+            hist[v] += 1
+            sum += Double(v)
+        }
+        let mean = sum / Double(max(n, 1))
+        func percentile(_ p: Double) -> Double {
+            let target = p * Double(n)
+            var acc = 0.0
+            for i in 0 ..< 256 {
+                acc += Double(hist[i])
+                if acc >= target { return Double(i) }
+            }
+            return 255
+        }
+        let p5 = percentile(0.05)
+        let p95 = percentile(0.95)
+        return LumaStats(mean: mean, p5: p5, p95: p95, dark: mean < 78 || p5 < 22)
+    }
+
+    private static func equalize(_ image: CGImage?) -> CGImage? {
+        guard let image else { return nil }
+        let stats = lumaStats(image)
+        guard stats.mean < 78 || stats.p5 < 22 else { return image }
+        let w = image.width
+        let h = image.height
+        var pixels = [UInt8](repeating: 0, count: w * h * 4)
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        let bitmapInfo = CGImageAlphaInfo.premultipliedLast.rawValue
+        let p5 = stats.p5
+        let span = max(stats.p95 - p5, 12.0)
+        let gamma = stats.mean < 55 ? 0.55 : stats.mean < 70 ? 0.62 : 0.78
+        return pixels.withUnsafeMutableBytes { raw -> CGImage? in
+            guard let base = raw.baseAddress,
+                  let ctx = CGContext(
+                    data: base,
+                    width: w,
+                    height: h,
+                    bitsPerComponent: 8,
+                    bytesPerRow: w * 4,
+                    space: colorSpace,
+                    bitmapInfo: bitmapInfo
+                  ) else { return nil }
+            ctx.interpolationQuality = .high
+            ctx.draw(image, in: CGRect(x: 0, y: 0, width: w, height: h))
+            let ptr = base.bindMemory(to: UInt8.self, capacity: w * h * 4)
+            let n = w * h
+            for i in 0 ..< n {
+                let o = i * 4
+                let r = Double(ptr[o])
+                let g = Double(ptr[o + 1])
+                let b = Double(ptr[o + 2])
+                let y = 0.299 * r + 0.587 * g + 0.114 * b
+                var y2 = ((y - p5) / span) * 240 + 8
+                y2 = min(255, max(0, y2))
+                y2 = 255 * pow(y2 / 255, gamma)
+                let scale = y2 / max(y, 1)
+                ptr[o] = UInt8(min(255, max(0, r * scale)))
+                ptr[o + 1] = UInt8(min(255, max(0, g * scale)))
+                ptr[o + 2] = UInt8(min(255, max(0, b * scale)))
+            }
+            return ctx.makeImage()
+        }
+    }
 
     private static func bestVecPercent(_ probe: [Double], _ gallery: [[Double]]) -> Double {
         guard !probe.isEmpty, !gallery.isEmpty else { return 0 }

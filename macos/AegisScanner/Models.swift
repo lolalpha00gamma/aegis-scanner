@@ -2,9 +2,9 @@ import CoreGraphics
 import Foundation
 
 enum AppVersion {
-    static let marketing = "1.0.13"
+    static let marketing = "1.0.14"
     static let channel = "alpha"
-    static let display = "1.0.13 alpha"
+    static let display = "1.0.14 alpha"
 }
 
 enum StrategyID: String, CaseIterable, Identifiable, Codable {
@@ -71,9 +71,9 @@ enum StrategyID: String, CaseIterable, Identifiable, Codable {
         case .geom3d:
             return "IOD-Verhältnisse, Kieferwinkel, Nasenfläche — keine Punktzählung, keine Box."
         case .texture:
-            return "Helligkeitsraster des ausgerichteten Gesichts. Kann nur widersprechen, nie zuordnen."
+            return "Helligkeitsraster nach Lichtausgleich. Kann nur widersprechen, nie zuordnen — und nur wenn die Aufnahme hell genug ist."
         case .qualityGate:
-            return "Nächstes Feature-Print-Exemplar, gewichtet mit VNFaceCaptureQuality statt Verwerfung."
+            return "Nächstes Feature-Print-Exemplar. Dunkelheit ist keine Unschärfe; nur winzige Crowd-Gesichter werden gedämpft."
         case .temporal:
             return "Nächstes Video-Feature-Print über Tracks, ohne Kreuzer zu tauschen."
         case .featurePrint:
@@ -81,7 +81,7 @@ enum StrategyID: String, CaseIterable, Identifiable, Codable {
         case .terFusion:
             return "Wu/Wan: Scores → Total Error Rate, min-max nach Jain, probabilistisch gewichtet."
         case .aegis:
-            return "Beweis-Identifikation: Feature Print muss hoch liegen, Verhältnisse dürfen widersprechen. Unbekannt ist der Normalzustand."
+            return "Beweis-Identifikation: Feature Print muss tragen. Bei schlechtem Licht zählen Verhältnisse stärker. Unbekannt ist der Normalzustand."
         }
     }
 }
