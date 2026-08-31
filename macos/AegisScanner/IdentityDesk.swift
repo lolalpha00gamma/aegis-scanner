@@ -8,6 +8,11 @@ enum ProbeState: String {
     case unfit
 }
 
+struct GalleryPayload: Codable {
+    var identities: [Identity]
+    var faces: [FaceObservation]
+}
+
 enum GalleryFile {
     static var directory: URL {
         let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
@@ -20,15 +25,26 @@ enum GalleryFile {
         directory.appendingPathComponent("gallery.json")
     }
 
-    static func load() -> [Identity] {
-        guard let data = try? Data(contentsOf: url) else { return [] }
-        return (try? JSONDecoder().decode([Identity].self, from: data)) ?? []
+    static func load() -> (identities: [Identity], faces: [FaceObservation]) {
+        guard let data = try? Data(contentsOf: url) else { return ([], []) }
+        if let payload = try? JSONDecoder().decode(GalleryPayload.self, from: data) {
+            return (payload.identities, payload.faces)
+        }
+        if let identities = try? JSONDecoder().decode([Identity].self, from: data) {
+            return (identities, [])
+        }
+        return ([], [])
     }
 
-    static func save(_ identities: [Identity]) {
+    static func save(identities: [Identity], faces: [FaceObservation]) {
+        let enrolled = Set(identities.flatMap(\.faceIds))
+        let payload = GalleryPayload(
+            identities: identities,
+            faces: faces.filter { enrolled.contains($0.id) }
+        )
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        guard let data = try? encoder.encode(identities) else { return }
+        guard let data = try? encoder.encode(payload) else { return }
         try? data.write(to: url, options: .atomic)
     }
 }
