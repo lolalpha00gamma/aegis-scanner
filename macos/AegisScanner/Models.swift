@@ -2,9 +2,9 @@ import CoreGraphics
 import Foundation
 
 enum AppVersion {
-    static let marketing = "2.0.1"
+    static let marketing = "2.0.2"
     static let channel = "alpha"
-    static let display = "2.0.1 alpha"
+    static let display = "2.0.2 alpha"
 }
 
 enum StrategyID: String, CaseIterable, Identifiable, Codable {
@@ -103,13 +103,13 @@ struct MediaItem: Identifiable, Hashable {
     enum Kind: String, Hashable { case photo, video, frame, live }
 }
 
-struct LandmarkStroke: Hashable {
+struct LandmarkStroke: Hashable, Codable {
     var label: String
     var closed: Bool
     var points: [Point2]
 }
 
-struct NamedRatio: Hashable {
+struct NamedRatio: Hashable, Codable {
     var id: String
     var label: String
     var value: Double
@@ -117,7 +117,7 @@ struct NamedRatio: Hashable {
     var identity: Bool
 }
 
-struct FaceObservation: Identifiable, Hashable {
+struct FaceObservation: Identifiable, Hashable, Codable {
     let id: UUID
     var mediaId: UUID
     var box: FaceBox
@@ -135,7 +135,7 @@ struct FaceObservation: Identifiable, Hashable {
     var ratioSheet: [NamedRatio] = []
 }
 
-struct Identity: Identifiable, Hashable {
+struct Identity: Identifiable, Hashable, Codable {
     let id: UUID
     var name: String
     var faceIds: [UUID]
