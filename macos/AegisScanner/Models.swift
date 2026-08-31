@@ -122,13 +122,13 @@ struct MediaItem: Identifiable, Hashable {
     }
 }
 
-struct LandmarkStroke: Hashable {
+struct LandmarkStroke: Hashable, Codable {
     var label: String
     var closed: Bool
     var points: [Point2]
 }
 
-struct NamedRatio: Hashable {
+struct NamedRatio: Hashable, Codable {
     var id: String
     var label: String
     var value: Double
@@ -136,7 +136,7 @@ struct NamedRatio: Hashable {
     var identity: Bool
 }
 
-struct FaceObservation: Identifiable, Hashable {
+struct FaceObservation: Identifiable, Hashable, Codable {
     let id: UUID
     var mediaId: UUID
     var box: FaceBox
@@ -154,7 +154,7 @@ struct FaceObservation: Identifiable, Hashable {
     var ratioSheet: [NamedRatio] = []
 }
 
-struct Identity: Identifiable, Hashable {
+struct Identity: Identifiable, Hashable, Codable {
     let id: UUID
     var name: String
     var faceIds: [UUID]
