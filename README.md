@@ -1,4 +1,4 @@
-# Aegis **1.0.18 alpha**
+# Aegis **2.0.2 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,11 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.0.2 alpha
+
+- Version in der App, im Image und im Release heißt **2.0.2**. Nicht mehr 1.0.18.
+- Eingeschriebene Gesichter bleiben gespeichert. Anlegen gilt für das sichtbare Foto.
 
 ## Neu in 1.0.18 alpha
 
