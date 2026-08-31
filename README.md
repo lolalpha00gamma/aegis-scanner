@@ -1,4 +1,4 @@
-# Aegis **2.0.4 alpha**
+# Aegis **2.0.5 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.0.5 alpha
+
+- **Galerie persistiert.** IdentityDesk ist im Target, `gallery.json` wird geladen und nach Anlegen/+ /Löschen geschrieben.
+- **Scan ohne Beachball.** Detektion in `Task.detached`, ein kaputtes Foto beendet nicht den ganzen Ordner.
+- **Keine gefälschten 96 %** auf Referenzen. Was 0 gemessen hat, bleibt 0.
+- **Slider wirkt.** 70…96 ist `matchFloor`, nicht nur das Overlay-Label.
+- **NMS = duplicateDetection.** Zwei Leute nebeneinander bleiben zwei Detektionen.
+- **Face-Print tot → Status sagt es.** Kein stilles 0 % als „gemessen“.
+- ATS nur noch Local Networking. Snapshot-Polling ohne Request-Stau. EXIF-Fallback ohne 90°-Drift.
 
 ## Neu in 2.0.4 alpha
 

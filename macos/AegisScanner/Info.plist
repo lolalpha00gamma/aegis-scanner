@@ -3,14 +3,12 @@
 <plist version="1.0">
 <dict>
 	<key>NSCameraUsageDescription</key>
-	<string>Aegis erkennt Gesichter in der eigenen Webcam, nur gegen die lokale Galerie.</string>
+	<string>Aegis erkennt Gesichter in der Webcam und in Live-Streams.</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Aegis kann Kameras im eigenen lokalen Netz als Aufnahmequelle nutzen (RTSP, HLS, MJPEG, Snapshot).</string>
+	<string>Aegis liest Überwachungskameras in deinem Netz (RTSP, HLS, MJPEG, Snapshot).</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>
-		<true/>
-		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
 </dict>

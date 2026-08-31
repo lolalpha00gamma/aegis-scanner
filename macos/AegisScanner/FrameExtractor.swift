@@ -24,7 +24,6 @@ enum FrameExtractor {
             kCGImageSourceCreateThumbnailWithTransform: true,
         ]
         return CGImageSourceCreateThumbnailAtIndex(src, 0, options as CFDictionary)
-            ?? CGImageSourceCreateImageAtIndex(src, 0, nil)
     }
 
     static func extract(from url: URL, interval: Double = 0.33, maxFrames: Int = 20) async throws -> [(time: Double, image: CGImage)] {
@@ -127,32 +126,35 @@ enum FrameExtractor {
         let height = min(64, image.height)
         guard width > 2, height > 2 else { return 0 }
         var pixels = [UInt8](repeating: 0, count: width * height)
-        guard let ctx = CGContext(
-            data: &pixels,
-            width: width,
-            height: height,
-            bitsPerComponent: 8,
-            bytesPerRow: width,
-            space: CGColorSpaceCreateDeviceGray(),
-            bitmapInfo: CGImageAlphaInfo.none.rawValue
-        ) else { return 0 }
-        ctx.interpolationQuality = .low
-        ctx.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
-        var acc = 0.0
-        var n = 0
-        for y in 1 ..< (height - 1) {
-            for x in 1 ..< (width - 1) {
-                let c = Double(pixels[y * width + x])
-                let l = Double(pixels[y * width + x - 1])
-                let r = Double(pixels[y * width + x + 1])
-                let u = Double(pixels[(y - 1) * width + x])
-                let d = Double(pixels[(y + 1) * width + x])
-                let lap = abs(4 * c - l - r - u - d)
-                acc += lap
-                n += 1
+        let score: Double = pixels.withUnsafeMutableBytes { raw in
+            guard let ctx = CGContext(
+                data: raw.baseAddress,
+                width: width,
+                height: height,
+                bitsPerComponent: 8,
+                bytesPerRow: width,
+                space: CGColorSpaceCreateDeviceGray(),
+                bitmapInfo: CGImageAlphaInfo.none.rawValue
+            ) else { return 0 }
+            ctx.interpolationQuality = .low
+            ctx.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+            let buf = raw.bindMemory(to: UInt8.self)
+            var acc = 0.0
+            var n = 0
+            for y in 1 ..< (height - 1) {
+                for x in 1 ..< (width - 1) {
+                    let c = Double(buf[y * width + x])
+                    let l = Double(buf[y * width + x - 1])
+                    let r = Double(buf[y * width + x + 1])
+                    let u = Double(buf[(y - 1) * width + x])
+                    let d = Double(buf[(y + 1) * width + x])
+                    acc += abs(4 * c - l - r - u - d)
+                    n += 1
+                }
             }
+            return n > 0 ? acc / Double(n) / 255.0 : 0
         }
-        return n > 0 ? acc / Double(n) / 255.0 : 0
+        return score
     }
 
     static func walk(folder: URL) -> [URL] {

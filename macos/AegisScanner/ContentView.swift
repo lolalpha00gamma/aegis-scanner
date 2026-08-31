@@ -52,9 +52,11 @@ struct ContentView: View {
                 .disabled(store.busy || store.media.isEmpty)
             Button("CSV") { store.exportCSV() }
                 .disabled(store.matches.isEmpty)
-            Slider(value: $store.threshold, in: 70 ... 96)
-                .frame(width: 110)
-                .help("Schwelle")
+            Slider(value: $store.threshold, in: 70 ... 96) { editing in
+                if !editing { store.rematch() }
+            }
+            .frame(width: 110)
+            .help("Zuordnungsschwelle — wirkt auf Aegis, nicht nur auf das Label")
             Toggle("Anatomie", isOn: $store.showAnatomy)
                 .toggleStyle(.button)
         }

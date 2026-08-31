@@ -18,6 +18,8 @@ final class LiveCapture: NSObject {
     private var outputQueue = DispatchQueue(label: "aegis.live")
     private var timer: Timer?
     private var snapshotURL: URL?
+    private var failObserver: NSObjectProtocol?
+    private var snapshotInFlight = false
     var onFrame: ((CGImage) -> Void)?
     var onError: ((String) -> Void)?
     var onReady: (() -> Void)?
@@ -38,16 +40,19 @@ final class LiveCapture: NSObject {
 
     func stop() {
         timer?.invalidate()
-        timer = nullTimer()
+        timer = nil
         snapshotURL = nil
+        snapshotInFlight = false
+        if let failObserver {
+            NotificationCenter.default.removeObserver(failObserver)
+            self.failObserver = nil
+        }
         player?.pause()
         player = nil
         output = nil
         session?.stopRunning()
         session = nil
     }
-
-    private func nullTimer() -> Timer? { nil }
 
     private func startCamera() {
         switch AVCaptureDevice.authorizationStatus(for: .video) {
@@ -106,7 +111,10 @@ final class LiveCapture: NSObject {
         player.play()
         onReady?()
         startTimer()
-        NotificationCenter.default.addObserver(
+        if let failObserver {
+            NotificationCenter.default.removeObserver(failObserver)
+        }
+        failObserver = NotificationCenter.default.addObserver(
             forName: .AVPlayerItemFailedToPlayToEndTime,
             object: item,
             queue: .main
@@ -131,14 +139,19 @@ final class LiveCapture: NSObject {
 
     private func grab() {
         if let snapshotURL {
+            if snapshotInFlight { return }
+            snapshotInFlight = true
             URLSession.shared.dataTask(with: bust(snapshotURL)) { [weak self] data, _, err in
                 let capture = self
-                if let err {
-                    Task { @MainActor in capture?.onError?(err.localizedDescription) }
-                    return
+                Task { @MainActor in
+                    capture?.snapshotInFlight = false
+                    if let err {
+                        capture?.onError?(err.localizedDescription)
+                        return
+                    }
+                    guard let data, let image = cgImage(from: data) else { return }
+                    capture?.onFrame?(image)
                 }
-                guard let data, let image = cgImage(from: data) else { return }
-                Task { @MainActor in capture?.onFrame?(image) }
             }.resume()
             return
         }

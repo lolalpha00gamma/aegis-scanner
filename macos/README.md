@@ -1,7 +1,7 @@
 # Aegis
 
 Lokaler Image- & Video-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**  
-Version **2.0.4 alpha**.
+Version **2.0.5 alpha**.
 
 ## Image-Datei
 
@@ -12,6 +12,10 @@ Version **2.0.4 alpha**.
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Die Datei ist ad-hoc signiert (kein Apple-Developer-Account) — deshalb der Rechtsklick beim ersten Start.
+
+## Neu in 2.0.5 alpha
+
+Galerie bleibt gespeichert (IdentityDesk kompiliert und verdrahtet). Scan läuft nicht mehr auf dem Main-Thread. Referenzen zeigen gemessene Werte, nicht 96 %. Der Schwellwert-Slider ändert die Zuordnung. Face-Print-Ausfall wird in der Statuszeile gesagt. NMS wirft Nachbarn auf Gruppenfotos nicht mehr weg.
 
 ## Neu in 2.0.4 alpha
 

@@ -198,7 +198,7 @@ enum FaceEngine {
         let ranked = faces.sorted { $0.score > $1.score }
         var kept: [FaceObservation] = []
         for face in ranked {
-            if kept.contains(where: { samePerson($0.box, face.box) }) { continue }
+            if kept.contains(where: { duplicateDetection($0.box, face.box) }) { continue }
             kept.append(face)
         }
         return kept.sorted { $0.box.x + $0.box.y * 0.15 < $1.box.x + $1.box.y * 0.15 }
@@ -288,8 +288,11 @@ enum FaceEngine {
     static func match(
         faces: [FaceObservation],
         identities: [Identity],
-        media: [MediaItem]
+        media: [MediaItem],
+        threshold: Double = 82
     ) -> [MatchResult] {
+        matchFloor = min(96, max(70, threshold))
+        soloFloor = min(96, matchFloor + 4)
         var tracked = faces
         assignTracks(faces: &tracked, media: media)
         let models = identities.map { identity -> IdentityModel in
@@ -478,20 +481,16 @@ enum FaceEngine {
             hits.append(toHit(.aegis, aegis, note: decided.note))
             if let owner = identities.first(where: { $0.faceIds.contains(face.id) }) {
                 hits = hits.map { h in
-                    let selfP = max(h.versus.first { $0.identityId == owner.id }?.percent ?? 0, 96)
-                    var versus = h.versus.map { v in
-                        v.identityId == owner.id ? IdentityScore(identityId: v.identityId, percent: selfP, distance: v.distance) : v
-                    }
-                    versus.sort { $0.percent > $1.percent }
-                    let second = versus.first { $0.identityId != owner.id }?.percent ?? 0
+                    let selfP = h.versus.first { $0.identityId == owner.id }?.percent ?? h.percent
+                    let second = h.versus.first { $0.identityId != owner.id }?.percent ?? 0
                     return StrategyHit(
                         strategy: h.strategy,
                         identityId: owner.id,
                         percent: selfP,
                         distance: h.distance,
                         margin: selfP - second,
-                        versus: versus,
-                        note: "Referenz dieser Person."
+                        versus: h.versus,
+                        note: "Referenz dieser Person — gemessene Werte, nicht hochgesetzt."
                     )
                 }
             }
@@ -501,8 +500,8 @@ enum FaceEngine {
 
     // MARK: - geometry / prints
 
-    private static let matchFloor = 82.0
-    private static let soloFloor = 86.0
+    private static var matchFloor = 82.0
+    private static var soloFloor = 86.0
     private static let embedMargin = 12.0
     private static let landmarkMargin = 14.0
     private static let appearanceFloor = 48.0
@@ -1369,12 +1368,14 @@ enum FaceEngine {
 
     private static func averageLandmarks(_ sets: [[Point2]], _ weights: [Double]) -> [Point2] {
         guard let first = sets.first, !first.isEmpty else { return [] }
-        var acc = Array(repeating: Point2(x: 0, y: 0), count: first.count)
+        let n = first.count
+        var acc = Array(repeating: Point2(x: 0, y: 0), count: n)
         var wsum = 0.0
         for (i, set) in sets.enumerated() {
+            guard set.count == n else { continue }
             let w = i < weights.count ? weights[i] : 1
             wsum += w
-            for j in 0 ..< min(first.count, set.count) {
+            for j in 0 ..< n {
                 acc[j].x += set[j].x * w
                 acc[j].y += set[j].y * w
             }
@@ -1443,6 +1444,14 @@ enum FaceEngine {
     }
 
     private static func clamp01(_ n: Double) -> Double { min(1, max(0, n)) }
+
+    static var facePrintAvailable: Bool {
+        NSClassFromString("VNGenerateFacePrintRequest") != nil
+    }
+
+    static func qualityRejects(_ q: FaceQuality) -> Bool {
+        q.capture < 0.35 && q.size < 0.16
+    }
 
     private static func tinyUnreliable(_ q: FaceQuality) -> Bool {
         q.capture < 0.35 && q.size < 0.16

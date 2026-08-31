@@ -71,13 +71,13 @@ enum IdentityDesk {
 
     static func topCandidate(faceId: UUID, matches: [MatchResult]) -> IdentityScore? {
         let hits = matches.first { $0.faceId == faceId }?.hits ?? []
-        let row = hits.first { $0.strategy == .featurePrint } ?? hits.first { $0.strategy == .aegis }
+        let row = hits.first { $0.strategy == .aegis } ?? hits.first { $0.strategy == .featurePrint }
         return row?.versus.first
     }
 
     static func rankedCandidates(faceId: UUID, matches: [MatchResult]) -> [IdentityScore] {
         let hits = matches.first { $0.faceId == faceId }?.hits ?? []
-        let row = hits.first { $0.strategy == .featurePrint } ?? hits.first { $0.strategy == .aegis }
+        let row = hits.first { $0.strategy == .aegis } ?? hits.first { $0.strategy == .featurePrint }
         return Array((row?.versus ?? []).prefix(3))
     }
 }

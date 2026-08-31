@@ -23,6 +23,20 @@ final class LibraryStore: ObservableObject {
     private let liveCapture = LiveCapture()
     private var liveMediaId: UUID?
     private var scopedRoots: [URL] = []
+    private var liveBusy = false
+
+    init() {
+        let packed = GalleryFile.load()
+        identities = packed.identities
+        faces = packed.faces
+        if !identities.isEmpty {
+            status = "Galerie · \(identities.count) Personen"
+        }
+    }
+
+    private func persist() {
+        GalleryFile.save(identities: identities, faces: faces)
+    }
 
     var selectedMedia: MediaItem? {
         media.first { $0.id == selectedMediaId }
@@ -181,70 +195,75 @@ final class LibraryStore: ObservableObject {
     func scan() async {
         busy = true
         status = "Frames extrahieren"
-        do {
-            let videos = media.filter { $0.kind == .video }
-            let haveFrames = Set(media.compactMap { $0.parentId })
-            for video in videos where !haveFrames.contains(video.id) {
-                status = "Video · \(video.name)"
-                do {
-                    let frames = try await FrameExtractor.extract(from: video.url)
-                    if frames.isEmpty {
-                        status = "\(video.name): keine Frames"
-                        continue
-                    }
-                    for frame in frames {
-                        media.append(
-                            MediaItem(
-                                id: UUID(),
-                                url: video.url,
-                                name: String(format: "%@ · %.2fs", video.name, frame.time),
-                                kind: .frame,
-                                width: frame.image.width,
-                                height: frame.image.height,
-                                parentId: video.id,
-                                timeSec: frame.time,
-                                preview: frame.image
-                            )
-                        )
-                    }
-                } catch {
-                    status = "\(video.name): \(error.localizedDescription)"
+        let videos = media.filter { $0.kind == .video }
+        let haveFrames = Set(media.compactMap { $0.parentId })
+        for video in videos where !haveFrames.contains(video.id) {
+            status = "Video · \(video.name)"
+            do {
+                let frames = try await FrameExtractor.extract(from: video.url)
+                if frames.isEmpty {
+                    status = "\(video.name): keine Frames"
                     continue
                 }
-            }
-            let pending = media.filter { item in
-                (item.kind == .photo || item.kind == .frame) && !faces.contains { $0.mediaId == item.id }
-            }
-            for (i, item) in pending.enumerated() {
-                status = "Gesicht · \(i + 1)/\(pending.count)"
-                let image: CGImage?
-                if let preview = item.preview {
-                    image = preview
-                } else {
-                    image = FrameExtractor.loadCGImage(url: item.url)
+                for frame in frames {
+                    media.append(
+                        MediaItem(
+                            id: UUID(),
+                            url: video.url,
+                            name: String(format: "%@ · %.2fs", video.name, frame.time),
+                            kind: .frame,
+                            width: frame.image.width,
+                            height: frame.image.height,
+                            parentId: video.id,
+                            timeSec: frame.time,
+                            preview: frame.image
+                        )
+                    )
                 }
-                guard let image else { continue }
-                let found = try FaceEngine.detect(in: image, mediaId: item.id)
+            } catch {
+                status = "\(video.name): \(error.localizedDescription)"
+                continue
+            }
+        }
+        let pending = media.filter { item in
+            (item.kind == .photo || item.kind == .frame) && !faces.contains { $0.mediaId == item.id }
+        }
+        for (i, item) in pending.enumerated() {
+            status = "Gesicht · \(i + 1)/\(pending.count)"
+            let image = item.preview ?? FrameExtractor.loadCGImage(url: item.url)
+            guard let image else { continue }
+            let mediaId = item.id
+            do {
+                let found = try await Task.detached(priority: .userInitiated) {
+                    try FaceEngine.detect(in: image, mediaId: mediaId)
+                }.value
                 faces.append(contentsOf: found)
+            } catch {
+                continue
             }
-            status = "Abgleich"
-            rematch()
-            if let mediaId = selectedMediaId {
-                if selectedFaceId == nil || !(faces.contains { $0.id == selectedFaceId && $0.mediaId == mediaId }) {
-                    selectedFaceId = faces.first { $0.mediaId == mediaId }?.id
-                }
-            } else if selectedFaceId == nil {
-                selectedFaceId = faces.first?.id
+        }
+        status = "Abgleich"
+        rematch()
+        if let mediaId = selectedMediaId {
+            if selectedFaceId == nil || !(faces.contains { $0.id == selectedFaceId && $0.mediaId == mediaId }) {
+                selectedFaceId = faces.first { $0.mediaId == mediaId }?.id
             }
+        } else if selectedFaceId == nil {
+            selectedFaceId = faces.first?.id
+        }
+        let emptyPrints = faces.filter { $0.featurePrint.isEmpty }.count
+        if !FaceEngine.facePrintAvailable {
+            status = "Fertig · \(faces.count) Gesichter · Face-Print nicht verfügbar — nur Geometrie"
+        } else if !faces.isEmpty, emptyPrints == faces.count {
+            status = "Fertig · \(faces.count) Gesichter · Face-Print leer — nur Geometrie"
+        } else {
             status = "Fertig · \(faces.count) Gesichter"
-        } catch {
-            status = error.localizedDescription
         }
         busy = false
     }
 
     func rematch() {
-        matches = FaceEngine.match(faces: faces, identities: identities, media: media)
+        matches = FaceEngine.match(faces: faces, identities: identities, media: media, threshold: threshold)
     }
 
     func createIdentity() {
@@ -276,6 +295,7 @@ final class LibraryStore: ObservableObject {
         } else {
             status = "\(name) angelegt"
         }
+        persist()
     }
 
     func addSelectedTo(_ identityId: UUID) {
@@ -298,11 +318,13 @@ final class LibraryStore: ObservableObject {
             identities[idx].faceIds.append(face.id)
         }
         rematch()
+        persist()
         status = "Referenz zu \(identities[idx].name) hinzugefügt"
     }
 
     func removeIdentity(_ id: UUID) {
         identities.removeAll { $0.id == id }
+        persist()
         rematch()
     }
 
@@ -323,8 +345,15 @@ final class LibraryStore: ObservableObject {
         liveCapture.stop()
         liveActive = false
         if let id = liveMediaId {
+            let gone = Set(faces.filter { $0.mediaId == id }.map(\.id))
             faces.removeAll { $0.mediaId == id }
             media.removeAll { $0.id == id }
+            if !gone.isEmpty {
+                for i in identities.indices {
+                    identities[i].faceIds.removeAll { gone.contains($0) }
+                }
+                persist()
+            }
             liveMediaId = nil
             selectedMediaId = media.first?.id
             rematch()
@@ -363,24 +392,31 @@ final class LibraryStore: ObservableObject {
     }
 
     private func ingestLiveFrame(_ image: CGImage, mediaId: UUID) {
-        if busy { return }
+        if liveBusy { return }
+        liveBusy = true
+        Task.detached(priority: .userInitiated) { [weak self] in
+            let found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false)) ?? []
+            await MainActor.run {
+                guard let self else { return }
+                self.applyLiveFaces(found, image: image, mediaId: mediaId)
+                self.liveBusy = false
+            }
+        }
+    }
+
+    private func applyLiveFaces(_ found: [FaceObservation], image: CGImage, mediaId: UUID) {
         guard let idx = media.firstIndex(where: { $0.id == mediaId }) else { return }
         media[idx].width = image.width
         media[idx].height = image.height
         media[idx].preview = image
-        do {
-            let found = try FaceEngine.detect(in: image, mediaId: mediaId, tiles: false)
-            let enrolled = Set(identities.flatMap(\.faceIds))
-            let pinned = faces.filter { $0.mediaId == mediaId && enrolled.contains($0.id) }
-            faces.removeAll { $0.mediaId == mediaId }
-            faces.append(contentsOf: pinned + found)
-            if selectedMediaId == mediaId {
-                selectedFaceId = found.first?.id ?? pinned.first?.id
-            }
-            rematch()
-        } catch {
-            status = error.localizedDescription
+        let enrolled = Set(identities.flatMap(\.faceIds))
+        let pinned = faces.filter { $0.mediaId == mediaId && enrolled.contains($0.id) }
+        faces.removeAll { $0.mediaId == mediaId }
+        faces.append(contentsOf: pinned + found)
+        if selectedMediaId == mediaId {
+            selectedFaceId = found.first?.id ?? pinned.first?.id
         }
+        rematch()
     }
 
     func exportCSV() {
