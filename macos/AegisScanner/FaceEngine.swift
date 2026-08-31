@@ -168,13 +168,7 @@ enum FaceEngine {
             } else {
                 appearance = appearanceVector(of: inner)
             }
-            let printSource: CGImage?
-            if let leftEye, let rightEye {
-                printSource = warpEyes(image, left: leftEye, right: rightEye, size: 256)
-            } else {
-                printSource = crop(image, box: vnToPixels(face.boundingBox, width: w, height: h), pad: 0.18)
-            }
-            let printData = imageFeaturePrint(of: printSource) ?? Data()
+            let printData = Data()
             let bone = boneKeypoints(namedAligned)
 
             out.append(
@@ -652,8 +646,9 @@ enum FaceEngine {
     }
 
     private static func bestPrintPercent(_ probe: Data, _ faces: [FaceObservation]) -> Double {
+        guard !probe.isEmpty else { return 0 }
         var best = 0.0
-        for f in faces {
+        for f in faces where !f.featurePrint.isEmpty {
             let p = printPercent(probe, f.featurePrint)
             if p > best { best = p }
         }
@@ -811,18 +806,21 @@ enum FaceEngine {
         return image.cropping(to: CGRect(x: x, y: y, width: max(1, w), height: max(1, h)))
     }
 
-    /// Apple's face-identity print (Photos-class), then image print. Never histogram-equalize — that wipes identity.
+    /// Apple face-identity print on a natural crop. Never image-print, never warp —
+    /// Vision aligns internally. Image-print was matching jackets, not faces (4% same person).
     private static func identityPrint(of image: CGImage?) -> Data? {
+        facePrintOnly(of: image)
+    }
+
+    private static func facePrintOnly(of image: CGImage?) -> Data? {
         guard let image else { return nil }
-        if let req = makeFacePrintRequest() {
-            let handler = VNImageRequestHandler(cgImage: image, orientation: .up, options: [:])
-            if (try? handler.perform([req])) != nil {
-                for obs in req.results ?? [] {
-                    if let data = extractPrint(obs) { return data }
-                }
-            }
+        guard let req = makeFacePrintRequest() else { return nil }
+        let handler = VNImageRequestHandler(cgImage: image, orientation: .up, options: [:])
+        guard (try? handler.perform([req])) != nil else { return nil }
+        for obs in req.results ?? [] {
+            if let data = extractPrint(obs) { return data }
         }
-        return imageFeaturePrint(of: image)
+        return nil
     }
 
     private static func makeFacePrintRequest() -> VNRequest? {
@@ -859,17 +857,59 @@ enum FaceEngine {
     }
 
     private static func stampPrints(_ faces: [FaceObservation], from image: CGImage) -> [FaceObservation] {
-        faces.map { face in
+        let found = facePrintsInImage(image)
+        var used = Set<Int>()
+        return faces.map { face in
             var next = face
-            let crop: CGImage?
-            if let eyes = eyeCenters(face) {
-                crop = warpEyes(image, left: eyes.0, right: eyes.1, size: 256)
-            } else {
-                crop = self.crop(image, box: face.box, pad: 0.12)
+            var bestI = -1
+            var bestIoU = 0.20
+            for (i, item) in found.enumerated() where !used.contains(i) {
+                let o = iou(item.box, face.box)
+                if o > bestIoU {
+                    bestIoU = o
+                    bestI = i
+                }
             }
-            next.featurePrint = identityPrint(of: crop) ?? face.featurePrint
+            if bestI >= 0 {
+                used.insert(bestI)
+                next.featurePrint = found[bestI].data
+                return next
+            }
+            if let crop = self.crop(image, box: face.box, pad: 0.55),
+               let data = identityPrint(of: crop) {
+                next.featurePrint = data
+            } else {
+                next.featurePrint = Data()
+            }
             return next
         }
+    }
+
+    private struct LocatedPrint {
+        var box: FaceBox
+        var data: Data
+    }
+
+    /// Run Apple's face-print on the whole photo so Vision can detect and align itself.
+    /// Warped 256px patches made the request fail and silently stored an image-print of the jacket.
+    private static func facePrintsInImage(_ image: CGImage) -> [LocatedPrint] {
+        guard let req = makeFacePrintRequest() else { return [] }
+        let handler = VNImageRequestHandler(cgImage: image, orientation: .up, options: [:])
+        guard (try? handler.perform([req])) != nil else { return [] }
+        let w = Double(image.width)
+        let h = Double(image.height)
+        var out: [LocatedPrint] = []
+        for obs in req.results ?? [] {
+            guard let data = extractPrint(obs) else { continue }
+            let box: FaceBox
+            if let face = obs as? VNFaceObservation {
+                box = vnToPixels(face.boundingBox, width: w, height: h)
+            } else {
+                box = vnToPixels(obs.boundingBox, width: w, height: h)
+            }
+            out.append(LocatedPrint(box: box, data: data))
+        }
+        return out
     }
 
     private static func eyeCenters(_ face: FaceObservation) -> (Point2, Point2)? {
@@ -937,19 +977,23 @@ enum FaceEngine {
         return Double(d)
     }
 
-    /// Genuine same-person ~95–99 %. Impostors stay low. Cosine of the print vector, not a 16×16 brightness grid.
+    /// Real face-print cosine. Same person in ¾/hat should stay high.
+    /// Empty or mixed print types (face vs image) are unmeasured — not "4%".
     private static func printPercent(_ a: Data, _ b: Data) -> Double {
+        guard !a.isEmpty, !b.isEmpty else { return 0 }
         let va = printVector(a)
         let vb = printVector(b)
-        if va.count >= 32, va.count == vb.count {
+        if va.count >= 32, vb.count >= 32 {
+            guard va.count == vb.count else { return 0 }
             let c = cosine(va, vb)
-            return 100.0 / (1.0 + exp(-16.0 * (c - 0.64)))
+            return 100.0 / (1.0 + exp(-11.0 * (c - 0.42)))
         }
         let d = printDistance(a, b)
+        if d >= 35 { return 0 }
         if d >= 3 {
             return 100.0 / (1.0 + exp(0.7 * (d - 8)))
         }
-        return 100.0 / (1.0 + exp(9.0 * (d - 0.72)))
+        return 100.0 / (1.0 + exp(8.0 * (d - 0.62)))
     }
 
     private static func landmarkPercent(_ d: Double) -> Double {

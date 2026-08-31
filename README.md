@@ -1,4 +1,4 @@
-# Aegis **2.0.3 alpha**
+# Aegis **2.0.4 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,12 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.0.4 alpha
+
+- **Echter Face-Print.** `VNGenerateFacePrintRequest` läuft auf dem ganzen Foto. Warp auf 256 px hat den Face-Print oft scheitern lassen — dann wurde still der Bild-Print der Jacke gespeichert.
+- **Kein Bild-Print mehr als Identität.** Khaki vs. Warnweste war 4 %, weil Park≠Auto, nicht weil die Gesichter fremd sind. See-links 84 % gegen Lin R war dieselbe Falle.
+- **Mehrere Referenzen zählen.** Jedes eingeschriebene Foto bekommt einen Gesichts-Print, nicht ein Kleidungs-Embedding.
 
 ## Neu in 2.0.3 alpha
 

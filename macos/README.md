@@ -1,7 +1,7 @@
 # Aegis
 
 Lokaler Image- & Video-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**  
-Version **2.0.3 alpha**.
+Version **2.0.4 alpha**.
 
 ## Image-Datei
 
@@ -12,6 +12,10 @@ Version **2.0.3 alpha**.
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Die Datei ist ad-hoc signiert (kein Apple-Developer-Account) — deshalb der Rechtsklick beim ersten Start.
+
+## Neu in 2.0.4 alpha
+
+Face-Print kommt vom **ganzen Foto**, nicht von einem verzerrten 256-px-Ausschnitt. Der stille Fallback auf den Bild-Print (Jacke, Hintergrund) ist raus — der hat dieselbe Person bei 4 % und einen Fremden bei 84 % geliefert. Mehrere Referenzen sind echte Gesichts-Prints, nicht Kleidung.
 
 ## Neu in 2.0.3 alpha
 

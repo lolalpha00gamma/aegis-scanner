@@ -2,9 +2,9 @@ import CoreGraphics
 import Foundation
 
 enum AppVersion {
-    static let marketing = "2.0.3"
+    static let marketing = "2.0.4"
     static let channel = "alpha"
-    static let display = "2.0.3 alpha"
+    static let display = "2.0.4 alpha"
 }
 
 enum StrategyID: String, CaseIterable, Identifiable, Codable {
@@ -77,7 +77,7 @@ enum StrategyID: String, CaseIterable, Identifiable, Codable {
         case .temporal:
             return "Nächstes Video-Feature-Print über Tracks, ohne Kreuzer zu tauschen."
         case .featurePrint:
-            return "Gesichts-Print (VNGenerateFacePrintRequest). Diagnostisch. Darf Aussehen nicht mehr totmachen."
+            return "Gesichts-Print (VNGenerateFacePrintRequest) auf dem ganzen Foto. Kein Bild-Print von Jacke/Hintergrund, kein Warp."
         case .terFusion:
             return "Wu/Wan: Scores → Total Error Rate, min-max nach Jain, probabilistisch gewichtet."
         case .aegis:
