@@ -1,7 +1,7 @@
 # Aegis
 
 Lokaler Image- & Video-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**  
-Version **2.0.2 alpha**.
+Version **2.0.3 alpha**.
 
 ## Image-Datei
 
@@ -12,6 +12,10 @@ Version **2.0.2 alpha**.
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Die Datei ist ad-hoc signiert (kein Apple-Developer-Account) — deshalb der Rechtsklick beim ersten Start.
+
+## Neu in 2.0.3 alpha
+
+Zuordnung hängt an **Aussehen** (Gesichtsmaße, Form, Augen, Kiefer), nicht am Face-Print. Der Print darf 97 % Form nicht mehr auf 8 % drücken. Raster ohne Equalize. Fremde bleiben unbenannt, wenn die Teile nicht passen.
 
 ## Neu in 2.0.2 alpha
 
@@ -60,6 +64,25 @@ Graph-Biomarker (jetzt nativ), 3D-Geometrie, TER-Fusion (diagnostisch). Keine de
 ## Was die App macht
 
 Ordner mit Fotos und Videos wählen, oder einen Live-Stream (Webcam, RTSP, HLS, MJPEG, Snapshot) einspeisen. Aegis zieht Frames, erkennt Gesichter und zeigt Übereinstimmung in Prozent für mehrere Strategien — offline auf dem Gerät.
+
+| Strategie | Signal |
+|---|---|
+| **Fotos-Stil** | Best-Frame Face-Print, harte Qualitätsgrenze (Baseline) |
+| **Vision Box** | Nächstes Face-Print-Exemplar, Vision Rev. 3 |
+| **Landmark-Geometrie** | Anatomische Punkte, Augen-Procrustes IOD=1 (diagnostisch) |
+| **Gesichtsmaße** | Verhältnisse zur Augenabstands-Einheit, unabhängig von Lage/Größe/Mimik |
+| **Gesichtsform** | Kiefer/Höhe, Wangen/Höhe, Kiefer/Wangen — keine Box |
+| **Augenregion** | Lidspalten und Augenwinkel / IOD, nicht Lidöffnung |
+| **Mittelgesicht** | Nasenlänge, Nasenbreite, Nasenindex, Philtrum/Nase |
+| **Kieferlinie** | Kieferbreite/IOD, Untergesicht/Höhe, Kinn |
+| **Graph-Biomarker** | KNN-6 über feste Knochenpunkte, ohne Mund |
+| **3D-Geometrie** | IOD-Verhältnisse, Kieferwinkel, Nasenfläche |
+| **Aussehen** | Helligkeitsraster; darf nur vetoen, und nur bei klarem Widerspruch |
+| **Quality-Gate** | Face-Print, Dunkelheit zählt nicht als Unschärfe |
+| **Temporal** | Video-Face-Print über Tracks, ohne Kreuzer-Tausch |
+| **Feature Print** | `VNGenerateFacePrintRequest` auf augenausgerichtetem Crop — das macOS-Identitäts-Embedding |
+| **TER-Fusion** | Scores → Total Error Rate, min-max nach Jain |
+| **Aegis Ensemble** | Beweis-Identifikation. Dieselbe Person landet bei 95–99 % |
 
 ## Lizenz
 

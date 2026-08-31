@@ -164,9 +164,9 @@ enum FaceEngine {
             let rightEye = frame?.rightEye ?? regionCenter(lm?.landmarks?.rightEye, box: face.boundingBox, imageWidth: w, imageHeight: h)
             let appearance: [Double]
             if let leftEye, let rightEye, let warped = warpEyes(image, left: leftEye, right: rightEye, size: 64) {
-                appearance = appearanceVector(of: equalize(warped) ?? warped)
+                appearance = appearanceVector(of: warped)
             } else {
-                appearance = appearanceVector(of: equalize(inner) ?? inner)
+                appearance = appearanceVector(of: inner)
             }
             let printSource: CGImage?
             if let leftEye, let rightEye {
@@ -403,6 +403,23 @@ enum FaceEngine {
                     + 0.08 * pctVs(.graphBio, id)
                     + 0.06 * pctVs(.geom3d, id)
             }
+            func lookOfId(_ id: UUID) -> Double {
+                let embed: Double = {
+                    if lowCapture { return max(pctVs(.qualityGate, id), pctVs(.featurePrint, id)) }
+                    return max(
+                        pctVs(.featurePrint, id),
+                        pctVs(.visionBox, id),
+                        pctVs(.temporal, id),
+                        pctVs(.photosStyle, id),
+                        pctVs(.qualityGate, id)
+                    )
+                }()
+                var v = lookOf(appear: pctVs(.texture, id), geo: geoMixOf(id), embed: embed)
+                if lowCapture {
+                    v *= 0.45 + 0.55 * (face.quality.capture / 0.35)
+                }
+                return v
+            }
             let ids = models.map(\.identity.id)
             let embedRow = ids.map { id -> Double in
                 if lowCapture { return max(pctVs(.qualityGate, id), pctVs(.featurePrint, id)) }
@@ -418,34 +435,35 @@ enum FaceEngine {
             let graphRow = ids.map { pctVs(.graphBio, $0) }
             let geoRow = ids.map { geoMixOf($0) }
             let geom3dRow = ids.map { pctVs(.geom3d, $0) }
+            let lookRow = ids.map { lookOfId($0) }
             let terFused = terFusion(
-                [embedRow, textureRow, graphRow, geoRow, geom3dRow],
-                [0.42, 0.20, 0.14, 0.14, 0.10]
+                [lookRow, textureRow, geoRow, graphRow, embedRow, geom3dRow],
+                [0.34, 0.22, 0.20, 0.10, 0.08, 0.06]
             )
             hits.append(hint(.terFusion, rank(models, minMargin: embedMargin) { m in
                 let i = ids.firstIndex(of: m.identity.id) ?? 0
                 return i < terFused.count ? terFused[i] : 0
             }))
-            let ensemble = rank(models, minMargin: embedMargin) { m in
-                let i = ids.firstIndex(of: m.identity.id) ?? 0
-                return i < embedRow.count ? embedRow[i] : 0
+            let ensemble = rank(models, minMargin: landmarkMargin) { m in
+                lookOfId(m.identity.id)
             }
             let geoRanked = models.map { (id: $0.identity.id, p: geoMixOf($0.identity.id)) }
                 .sorted { $0.p > $1.p }
-            let appearanceBest = pctVs(.texture, ensemble.versus.first?.identityId ?? UUID())
+            let lookWinner = ensemble.versus.first?.identityId
+            let appearanceBest = lookWinner.map { pctVs(.texture, $0) } ?? 0
             let others = ensemble.versus.dropFirst().map(\.percent)
             let fusedVersus = ensemble.versus.map { v in
                 IdentityScore(
                     identityId: v.identityId,
-                    percent: fuseIdentity(v.percent, geoMixOf(v.identityId), face.quality),
+                    percent: lookOfId(v.identityId),
                     distance: v.distance
                 )
             }
-            let fusedBest = fusedVersus.first?.percent ?? fuseIdentity(ensemble.percent, geoRanked.first?.p ?? 0, face.quality)
+            let fusedBest = fusedVersus.first?.percent ?? 0
             let fusedSecond = fusedVersus.dropFirst().first?.percent ?? 0
             let decided = decide(
-                percent: ensemble.percent,
-                margin: ensemble.margin,
+                percent: fusedBest,
+                margin: fusedBest - fusedSecond,
                 bestId: ensemble.versus.first?.identityId,
                 bestName: models.first { $0.identity.id == ensemble.versus.first?.identityId }?.identity.name,
                 secondName: models.first { $0.identity.id == ensemble.versus.dropFirst().first?.identityId }?.identity.name,
@@ -453,8 +471,8 @@ enum FaceEngine {
                 geoMargin: (geoRanked.first?.p ?? 0) - (geoRanked.dropFirst().first?.p ?? 0),
                 lowCapture: lowCapture,
                 appearance: face.appearance.isEmpty ? nil : appearanceBest,
-                geoMix: geoRanked.first?.p ?? 0,
-                galleryZ: galleryZScore(ensemble.percent, Array(others)),
+                geoMix: lookWinner.map { geoMixOf($0) } ?? (geoRanked.first?.p ?? 0),
+                galleryZ: galleryZScore(fusedBest, Array(others)),
                 textureReliable: textureIsReliable(face.quality),
                 evidence: fusedBest
             )
@@ -489,8 +507,8 @@ enum FaceEngine {
 
     // MARK: - geometry / prints
 
-    private static let matchFloor = 84.0
-    private static let soloFloor = 90.0
+    private static let matchFloor = 82.0
+    private static let soloFloor = 86.0
     private static let embedMargin = 12.0
     private static let landmarkMargin = 14.0
     private static let appearanceFloor = 48.0
@@ -601,7 +619,7 @@ enum FaceEngine {
             return (nil, String(format: "Aufnahme zu schwach für eine Zuordnung, Nähe %.0f%%.", percent))
         }
         if secondName == nil {
-            if score >= soloFloor && (textureReliable ? appear >= appearanceFloor : true) && geoMix >= 30 && percent >= 70 {
+            if score >= soloFloor && geoMix >= 28 && percent >= 70 {
                 return (bestId, String(format: "Nur eine Person eingeschrieben. Nähe %.0f%% reicht.", percent))
             }
             return (nil, String(format: "Nur eine Person eingeschrieben. Nähe %.0f%% reicht nicht (braucht %.0f%%). Andere Gesichter bleiben offen.", percent, soloFloor))
@@ -615,20 +633,20 @@ enum FaceEngine {
         if galleryZ < zFloor && percent < 92 {
             return (nil, String(format: "Kein Ausreißer in der Galerie (z=%.1f). Alle Personen ähnlich nah — nicht zugeordnet.", galleryZ))
         }
-        if hasAppearance && textureReliable && appear < appearanceFloor && percent < 93 {
-            return (nil, String(format: "Aussehen passt nicht (%.0f%%). %@ %.0f%% — nicht zugeordnet.", appear, best, percent))
-        }
         if geoMix < 32 && percent < 94 {
             return (nil, String(format: "Gesichtsmaße widersprechen (%.0f%%). Nicht zugeordnet.", geoMix))
         }
+        if hasAppearance && textureReliable && appear < appearanceFloor && geoMix < 55 && percent < 93 {
+            return (nil, String(format: "Aussehen passt nicht (%.0f%%). %@ %.0f%% — nicht zugeordnet.", appear, best, percent))
+        }
         if !geoAgrees && geoMargin >= 10 && percent < 94 {
-            return (nil, String(format: "Maße sehen %@ näher. Embedding allein reicht nicht.", second))
+            return (nil, String(format: "Maße sehen %@ näher. Aussehen allein reicht nicht.", second))
         }
         if margin >= embedMargin || (percent >= 94 && margin >= 6) {
             return (bestId, String(format: "Abstand %.1f Pkt zu %@.", margin, second))
         }
-        if geoAgrees && geoMargin >= 12 && (appear >= 75 || !textureReliable) {
-            return (bestId, String(format: "Embedding nur %.1f Pkt Abstand, Maße trennen %.1f Pkt (%@).", margin, geoMargin, second))
+        if geoAgrees && geoMargin >= 12 {
+            return (bestId, String(format: "Aussehen nur %.1f Pkt Abstand, Maße trennen %.1f Pkt (%@).", margin, geoMargin, second))
         }
         return (nil, String(format: "%@ %.0f%% und %@ %.0f%% zu nah — nicht zugeordnet.", best, percent, second, percent - margin))
     }
@@ -943,13 +961,14 @@ enum FaceEngine {
     }
 
     private static func appearancePercent(_ d: Double) -> Double {
-        100.0 / (1.0 + exp(14.0 * (d - 0.55)))
+        100.0 / (1.0 + exp(8.0 * (d - 0.72)))
     }
 
     private static func bestAppearance(_ probe: [Double], _ gallery: [[Double]]) -> Double {
         var best = 0.0
         for g in gallery {
-            let p = appearancePercent(vecDistance(probe, g))
+            let c = cosine(probe, g)
+            let p = 100.0 / (1.0 + exp(-10.0 * (c - 0.12)))
             if p > best { best = p }
         }
         return best
@@ -1386,14 +1405,22 @@ enum FaceEngine {
     }
 
     private static func textureIsReliable(_ q: FaceQuality) -> Bool {
-        q.capture >= 0.42 && q.sharpness >= 0.22
+        q.capture >= 0.28 && q.sharpness >= 0.12
     }
 
-    private static func fuseIdentity(_ embed: Double, _ geo: Double, _ q: FaceQuality) -> Double {
-        if tinyUnreliable(q) { return embed }
-        let trust = clamp01((q.capture - 0.18) / 0.5)
-        let printW = 0.52 + 0.48 * trust
-        return printW * embed + (1 - printW) * geo
+    /// Visual likeness: face parts first. A dead 16×16 raster must not crush 97% geometry.
+    /// If parts were not measured, fall back to the print so identity still works.
+    private static func lookOf(appear: Double, geo: Double, embed: Double = 0) -> Double {
+        let partsLive = geo >= 50
+        let rasterLive = appear >= 55
+        if !partsLive && !rasterLive { return embed }
+        if !rasterLive { return geo }
+        if !partsLive { return appear }
+        return 0.40 * appear + 0.60 * geo
+    }
+
+    private static func fuseIdentity(_ appear: Double, _ geo: Double, _ q: FaceQuality) -> Double {
+        lookOf(appear: appear, geo: geo)
     }
 
     private struct LumaStats {

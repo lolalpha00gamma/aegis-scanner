@@ -2,9 +2,9 @@ import CoreGraphics
 import Foundation
 
 enum AppVersion {
-    static let marketing = "2.0.2"
+    static let marketing = "2.0.3"
     static let channel = "alpha"
-    static let display = "2.0.2 alpha"
+    static let display = "2.0.3 alpha"
 }
 
 enum StrategyID: String, CaseIterable, Identifiable, Codable {
@@ -50,22 +50,38 @@ enum StrategyID: String, CaseIterable, Identifiable, Codable {
 
     var blurb: String {
         switch self {
-        case .photosStyle: return "Einzelnes Best-Frame, harte Qualitätsgrenze."
-        case .visionBox: return "Vision-Detektor plus Face-Print."
-        case .landmarkGeo: return "Landmark-Form, Augen-Procrustes IOD=1."
-        case .ratios: return "Verhältnisse zur Augenabstands-Einheit."
-        case .faceShape: return "Kiefer, Wangen, Höhe."
-        case .eyeRegion: return "Lidspalten und Augenwinkel / IOD."
-        case .midface: return "Nase und Philtrum."
-        case .jawline: return "Kieferbreite und Kinn."
-        case .graphBio: return "KNN-6 über Knochenpunkte."
-        case .geom3d: return "IOD-Verhältnisse und Winkel."
-        case .texture: return "Helligkeitsraster, nur Veto."
-        case .qualityGate: return "Qualität vor Zuordnung."
-        case .temporal: return "Video-Face-Print über Tracks."
-        case .featurePrint: return "VNGenerateFacePrintRequest."
-        case .terFusion: return "TER-Fusion nach Jain."
-        case .aegis: return "Beweis-Identifikation. Unbekannt bleibt normal."
+        case .photosStyle:
+            return "Einzelnes Best-Frame, harte Qualitätsgrenze — analog zur Apple-Fotos-Pipeline."
+        case .visionBox:
+            return "Vision-Detektor (Revision 3) plus nächstes Face-Print-Exemplar."
+        case .landmarkGeo:
+            return "Landmark-Form, Augen-Procrustes IOD=1. Lichtunabhängig, diagnostisch."
+        case .ratios:
+            return "Reproduzierbare Verhältnisse zur Augenabstands-Einheit. Unabhängig von Lage, Größe und Mimik."
+        case .faceShape:
+            return "Kiefer/Höhe, Wangen/Höhe, Kiefer/Wangen, Nase/Kiefer. Keine Bildposition, keine Boxgröße."
+        case .eyeRegion:
+            return "Lidspalten und Augenwinkel / IOD. Nicht Lidöffnung (Mimik)."
+        case .midface:
+            return "Nasenlänge, Nasenbreite, Nasenindex, Philtrum/Nase."
+        case .jawline:
+            return "Kieferbreite/IOD, Untergesicht/Höhe, Kinn. Unabhängig vom Lächeln."
+        case .graphBio:
+            return "KNN-6 über feste anatomische Punkte (ohne Mund). Alterungsstabil, unabhängig von Textur."
+        case .geom3d:
+            return "IOD-Verhältnisse, Kieferwinkel, Nasenfläche — keine Punktzählung, keine Box."
+        case .texture:
+            return "Aussehen: Gesichtsmaße plus Raster. Das ist die Basis der Zuordnung — nicht der Face-Print."
+        case .qualityGate:
+            return "Nächstes Feature-Print-Exemplar. Dunkelheit ist keine Unschärfe; nur winzige Crowd-Gesichter werden gedämpft."
+        case .temporal:
+            return "Nächstes Video-Feature-Print über Tracks, ohne Kreuzer zu tauschen."
+        case .featurePrint:
+            return "Gesichts-Print (VNGenerateFacePrintRequest). Diagnostisch. Darf Aussehen nicht mehr totmachen."
+        case .terFusion:
+            return "Wu/Wan: Scores → Total Error Rate, min-max nach Jain, probabilistisch gewichtet."
+        case .aegis:
+            return "Aussehen zuerst: Maße, Form, Augen, Kiefer. Face-Print darf nicht 97 % Form auf 8 % drücken. Unbekannt bleibt, wenn die Teile nicht passen."
         }
     }
 }
@@ -100,16 +116,19 @@ struct MediaItem: Identifiable, Hashable {
     var parentId: UUID?
     var timeSec: Double?
     var preview: CGImage?
-    enum Kind: String, Hashable { case photo, video, frame, live }
+
+    enum Kind: String, Hashable {
+        case photo, video, frame, live
+    }
 }
 
-struct LandmarkStroke: Hashable, Codable {
+struct LandmarkStroke: Hashable {
     var label: String
     var closed: Bool
     var points: [Point2]
 }
 
-struct NamedRatio: Hashable, Codable {
+struct NamedRatio: Hashable {
     var id: String
     var label: String
     var value: Double
@@ -117,7 +136,7 @@ struct NamedRatio: Hashable, Codable {
     var identity: Bool
 }
 
-struct FaceObservation: Identifiable, Hashable, Codable {
+struct FaceObservation: Identifiable, Hashable {
     let id: UUID
     var mediaId: UUID
     var box: FaceBox
@@ -135,7 +154,7 @@ struct FaceObservation: Identifiable, Hashable, Codable {
     var ratioSheet: [NamedRatio] = []
 }
 
-struct Identity: Identifiable, Hashable, Codable {
+struct Identity: Identifiable, Hashable {
     let id: UUID
     var name: String
     var faceIds: [UUID]
