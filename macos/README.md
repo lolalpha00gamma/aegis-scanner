@@ -1,7 +1,7 @@
 # Aegis
 
 Lokaler Image- & Video-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**  
-Version **2.0.7 alpha**.
+Version **2.0.8 alpha**.
 
 ## Image-Datei
 
@@ -12,6 +12,10 @@ Version **2.0.7 alpha**.
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Die Datei ist ad-hoc signiert (kein Apple-Developer-Account) — deshalb der Rechtsklick beim ersten Start.
+
+## Neu in 2.0.8 alpha
+
+Face-Print führt, Geometrie stützt und vetoiert. Profil/Brille mit 99 % Print kommt durch; fremde Verhältnisse plus 4 % Print nicht. `galleryZ` bei zwei Identitäten verlangt nicht mehr still 9 Punkte. Yaw/Pitch dämpfen die Maße.
 
 ## Neu in 2.0.7 alpha
 
@@ -94,7 +98,7 @@ Ordner mit Fotos und Videos wählen, oder einen Live-Stream (Webcam, RTSP, HLS, 
 | **Temporal** | Video-Face-Print über Tracks, ohne Kreuzer-Tausch |
 | **Feature Print** | `VNGenerateFacePrintRequest` auf augenausgerichtetem Crop — das macOS-Identitäts-Embedding |
 | **TER-Fusion** | Scores → Total Error Rate, min-max nach Jain |
-| **Aegis Ensemble** | Beweis-Identifikation. Dieselbe Person landet bei 95–99 % |
+| **Aegis Ensemble** | Print führt (0.75), Geometrie stützt (0.25) und vetoiert unter 35 %. |
 
 ## Lizenz
 

@@ -176,6 +176,8 @@ enum FaceEngine {
             }
             let printData = Data()
             let bone = boneKeypoints(namedAligned)
+            let yaw = face.yaw?.doubleValue ?? 0
+            let pitch = face.pitch?.doubleValue ?? 0
 
             out.append(
                 FaceObservation(
@@ -189,7 +191,14 @@ enum FaceEngine {
                     appearance: appearance,
                     graph: graphBiomarkers(bone.isEmpty ? points : bone),
                     geom3d: geom3dFromNamed(namedAligned),
-                    quality: FaceQuality(sharpness: sharpness, size: size, frontal: frontal, capture: capture),
+                    quality: FaceQuality(
+                        sharpness: sharpness,
+                        size: size,
+                        frontal: frontal,
+                        capture: capture,
+                        yaw: yaw,
+                        pitch: pitch
+                    ),
                     trackId: nil,
                     strokes: strokes,
                     namedAligned: namedAligned,
@@ -418,7 +427,7 @@ enum FaceEngine {
                         pctVs(.qualityGate, id)
                     )
                 }()
-                return lookOf(geo: geoMixOf(id), embed: embed)
+                return lookOf(geo: geoMixOf(id), embed: embed, pose: poseWeight(face.quality))
             }
             let ids = models.map(\.identity.id)
             let embedRow = ids.map { id -> Double in
@@ -444,7 +453,7 @@ enum FaceEngine {
                 let i = ids.firstIndex(of: m.identity.id) ?? 0
                 return i < terFused.count ? terFused[i] : 0
             }))
-            let ensemble = rank(models, minMargin: landmarkMargin) { m in
+            let ensemble = rank(models, minMargin: embedMargin) { m in
                 lookOfId(m.identity.id)
             }
             let geoRanked = models.map { (id: $0.identity.id, p: geoMixOf($0.identity.id)) }
@@ -605,7 +614,10 @@ enum FaceEngine {
         let second = secondName ?? "Zweite"
         _ = appearance
         _ = textureReliable
-        let score = evidence ?? percent
+        _ = evidence
+        _ = geoAgrees
+        _ = geoMargin
+        _ = geoMix
         guard let bestId, percent > 0 else {
             return (nil, "Keine Vergleichsperson.")
         }
@@ -613,31 +625,19 @@ enum FaceEngine {
             return (nil, String(format: "Aufnahme zu schwach für eine Zuordnung, Nähe %.0f%%.", percent))
         }
         if secondName == nil {
-            if score >= soloFloor && geoMix >= 28 && percent >= 70 {
+            if percent >= soloFloor {
                 return (bestId, String(format: "Nur eine Person eingeschrieben. Nähe %.0f%% reicht.", percent))
             }
             return (nil, String(format: "Nur eine Person eingeschrieben. Nähe %.0f%% reicht nicht (braucht %.0f%%). Andere Gesichter bleiben offen.", percent, soloFloor))
         }
-        if percent < 70 {
-            return (nil, String(format: "Beste Nähe %.0f%% liegt unter %.0f%%. Nicht zugeordnet.", percent, matchFloor))
-        }
-        if score < matchFloor {
+        if percent < matchFloor {
             return (nil, String(format: "Beste Nähe %.0f%% liegt unter %.0f%%. Nicht zugeordnet.", percent, matchFloor))
         }
         if galleryZ < zFloor && percent < 92 {
             return (nil, String(format: "Kein Ausreißer in der Galerie (z=%.1f). Alle Personen ähnlich nah — nicht zugeordnet.", galleryZ))
         }
-        if geoMix < 32 && percent < 94 {
-            return (nil, String(format: "Gesichtsfaktoren widersprechen (%.0f%%). Nicht zugeordnet.", geoMix))
-        }
-        if !geoAgrees && geoMargin >= 10 && percent < 94 {
-            return (nil, String(format: "Maße sehen %@ näher. Pixelraster darf nicht entscheiden.", second))
-        }
         if margin >= embedMargin || (percent >= 94 && margin >= 6) {
             return (bestId, String(format: "Abstand %.1f Pkt zu %@.", margin, second))
-        }
-        if geoAgrees && geoMargin >= 12 {
-            return (bestId, String(format: "Faktoren %.1f Pkt Abstand, Maße trennen %.1f Pkt (%@).", margin, geoMargin, second))
         }
         return (nil, String(format: "%@ %.0f%% und %@ %.0f%% zu nah — nicht zugeordnet.", best, percent, second, percent - margin))
     }
@@ -1054,10 +1054,13 @@ enum FaceEngine {
     }
 
     private static func galleryZScore(_ best: Double, _ others: [Double]) -> Double {
-        guard !others.isEmpty else { return 99 }
+        // One rival is margin's job. Variance of a 1-element cohort is 0, and
+        // max(0, 6) then silently demanded a 9-point gap — exactly when two
+        // similar people needed the embedding to separate them.
+        guard others.count >= 2 else { return 99 }
         let mean = others.reduce(0, +) / Double(others.count)
         let v = others.reduce(0.0) { $0 + ($1 - mean) * ($1 - mean) } / Double(others.count)
-        let denom = max(sqrt(v), 6)
+        let denom = max(sqrt(v), 1)
         return (best - mean) / denom
     }
 
@@ -1476,19 +1479,26 @@ enum FaceEngine {
         q.capture >= 0.28 && q.sharpness >= 0.12
     }
 
-    /// Assignment from IOD factors (ratios, Procrustes, graph). Raster never votes.
-    /// Face-print may support when it agrees; a 4% jacket-print cannot drag identity down.
-    private static func lookOf(geo: Double, embed: Double = 0) -> Double {
-        if geo < 1 { return 0 }
-        if embed >= 75 && geo >= 50 {
-            return 0.78 * geo + 0.22 * embed
-        }
-        return geo
+    /// Embedding leads. Geometry supports and vetoes. Raster never votes.
+    /// Pose (Vision yaw/pitch) shrinks the geometry weight off-frontal, so IOD
+    /// ratios cannot block a 99% print on a profile, and cannot assign a stranger.
+    private static func lookOf(geo: Double, embed: Double = 0, pose: Double = 1) -> Double {
+        if embed < 1 { return geo }
+        if geo >= 1 && geo < 35 { return min(embed, 60) }
+        let geoW = 0.25 * clamp01(pose)
+        return (1 - geoW) * embed + geoW * geo
+    }
+
+    /// 1 = frontal, ~0.7 at 45°, 0 at 90°. Vision yaw/pitch are radians.
+    private static func poseWeight(_ q: FaceQuality) -> Double {
+        let off = hypot(q.yaw, q.pitch)
+        if off < 0.02 { return clamp01(q.frontal) == 0 ? 1 : max(q.frontal, 0.35) }
+        return clamp01(cos(min(off, Double.pi / 2)))
     }
 
     private static func fuseIdentity(_ appear: Double, _ geo: Double, _ q: FaceQuality) -> Double {
         _ = appear
-        return lookOf(geo: geo)
+        return lookOf(geo: geo, pose: poseWeight(q))
     }
 
     private struct LumaStats {

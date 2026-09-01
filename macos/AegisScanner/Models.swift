@@ -2,9 +2,9 @@ import CoreGraphics
 import Foundation
 
 enum AppVersion {
-    static let marketing = "2.0.7"
+    static let marketing = "2.0.8"
     static let channel = "alpha"
-    static let display = "2.0.7 alpha"
+    static let display = "2.0.8 alpha"
 }
 
 enum StrategyID: String, CaseIterable, Identifiable, Codable {
@@ -81,7 +81,7 @@ enum StrategyID: String, CaseIterable, Identifiable, Codable {
         case .terFusion:
             return "Wu/Wan: Scores → Total Error Rate, min-max nach Jain, probabilistisch gewichtet."
         case .aegis:
-            return "Zuordnung nur über reproduzierbare Faktoren: IOD-Verhältnisse, Procrustes-Form, Graph. Unabhängig von Blickwinkel, Größe, Ausschnitt und Kleidung. Raster und Face-Print dürfen nicht entscheiden."
+            return "Zuordnung: Face-Print führt, Geometrie stützt und vetoiert. Raster entscheidet nicht. Pose (Yaw/Pitch) dämpft die Maße."
         }
     }
 }
@@ -103,6 +103,31 @@ struct FaceQuality: Codable, Hashable {
     var size: Double
     var frontal: Double
     var capture: Double
+    var yaw: Double = 0
+    var pitch: Double = 0
+
+    enum CodingKeys: String, CodingKey {
+        case sharpness, size, frontal, capture, yaw, pitch
+    }
+
+    init(sharpness: Double, size: Double, frontal: Double, capture: Double, yaw: Double = 0, pitch: Double = 0) {
+        self.sharpness = sharpness
+        self.size = size
+        self.frontal = frontal
+        self.capture = capture
+        self.yaw = yaw
+        self.pitch = pitch
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        sharpness = try c.decode(Double.self, forKey: .sharpness)
+        size = try c.decode(Double.self, forKey: .size)
+        frontal = try c.decode(Double.self, forKey: .frontal)
+        capture = try c.decode(Double.self, forKey: .capture)
+        yaw = try c.decodeIfPresent(Double.self, forKey: .yaw) ?? 0
+        pitch = try c.decodeIfPresent(Double.self, forKey: .pitch) ?? 0
+    }
 }
 
 struct MediaItem: Identifiable, Hashable {
