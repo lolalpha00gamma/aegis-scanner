@@ -2,9 +2,9 @@ import CoreGraphics
 import Foundation
 
 enum AppVersion {
-    static let marketing = "2.0.6"
+    static let marketing = "2.0.7"
     static let channel = "alpha"
-    static let display = "2.0.6 alpha"
+    static let display = "2.0.7 alpha"
 }
 
 enum StrategyID: String, CaseIterable, Identifiable, Codable {
@@ -71,7 +71,7 @@ enum StrategyID: String, CaseIterable, Identifiable, Codable {
         case .geom3d:
             return "IOD-Verhältnisse, Kieferwinkel, Nasenfläche — keine Punktzählung, keine Box."
         case .texture:
-            return "Aussehen: Gesichtsmaße plus Raster. Das ist die Basis der Zuordnung — nicht der Face-Print."
+            return "Anzeigewert: 8×8-Raster nach Augenausrichtung. Keine Zuordnungsstimme — Pixel und Kleidung ändern sich mit Licht, Pose und Ausschnitt."
         case .qualityGate:
             return "Nächstes Feature-Print-Exemplar. Dunkelheit ist keine Unschärfe; nur winzige Crowd-Gesichter werden gedämpft."
         case .temporal:
@@ -81,7 +81,7 @@ enum StrategyID: String, CaseIterable, Identifiable, Codable {
         case .terFusion:
             return "Wu/Wan: Scores → Total Error Rate, min-max nach Jain, probabilistisch gewichtet."
         case .aegis:
-            return "Aussehen zuerst: Maße, Form, Augen, Kiefer. Face-Print darf nicht 97 % Form auf 8 % drücken. Unbekannt bleibt, wenn die Teile nicht passen."
+            return "Zuordnung nur über reproduzierbare Faktoren: IOD-Verhältnisse, Procrustes-Form, Graph. Unabhängig von Blickwinkel, Größe, Ausschnitt und Kleidung. Raster und Face-Print dürfen nicht entscheiden."
         }
     }
 }

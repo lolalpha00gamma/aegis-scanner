@@ -1,7 +1,7 @@
 # Aegis
 
 Lokaler Image- & Video-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**  
-Version **2.0.5 alpha**.
+Version **2.0.7 alpha**.
 
 ## Image-Datei
 
@@ -12,6 +12,10 @@ Version **2.0.5 alpha**.
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Die Datei ist ad-hoc signiert (kein Apple-Developer-Account) — deshalb der Rechtsklick beim ersten Start.
+
+## Neu in 2.0.7 alpha
+
+Zuordnung nur über reproduzierbare Faktoren: IOD-Verhältnisse, Procrustes-Form, Graph. Unabhängig von Blickwinkel, Größe, Ausschnitt und Kleidung. Pixelraster und Face-Print stimmen nicht mehr ab — Khaki-Jacke vs. Warnweste darf denselben Menschen nicht mehr auf 4 % ziehen.
 
 ## Neu in 2.0.5 alpha
 
