@@ -1719,14 +1719,47 @@ enum FaceEngine {
         q.capture < 0.35 && q.size < 0.16
     }
 
-    static func referenceRejected(_ face: FaceObservation) -> String? {
+    static func referenceRejected(_ face: FaceObservation, asFirstReference: Bool = false) -> String? {
         if face.featurePrint.isEmpty {
             return "Kein Face-Print — Referenz würde die Galerie vergiften."
         }
         if face.quality.capture < 0.40 {
             return String(format: "Aufnahme %.0f %% — mindestens 40 %% für eine Referenz.", face.quality.capture * 100)
         }
+        // Profil als erste Referenz verdreht den L2-Centroid; spätere ¾-Shots sind ok.
+        if asFirstReference, abs(face.quality.yaw) > 0.7 {
+            return String(
+                format: "Profil (Yaw %.0f°) — erste Referenz muss frontal sein, sonst verdreht der Centroid.",
+                face.quality.yaw * 180 / .pi
+            )
+        }
         return nil
+    }
+
+    /// Cosine zweier L2-Embeddings. Öffentlich für Duplikat-Warnung und Labor.
+    static func centroidCosine(_ a: [Double], _ b: [Double]) -> Double {
+        cosine(a, b)
+    }
+
+    /// Höchste Centroid-Ähnlichkeit gegen eine andere Identität. Nil unter 0,88.
+    static func duplicateOf(
+        face: FaceObservation,
+        identities: [Identity],
+        faces: [FaceObservation]
+    ) -> (Identity, Double)? {
+        let v = embedding(of: face)
+        guard v.count >= 32 else { return nil }
+        var best: (Identity, Double)?
+        for ident in identities {
+            let refs = faces.filter { ident.faceIds.contains($0.id) }
+            let mean = meanPrintVector(refs)
+            guard mean.count >= 32 else { continue }
+            let c = cosine(v, mean)
+            if c > 0.88, c > (best?.1 ?? 0) {
+                best = (ident, c)
+            }
+        }
+        return best
     }
 
     private static func tinyUnreliable(_ q: FaceQuality) -> Bool {

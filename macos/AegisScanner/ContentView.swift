@@ -50,6 +50,9 @@ struct ContentView: View {
             }
             Button("Erkennen") { Task { await store.scan() } }
                 .disabled(store.busy || store.media.isEmpty)
+            if store.busy {
+                Button("Abbrechen") { store.cancelScan() }
+            }
             Button("CSV") { store.exportCSV() }
                 .disabled(store.matches.isEmpty)
             Button("Labor") { store.exportLab() }
@@ -578,6 +581,10 @@ struct FaceOverlay: View {
                     let selected = store.selectedFaceId == face.id
                     let printDead = face.featurePrint.isEmpty
                     let hint = FaceEngine.overlayHint(face)
+                    let printLabel = printDead
+                        ? "Print tot"
+                        : String(format: "Print %.0f%%", printHit?.percent ?? 0)
+                    let badge = hint.map { "\(printLabel) · \($0)" } ?? printLabel
                     Button {
                         store.selectedFaceId = face.id
                         store.selectedMediaId = item.id
@@ -593,7 +600,7 @@ struct FaceOverlay: View {
                                     .offset(x: -4, y: -10)
                             }
                             .overlay(alignment: .topTrailing) {
-                                Text(hint ?? (printDead ? "Print tot" : String(format: "Print %.0f%%", printHit?.percent ?? 0)))
+                                Text(badge)
                                     .font(.caption2.monospacedDigit())
                                     .padding(.horizontal, 5)
                                     .padding(.vertical, 1)

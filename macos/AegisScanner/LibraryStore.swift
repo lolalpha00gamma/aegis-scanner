@@ -27,6 +27,7 @@ final class LibraryStore: ObservableObject {
     private var liveMediaId: UUID?
     private var scopedRoots: [URL] = []
     private var liveBusy = false
+    private var scanGeneration = 0
     private let enabledKey = "aegis.enabledStrategies"
 
     init() {
@@ -126,27 +127,44 @@ final class LibraryStore: ObservableObject {
         panel.prompt = "Scannen"
         panel.message = "Ordner oder mehrere Fotos wählen — danach mit ← → blättern."
         guard panel.runModal() == .OK else { return }
-        var urls: [URL] = []
         var roots: [URL] = []
+        var files: [URL] = []
+        var folders: [URL] = []
         for url in panel.urls {
             roots.append(url)
             var isDir: ObjCBool = false
             FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir)
             if isDir.boolValue {
-                _ = url.startAccessingSecurityScopedResource()
-                urls.append(contentsOf: FrameExtractor.walk(folder: url))
+                folders.append(url)
             } else {
-                urls.append(url)
+                files.append(url)
             }
         }
         retainAccess(roots)
-        let before = media.count
-        ingest(urls: urls)
-        if let firstNew = media.dropFirst(before).first(where: { $0.kind == .photo })
-            ?? media.dropFirst(before).first {
-            selectedMediaId = firstNew.id
+        scanGeneration += 1
+        let gen = scanGeneration
+        busy = true
+        status = "Ordner lesen …"
+        Task {
+            var urls = files
+            for folder in folders {
+                if gen != self.scanGeneration { return }
+                let found = await Task.detached {
+                    FrameExtractor.walk(folder: folder)
+                }.value
+                if gen != self.scanGeneration { return }
+                urls.append(contentsOf: found)
+            }
+            if gen != self.scanGeneration { return }
+            let before = self.media.count
+            self.ingest(urls: urls)
+            if let firstNew = self.media.dropFirst(before).first(where: { $0.kind == .photo })
+                ?? self.media.dropFirst(before).first
+            {
+                self.selectedMediaId = firstNew.id
+            }
+            await self.scan(generation: gen)
         }
-        Task { await scan() }
     }
 
     private func retainAccess(_ urls: [URL]) {
@@ -205,15 +223,37 @@ final class LibraryStore: ObservableObject {
         }
     }
 
+    func cancelScan() {
+        guard busy else { return }
+        scanGeneration += 1
+        busy = false
+        status = "Scan abgebrochen"
+    }
+
     func scan() async {
+        scanGeneration += 1
+        await scan(generation: scanGeneration)
+    }
+
+    private func scan(generation: Int) async {
         busy = true
         status = "Frames extrahieren"
         let videos = media.filter { $0.kind == .video }
         let haveFrames = Set(media.compactMap { $0.parentId })
         for video in videos where !haveFrames.contains(video.id) {
+            if generation != scanGeneration {
+                status = "Scan abgebrochen"
+                busy = false
+                return
+            }
             status = "Video · \(video.name)"
             do {
                 let frames = try await FrameExtractor.extract(from: video.url)
+                if generation != scanGeneration {
+                    status = "Scan abgebrochen"
+                    busy = false
+                    return
+                }
                 if frames.isEmpty {
                     status = "\(video.name): keine Frames"
                     continue
@@ -242,6 +282,11 @@ final class LibraryStore: ObservableObject {
             (item.kind == .photo || item.kind == .frame) && !faces.contains { $0.mediaId == item.id }
         }
         for (i, item) in pending.enumerated() {
+            if generation != scanGeneration {
+                status = "Scan abgebrochen"
+                busy = false
+                return
+            }
             status = "Gesicht · \(i + 1)/\(pending.count)"
             let image = item.preview ?? FrameExtractor.loadCGImage(url: item.url)
             guard let image else { continue }
@@ -250,10 +295,20 @@ final class LibraryStore: ObservableObject {
                 let found = try await Task.detached(priority: .userInitiated) {
                     try FaceEngine.detect(in: image, mediaId: mediaId)
                 }.value
+                if generation != scanGeneration {
+                    status = "Scan abgebrochen"
+                    busy = false
+                    return
+                }
                 faces.append(contentsOf: found)
             } catch {
                 continue
             }
+        }
+        if generation != scanGeneration {
+            status = "Scan abgebrochen"
+            busy = false
+            return
         }
         status = "Abgleich"
         nmsDropped = FaceEngine.lastNMSDropped
@@ -319,9 +374,13 @@ final class LibraryStore: ObservableObject {
             }
             return
         }
-        if let why = FaceEngine.referenceRejected(face) {
+        if let why = FaceEngine.referenceRejected(face, asFirstReference: true) {
             status = why
             return
+        }
+        var note = ""
+        if let dup = FaceEngine.duplicateOf(face: face, identities: identities, faces: faces) {
+            note = String(format: " · Achtung: ähnlich \(dup.0.name) (%.0f %%)", dup.1 * 100)
         }
         identities.append(Identity(id: UUID(), name: name, faceIds: [face.id]))
         newPersonName = ""
@@ -329,9 +388,9 @@ final class LibraryStore: ObservableObject {
         rematch()
         if let next = FaceEngine.unnamedFace(on: face.mediaId, faces: faces, identities: identities) {
             selectedFaceId = next.id
-            status = "\(name) angelegt · nächstes Gesicht gewählt"
+            status = "\(name) angelegt · nächstes Gesicht gewählt\(note)"
         } else {
-            status = "\(name) angelegt"
+            status = "\(name) angelegt\(note)"
         }
         persist()
     }
@@ -352,7 +411,7 @@ final class LibraryStore: ObservableObject {
             status = "Dieses Gesicht gehört zu \(owner.name). Anlegen für eine neue Person, nicht +."
             return
         }
-        if let why = FaceEngine.referenceRejected(face) {
+        if let why = FaceEngine.referenceRejected(face, asFirstReference: identities[idx].faceIds.isEmpty) {
             status = why
             return
         }
@@ -447,6 +506,7 @@ final class LibraryStore: ObservableObject {
     }
 
     private func applyLiveFaces(_ found: [FaceObservation], image: CGImage, mediaId: UUID) {
+        liveCapture.setFacesPresent(!found.isEmpty)
         guard let idx = media.firstIndex(where: { $0.id == mediaId }) else { return }
         media[idx].width = image.width
         media[idx].height = image.height

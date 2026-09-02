@@ -16,6 +16,7 @@ enum LiveKind: String {
 final class LiveCapture: NSObject {
     private var player: AVPlayer?
     private var output: AVPlayerItemVideoOutput?
+    private var playerTransform = CGAffineTransform.identity
     private var session: AVCaptureSession?
     private var outputQueue = DispatchQueue(label: "aegis.live")
     private var timer: Timer?
@@ -25,6 +26,13 @@ final class LiveCapture: NSObject {
     var onFrame: ((CGImage) -> Void)?
     var onError: ((String) -> Void)?
     var onReady: (() -> Void)?
+    /// Live-Tap: 2 fps ohne Gesicht, 8 fps sobald ein Track sitzt.
+    private(set) var facesPresent = false
+
+    func setFacesPresent(_ on: Bool) {
+        facesPresent = on
+        tap?.minInterval = on ? 0.125 : 0.50
+    }
 
     func start(url: URL, kind: LiveKind) {
         stop()
@@ -52,6 +60,7 @@ final class LiveCapture: NSObject {
         player?.pause()
         player = nil
         output = nil
+        playerTransform = .identity
         session?.stopRunning()
         session = nil
     }
@@ -110,9 +119,18 @@ final class LiveCapture: NSObject {
         player.isMuted = true
         self.output = videoOut
         self.player = player
+        playerTransform = .identity
         player.play()
         onReady?()
         startTimer()
+        Task { [weak self] in
+            guard
+                let tracks = try? await item.asset.loadTracks(withMediaType: .video),
+                let track = tracks.first,
+                let t = try? await track.load(.preferredTransform)
+            else { return }
+            await MainActor.run { self?.playerTransform = t }
+        }
         if let failObserver {
             NotificationCenter.default.removeObserver(failObserver)
         }
@@ -161,7 +179,7 @@ final class LiveCapture: NSObject {
         let t = item.currentTime()
         if output.hasNewPixelBuffer(forItemTime: t),
            let pb = output.copyPixelBuffer(forItemTime: t, itemTimeForDisplay: nil),
-           let image = cgImage(from: pb)
+           let image = cgImage(from: pb, transform: playerTransform)
         {
             onFrame?(image)
         }
@@ -174,6 +192,7 @@ final class LiveCapture: NSObject {
 
 private final class FrameTap: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     private var last: TimeInterval = 0
+    var minInterval: TimeInterval = 0.50
     private let emit: (CGImage) -> Void
     init(emit: @escaping (CGImage) -> Void) { self.emit = emit }
     func captureOutput(
@@ -182,7 +201,7 @@ private final class FrameTap: NSObject, AVCaptureVideoDataOutputSampleBufferDele
         from connection: AVCaptureConnection
     ) {
         let now = Date().timeIntervalSince1970
-        guard now - last >= 0.18 else { return }
+        guard now - last >= minInterval else { return }
         last = now
         guard let pb = CMSampleBufferGetImageBuffer(sampleBuffer),
               let image = cgImage(from: pb, orientation: visionOrientation(connection))
@@ -226,7 +245,7 @@ private func cgImage(from data: Data) -> CGImage? {
 
 private let liveOrientContext = CIContext(options: [.cacheIntermediates: false])
 
-private func cgImage(from pb: CVPixelBuffer, orientation: CGImagePropertyOrientation = .up) -> CGImage? {
+private func cgImage(from pb: CVPixelBuffer, orientation: CGImagePropertyOrientation = .up, transform: CGAffineTransform = .identity) -> CGImage? {
     let w = CVPixelBufferGetWidth(pb)
     let h = CVPixelBufferGetHeight(pb)
     CVPixelBufferLockBaseAddress(pb, .readOnly)
@@ -244,8 +263,14 @@ private func cgImage(from pb: CVPixelBuffer, orientation: CGImagePropertyOrienta
         bitmapInfo: CGBitmapInfo.byteOrder32Little.rawValue | CGImageAlphaInfo.premultipliedFirst.rawValue
     ) else { return nil }
     guard let raw = ctx.makeImage() else { return nil }
-    if orientation == .up { return raw }
-    let oriented = CIImage(cgImage: raw).oriented(orientation)
+    if orientation == .up, transform.isIdentity { return raw }
+    var oriented = CIImage(cgImage: raw)
+    if !transform.isIdentity {
+        oriented = oriented.transformed(by: transform)
+    }
+    if orientation != .up {
+        oriented = oriented.oriented(orientation)
+    }
     return liveOrientContext.createCGImage(oriented, from: oriented.extent)
 }
 

@@ -1,6 +1,18 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.4 alpha**. Fixes von 2.1.4 stehen auch in der README.
+Stand: **2.1.5 alpha**. Fixes von 2.1.5 stehen auch in der README.
+
+## In 2.1.5 wirklich im Code
+
+Warum 2.1.4 live und in der Galerie trotzdem daneben lag: HLS kam ungedreht an, ein Profil als erste Referenz hat den Centroid verdreht, der Overlay-Hinweis hat den Print-% versteckt, und ein Ordner-Scan war nicht abzubrechen.
+
+1. **HLS/Player-Transform.** `grab()` wendet `preferredTransform` der Videospur an. Webcam bleibt `videoRotationAngle`.
+2. **Enrollment-Yaw.** Erste Referenz mit |Yaw| > 0,7 wird abgelehnt. Weitere ¾-Shots derselben Person bleiben erlaubt.
+3. **Duplikat-Warnung.** Anlegen, wenn Centroid-Cosine zu einer existierenden Person > 0,88 — Status sagt den Namen, legt aber an.
+4. **Print-% + Hinweis.** Badge ist `Print 92% · Profil`, nicht nur „Profil“.
+5. **Scan-Cancel.** `scanGeneration` bricht Detect ab; Ordner-Walk läuft in `Task.detached`. Button **Abbrechen**.
+6. **Adaptive Live-FPS.** FrameTap 0,50 s leer / 0,125 s bei Track.
+7. **HEIC-Burst.** `loadCGImage` nimmt das schärfste der ersten 8 Frames.
 
 ## In 2.1.4 wirklich im Code
 
@@ -41,11 +53,12 @@ Die 2.1.2-Commits auf main hatten die härtere Kurve und den Galerie-Floor nur i
 
 ## Nächste Fixes (klein)
 
-- **HLS/Player-Transform.** `grab()` auf AVPlayer dreht noch nicht nach `preferredTransform` — nur die Webcam-Connection.
-- **Enrollment-Veto bei Yaw > 0,7.** Profil als erste Referenz verdreht den Centroid.
-- **Duplikat-Warnung.** Anlegen, wenn Centroid-Cosine zu einer existierenden Person > 0,88.
-- **Print-% bleibt am Badge**, auch wenn der Hinweis „Profil“ ist.
-- **Scan abbrechen.** Ordner-Walk hat keinen Cancel — große Mediatheken blocken die UI-Statuszeile Minuten.
+- **Pose-Coverage-Meter.** Pro Identität: Frontal / ¾ / Profil als drei Slots. Anlegen, wenn ein Slot leer ist, statt noch ein Frontal dazu.
+- **Qualitätsgewichteter Centroid.** Unscharfe Refs zählen mit `capture * sharpness`, nicht 1/n — eine verwackelte Kopie zieht den Mittelvektor nicht mehr.
+- **Print-Drift-Alarm.** Live-EMA weicht >0,12 Cosine vom Galerie-Centroid ab → Overlay „andere Person oder Brille?“.
+- **Walk-Cancel feiner.** `FileManager.enumerator` prüft `scanGeneration` pro Datei, nicht nur pro Ordner.
+- **HLS-FPS an Last.** Player-Timer ist noch 0,22 s fest; Webcam ist schon adaptiv.
+- **Referenz-Vorschau vor Commit.** Anlegen zeigt Print-% gegen den eigenen Centroid (nach der 2. Referenz) und gegen Rivalen, bevor die UUID geschrieben wird.
 
 ## Erweiterungen
 
@@ -59,7 +72,6 @@ Die 2.1.2-Commits auf main hatten die härtere Kurve und den Galerie-Floor nur i
 - **Kalibrier-Set.** Fünf eigene Fotos (frontal, ¾, Hut, Nacht, Lächeln) als Selbsttest beim ersten Start.
 - **Score-Kalibrierung pro Galerie.** Platt-Skalierung auf den Leave-one-out-Scores, statt einer globalen Sigmoid.
 - **Temporal-Smoothing der Box.** Live-Jitter der Bounding Box mit 1-Euro-Filter, unabhängig vom Print.
-- **Ablehnungsgrund als Overlay.** „z zu klein“ / „Print leer“ direkt am Gesicht, nicht nur in der Spur.
 - **Zwei-Pass-Scan.** Erst grobe Boxen, dann Face-Print nur auf den besten Crops — spart Vision-Calls bei Gruppenfotos.
 - **Helios-Bridge.** Optional: wenn Helios läuft, Kamera-Session teilen statt zweimal TCC.
 - **Offen-Set.** Explizite „unbekannt“-Klasse mit eigener Schwelle, statt nur `nil`.
@@ -69,9 +81,12 @@ Die 2.1.2-Commits auf main hatten die härtere Kurve und den Galerie-Floor nur i
 - **Print quantisieren** (int8) für kleinere Library-Files, Cosine auf dequantisiertem Centroid.
 - **Aktives Lernen.** „Ist das dieselbe Person?“ an unsicheren Rändern, eine Klick-Referenz.
 - **Softmax-Temperatur auf Look-Scores**, sichtbar im Labor, analog zu Helios' Fusion-T.
-- **HEIC-Burst.** Erstes scharfes Frame statt Index 0, wenn die Datei ein Live-Photo ist.
 - **Ablehnen-Taste am Overlay.** Ein Klick schreibt „nicht diese Person“ in die Labor-Liste, ohne die Galerie zu löschen.
-- **Live-FPS an Last.** 5 fps fest; bei 0 Gesichtern 2 fps, bei Track 8 fps — analog Helios' Idle-Kamera.
+- **Negativ-IDs.** Hard-Negatives pro Person (Geschwister, gleiche Brille) heben den lokalen Floor, ohne die Sigmoid anzufassen.
+- **Live-Reconnect hält UUID.** Kamera-Drop darf den Track nicht auf eine neue Person taufen, wenn der Print noch passt.
+- **On-device Eval-Clip.** Die letzten 50 Live-Frames als Mini-Labor, TAR/FAR ohne Ordner wählen.
+- **Auto-Enrollment-Halt.** Dieselbe UUID 8 s mit Print ≥ 94 % und Yaw < 0,3 → Vorschlag „als Referenz übernehmen?“, nie still schreiben.
+- **Per-Kamera Orientierungs-Override.** Eine Continuity-Cam, die `videoRotationAngle` falsch meldet, bekommt einen manuellen 90°-Hebel.
 
 ## Nicht tun
 

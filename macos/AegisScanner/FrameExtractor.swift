@@ -25,7 +25,23 @@ enum FrameExtractor {
             kCGImageSourceCreateThumbnailFromImageAlways: true,
             kCGImageSourceCreateThumbnailWithTransform: true,
         ]
-        return CGImageSourceCreateThumbnailAtIndex(src, 0, options as CFDictionary)
+        let count = CGImageSourceGetCount(src)
+        if count <= 1 {
+            return CGImageSourceCreateThumbnailAtIndex(src, 0, options as CFDictionary)
+        }
+        // HEIC Live Photo / Burst: schärfstes der ersten 8 Frames, nicht Index 0.
+        let n = min(8, count)
+        var best: CGImage?
+        var bestScore = -1.0
+        for i in 0 ..< n {
+            guard let img = CGImageSourceCreateThumbnailAtIndex(src, i, options as CFDictionary) else { continue }
+            let s = structure(img)
+            if s > bestScore {
+                bestScore = s
+                best = img
+            }
+        }
+        return best ?? CGImageSourceCreateThumbnailAtIndex(src, 0, options as CFDictionary)
     }
 
     static func extract(from url: URL, interval: Double = 0.33, maxFrames: Int = 20) async throws -> [(time: Double, image: CGImage)] {
@@ -201,7 +217,7 @@ enum FrameExtractor {
         return o
     }
 
-    static func walk(folder: URL) -> [URL] {
+    static func walk(folder: URL, shouldContinue: () -> Bool = { true }) -> [URL] {
         let keys: [URLResourceKey] = [.isRegularFileKey, .isDirectoryKey]
         guard let enumerator = FileManager.default.enumerator(
             at: folder,
@@ -210,6 +226,7 @@ enum FrameExtractor {
         ) else { return [] }
         var urls: [URL] = []
         for case let url as URL in enumerator {
+            if !shouldContinue() { break }
             if isImage(url) || isVideo(url) { urls.append(url) }
         }
         return urls.sorted { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }

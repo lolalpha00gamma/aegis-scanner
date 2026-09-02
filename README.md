@@ -1,4 +1,4 @@
-# Aegis **2.1.4 alpha**
+# Aegis **2.1.5 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,18 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.5 alpha
+
+2.1.4 hat Live-Orientierung und Yaw-Keyframes — HLS, Enrollment und große Ordner haben trotzdem gelogen oder die UI festgenagelt.
+
+- **HLS/Player-Transform.** `AVAssetTrack.preferredTransform` dreht den Pixel-Buffer, bevor Vision ihn sieht — nicht nur die Webcam-Connection.
+- **Enrollment-Veto bei Yaw > 0,7** auf der *ersten* Referenz. Ein Profil verdreht den Galerie-Centroid nicht mehr.
+- **Duplikat-Warnung** beim Anlegen, wenn Centroid-Cosine zu einer existierenden Person > 0,88.
+- **Print-% bleibt am Badge**, auch wenn der Hinweis „Profil“ / „unscharf“ ist.
+- **Scan abbrechen.** Ordner-Walk läuft off-Main, Detect prüft eine Generation — große Mediatheken blocken die Statuszeile nicht mehr minutenlang ohne Ausweg.
+- **Live-FPS an Last.** 2 fps ohne Gesicht, 8 fps sobald ein Track sitzt (war fest ~5 fps).
+- **HEIC-Burst.** Schärfstes der ersten 8 Frames, nicht Index 0 eines Live Photos.
 
 ## Neu in 2.1.4 alpha
 
