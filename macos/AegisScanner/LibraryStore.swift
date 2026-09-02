@@ -942,7 +942,7 @@ final class LibraryStore: ObservableObject {
                 liveGhosts.append((old, now + 1.8))
             }
         }
-        var leftoverPinned = previous.filter { enrolled.contains($0.id) && !used.contains($0.id) }
+        let leftoverPinned = previous.filter { enrolled.contains($0.id) && !used.contains($0.id) }
         if found.isEmpty {
             faces.removeAll { $0.mediaId == mediaId }
             faces.append(contentsOf: leftoverPinned + adopted)

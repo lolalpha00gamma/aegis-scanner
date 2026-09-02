@@ -14,6 +14,7 @@ Warum 2.1.14 sich tot anfühlte: der Versionsstempel in Xcode blieb 2.1.13 (CI-T
 6. **`gallery.json.bak`** vor atomarem Save.
 7. **`enrolledAt`.** Spark-Reset nach `pinByPrint`.
 8. TAR bleibt `floor(far·n)−1` (n=101 FAR 1 % → 80). `bugfix` ceil−1 nicht übernommen.
+9. **Face-Print-Box:** `VNObservation.boundingBox` gibt es auf Xcode 15/Vision nicht — Cast auf `VNFaceObservation` / `VNDetectedObjectObservation` (CI macos-14).
 
 ## In 2.1.14 (Models/VERSION, nicht vollständig im Binary)
 

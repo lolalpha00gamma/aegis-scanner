@@ -1281,8 +1281,10 @@ enum FaceEngine {
             let box: FaceBox
             if let face = obs as? VNFaceObservation {
                 box = vnToPixels(face.boundingBox, width: w, height: h)
+            } else if let obj = obs as? VNDetectedObjectObservation {
+                box = vnToPixels(obj.boundingBox, width: w, height: h)
             } else {
-                box = vnToPixels(obs.boundingBox, width: w, height: h)
+                continue
             }
             out.append(LocatedPrint(box: box, data: data))
         }
