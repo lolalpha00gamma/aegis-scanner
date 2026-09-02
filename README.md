@@ -1,4 +1,4 @@
-# Aegis **2.1.2 alpha**
+# Aegis **2.1.3 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.3 alpha
+
+2.1.2 hat den Print ehrlich gemacht — und ihn danach in `lookOf` mit Geometrie *gemischt*, sodass 1-Personen-Galerien unter dem Floor blieben.
+
+- **Print ist der Score.** Geo vetoiert oder gibt bis +4, zieht aber nie unter den Print.
+- **Floors lokal** (kein Static-Global mehr zwischen Labor und Live). Solo-Zuschlag +2.
+- **Galerie-Centroid** (L2-Mittel der Embeddings) statt nur Score-Hälfte.
+- **Live-Print EMA** über die UUID, Qualitätssieb beim Anlegen, Labor **TAR@0,1 % / 1 % FAR**.
 
 ## Neu in 2.1.2 alpha
 

@@ -311,6 +311,10 @@ final class LibraryStore: ObservableObject {
             }
             return
         }
+        if let why = FaceEngine.referenceRejected(face) {
+            status = why
+            return
+        }
         identities.append(Identity(id: UUID(), name: name, faceIds: [face.id]))
         newPersonName = ""
         selectedFaceId = face.id
@@ -338,6 +342,10 @@ final class LibraryStore: ObservableObject {
                 return
             }
             status = "Dieses Gesicht gehört zu \(owner.name). Anlegen für eine neue Person, nicht +."
+            return
+        }
+        if let why = FaceEngine.referenceRejected(face) {
+            status = why
             return
         }
         if !identities[idx].faceIds.contains(face.id) {
@@ -464,8 +472,16 @@ final class LibraryStore: ObservableObject {
                 face.trackId = old.trackId ?? old.id
                 if face.featurePrint.isEmpty, !old.featurePrint.isEmpty {
                     face.featurePrint = old.featurePrint
+                    face.printVec = old.printVec
                 } else if !old.featurePrint.isEmpty, face.quality.capture + 0.04 < old.quality.capture {
                     face.featurePrint = old.featurePrint
+                    face.printVec = old.printVec.isEmpty ? FaceEngine.embedding(of: old) : old.printVec
+                } else if !old.featurePrint.isEmpty, !face.featurePrint.isEmpty {
+                    let prev = old.printVec.count >= 32 ? old.printVec : FaceEngine.embedding(of: old)
+                    let next = FaceEngine.embedding(of: face)
+                    face.printVec = FaceEngine.blendEmbeddings(prev, next, alpha: 0.35)
+                } else if face.printVec.isEmpty {
+                    face.printVec = FaceEngine.embedding(of: face)
                 }
             }
             adopted.append(face)
@@ -491,6 +507,9 @@ final class LibraryStore: ObservableObject {
                     adopted[bestJ].trackId = old.trackId ?? old.id
                     if adopted[bestJ].featurePrint.isEmpty {
                         adopted[bestJ].featurePrint = old.featurePrint
+                    }
+                    if adopted[bestJ].printVec.isEmpty, !old.printVec.isEmpty {
+                        adopted[bestJ].printVec = old.printVec
                     }
                 }
             }
