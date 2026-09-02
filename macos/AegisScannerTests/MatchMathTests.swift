@@ -48,6 +48,10 @@ enum MatchMathTests {
         let blend = MatchMath.lookOf(geo: 80, embed: 90, pose: 1, printMeasured: true)
         near(blend, 0.75 * 90 + 0.25 * 80, 0.2, "Print führt 75/25")
 
+        ok(MatchMath.printWeight(capture: 0.9, frontal: 1) > MatchMath.printWeight(capture: 0.2, frontal: 0.2), "scharfe Frontal-Refs schwerer")
+        ok(MatchMath.yawCompatible(probe: 0.05, gallery: 0.10), "nahe Yaw ok")
+        ok(!MatchMath.yawCompatible(probe: 0.0, gallery: 0.80), "Profil nicht mit Frontal")
+
         if let tar = MatchMath.tar(atFar: 0.1, genuine: [90, 92, 88, 70], impostor: [40, 50, 60, 95, 30, 20, 10, 5, 2, 1]) {
             ok(tar.tar >= 0 && tar.tar <= 1, "TAR im [0,1]")
             near(tar.threshold, 95, 0.01, "FAR 10% / 10 Impostoren → höchster Impostor, nicht der Zweite")
