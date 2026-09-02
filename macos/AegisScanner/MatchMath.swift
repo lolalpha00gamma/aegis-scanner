@@ -22,6 +22,10 @@ enum MatchMath {
     static let pinPrintCosine = 0.80
     static let liveBlendBuiltIn = 0.35
     static let liveBlendContinuity = 0.20
+    /// Burst derselben Pose in der Galerie, nicht zweite Aufnahme.
+    static let pruneCosine = 0.98
+    static let nameVoteFrames = 3
+    static let liveScoreAlpha = 0.35
 
     static func activeSharpnessFloor(continuity: Bool) -> Double {
         continuity ? continuitySharpnessFloor : sharpnessFloor
@@ -57,6 +61,53 @@ enum MatchMath {
     /// Nahezu identischer Print — Burst-Kopie, nicht neue Pose.
     static func ingestDuplicate(cosine: Double, floor: Double = ingestDuplicateCosine) -> Bool {
         cosine > floor
+    }
+
+    /// Zwei Refs derselben Person, Cosine > 0,98 — Burst, nicht zweite Pose.
+    static func isNearDuplicate(cosine: Double, floor: Double = pruneCosine) -> Bool {
+        cosine > floor
+    }
+
+    /// nil = behalte beide. true = Incoming schärfer (alte raus). false = alte schärfer.
+    static func pruneKeepIncoming(
+        cosine: Double,
+        incomingSharp: Double,
+        existingSharp: Double,
+        floor: Double = pruneCosine
+    ) -> Bool? {
+        guard cosine > floor else { return nil }
+        return incomingSharp >= existingSharp
+    }
+
+    /// Mehrheit der letzten 3 Namen. Gleichstand → der ältere (erster im Fenster).
+    static func nameMajority(_ history: [String], window: Int = nameVoteFrames) -> String? {
+        let slice = Array(history.suffix(max(1, window)))
+        guard !slice.isEmpty else { return nil }
+        var counts: [String: Int] = [:]
+        for n in slice { counts[n, default: 0] += 1 }
+        let ranked = counts.sorted { lhs, rhs in
+            if lhs.value != rhs.value { return lhs.value > rhs.value }
+            let i = slice.firstIndex(of: lhs.key) ?? 0
+            let j = slice.firstIndex(of: rhs.key) ?? 0
+            return i < j
+        }
+        return ranked.first?.key
+    }
+
+    /// Live-Percent: erster Tick roh, danach EMA. Sonst flackert der Badge.
+    static func liveScoreEMA(prev: Double?, next: Double, alpha: Double = liveScoreAlpha) -> Double {
+        guard let prev else { return next }
+        let a = min(1, max(0, alpha))
+        return a * next + (1 - a) * prev
+    }
+
+    /// Geo darf einen starken Print nicht kippen. Kleidung/Haare sind nicht Identität.
+    /// true = Zuordnung blocken.
+    static func geoVetoBlocks(geoAgrees: Bool, geoMix: Double, printPercent: Double) -> Bool {
+        if geoAgrees { return false }
+        if printPercent >= 90 { return geoMix < 22 }
+        if printPercent >= 84 { return geoMix < 35 }
+        return geoMix < 42 && printPercent < 94
     }
 
     static func pinByPrint(cosine: Double, floor: Double = pinPrintCosine) -> Bool {

@@ -1,6 +1,18 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.18 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.19 alpha**. Nur `main`. `bugfix` ist Altlast — fehlende Helfer (Namensmehrheit, Score-EMA, Prune) sind nachgezogen, der Branch nicht fortgesetzt.
+
+## In 2.1.19 wirklich im Code
+
+Warum 2.1.18 Live zwischen Geschwistern sprang und Jacken taufte: `rematchLive` schrieb jeden Frame den Roh-Namen. `fusedOf` nahm TER-Fusion (lookRow 0,40 + geoRow 0,26 + graph 0,14 + texture 0,03) — Geometrie doppelt, Kleidung als Identität. `decide` blockte `!geoAgrees && geoMix < 42 && percent < 94`. `graphBiomarkers` 4× Jacobi + Floyd–Warshall pro Live-Gesicht. `.bak` ohne UI.
+
+1. **`nameMajority` 3 Ticks** + **`liveScoreEMA` 0,35** in `stabilizeLiveMatches`.
+2. **`.aegis` = `lookOf`**, sobald Print gemessen. TER bleibt Anzeige-Spur.
+3. **`geoVetoBlocks`.** 90 %+ Print nur bei Geo < 22, 84 %+ bei Geo < 35.
+4. **`cheapGraphBiomarkers`** im Live-Detect (kein Jacobi).
+5. **Backup-Taste** lädt `gallery.json.bak`.
+6. **`pruneKeepIncoming`** beim `+` (Cosine > 0,98, Schärfere bleibt).
+7. MARKETING_VERSION 2.1.19 (Build 47).
 
 ## In 2.1.18 wirklich im Code
 
@@ -35,6 +47,9 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - Labor: Genuine-vs-U ohne Full-Paare extra Zeile (ForcedPartial).
 - `boxEuro` hart leeren wenn `cameraUniqueID` wechselt (Reconnect in derselben Session).
 - Snapshot-Live-Kopie `mediaId` in einer unsichtbaren Gallery-Media-Row, sonst Browse zählt sie nicht.
+- TER-Fusion in der Strategie-Liste als Diagnose, Default aus — `.aegis` braucht sie nicht mehr zum Taufen.
+- Jacobi nur noch im Labor / Still, nie Live. Cheap-Graph auch bei Scan-Tiles.
+- Restore bestätigt, wenn Backup älter als 7 Tage oder andere printRevision.
 
 ## Erweiterungen
 
@@ -65,7 +80,6 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - **Continuity uniqueID-Liste.** Manuell markieren, falls Desk-View nicht als Continuity erkannt wird.
 - **Yaw aus Landmarks**, wenn `face.yaw` 0 und Vision keine Pose lieferte.
 - **Box-1-Euro minCutoff** nach mittlerem Frame-dt (8 fps vs 24 fps) — Filter hat dt, Cutoff ist fest.
-- **Gallery-Restore.** UI „letzte gallery.json.bak laden“ nach kaputtem Save.
 - **Print-Drift-Spark.** Overlay-Linie Cosine zum Centroid über 8 Frames.
 - **Leave-one-identity-out Labor.** Neben Leave-one-photo, damit 2-Personen-Galerien nicht sich selbst messen.
 - **Live-Match nur Centroids.** `rematchLive` soll nicht jedes Ref-Foto neu scoren — ein Dot pro Identität.
@@ -75,6 +89,12 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - **HEIC-Gain-Map** als Capture-Qualität, nicht nur Laplacian.
 - **Identität umbenennen** in der Liste (jetzt nur löschen + neu).
 - **Export Labor als CSV-Datei**, nicht nur Textfeld.
+- **Live-Centroid-Cache.** Ein Print-Vektor pro Identität im RAM, nicht `bestPrintPercent` gegen jedes Ref-Foto.
+- **Score-Kalibrierung live.** Platt auf den letzten 200 Live-Ticks, Slider nur Bias.
+- **Geschwister-Hold.** Wenn familyBump greift, Mehrheit 5 Ticks statt 3.
+- **Cheap-Graph auch Still**, wenn graphBio aus ist — Detect soll die Spur nicht trotzdem rechnen.
+- **Overlay: „warum nicht getauft“.** geoVeto / zFloor / soloFloor als eine Zeile, nicht nur Prozent.
+- **Restore-Diff.** Backup vs. aktuell: welche IDs kämen zurück, bevor überschrieben wird.
 
 ## Nicht tun
 
@@ -110,3 +130,6 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - Live-Track in der Overlay-Liste lassen, wenn `found.isEmpty`.
 - Pin-Print unter 0,80.
 - Leftover-IoU 0,08.
+- TER-Fusion wieder in `.aegis` mischen. lookOf ist der Score.
+- Geo-Veto 42/94 gegen starke Prints.
+- 4× Jacobi pro Webcam-Frame.

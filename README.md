@@ -1,4 +1,4 @@
-# Aegis **2.1.18 alpha**
+# Aegis **2.1.19 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,17 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.19 alpha
+
+2.1.18 hat Geister-Kisten und Pin-Print 0,80 — Live taufte trotzdem Geschwister um, weil `rematchLive` jedes Frame den Roh-Namen schrieb. `.aegis` remixte lookOf nochmal mit Geo/Graph/Textur (Kleidung = Identität). Geo-Veto kippte 93 %-Prints. Jeder Live-Frame lief 4 Jacobi-Eigensolver + Floyd–Warshall. `gallery.json.bak` existierte ohne Taste.
+
+- **3-Tick-Namensmehrheit + Score-EMA** auf Live (von `bugfix` 2.1.15, auf `main`).
+- **`.aegis` print-led.** `lookOf` ist der Score, sobald ein Face-Print da ist. TER-Fusion bleibt eigene Spur, tauft nicht.
+- **Geo-Veto weich.** 90 %+ Print braucht Geo < 22 zum Blocken, nicht 42/94.
+- **Live-Graph billig.** Distanz-Statistik, kein Jacobi pro Webcam-Frame.
+- **Gallery-Restore.** Taste „Backup“ lädt `gallery.json.bak`.
+- **Burst-Prune beim +.** Cosine > 0,98 ersetzt die unschärfere Kopie.
 
 ## Neu in 2.1.18 alpha
 

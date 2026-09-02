@@ -53,6 +53,8 @@ final class LibraryStore: ObservableObject {
     private var reconnectGhosts: [FaceObservation] = []
     private var boxEuro: [UUID: (x: MatchMath.OneEuro, y: MatchMath.OneEuro, w: MatchMath.OneEuro, h: MatchMath.OneEuro)] = [:]
     private var boxJumpPending: [UUID: FaceBox] = [:]
+    private var liveNameHist: [UUID: [String]] = [:]
+    private var liveScoreEma: [UUID: Double] = [:]
 
     init() {
         let packed = GalleryFile.load()
@@ -75,6 +77,22 @@ final class LibraryStore: ObservableObject {
 
     private func persist() {
         GalleryFile.save(identities: identities, faces: faces)
+    }
+
+    var canRestoreBackup: Bool { GalleryFile.backupExists }
+
+    func restoreFromBackup() {
+        guard let packed = GalleryFile.loadBackup() else {
+            status = "Kein gallery.json.bak"
+            return
+        }
+        identities = packed.identities
+        faces = packed.faces
+        liveNameHist = [:]
+        liveScoreEma = [:]
+        rematch()
+        persist()
+        status = "Galerie aus Backup · \(identities.count) Personen · \(faces.count) Gesichter"
     }
 
     var selectedMedia: MediaItem? {
@@ -519,6 +537,40 @@ final class LibraryStore: ObservableObject {
         )
         let probeIds = Set(live.map(\.id))
         matches = matches.filter { !probeIds.contains($0.faceId) } + next.filter { probeIds.contains($0.faceId) }
+        stabilizeLiveMatches()
+    }
+
+    /// Live: 3-Tick-Namensmehrheit + Score-EMA, sonst flackert Overlay zwischen Geschwistern.
+    private func stabilizeLiveMatches() {
+        guard liveActive, let liveId = liveMediaId else { return }
+        let liveFaceIds = Set(faces.filter { $0.mediaId == liveId }.map(\.id))
+        liveNameHist = liveNameHist.filter { liveFaceIds.contains($0.key) }
+        liveScoreEma = liveScoreEma.filter { liveFaceIds.contains($0.key) }
+        for i in matches.indices {
+            let fid = matches[i].faceId
+            guard liveFaceIds.contains(fid),
+                  let hi = matches[i].hits.firstIndex(where: { $0.strategy == .aegis })
+            else { continue }
+            var hit = matches[i].hits[hi]
+            let token = hit.identityId?.uuidString ?? ""
+            var hist = liveNameHist[fid] ?? []
+            hist.append(token)
+            if hist.count > MatchMath.nameVoteFrames {
+                hist.removeFirst(hist.count - MatchMath.nameVoteFrames)
+            }
+            liveNameHist[fid] = hist
+            if let voted = MatchMath.nameMajority(hist) {
+                if voted.isEmpty {
+                    hit.identityId = nil
+                } else if let ident = identities.first(where: { $0.id.uuidString == voted }) {
+                    hit.identityId = ident.id
+                }
+            }
+            let ema = MatchMath.liveScoreEMA(prev: liveScoreEma[fid], next: hit.percent)
+            liveScoreEma[fid] = ema
+            hit.percent = ema
+            matches[i].hits[hi] = hit
+        }
     }
 
     private func stampEnrolled(_ faceId: UUID) {
@@ -623,6 +675,28 @@ final class LibraryStore: ObservableObject {
             status = why
             dropOrphanSnapshot(face, original: raw)
             return
+        }
+        let incoming = FaceEngine.embedding(of: face)
+        if incoming.count >= 32 {
+            for existingId in identities[idx].faceIds {
+                guard let old = faces.first(where: { $0.id == existingId }) else { continue }
+                let ov = FaceEngine.embedding(of: old)
+                guard ov.count == incoming.count else { continue }
+                let c = MatchMath.cosine(incoming, ov)
+                if let keepNew = MatchMath.pruneKeepIncoming(
+                    cosine: c,
+                    incomingSharp: face.quality.sharpness,
+                    existingSharp: old.quality.sharpness
+                ) {
+                    if keepNew {
+                        identities[idx].faceIds.removeAll { $0 == old.id }
+                    } else {
+                        dropOrphanSnapshot(face, original: raw)
+                        status = "Burst-Duplikat — schärfere Referenz von \(identities[idx].name) bleibt"
+                        return
+                    }
+                }
+            }
         }
         var note = ""
         if let warn = FaceEngine.poseCoverageWarning(adding: face, to: identities[idx], faces: faces) {
@@ -765,6 +839,8 @@ final class LibraryStore: ObservableObject {
         maskHoldSince.removeAll()
         lastUSlotHint = 0
         boxJumpPending.removeAll()
+        liveNameHist = [:]
+        liveScoreEma = [:]
         liveCapture.stop()
         liveActive = false
         if let id = liveMediaId {
@@ -832,7 +908,7 @@ final class LibraryStore: ObservableObject {
     private func runLiveDetect(_ image: CGImage, mediaId: UUID) {
         let cont = liveCapture.isContinuity
         Task.detached(priority: .userInitiated) {
-            let found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont)) ?? []
+            let found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true)) ?? []
             await MainActor.run { [weak self] in
                 guard let self else { return }
                 if !self.liveActive || self.liveMediaId != mediaId {

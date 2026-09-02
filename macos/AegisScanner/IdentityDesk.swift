@@ -31,14 +31,26 @@ enum GalleryFile {
     }
 
     static func load() -> (identities: [Identity], faces: [FaceObservation], printRevision: String?) {
-        guard let data = try? Data(contentsOf: url) else { return ([], [], nil) }
+        decode(url) ?? ([], [], nil)
+    }
+
+    static var backupExists: Bool {
+        FileManager.default.fileExists(atPath: backupURL.path)
+    }
+
+    static func loadBackup() -> (identities: [Identity], faces: [FaceObservation], printRevision: String?)? {
+        decode(backupURL)
+    }
+
+    private static func decode(_ file: URL) -> (identities: [Identity], faces: [FaceObservation], printRevision: String?)? {
+        guard let data = try? Data(contentsOf: file) else { return nil }
         if let payload = try? JSONDecoder().decode(GalleryPayload.self, from: data) {
             return (payload.identities, payload.faces, payload.printRevision)
         }
         if let identities = try? JSONDecoder().decode([Identity].self, from: data) {
             return (identities, [], nil)
         }
-        return ([], [], nil)
+        return nil
     }
 
     static func save(identities: [Identity], faces: [FaceObservation]) {

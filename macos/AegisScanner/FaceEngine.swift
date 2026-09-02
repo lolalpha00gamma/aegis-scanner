@@ -11,10 +11,10 @@ enum FaceEngine {
         return _dropped
     }
 
-    static func detect(in image: CGImage, mediaId: UUID, tiles: Bool = true, orientation: CGImagePropertyOrientation = .up, minSharpness: Double = MatchMath.sharpnessFloor, continuity: Bool = false) throws -> [FaceObservation] {
+    static func detect(in image: CGImage, mediaId: UUID, tiles: Bool = true, orientation: CGImagePropertyOrientation = .up, minSharpness: Double = MatchMath.sharpnessFloor, continuity: Bool = false, cheapGraph: Bool = false) throws -> [FaceObservation] {
         let w = Double(image.width)
         let h = Double(image.height)
-        var out = try detectOnce(in: image, mediaId: mediaId, originX: 0, originY: 0, imageWidth: w, imageHeight: h, orientation: orientation)
+        var out = try detectOnce(in: image, mediaId: mediaId, originX: 0, originY: 0, imageWidth: w, imageHeight: h, orientation: orientation, cheapGraph: cheapGraph)
         let stats = lumaStats(image)
         if stats.dark || out.isEmpty, let lifted = equalize(image) {
             let extra = try detectOnce(
@@ -25,7 +25,8 @@ enum FaceEngine {
                 imageWidth: w,
                 imageHeight: h,
                 minConfidence: out.isEmpty ? 0.12 : 0.15,
-                orientation: orientation
+                orientation: orientation,
+                cheapGraph: cheapGraph
             )
             if stats.dark {
                 out = extra + out
@@ -60,7 +61,8 @@ enum FaceEngine {
                     imageWidth: w,
                     imageHeight: h,
                     minConfidence: stats.dark ? 0.12 : 0.15,
-                    orientation: orientation
+                    orientation: orientation,
+                    cheapGraph: cheapGraph
                 )
                 out.append(contentsOf: found)
             }
@@ -76,7 +78,8 @@ enum FaceEngine {
         imageWidth: Double,
         imageHeight: Double,
         minConfidence: Float = 0.15,
-        orientation: CGImagePropertyOrientation = .up
+        orientation: CGImagePropertyOrientation = .up,
+        cheapGraph: Bool = false
     ) throws -> [FaceObservation] {
         let handler = VNImageRequestHandler(cgImage: image, orientation: orientation, options: [:])
         let facesReq = VNDetectFaceRectanglesRequest()
@@ -199,7 +202,9 @@ enum FaceEngine {
                     aligned: aligned,
                     featurePrint: printData,
                     appearance: appearance,
-                    graph: graphBiomarkers(bone.isEmpty ? points : bone),
+                    graph: cheapGraph
+                        ? cheapGraphBiomarkers(bone.isEmpty ? points : bone)
+                        : graphBiomarkers(bone.isEmpty ? points : bone),
                     geom3d: FaceShape3D.descriptor(named: namedAligned, yaw: yaw, pitch: pitch),
                     quality: FaceQuality(
                         sharpness: sharpness,
@@ -507,6 +512,9 @@ enum FaceEngine {
                 return i < terFused.count ? terFused[i] : 0
             }, floors: floors))
             func fusedOf(_ id: UUID) -> Double {
+                if printOn {
+                    return lookOfId(id)
+                }
                 if enabled.contains(.terFusion),
                    let i = ids.firstIndex(of: id),
                    i < terFused.count {
@@ -835,7 +843,7 @@ enum FaceEngine {
         if lowCapture {
             return (nil, String(format: "Aufnahme zu schwach für eine Zuordnung, Nähe %.0f%%.", percent))
         }
-        if !geoAgrees, geoMix < 42, percent < 94 {
+        if MatchMath.geoVetoBlocks(geoAgrees: geoAgrees, geoMix: geoMix, printPercent: percent) {
             return (nil, String(format: "Maße widersprechen (%.0f%%, Abstand %.1f). Print allein reicht nicht.", geoMix, geoMargin))
         }
         if secondName == nil {
@@ -2277,6 +2285,38 @@ enum FaceEngine {
             cy / h,
             cx / w,
         ])
+    }
+
+    /// Live: Distanz-Statistik ohne 4 Jacobi + Floyd–Warshall pro Frame.
+    private static func cheapGraphBiomarkers(_ pts: [Point2]) -> [Double] {
+        let n = pts.count
+        guard n >= 8 else { return [] }
+        var sum = 0.0
+        var maxd = 1e-9
+        var count = 0
+        var cx = 0.0
+        var cy = 0.0
+        for p in pts {
+            cx += p.x
+            cy += p.y
+        }
+        cx /= Double(n)
+        cy /= Double(n)
+        var radial = 0.0
+        for p in pts {
+            radial += hypot(p.x - cx, p.y - cy)
+        }
+        radial /= Double(n)
+        for i in 0 ..< n {
+            for j in (i + 1) ..< n {
+                let d = hypot(pts[i].x - pts[j].x, pts[i].y - pts[j].y)
+                sum += d
+                count += 1
+                if d > maxd { maxd = d }
+            }
+        }
+        let mean = count > 0 ? sum / Double(count) : 0
+        return l2([mean, maxd, radial, Double(n), mean / maxd])
     }
 
     private static func graphBiomarkers(_ pts: [Point2]) -> [Double] {

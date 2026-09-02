@@ -57,6 +57,22 @@ enum MatchMathTests {
         let agree = MatchMath.lookOf(geo: 90, embed: 92, pose: 1, printMeasured: true)
         ok(agree > 92 && agree <= 96, "Print führt, Geo gibt bis +4 (ist \(agree))")
 
+        ok(MatchMath.pruneKeepIncoming(cosine: 0.99, incomingSharp: 0.40, existingSharp: 0.20) == true, "schärfere Incoming ersetzt")
+        ok(MatchMath.pruneKeepIncoming(cosine: 0.99, incomingSharp: 0.10, existingSharp: 0.40) == false, "unscharfe Incoming raus")
+        ok(MatchMath.pruneKeepIncoming(cosine: 0.90, incomingSharp: 0.40, existingSharp: 0.10) == nil, "0,90 kein Prune")
+        ok(MatchMath.nameMajority(["A", "A", "B"]) == "A", "Namens-Mehrheit 2 von 3")
+        ok(MatchMath.nameMajority(["A", "B", "B"]) == "B", "wechselt nach 2 Ticks")
+        ok(MatchMath.nameMajority(["A", "B", "A"]) == "A", "Gleichstand → älteres A")
+        ok(MatchMath.nameMajority(["A"]) == "A", "ein Tick")
+        ok(MatchMath.nameMajority([]) == nil, "leere History")
+        near(MatchMath.liveScoreEMA(prev: nil, next: 90), 90, 0.01, "erster Score roh")
+        near(MatchMath.liveScoreEMA(prev: 90, next: 10, alpha: 0.35), 0.35 * 10 + 0.65 * 90, 0.01, "EMA dämpft Sprung")
+        ok(!MatchMath.geoVetoBlocks(geoAgrees: true, geoMix: 20, printPercent: 80), "einig kein Veto")
+        ok(!MatchMath.geoVetoBlocks(geoAgrees: false, geoMix: 40, printPercent: 93), "93 % Print trotz Geo 40")
+        ok(MatchMath.geoVetoBlocks(geoAgrees: false, geoMix: 18, printPercent: 93), "93 % Print tot bei Geo 18")
+        ok(MatchMath.geoVetoBlocks(geoAgrees: false, geoMix: 30, printPercent: 80), "schwacher Print + Geo 30")
+        ok(!MatchMath.geoVetoBlocks(geoAgrees: false, geoMix: 50, printPercent: 80), "Geo 50 kein Veto")
+
         let unit = MatchMath.l2normalize([3, 4])
         near(hypot(unit[0], unit[1]), 1, 0.001, "L2")
 

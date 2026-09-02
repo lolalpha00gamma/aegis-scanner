@@ -56,6 +56,10 @@ struct ContentView: View {
             if store.canResumeScan, !store.busy {
                 Button("Fortsetzen") { store.resumeScan() }
             }
+            if store.canRestoreBackup, !store.busy {
+                Button("Backup") { store.restoreFromBackup() }
+                    .help("Letzte gallery.json.bak laden — nach kaputtem Save.")
+            }
             Button("CSV") { store.exportCSV() }
                 .disabled(store.matches.isEmpty)
             Button("Labor") { store.exportLab() }
