@@ -136,6 +136,18 @@ enum MatchMath {
         iou > floor
     }
 
+    /// Leftover darf keine schon eingeschriebene adopted-Box überschreiben.
+    static func leftoverAdoptAllowed(adoptedEnrolled: Bool) -> Bool {
+        !adoptedEnrolled
+    }
+
+    /// IoU darf eine UUID nicht setzen, wenn der Print gemessen und unter pinPrintCosine liegt.
+    /// nil = kein Print → IoU darf (Hysterese).
+    static func iouPrintBlocks(cosine: Double?, floor: Double = pinPrintCosine) -> Bool {
+        guard let cosine else { return false }
+        return cosine < floor
+    }
+
     static func trackPin(iou: Double, enrolled: Bool) -> Bool {
         iou >= (enrolled ? trackPinIoU : leftoverIoU)
     }
@@ -143,6 +155,59 @@ enum MatchMath {
     /// Overlay-Warnung „andere Person“ — Genuine-Cosine 0,62 darf nicht feuern.
     static func overlayAlienHint(cosine: Double, floor: Double = hintCosineFloor) -> Bool {
         cosine < floor
+    }
+
+    /// Overlay: erste Klausel der decide-Notiz. Volle Zeile bleibt in der Seitenliste.
+    static func overlayNoteFirst(_ note: String) -> String {
+        let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return trimmed }
+        if let r = trimmed.range(of: " — ") {
+            return String(trimmed[..<r.lowerBound])
+        }
+        if let r = trimmed.range(of: ". ") {
+            return String(trimmed[..<r.lowerBound])
+        }
+        return trimmed
+    }
+
+    /// Landmark-Verhältnisse, nicht L2. 100 = identisch, 0 = tot.
+    static func ratioPercent(_ a: [Double], _ b: [Double]) -> Double {
+        let n = min(a.count, b.count)
+        guard n > 0 else { return 0 }
+        var s = 0.0
+        for i in 0 ..< n {
+            let denom = max(abs(a[i]), abs(b[i]), 0.08)
+            s += abs(a[i] - b[i]) / denom
+        }
+        let mre = s / Double(n)
+        return 100.0 / (1.0 + exp(28.0 * (mre - 0.18)))
+    }
+
+    /// Komponenten-Median ohne L2 — für ratioSheet, nicht Face-Print.
+    static func medianComponents(_ vectors: [[Double]]) -> [Double] {
+        let pool = vectors.filter { !$0.isEmpty }
+        guard let dim = pool.first?.count else { return [] }
+        let aligned = pool.filter { $0.count == dim }
+        guard !aligned.isEmpty else { return [] }
+        if aligned.count == 1 { return aligned[0] }
+        var out = [Double](repeating: 0, count: dim)
+        var col = [Double](repeating: 0, count: aligned.count)
+        for i in 0 ..< dim {
+            for (j, v) in aligned.enumerated() { col[j] = v[i] }
+            col.sort()
+            if col.count % 2 == 1 {
+                out[i] = col[col.count / 2]
+            } else {
+                out[i] = (col[col.count / 2 - 1] + col[col.count / 2]) / 2
+            }
+        }
+        return out
+    }
+
+    /// Fehlende Geo darf nicht vetoen. Sonst Print-Gewinner vs. Geo-Gewinner.
+    static func liveGeoAgrees(printBest: UUID?, geoBest: UUID?, geoAvailable: Bool) -> Bool {
+        if !geoAvailable { return true }
+        return printBest != nil && printBest == geoBest
     }
 
     /// 8 fps vs 24 fps: höherer Cutoff bei großem dt, sonst hängt die Box einen Frame hinterher.

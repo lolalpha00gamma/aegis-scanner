@@ -1,4 +1,4 @@
-# Aegis **2.1.22 alpha**
+# Aegis **2.1.23 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.23 alpha
+
+2.1.22 hat Track-Pin 0,28 — Live taufte trotzdem, weil **Geo-Veto tot war** (`geoAgrees` immer true, `geoMix` = Print-Prozent). Leftover klebte eingeschriebene UUIDs auf den Nachbarn. IoU setzte die ID auch bei Print-Cosine 0,45.
+
+- **`matchLive` echte Landmark-Geo** (Median der Identitäts-Maße). Fehlende Geo vetoiert nicht.
+- **Leftover nur namenlose Boxen**, plus Print-Veto wie IoU.
+- **IoU stiehlt die UUID nicht**, wenn Cosine gemessen und unter 0,80 liegt. 1-Euro der falschen Kiste wird geleert.
+- Overlay zeigt die **erste Klausel** der decide-Notiz, nicht den Roman.
 
 ## Neu in 2.1.22 alpha
 

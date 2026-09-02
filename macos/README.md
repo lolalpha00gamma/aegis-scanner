@@ -1,7 +1,7 @@
 # Aegis
 
 Lokaler Image- & Video-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**  
-Version **2.1.21 alpha**.
+Version **2.1.23 alpha**.
 
 ## Image-Datei
 
@@ -12,6 +12,10 @@ Version **2.1.21 alpha**.
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Die Datei ist ad-hoc signiert (kein Apple-Developer-Account) — deshalb der Rechtsklick beim ersten Start.
+
+## Neu in 2.1.23 alpha
+
+Live-Geo ist echt (Median der Identitäts-Maße, nicht Print-Prozent). Leftover nur namenlose Boxen. IoU setzt keine UUID bei Print-Cosine unter 0,80. Overlay erste Klausel.
 
 ## Neu in 2.1.21 alpha
 

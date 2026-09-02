@@ -1,6 +1,17 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.22 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.23 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.23 wirklich im Code
+
+2.1.22 hat Track-Pin 0,28 und liveCentroid 72/28 — Geo-Veto war trotzdem tot: `matchLive` fakte `geoAgrees: true` / `geoMix: printPercent`. Leftover klebte enrolled UUIDs auf jede namenlose Box (Nachbar erbt). IoU setzte die UUID auch bei Print-Cosine 0,45. Overlay kippte die volle decide-Zeile in die Kiste.
+
+1. **`matchLive` echte Landmark-Geo.** Median der `ratioSheet`-Identitätsmaße vs. Sonde. `geoAgrees` / `geoMix` ehrlich. Fehlende Geo → kein Veto (`liveGeoAgrees`).
+2. **Leftover nur namenlos.** `leftoverAdoptAllowed` — schon eingeschriebene adopted-Boxen bleiben. Print-Veto wie IoU.
+3. **IoU stiehlt nicht** wenn Cosine gemessen und `< pinPrintCosine`. `iouPrintBlocks`. Euro der falschen UUID wird geleert.
+4. **`overlayNoteFirst`:** erste Klausel im Overlay, volle Notiz in der Seitenliste.
+5. `ratioPercent` / `medianComponents` in MatchMath — dieselbe Kurve wie Still-`ratioScore`.
+6. MARKETING_VERSION 2.1.23 (Build 51), `Models.swift` + `VERSION` gleich.
 
 ## In 2.1.22 wirklich im Code
 
@@ -87,9 +98,10 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - TER-Fusion in der Strategie-Liste als Diagnose, Default aus — `.aegis` braucht sie nicht mehr zum Taufen.
 - Jacobi nur noch im Labor / Still, nie Live. Cheap-Graph auch bei Scan-Tiles.
 - Restore bestätigt, wenn Backup älter als 7 Tage oder andere printRevision.
-- **`matchLive` echte Landmark-Geo** statt `geoAgrees: true` / `geoMix: percent`. Median-Shape der Refs, sonst bleibt Geo-Veto tot.
-- **Leftover nur auf namenlose adopted-Boxen.** Zweiter Pass darf keine schon gematchte UUID überschreiben.
-- Overlay-Notiz kürzen (erste Klausel), volle decide-Zeile nur in der Seitenliste.
+- Live-Geo-Spark neben C/S/Y (eine Zahl, Median-Maße vs. gewählter Centroid).
+- `ratioSheet` im Live-Pfad nur Identitätszeilen, Mimik gar nicht erst rechnen.
+- Leftover-Pin loggen (Status eine Zeile), sonst bleibt UUID-Sprung unsichtbar.
+- boxEuro Reset auch wenn IoU hält aber Hysterese die Box der Vorperson zeigt — Print-Pin gewinnt in dem Frame.
 
 ## Erweiterungen
 
@@ -136,9 +148,14 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - **Licht-Eimer.** Tags Tag/Kunstlicht/Nacht am Face, Match bevorzugt denselben Eimer.
 - **Match-Log JSONL** (Tick, UUID, lookOf, geoMix, decide-Notiz) für Labor nach der Session.
 - **Hard-Neg „gleiche Jacke“.** Texture-Hit ohne Print → explizit ablehnen.
-- **Track-ID über Print, Box nur Hysterese.** IoU darf nie mehr eine fremde UUID setzen, wenn Cosine < `pinPrintCosine`.
 - **Labor TAR@FAR live-simuliert:** letzte 50 Webcam-Prints gegen die Galerie, nicht nur Still-Fotos.
-- **Box-Euro Reset** wenn IoU-Hold springt und Print-Pin eine andere UUID will — Ghost-Box der Vorperson.
+- **Geo-Veto-Log.** Eine Zeile im Overlay wenn Maße blocken, nicht nur „nicht zugeordnet“.
+- **Per-Identität leftover.** Nur die UUID, deren Centroid am nächsten liegt, darf leftover — nie die älteste.
+- **Track-ID entkoppelt von Face-UUID.** Live-Track `T…`, Galerie bleibt Snapshot-UUID — Anlegen kann nicht mehr den Track umbiegen.
+- **ratioSheet Cache** am Identity-Modell, nicht jedes Live-Frame neu medianen.
+- **Yaw-bin Geo.** ¾-Refs nur gegen ¾-Sonden, sonst Profile zerstören den Median.
+- **Print-first Matcher** als eigene Strategy-Hit-Zeile im Live (nicht nur .aegis), zum Debug.
+- **Box-Hysterese + Print-Pin in einem Pass.** Jetzt IoU dann Print; bei Uneinigkeit zwei Frames UUID-Flackern.
 
 ## Nicht tun
 
@@ -184,3 +201,7 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - Enrolled-Track-IoU wieder 0,12.
 - Overlay „andere Person“ bei Cosine 0,88.
 - `matchLive` immer `continuity: false`.
+- `matchLive` `geoAgrees: true` / `geoMix: printPercent` faken.
+- Leftover auf schon gematchte/enrolled Boxen.
+- IoU-UUID setzen bei Cosine < `pinPrintCosine`.
+- Volle decide-Notiz in die Overlay-Kiste.

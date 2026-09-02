@@ -720,7 +720,7 @@ struct FaceOverlay: View {
             return "nicht gemessen"
         }
         if let note = hit?.note, !note.isEmpty {
-            return note
+            return MatchMath.overlayNoteFirst(note)
         }
         return "nicht zugeordnet"
     }

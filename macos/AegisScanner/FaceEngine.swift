@@ -604,14 +604,18 @@ enum FaceEngine {
     ) -> [MatchResult] {
         let f = MatchMath.floors(gallery: identities.count, slider: threshold)
         let floors = Floors(match: f.match, solo: f.solo)
-        let models: [(id: UUID, name: String, vec: [Double])] = identities.map { ident in
+        let models: [(id: UUID, name: String, vec: [Double], ratios: [Double])] = identities.map { ident in
             let owned = gallery.filter { ident.faceIds.contains($0.id) }
-            return (ident.id, ident.name, liveCentroid(owned))
+            let ratioPool = owned.map { $0.ratioSheet.filter(\.identity).map(\.value) }.filter { !$0.isEmpty }
+            return (ident.id, ident.name, liveCentroid(owned), MatchMath.medianComponents(ratioPool))
         }
         return probes.map { face in
             let pv = embedding(of: face)
+            let probeRatios = face.ratioSheet.filter(\.identity).map(\.value)
             var versus: [IdentityScore] = []
             versus.reserveCapacity(models.count)
+            var geoVersus: [(id: UUID, percent: Double)] = []
+            geoVersus.reserveCapacity(models.count)
             for m in models {
                 let pct: Double
                 if pv.count >= 32, m.vec.count == pv.count {
@@ -620,11 +624,21 @@ enum FaceEngine {
                     pct = 0
                 }
                 versus.append(IdentityScore(identityId: m.id, percent: pct))
+                let geo = MatchMath.ratioPercent(probeRatios, m.ratios)
+                geoVersus.append((m.id, geo))
             }
             versus.sort { $0.percent > $1.percent }
+            geoVersus.sort { $0.percent > $1.percent }
             let best = versus.first
             let second = versus.dropFirst().first
             let margin = (best?.percent ?? 0) - (second?.percent ?? 0)
+            let geoAvailable = !probeRatios.isEmpty && geoVersus.contains { $0.percent > 0 }
+            let geoBest = geoVersus.first
+            let geoMix: Double = {
+                guard geoAvailable, let id = best?.identityId else { return 100 }
+                return geoVersus.first { $0.id == id }?.percent ?? 0
+            }()
+            let geoMargin = (geoBest?.percent ?? 0) - (geoVersus.dropFirst().first?.percent ?? 0)
             let bump: Double = {
                 guard let a = best?.identityId, let b = second?.identityId,
                       let va = models.first(where: { $0.id == a })?.vec,
@@ -640,11 +654,15 @@ enum FaceEngine {
                 bestId: best?.identityId,
                 bestName: models.first { $0.id == best?.identityId }?.name,
                 secondName: models.first { $0.id == second?.identityId }?.name,
-                geoAgrees: true,
-                geoMargin: margin,
+                geoAgrees: MatchMath.liveGeoAgrees(
+                    printBest: best?.identityId,
+                    geoBest: geoBest?.id,
+                    geoAvailable: geoAvailable
+                ),
+                geoMargin: geoAvailable ? geoMargin : margin,
                 lowCapture: tinyUnreliable(face.quality, continuity: continuity),
                 appearance: nil,
-                geoMix: best?.percent ?? 0,
+                geoMix: geoMix,
                 galleryZ: galleryZScore(best?.percent ?? 0, versus.dropFirst().map(\.percent)),
                 textureReliable: false,
                 evidence: best?.percent ?? 0,
@@ -1936,15 +1954,7 @@ enum FaceEngine {
     }
 
     private static func ratioScore(_ a: [Double], _ b: [Double]) -> Double {
-        let n = min(a.count, b.count)
-        guard n > 0 else { return 0 }
-        var s = 0.0
-        for i in 0 ..< n {
-            let denom = max(abs(a[i]), abs(b[i]), 0.08)
-            s += abs(a[i] - b[i]) / denom
-        }
-        let mre = s / Double(n)
-        return 100.0 / (1.0 + exp(28.0 * (mre - 0.18)))
+        MatchMath.ratioPercent(a, b)
     }
 
     private static func bestLandmarkPercent(_ probe: [Point2], _ gallery: [[Point2]]) -> Double {

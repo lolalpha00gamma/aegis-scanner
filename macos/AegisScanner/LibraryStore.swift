@@ -986,6 +986,7 @@ final class LibraryStore: ObservableObject {
         var adopted: [FaceObservation] = []
         adopted.reserveCapacity(found.count)
         for var face in found {
+            let probeVec = FaceEngine.embedding(of: face)
             var best: FaceObservation?
             var bestIoU = 0.0
             var bestEnrolled = false
@@ -993,6 +994,16 @@ final class LibraryStore: ObservableObject {
                 let o = FaceEngine.iou(old.box, face.box)
                 let pin = enrolled.contains(old.id)
                 guard MatchMath.trackPin(iou: o, enrolled: pin) else { continue }
+                let ov = old.printVec.count >= 32 ? old.printVec : FaceEngine.embedding(of: old)
+                let cosine: Double? = {
+                    if probeVec.count >= 32, ov.count == probeVec.count { return MatchMath.cosine(probeVec, ov) }
+                    return nil
+                }()
+                if pin, MatchMath.iouPrintBlocks(cosine: cosine) {
+                    boxEuro.removeValue(forKey: old.id)
+                    boxJumpPending.removeValue(forKey: old.id)
+                    continue
+                }
                 if pin && !bestEnrolled {
                     best = old
                     bestIoU = o
@@ -1099,7 +1110,9 @@ final class LibraryStore: ObservableObject {
             for old in leftoverPinned {
                 var bestJ = -1
                 var bestD = MatchMath.leftoverIoU
-                for (j, face) in adopted.enumerated() where !used.contains(face.id) {
+                for (j, face) in adopted.enumerated() {
+                    guard MatchMath.leftoverAdoptAllowed(adoptedEnrolled: enrolled.contains(face.id)) else { continue }
+                    guard !used.contains(face.id) else { continue }
                     let o = FaceEngine.iou(old.box, face.box)
                     if o > bestD {
                         bestD = o
@@ -1107,6 +1120,16 @@ final class LibraryStore: ObservableObject {
                     }
                 }
                 if bestJ >= 0, MatchMath.leftoverPin(iou: bestD) {
+                    let incoming = adopted[bestJ]
+                    let v = FaceEngine.embedding(of: incoming)
+                    let ov = old.printVec.count >= 32 ? old.printVec : FaceEngine.embedding(of: old)
+                    let cosine: Double? = {
+                        if v.count >= 32, ov.count == v.count { return MatchMath.cosine(v, ov) }
+                        return nil
+                    }()
+                    if MatchMath.iouPrintBlocks(cosine: cosine) {
+                        continue
+                    }
                     used.insert(old.id)
                     adopted[bestJ].id = old.id
                     adopted[bestJ].trackId = old.trackId ?? old.id
