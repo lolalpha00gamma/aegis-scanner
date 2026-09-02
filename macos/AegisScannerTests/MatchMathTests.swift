@@ -137,6 +137,22 @@ enum MatchMathTests {
         ok(MatchMath.orientOverride("270") == "left", "Orient 270 = left")
         ok(MatchMath.orientOverride("0") == "up", "Orient 0 = up")
 
+        ok(MatchMath.boxHysteresisHold(iou: 0.20), "IoU 0,20 hält die Box")
+        ok(!MatchMath.boxHysteresisHold(iou: 0.50), "IoU 0,50 folgt sofort")
+        ok(MatchMath.boxHysteresisConfirm(iouToPending: 0.40), "zweites Frame bestätigt Sprung")
+        ok(!MatchMath.boxHysteresisConfirm(iouToPending: 0.10), "anderes Ziel bleibt pending")
+        ok(MatchMath.ingestDuplicate(cosine: 0.96), "Cosine 0,96 = Burst-Kopie")
+        ok(!MatchMath.ingestDuplicate(cosine: 0.90), "Cosine 0,90 bleibt zweite Pose")
+        near(MatchMath.ingestDuplicateCosine, 0.95, 0.001, "Ingest-Duplikat 0,95")
+        near(MatchMath.liveBlendAlpha(continuity: false), 0.35, 0.001, "Built-in Blend 0,35")
+        near(MatchMath.liveBlendAlpha(continuity: true), 0.20, 0.001, "Continuity Blend 0,20")
+        ok(!MatchMath.laborIncludesProbe(qualityRejected: true), "Labor ohne Unschärfe-Probe")
+        ok(MatchMath.laborIncludesProbe(qualityRejected: false), "Labor scharfe Probe")
+        ok(MatchMath.laborPairKind(probeMasked: true) == "genuine-mask", "Labor-Paar Maske")
+        let hist = MatchMath.scoreHistogram([10, 12, 90, 92, 91])
+        ok(hist.count == 10, "Histogramm 10 Bins (ist \(hist.count): \(hist))")
+        ok(hist.contains("█") || hist.contains("▇"), "Histogramm hat Peak")
+
         let genuineHi = [90.0, 92, 88, 85, 80, 78, 91, 87]
         let impostorLo = [40.0, 50, 60, 30, 20, 10, 5, 2, 1, 15]
         if let ci = MatchMath.tarBootstrap(atFar: 0.1, genuine: genuineHi, impostor: impostorLo, draws: 80, seed: 42) {

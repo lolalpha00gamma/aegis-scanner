@@ -52,6 +52,7 @@ final class LibraryStore: ObservableObject {
     private var liveGhosts: [(face: FaceObservation, until: TimeInterval)] = []
     private var reconnectGhosts: [FaceObservation] = []
     private var boxEuro: [UUID: (x: MatchMath.OneEuro, y: MatchMath.OneEuro, w: MatchMath.OneEuro, h: MatchMath.OneEuro)] = [:]
+    private var boxJumpPending: [UUID: FaceBox] = [:]
 
     init() {
         let packed = GalleryFile.load()
@@ -446,7 +447,7 @@ final class LibraryStore: ObservableObject {
                     canResumeScan = true
                     return
                 }
-                faces.append(contentsOf: found)
+                faces.append(contentsOf: FaceEngine.filterIngestDuplicates(found, existing: faces))
             } catch {
                 continue
             }
@@ -488,6 +489,34 @@ final class LibraryStore: ObservableObject {
             enabled: enabled,
             continuity: liveContinuity
         )
+    }
+
+    /// Live-Frame: nur Live-Sonden + Galerie-Refs, nicht die Scan-History.
+    func rematchLive() {
+        guard liveActive, let liveId = liveMediaId else {
+            rematch()
+            return
+        }
+        let enrolled = Set(identities.flatMap(\.faceIds))
+        let live = faces.filter { $0.mediaId == liveId }
+        let gallery = faces.filter { enrolled.contains($0.id) && $0.mediaId != liveId }
+        let subset = gallery + live
+        let next = FaceEngine.match(
+            faces: subset,
+            identities: identities,
+            media: media,
+            threshold: threshold,
+            enabled: enabled,
+            continuity: liveContinuity
+        )
+        let probeIds = Set(live.map(\.id))
+        matches = matches.filter { !probeIds.contains($0.faceId) } + next.filter { probeIds.contains($0.faceId) }
+    }
+
+    private func stampEnrolled(_ faceId: UUID) {
+        if let i = faces.firstIndex(where: { $0.id == faceId }), faces[i].enrolledAt == nil {
+            faces[i].enrolledAt = Date()
+        }
     }
 
     func setEnabled(_ id: StrategyID, _ on: Bool) {
@@ -538,6 +567,7 @@ final class LibraryStore: ObservableObject {
         let preview = FaceEngine.enrollmentPreview(face: face, identities: identities, faces: faces)
         let note = preview.isEmpty ? "" : " · \(preview)"
         identities.append(Identity(id: UUID(), name: name, faceIds: [face.id]))
+        stampEnrolled(face.id)
         newPersonName = ""
         selectedFaceId = face.id
         rematch()
@@ -583,6 +613,7 @@ final class LibraryStore: ObservableObject {
         if !identities[idx].faceIds.contains(face.id) {
             identities[idx].faceIds.append(face.id)
         }
+        stampEnrolled(face.id)
         rematch()
         persist()
         if preview.isEmpty {
@@ -623,6 +654,7 @@ final class LibraryStore: ObservableObject {
         if !identities[idx].faceIds.contains(face.id) {
             identities[idx].faceIds.append(face.id)
         }
+        stampEnrolled(face.id)
         rematch()
         persist()
         status = "Teil-Print (U) zu \(identities[idx].name)"
@@ -686,6 +718,7 @@ final class LibraryStore: ObservableObject {
         livePending = nil
         maskHoldSince.removeAll()
         lastUSlotHint = 0
+        boxJumpPending.removeAll()
         liveCapture.stop()
         liveActive = false
         if let id = liveMediaId {
@@ -829,6 +862,30 @@ final class LibraryStore: ObservableObject {
                 used.insert(old.id)
                 face.id = old.id
                 face.trackId = old.trackId ?? old.id
+                face.enrolledAt = old.enrolledAt ?? face.enrolledAt
+                if MatchMath.boxHysteresisHold(iou: bestIoU) {
+                    if let pending = boxJumpPending[old.id],
+                       MatchMath.boxHysteresisConfirm(iouToPending: FaceEngine.iou(pending, face.box))
+                    {
+                        boxJumpPending.removeValue(forKey: old.id)
+                        boxEuro.removeValue(forKey: old.id)
+                    } else {
+                        boxJumpPending[old.id] = face.box
+                        face.box = old.box
+                        if face.featurePrint.isEmpty, !old.featurePrint.isEmpty {
+                            face.featurePrint = old.featurePrint
+                            face.printVec = old.printVec.isEmpty ? FaceEngine.embedding(of: old) : old.printVec
+                        }
+                        var spark = old.qualitySpark
+                        spark.append(face.quality)
+                        if spark.count > 8 { spark.removeFirst(spark.count - 8) }
+                        face.qualitySpark = spark
+                        adopted.append(face)
+                        continue
+                    }
+                } else {
+                    boxJumpPending.removeValue(forKey: old.id)
+                }
                 let t = now
                 var euro = boxEuro[old.id] ?? (
                     MatchMath.OneEuro(), MatchMath.OneEuro(), MatchMath.OneEuro(), MatchMath.OneEuro()
@@ -840,6 +897,7 @@ final class LibraryStore: ObservableObject {
                     height: euro.h.filter(face.box.height, now: t)
                 )
                 boxEuro[old.id] = euro
+                let blend = MatchMath.liveBlendAlpha(continuity: liveCapture.isContinuity)
                 if face.featurePrint.isEmpty, !old.featurePrint.isEmpty {
                     face.featurePrint = old.featurePrint
                     face.printVec = old.printVec
@@ -849,7 +907,7 @@ final class LibraryStore: ObservableObject {
                 } else if !old.featurePrint.isEmpty, !face.featurePrint.isEmpty {
                     let prev = old.printVec.count >= 32 ? old.printVec : FaceEngine.embedding(of: old)
                     let next = FaceEngine.embedding(of: face)
-                    face.printVec = FaceEngine.blendEmbeddings(prev, next, alpha: 0.35)
+                    face.printVec = FaceEngine.blendEmbeddings(prev, next, alpha: blend)
                 } else if face.printVec.isEmpty {
                     face.printVec = FaceEngine.embedding(of: face)
                 }
@@ -861,19 +919,24 @@ final class LibraryStore: ObservableObject {
                 used.insert(old.id)
                 face.id = old.id
                 face.trackId = old.trackId ?? old.id
-                // Ghost-Box darf nicht kleben: 1-Euro der UUID verwerfen.
+                face.enrolledAt = old.enrolledAt ?? face.enrolledAt
+                // Ghost-Box darf nicht kleben: 1-Euro und Ampel der UUID verwerfen.
                 boxEuro.removeValue(forKey: old.id)
+                boxJumpPending.removeValue(forKey: old.id)
+                face.qualitySpark = []
+                let blend = MatchMath.liveBlendAlpha(continuity: liveCapture.isContinuity)
                 if face.featurePrint.isEmpty, !old.featurePrint.isEmpty {
                     face.featurePrint = old.featurePrint
                     face.printVec = old.printVec.isEmpty ? FaceEngine.embedding(of: old) : old.printVec
                 } else if !old.printVec.isEmpty, !face.featurePrint.isEmpty {
-                    face.printVec = FaceEngine.blendEmbeddings(old.printVec, FaceEngine.embedding(of: face), alpha: 0.35)
+                    face.printVec = FaceEngine.blendEmbeddings(old.printVec, FaceEngine.embedding(of: face), alpha: blend)
                 }
             }
             adopted.append(face)
         }
         liveGhosts.removeAll { $0.until < now }
         boxEuro = boxEuro.filter { used.contains($0.key) }
+        boxJumpPending = boxJumpPending.filter { used.contains($0.key) }
         if found.isEmpty {
             for old in previous where !enrolled.contains(old.id) {
                 liveGhosts.append((old, now + 1.8))
@@ -898,6 +961,7 @@ final class LibraryStore: ObservableObject {
                     used.insert(old.id)
                     adopted[bestJ].id = old.id
                     adopted[bestJ].trackId = old.trackId ?? old.id
+                    adopted[bestJ].enrolledAt = old.enrolledAt ?? adopted[bestJ].enrolledAt
                     if adopted[bestJ].featurePrint.isEmpty {
                         adopted[bestJ].featurePrint = old.featurePrint
                     }
@@ -914,7 +978,7 @@ final class LibraryStore: ObservableObject {
         }
         reconnectGhosts.removeAll { used.contains($0.id) }
         nmsDropped = FaceEngine.lastNMSDropped
-        rematch()
+        rematchLive()
         suggestUSlotIfHeld(adopted, now: now)
     }
 

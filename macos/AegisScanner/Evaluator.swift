@@ -22,9 +22,16 @@ enum LabReport {
             let owned = faces.filter { identity.faceIds.contains($0.id) }
             guard owned.count >= 2 else { continue }
             for (i, probe) in owned.enumerated() {
+                if !MatchMath.laborIncludesProbe(qualityRejected: FaceEngine.qualityRejects(probe.quality)) {
+                    continue
+                }
                 var held = identities
                 if let idx = held.firstIndex(where: { $0.id == identity.id }) {
                     var ids = owned.enumerated().compactMap { $0.offset == i ? nil : $0.element.id }
+                    ids = ids.filter { id in
+                        guard let ref = owned.first(where: { $0.id == id }) else { return true }
+                        return MatchMath.laborIncludesRef(qualityRejected: FaceEngine.qualityRejects(ref.quality))
+                    }
                     if ids.isEmpty { continue }
                     held[idx].faceIds = ids
                 }
@@ -82,6 +89,12 @@ enum LabReport {
         out.append(stats("Impostor", impostor))
         if !impostorFull.isEmpty { out.append(stats("Impostor frei", impostorFull)) }
         if !impostorPartial.isEmpty { out.append(stats("Impostor Teil-Print/Maske", impostorPartial)) }
+        if !genuine.isEmpty {
+            out.append("Histogramm Genuine  " + MatchMath.scoreHistogram(genuine))
+        }
+        if !impostor.isEmpty {
+            out.append("Histogramm Impostor " + MatchMath.scoreHistogram(impostor))
+        }
         if !genuine.isEmpty, !impostor.isEmpty {
             out.append(String(format: "Rang-1 (genuine ≥ Schwelle)  %.1f%%", 100 * frac(genuine, threshold)))
             out.append(String(format: "FAR bei Schwelle            %.1f%%", 100 * frac(impostor, threshold)))

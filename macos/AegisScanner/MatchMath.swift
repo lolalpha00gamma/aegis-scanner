@@ -15,10 +15,68 @@ enum MatchMath {
     static let sharpnessFloor = 0.12
     /// Continuity/Desk-View: Laplacian oft 0,10–0,14. Nur dort 0,08.
     static let continuitySharpnessFloor = 0.08
+    /// Live-Box: IoU unter dem Wert hält die alte Kiste ein Frame.
+    static let boxJumpIoU = 0.35
+    /// Burst-/Tile-Kopie, nicht neue Pose.
+    static let ingestDuplicateCosine = 0.95
+    static let liveBlendBuiltIn = 0.35
+    static let liveBlendContinuity = 0.20
 
     static func activeSharpnessFloor(continuity: Bool) -> Double {
         continuity ? continuitySharpnessFloor : sharpnessFloor
     }
+
+    static func liveBlendAlpha(continuity: Bool) -> Double {
+        continuity ? liveBlendContinuity : liveBlendBuiltIn
+    }
+
+    /// Unscharfe Leave-one-out-Paare sind keine Identitätsfrage.
+    static func laborIncludesProbe(qualityRejected: Bool) -> Bool {
+        !qualityRejected
+    }
+
+    static func laborIncludesRef(qualityRejected: Bool) -> Bool {
+        laborIncludesProbe(qualityRejected: qualityRejected)
+    }
+
+    static func laborPairKind(probeMasked: Bool) -> String {
+        probeMasked ? "genuine-mask" : "genuine-full"
+    }
+
+    /// Live-Box: IoU unter 0,35 hält die alte Kiste ein Frame.
+    static func boxHysteresisHold(iou: Double, floor: Double = boxJumpIoU) -> Bool {
+        iou < floor
+    }
+
+    /// Zweites Frame bestätigt den Sprung, wenn es an der pending-Box klebt.
+    static func boxHysteresisConfirm(iouToPending: Double, floor: Double = boxJumpIoU) -> Bool {
+        iouToPending >= floor
+    }
+
+    /// Nahezu identischer Print — Burst-Kopie, nicht neue Pose.
+    static func ingestDuplicate(cosine: Double, floor: Double = ingestDuplicateCosine) -> Bool {
+        cosine > floor
+    }
+
+    /// ASCII-Spark 0…100, 10 Bins. Labor, nicht Live.
+    static func scoreHistogram(_ xs: [Double], bins: Int = 10, lo: Double = 0, hi: Double = 100) -> String {
+        let n = max(1, bins)
+        guard !xs.isEmpty else { return String(repeating: "▁", count: n) }
+        let width = max(1e-9, (hi - lo) / Double(n))
+        var counts = [Int](repeating: 0, count: n)
+        for x in xs {
+            var i = Int(((x - lo) / width).rounded(.down))
+            i = min(n - 1, max(0, i))
+            counts[i] += 1
+        }
+        let maxC = max(1, counts.max() ?? 1)
+        let bars = Array("▁▂▃▄▅▆▇█")
+        return counts.map { c in
+            let idx = min(bars.count - 1, Int((Double(c) / Double(maxC) * Double(bars.count - 1)).rounded()))
+            return String(bars[idx])
+        }.joined()
+    }
+
 
     enum Lamp: String, Equatable {
         case green, amber, red

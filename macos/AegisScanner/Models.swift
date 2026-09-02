@@ -2,9 +2,9 @@ import CoreGraphics
 import Foundation
 
 enum AppVersion {
-    static let marketing = "2.1.14"
+    static let marketing = "2.1.15"
     static let channel = "alpha"
-    static let display = "2.1.14 alpha"
+    static let display = "2.1.15 alpha"
 }
 
 enum StrategyTrack: String, CaseIterable, Identifiable {
@@ -209,11 +209,13 @@ struct FaceObservation: Identifiable, Hashable, Codable {
     var forcedPartial: Bool = false
     /// Live-Ampel-History, RAM-only.
     var qualitySpark: [FaceQuality] = []
+    /// Wann die Face-ID in die Galerie kam. Print-Alter, nicht Capture-Zeit.
+    var enrolledAt: Date? = nil
 
     enum CodingKeys: String, CodingKey {
         case id, mediaId, box, score, landmarks, aligned, featurePrint
         case appearance, graph, geom3d, quality, trackId, strokes, namedAligned, ratioSheet
-        case partialPrint, forcedPartial
+        case partialPrint, forcedPartial, enrolledAt
     }
 
     init(
@@ -235,7 +237,8 @@ struct FaceObservation: Identifiable, Hashable, Codable {
         printVec: [Double] = [],
         partialPrint: Data = Data(),
         partialVec: [Double] = [],
-        forcedPartial: Bool = false
+        forcedPartial: Bool = false,
+        enrolledAt: Date? = nil
     ) {
         self.id = id
         self.mediaId = mediaId
@@ -256,6 +259,7 @@ struct FaceObservation: Identifiable, Hashable, Codable {
         self.partialPrint = partialPrint
         self.partialVec = partialVec
         self.forcedPartial = forcedPartial
+        self.enrolledAt = enrolledAt
     }
 
     init(from decoder: Decoder) throws {
@@ -277,6 +281,7 @@ struct FaceObservation: Identifiable, Hashable, Codable {
         ratioSheet = try c.decodeIfPresent([NamedRatio].self, forKey: .ratioSheet) ?? []
         partialPrint = try c.decodeIfPresent(Data.self, forKey: .partialPrint) ?? Data()
         forcedPartial = try c.decodeIfPresent(Bool.self, forKey: .forcedPartial) ?? false
+        enrolledAt = try c.decodeIfPresent(Date.self, forKey: .enrolledAt)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -298,6 +303,7 @@ struct FaceObservation: Identifiable, Hashable, Codable {
         try c.encode(ratioSheet, forKey: .ratioSheet)
         try c.encode(partialPrint, forKey: .partialPrint)
         if forcedPartial { try c.encode(forcedPartial, forKey: .forcedPartial) }
+        try c.encodeIfPresent(enrolledAt, forKey: .enrolledAt)
     }
 }
 

@@ -1,4 +1,4 @@
-# Aegis **2.1.13 alpha**
+# Aegis **2.1.15 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,23 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.15 alpha
+
+2.1.14 stand in `Models.swift`/`VERSION`, CI taggte aber **2.1.13** (`MARKETING_VERSION`). `rematchLive` und Continuity-Blend 0,20 waren in der Liste, nicht im Live-Pfad. Von `bugfix` (Altlast, nicht fortgesetzt) nur die fehlenden Helfer auf `main`. TAR bleibt `floor(far·n)−1`.
+
+- **Live-`rematchLive`:** nur Live-Sonden + Galerie-Refs, nicht die Scan-History jedes Frame.
+- **Continuity-Blend 0,20** / Built-in 0,35 (`liveBlendAlpha`).
+- **Box-Hysterese:** IoU < 0,35 hält die alte Kiste ein Frame, zweites Frame bestätigt den Sprung.
+- **Ingest-Duplikat:** Cosine > 0,95 (Burst/Tile) fliegt raus, bevor die Galerie wächst.
+- **Labor:** unscharfe Leave-one-out-Paare raus; Genuine/Impostor-Histogramm.
+- **`gallery.json.bak`** vor jedem Save.
+- **`enrolledAt`** am Face; Spark-Reset nach `pinByPrint` (Ghost-Ampel nicht erben).
+- MARKETING_VERSION 2.1.15 (Build 43).
+
+## Neu in 2.1.14 alpha
+
+(Claim, nicht vollständig im Binary — siehe 2.1.15.) Continuity-Floor, Live-Coalesce und U-Slot aus 2.1.13 bleiben.
 
 ## Neu in 2.1.13 alpha
 
