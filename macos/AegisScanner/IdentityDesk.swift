@@ -57,13 +57,15 @@ enum IdentityDesk {
         threshold: Double
     ) -> ProbeState {
         guard let face else { return .none }
+        _ = threshold
         if identities.contains(where: { $0.faceIds.contains(face.id) }) {
             return .enrolled
         }
         if FaceEngine.qualityRejects(face.quality) {
             return .unfit
         }
-        if let top = topCandidate(faceId: face.id, matches: matches), top.percent >= threshold {
+        let aegis = matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == .aegis }
+        if aegis?.identityId != nil {
             return .candidate
         }
         return .unknown

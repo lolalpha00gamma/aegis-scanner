@@ -1,4 +1,4 @@
-# Aegis **2.1.2 alpha**
+# Aegis **2.1.3 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.3 alpha
+
+- **0,4 % Print ist kein „KI aus“.** Impostor-Cosine fiel auf Geometrie und taufte Fremde.
+- **Name nur nach `decide`.** Prozent ≥ Slider reicht nicht mehr fürs Overlay.
+- **Keine Geister-Kästen**, wenn die Kamera niemanden sieht.
+- **Anlegen ohne Face-Print** (KI an) oder mit toter Qualität wird abgelehnt.
+- **Labor TAR @ 0,1 % / 1 % FAR.** Floors nicht mehr process-weit.
+- **Webcam:** Frontkamera, Landscape-Orientierung.
 
 ## Neu in 2.1.2 alpha
 

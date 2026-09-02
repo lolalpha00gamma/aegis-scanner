@@ -58,7 +58,7 @@ struct ContentView: View {
                 if !editing { store.rematch() }
             }
             .frame(width: 110)
-            .help("Zuordnungsschwelle — wirkt auf Aegis, nicht nur auf das Label")
+            .help("Zuordnungsschwelle — Bias um 78. Effektiver Floor hängt von der Galeriegröße ab.")
             Toggle("Anatomie", isOn: $store.showAnatomy)
                 .toggleStyle(.button)
         }
@@ -195,10 +195,11 @@ struct ContentView: View {
                     HStack(spacing: 8) {
                         ForEach(Array(onImage.enumerated()), id: \.element.id) { index, face in
                             let hit = store.matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == store.strategy }
+                            let aegis = store.matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == .aegis }
                             let owner = store.identities.first { $0.faceIds.contains(face.id) }
-                            let ident = owner ?? store.identities.first { $0.id == hit?.identityId }
+                            let ident = owner ?? store.identities.first { $0.id == aegis?.identityId }
                             let pinned = owner != nil
-                            let near = !pinned && ident != nil && (hit?.percent ?? 0) >= store.threshold
+                            let near = !pinned && ident != nil
                             Button {
                                 store.selectedFaceId = face.id
                             } label: {
@@ -317,9 +318,10 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 10) {
             if let face = store.selectedFace {
                 let hit = store.selectedHits.first { $0.strategy == store.strategy }
+                let aegis = store.selectedHits.first { $0.strategy == .aegis }
                 let owner = store.identities.first { $0.faceIds.contains(face.id) }
-                let assignedIdent = owner ?? store.identities.first { $0.id == hit?.identityId }
-                let assignedPass = assignedIdent != nil && (owner != nil || ((hit?.measured ?? false) && (hit?.percent ?? 0) >= store.threshold))
+                let assignedIdent = owner ?? store.identities.first { $0.id == aegis?.identityId }
+                let assignedPass = owner != nil || aegis?.identityId != nil
                 Text(owner != nil ? "REFERENZ" : (assignedPass ? "NÄHE" : "NICHT ZUGEORDNET"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -419,8 +421,9 @@ struct ContentView: View {
                         let on = store.enabled.contains(id)
                         let measured = hit?.measured ?? false
                         let pass = pinnedName != nil
+                        let assignedHere = hit?.identityId != nil
                         let name = pinnedName
-                            ?? ((matchName != nil && pct >= store.threshold) ? "Nähe \(matchName!)" : (guess.map { "Nähe \($0) · nicht zugeordnet" } ?? "nicht zugeordnet"))
+                            ?? (assignedHere ? "Nähe \(matchName ?? "")" : (guess.map { "Nähe \($0) · nicht zugeordnet" } ?? "nicht zugeordnet"))
                         HStack(alignment: .top, spacing: 8) {
                             Toggle("", isOn: Binding(
                                 get: { store.enabled.contains(id) },
@@ -562,12 +565,13 @@ struct FaceOverlay: View {
                     .offset(x: ox, y: oy)
                 ForEach(Array(faces.enumerated()), id: \.element.id) { index, face in
                     let hit = store.matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == store.strategy }
+                    let aegis = store.matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == .aegis }
                     let printHit = store.matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == .featurePrint }
                     let owner = store.identities.first { $0.faceIds.contains(face.id) }
-                    let ident = owner ?? store.identities.first { $0.id == hit?.identityId }
+                    let ident = owner ?? store.identities.first { $0.id == aegis?.identityId }
                     let pct = hit?.percent ?? 0
                     let pinned = owner != nil
-                    let near = !pinned && ident != nil && (hit?.measured ?? false) && pct >= store.threshold
+                    let near = !pinned && ident != nil
                     let selected = store.selectedFaceId == face.id
                     let printDead = face.featurePrint.isEmpty
                     Button {

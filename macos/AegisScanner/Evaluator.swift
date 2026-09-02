@@ -51,6 +51,12 @@ enum LabReport {
             out.append(String(format: "Rang-1 (genuine ≥ Schwelle)  %.1f%%", 100 * frac(genuine, threshold)))
             out.append(String(format: "FAR bei Schwelle            %.1f%%", 100 * frac(impostor, threshold)))
             out.append(eerLine(genuine, impostor))
+            if let t01 = MatchMath.tar(atFar: 0.001, genuine: genuine, impostor: impostor) {
+                out.append(String(format: "TAR @ 0,1%% FAR          %.1f%%  (Schwelle %.1f)", 100 * t01.tar, t01.threshold))
+            }
+            if let t1 = MatchMath.tar(atFar: 0.01, genuine: genuine, impostor: impostor) {
+                out.append(String(format: "TAR @ 1%% FAR            %.1f%%  (Schwelle %.1f)", 100 * t1.tar, t1.threshold))
+            }
         } else {
             out.append("Zu wenig Referenzen: jede Person braucht mindestens zwei Fotos.")
         }

@@ -27,6 +27,11 @@ jobs:
           echo "title=$TITLE" >> "$GITHUB_OUTPUT"
           echo "Publishing $TITLE as $TAG"
 
+      - name: Match math tests
+        run: |
+          swiftc macos/AegisScanner/MatchMath.swift macos/AegisScannerTests/MatchMathTests.swift -o /tmp/aegismath
+          /tmp/aegismath
+
       - name: Build Aegis.app
         run: |
           xcodebuild \

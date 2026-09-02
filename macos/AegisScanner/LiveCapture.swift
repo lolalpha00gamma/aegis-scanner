@@ -74,7 +74,7 @@ final class LiveCapture: NSObject {
         let session = AVCaptureSession()
         session.sessionPreset = .hd1280x720
         guard
-            let device = AVCaptureDevice.default(for: .video),
+            let device = preferredCamera(),
             let input = try? AVCaptureDeviceInput(device: device)
         else {
             onError?("Keine Webcam gefunden.")
@@ -90,9 +90,33 @@ final class LiveCapture: NSObject {
         self.tap = delegate
         out.setSampleBufferDelegate(delegate, queue: outputQueue)
         if session.canAddOutput(out) { session.addOutput(out) }
+        if let conn = out.connection(with: .video) {
+            if conn.isVideoOrientationSupported {
+                conn.videoOrientation = .landscapeRight
+            }
+            if conn.isVideoMirroringSupported {
+                conn.isVideoMirrored = device.position == .front || device.position == .unspecified
+            }
+        }
         self.session = session
         outputQueue.async { session.startRunning() }
         onReady?()
+    }
+
+    private func preferredCamera() -> AVCaptureDevice? {
+        let types: [AVCaptureDevice.DeviceType] = [
+            .builtInWideAngleCamera,
+            .continuityCamera,
+            .external
+        ]
+        let found = AVCaptureDevice.DiscoverySession(
+            deviceTypes: types,
+            mediaType: .video,
+            position: .unspecified
+        ).devices
+        if let front = found.first(where: { $0.position == .front }) { return front }
+        if let wide = found.first(where: { $0.deviceType == .builtInWideAngleCamera }) { return wide }
+        return found.first ?? AVCaptureDevice.default(for: .video)
     }
 
     private var tap: FrameTap?

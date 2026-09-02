@@ -314,8 +314,7 @@ enum FaceEngine {
         threshold: Double = 78,
         enabled: Set<StrategyID> = Set(StrategyID.allCases)
     ) -> [MatchResult] {
-        matchFloor = min(96, max(70, adaptiveFloor(identities.count, slider: threshold)))
-        soloFloor = min(96, matchFloor + 4)
+        let floors = MatchMath.floors(gallery: identities.count, slider: threshold)
         var tracked = faces
         assignTracks(faces: &tracked, media: media)
         let models = identities.map { identity -> IdentityModel in
@@ -345,7 +344,7 @@ enum FaceEngine {
         return tracked.map { face in
             var hits: [StrategyHit] = []
 
-            let photos = rank(models, minMargin: embedMargin) { m in
+            let photos = rank(models, minMargin: MatchMath.embedMargin, floors: floors) { m in
                 guard face.quality.capture >= 0.35 else { return 0 }
                 return bestPrintPercent(face.featurePrint, m.meanPrint)
             }
@@ -362,45 +361,45 @@ enum FaceEngine {
                 ? Ranked(identityId: nil, percent: 0, margin: photos.margin, versus: photos.versus)
                 : photos, measured: printOn))
 
-            let box = rank(models, minMargin: embedMargin) { m in
+            let box = rank(models, minMargin: MatchMath.embedMargin, floors: floors) { m in
                 bestPrintPercent(face.featurePrint, m.meanPrint)
             }
             hits.append(toHit(.visionBox, box, measured: printOn))
 
             let geoPts = face.namedAligned.isEmpty ? face.aligned : face.namedAligned
-            let geo = rank(models, minMargin: landmarkMargin) { m in
+            let geo = rank(models, minMargin: MatchMath.landmarkMargin, floors: floors) { m in
                 bestLandmarkPercent(geoPts, m.landmarkSets)
             }
             hits.append(hint(.landmarkGeo, geo, measured: geoOn))
 
             let probeM = measures(face)
             let ratioInv = pooledInverse(models.flatMap(\.ratios))
-            hits.append(hint(.ratios, rank(models, minMargin: landmarkMargin) { m in
+            hits.append(hint(.ratios, rank(models, minMargin: MatchMath.landmarkMargin, floors: floors) { m in
                 mahalanobisPercent(probeM.ratios, m.ratios, pooledInv: ratioInv)
             }, measured: !probeM.ratios.isEmpty))
-            hits.append(hint(.faceShape, rank(models, minMargin: landmarkMargin) { m in
+            hits.append(hint(.faceShape, rank(models, minMargin: MatchMath.landmarkMargin, floors: floors) { m in
                 bestRatioPercent(probeM.shape, m.shape)
             }, measured: !probeM.shape.isEmpty))
-            hits.append(hint(.eyeRegion, rank(models, minMargin: landmarkMargin) { m in
+            hits.append(hint(.eyeRegion, rank(models, minMargin: MatchMath.landmarkMargin, floors: floors) { m in
                 bestRatioPercent(probeM.eyes, m.eyes)
             }, measured: !probeM.eyes.isEmpty))
-            hits.append(hint(.midface, rank(models, minMargin: landmarkMargin) { m in
+            hits.append(hint(.midface, rank(models, minMargin: MatchMath.landmarkMargin, floors: floors) { m in
                 bestRatioPercent(probeM.midface, m.midface)
             }, measured: !probeM.midface.isEmpty))
-            hits.append(hint(.jawline, rank(models, minMargin: landmarkMargin) { m in
+            hits.append(hint(.jawline, rank(models, minMargin: MatchMath.landmarkMargin, floors: floors) { m in
                 bestRatioPercent(probeM.jaw, m.jaw)
             }, measured: !probeM.jaw.isEmpty))
-            hits.append(hint(.graphBio, rank(models, minMargin: landmarkMargin) { m in
+            hits.append(hint(.graphBio, rank(models, minMargin: MatchMath.landmarkMargin, floors: floors) { m in
                 bestVecPercent(face.graph, m.graphs)
             }, measured: !face.graph.isEmpty))
-            hits.append(hint(.geom3d, rank(models, minMargin: landmarkMargin) { m in
+            hits.append(hint(.geom3d, rank(models, minMargin: MatchMath.landmarkMargin, floors: floors) { m in
                 bestRatioPercent(face.geom3d, m.geom3ds)
             }, measured: !face.geom3d.isEmpty))
-            hits.append(hint(.texture, rank(models, minMargin: landmarkMargin) { m in
+            hits.append(hint(.texture, rank(models, minMargin: MatchMath.landmarkMargin, floors: floors) { m in
                 bestAppearance(face.appearance, m.appearances)
             }, measured: texOn))
 
-            let gated = rank(models, minMargin: embedMargin) { m in
+            let gated = rank(models, minMargin: MatchMath.embedMargin, floors: floors) { m in
                 let raw = bestPrintPercent(face.featurePrint, m.meanPrint)
                 if tinyUnreliable(face.quality) {
                     return raw * (0.45 + 0.55 * (face.quality.capture / 0.35))
@@ -409,13 +408,13 @@ enum FaceEngine {
             }
             hits.append(toHit(.qualityGate, gated, measured: printOn))
 
-            let temporal = rank(models, minMargin: embedMargin) { m in
+            let temporal = rank(models, minMargin: MatchMath.embedMargin, floors: floors) { m in
                 let gallery = m.temporal.isEmpty ? m.meanPrint : m.temporal
                 return bestPrintPercent(face.featurePrint, gallery)
             }
             hits.append(toHit(.temporal, temporal, measured: printOn))
 
-            let fp = rank(models, minMargin: embedMargin) { m in
+            let fp = rank(models, minMargin: MatchMath.embedMargin, floors: floors) { m in
                 bestPrintPercent(face.featurePrint, m.meanPrint)
             }
             hits.append(toHit(.featurePrint, fp, measured: printOn))
@@ -441,13 +440,15 @@ enum FaceEngine {
             func lookOfId(_ id: UUID) -> Double {
                 let geo = geoMixOf(id)
                 let embed = embedOf(id)
-                // KI an, aber kein Face-Print auf diesem Gesicht:
-                // Geometrie allein darf niemanden benennen (Fremde mit ähnlichen Maßen).
-                // KI aus (Nutzer) bleibt reines Geometrie-Matching.
                 if kiOn && !printOn {
                     return min(geo, 49)
                 }
-                return lookOf(geo: geo, embed: embed, pose: poseWeight(face.quality))
+                return MatchMath.lookOf(
+                    geo: geo,
+                    embed: embed,
+                    pose: poseWeight(face.quality),
+                    printMeasured: kiOn && printOn
+                )
             }
             let ids = models.map(\.identity.id)
             let embedRow = ids.map { embedOf($0) }
@@ -467,11 +468,11 @@ enum FaceEngine {
             if enabled.contains(.geom3d) { matchers.append(geom3dRow); weights.append(0.05) }
             if enabled.contains(.texture) { matchers.append(textureRow); weights.append(0.03) }
             let terFused = terFusion(matchers, weights)
-            hits.append(hint(.terFusion, rank(models, minMargin: embedMargin) { m in
+            hits.append(hint(.terFusion, rank(models, minMargin: MatchMath.embedMargin, floors: floors) { m in
                 let i = ids.firstIndex(of: m.identity.id) ?? 0
                 return i < terFused.count ? terFused[i] : 0
             }))
-            let ensemble = rank(models, minMargin: embedMargin) { m in
+            let ensemble = rank(models, minMargin: MatchMath.embedMargin, floors: floors) { m in
                 lookOfId(m.identity.id)
             }
             let geoRanked = models.map { (id: $0.identity.id, p: geoMixOf($0.identity.id)) }
@@ -500,7 +501,8 @@ enum FaceEngine {
                 geoMix: lookWinner.map { geoMixOf($0) } ?? (geoRanked.first?.p ?? 0),
                 galleryZ: galleryZScore(fusedBest, Array(others)),
                 textureReliable: false,
-                evidence: fusedBest
+                evidence: fusedBest,
+                floors: floors
             )
             var aegis = ensemble
             aegis.identityId = enabled.contains(.aegis) ? decided.id : nil
@@ -533,22 +535,6 @@ enum FaceEngine {
 
     // MARK: - geometry / prints
 
-    private static var matchFloor = 78.0
-    private static var soloFloor = 82.0
-    private static let embedMargin = 12.0
-    private static let landmarkMargin = 14.0
-    private static let zFloor = 1.5
-
-    /// Slider ist Bias um 78. Kleine Galerien brauchen höhere Floors, sonst
-    /// tauft ein einzelner Impostor-Treffer die einzige Person.
-    private static func adaptiveFloor(_ n: Int, slider: Double) -> Double {
-        let rec: Double
-        if n <= 1 { rec = 84 }
-        else if n <= 3 { rec = 80 }
-        else { rec = 78 }
-        return rec + (slider - 78)
-    }
-
     private struct IdentityModel {
         var identity: Identity
         var photos: FaceObservation?
@@ -575,6 +561,7 @@ enum FaceEngine {
     private static func rank(
         _ models: [IdentityModel],
         minMargin: Double,
+        floors: MatchMath.Floors,
         scoreOf: (IdentityModel) -> Double
     ) -> Ranked {
         var versus = models.map { IdentityScore(identityId: $0.identity.id, percent: scoreOf($0)) }
@@ -586,9 +573,9 @@ enum FaceEngine {
         let hasRival = second != nil
         let assign: Bool
         if hasRival {
-            assign = (best?.percent ?? 0) >= matchFloor && (margin >= minMargin || strong)
+            assign = (best?.percent ?? 0) >= floors.match && (margin >= minMargin || strong)
         } else {
-            assign = (best?.percent ?? 0) >= soloFloor && minMargin <= embedMargin
+            assign = (best?.percent ?? 0) >= floors.solo && minMargin <= MatchMath.embedMargin
         }
         return Ranked(
             identityId: assign ? best?.identityId : nil,
@@ -613,9 +600,9 @@ enum FaceEngine {
         } else if ranked.identityId != nil {
             text = String(format: "Abstand %.1f Pkt.", ranked.margin)
         } else if ranked.versus.count < 2 {
-            text = String(format: "Nur eine Person eingeschrieben. Nähe %.0f%% reicht nicht (braucht %.0f%%).", ranked.percent, soloFloor)
-        } else if ranked.percent < matchFloor {
-            text = String(format: "Beste Nähe %.0f%% liegt unter %.0f%%.", ranked.percent, matchFloor)
+            text = String(format: "Nur eine Person eingeschrieben. Nähe %.0f%% reicht nicht.", ranked.percent)
+        } else if ranked.percent < 78 {
+            text = String(format: "Beste Nähe %.0f%% liegt unter der Schwelle.", ranked.percent)
         } else {
             text = String(format: "Zu nah (%.1f Pkt Abstand) — nicht zugeordnet.", ranked.margin)
         }
@@ -643,7 +630,8 @@ enum FaceEngine {
         geoMix: Double,
         galleryZ: Double,
         textureReliable: Bool = false,
-        evidence: Double? = nil
+        evidence: Double? = nil,
+        floors: MatchMath.Floors
     ) -> (id: UUID?, note: String) {
         let best = bestName ?? "Beste"
         let second = secondName ?? "Zweite"
@@ -660,21 +648,21 @@ enum FaceEngine {
             return (nil, String(format: "Maße widersprechen (%.0f%%, Abstand %.1f). Print allein reicht nicht.", geoMix, geoMargin))
         }
         if secondName == nil {
-            if percent >= soloFloor {
+            if percent >= floors.solo {
                 return (bestId, String(format: "Nur eine Person eingeschrieben. Nähe %.0f%% reicht.", percent))
             }
-            return (nil, String(format: "Nur eine Person eingeschrieben. Nähe %.0f%% reicht nicht (braucht %.0f%%). Andere Gesichter bleiben offen.", percent, soloFloor))
+            return (nil, String(format: "Nur eine Person eingeschrieben. Nähe %.0f%% reicht nicht (braucht %.0f%%). Andere Gesichter bleiben offen.", percent, floors.solo))
         }
-        if percent < matchFloor {
-            return (nil, String(format: "Beste Nähe %.0f%% liegt unter %.0f%%. Nicht zugeordnet.", percent, matchFloor))
+        if percent < floors.match {
+            return (nil, String(format: "Beste Nähe %.0f%% liegt unter %.0f%%. Nicht zugeordnet.", percent, floors.match))
         }
-        if galleryZ < zFloor && percent < 92 {
+        if galleryZ < MatchMath.zFloor && percent < 92 {
             return (nil, String(format: "Kein Ausreißer in der Galerie (z=%.1f). Alle Personen ähnlich nah — nicht zugeordnet.", galleryZ))
         }
-        if geoAgrees, geoMargin >= 8, percent >= matchFloor - 3, margin >= 6 {
+        if geoAgrees, geoMargin >= 8, percent >= floors.match - 3, margin >= 6 {
             return (bestId, String(format: "Print + Maße einig. Abstand %.1f Pkt zu %@.", margin, second))
         }
-        if margin >= embedMargin || (percent >= 94 && margin >= 6) {
+        if margin >= MatchMath.embedMargin || (percent >= 94 && margin >= 6) {
             return (bestId, String(format: "Abstand %.1f Pkt zu %@.", margin, second))
         }
         return (nil, String(format: "%@ %.0f%% und %@ %.0f%% zu nah — nicht zugeordnet.", best, percent, second, percent - margin))
@@ -1031,7 +1019,7 @@ enum FaceEngine {
         if va.count >= 32, vb.count >= 32 {
             guard va.count == vb.count else { return 0 }
             let c = cosine(va, vb)
-            return 100.0 / (1.0 + exp(-14.0 * (c - 0.55)))
+            return MatchMath.printSigmoid(cosine: c)
         }
         let d = printDistance(a, b)
         if d >= 35 { return 0 }
@@ -1624,6 +1612,16 @@ enum FaceEngine {
         q.capture < 0.35 && q.size < 0.16
     }
 
+    static func enrollmentBlock(_ face: FaceObservation, kiOn: Bool) -> String? {
+        if qualityRejects(face.quality) {
+            return "Aufnahme zu schwach zum Anlegen."
+        }
+        if kiOn, facePrintAvailable, face.featurePrint.isEmpty {
+            return "Kein Face-Print auf diesem Gesicht. Anderes Foto wählen."
+        }
+        return nil
+    }
+
     private static func tinyUnreliable(_ q: FaceQuality) -> Bool {
         q.capture < 0.35 && q.size < 0.16
     }
@@ -1638,11 +1636,7 @@ enum FaceEngine {
     /// `embed < 1` is the user-disabled-KI path (geo-only). Empty prints on a
     /// live KI face are capped in `lookOfId`, not here.
     private static func lookOf(geo: Double, embed: Double = 0, pose: Double = 1) -> Double {
-        if embed < 1 { return geo }
-        if geo < 1 { return embed }
-        if geo < 35 { return min(embed, 60) }
-        let geoW = 0.25 * clamp01(pose)
-        return (1 - geoW) * embed + geoW * geo
+        MatchMath.lookOf(geo: geo, embed: embed, pose: pose, printMeasured: embed >= 1)
     }
 
     /// 1 = frontal, ~0.7 at 45°, 0 at 90°. Vision yaw/pitch are radians.

@@ -311,6 +311,11 @@ final class LibraryStore: ObservableObject {
             }
             return
         }
+        let kiOn = enabled.contains(where: { $0.track == .ki })
+        if let block = FaceEngine.enrollmentBlock(face, kiOn: kiOn) {
+            status = block
+            return
+        }
         identities.append(Identity(id: UUID(), name: name, faceIds: [face.id]))
         newPersonName = ""
         selectedFaceId = face.id
@@ -338,6 +343,11 @@ final class LibraryStore: ObservableObject {
                 return
             }
             status = "Dieses Gesicht gehört zu \(owner.name). Anlegen für eine neue Person, nicht +."
+            return
+        }
+        let kiOn = enabled.contains(where: { $0.track == .ki })
+        if let block = FaceEngine.enrollmentBlock(face, kiOn: kiOn) {
+            status = block
             return
         }
         if !identities[idx].faceIds.contains(face.id) {
@@ -470,35 +480,38 @@ final class LibraryStore: ObservableObject {
             }
             adopted.append(face)
         }
-        var leftoverPinned = previous.filter { enrolled.contains($0.id) && !used.contains($0.id) }
         if found.isEmpty {
             faces.removeAll { $0.mediaId == mediaId }
-            faces.append(contentsOf: leftoverPinned + adopted)
-        } else {
-            for old in leftoverPinned {
-                var bestJ = -1
-                var bestD = 0.08
-                for (j, face) in adopted.enumerated() where !used.contains(face.id) {
-                    let o = FaceEngine.iou(old.box, face.box)
-                    if o > bestD {
-                        bestD = o
-                        bestJ = j
-                    }
-                }
-                if bestJ >= 0 {
-                    used.insert(old.id)
-                    adopted[bestJ].id = old.id
-                    adopted[bestJ].trackId = old.trackId ?? old.id
-                    if adopted[bestJ].featurePrint.isEmpty {
-                        adopted[bestJ].featurePrint = old.featurePrint
-                    }
+            if selectedMediaId == mediaId {
+                selectedFaceId = nil
+            }
+            rematch()
+            return
+        }
+        let leftoverPinned = previous.filter { enrolled.contains($0.id) && !used.contains($0.id) }
+        for old in leftoverPinned {
+            var bestJ = -1
+            var bestD = 0.08
+            for (j, face) in adopted.enumerated() where !used.contains(face.id) {
+                let o = FaceEngine.iou(old.box, face.box)
+                if o > bestD {
+                    bestD = o
+                    bestJ = j
                 }
             }
-            faces.removeAll { $0.mediaId == mediaId }
-            faces.append(contentsOf: adopted)
+            if bestJ >= 0 {
+                used.insert(old.id)
+                adopted[bestJ].id = old.id
+                adopted[bestJ].trackId = old.trackId ?? old.id
+                if adopted[bestJ].featurePrint.isEmpty {
+                    adopted[bestJ].featurePrint = old.featurePrint
+                }
+            }
         }
+        faces.removeAll { $0.mediaId == mediaId }
+        faces.append(contentsOf: adopted)
         if selectedMediaId == mediaId {
-            selectedFaceId = adopted.first?.id ?? leftoverPinned.first?.id
+            selectedFaceId = adopted.first?.id
         }
         rematch()
     }
