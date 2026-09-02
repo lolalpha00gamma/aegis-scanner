@@ -1,4 +1,4 @@
-# Aegis **2.1.12 alpha**
+# Aegis **2.1.13 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.13 alpha
+
+Continuity/Desk-View hat in 2.1.12 den Print erzeugt (Floor 0,08) und ihn in `qualityRejects` sofort verworfen (Floor 0,12). Dazu:
+
+- **`qualityRejects(continuity:)`** teilt den Floor mit `skipPrint`. Overlay, Ampel, Enrollment, `tinyUnreliable`.
+- **Live coalesct** den letzten Frame, statt ihn hinter Detect zu droppen.
+- **U-Slot-Vorschlag** nach 1,2 s Maske im Track — Taste U, nie still geschrieben.
+- **Labor:** Impostor frei vs Teil-Print, TAR ohne Masken-Paare, eine Orient-Zeile Auto vs Override vs EXIF.
 
 ## Neu in 2.1.12 alpha
 

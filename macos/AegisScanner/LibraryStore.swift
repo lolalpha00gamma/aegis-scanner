@@ -40,6 +40,9 @@ final class LibraryStore: ObservableObject {
     private var liveMediaId: UUID?
     private var scopedRoots: [URL] = []
     private var liveBusy = false
+    private var livePending: (image: CGImage, mediaId: UUID)?
+    private var maskHoldSince: [UUID: TimeInterval] = [:]
+    private var lastUSlotHint: TimeInterval = 0
     private var scanGeneration = 0
     private let scanFlag = AegisScanFlag()
     private let enabledKey = "aegis.enabledStrategies"
@@ -108,6 +111,8 @@ final class LibraryStore: ObservableObject {
         }
         return nil
     }
+
+    var liveContinuity: Bool { liveActive && liveCapture.isContinuity }
 
     var floorHint: String {
         let f = FaceEngine.effectiveFloors(galleryCount: identities.count, slider: threshold)
@@ -480,7 +485,8 @@ final class LibraryStore: ObservableObject {
             identities: identities,
             media: media,
             threshold: threshold,
-            enabled: enabled
+            enabled: enabled,
+            continuity: liveContinuity
         )
     }
 
@@ -517,7 +523,7 @@ final class LibraryStore: ObservableObject {
             }
             return
         }
-        if let why = FaceEngine.referenceRejected(face, asFirstReference: true) {
+        if let why = FaceEngine.referenceRejected(face, asFirstReference: true, continuity: liveContinuity) {
             status = why
             return
         }
@@ -560,7 +566,7 @@ final class LibraryStore: ObservableObject {
             status = "Dieses Gesicht gehört zu \(owner.name). Anlegen für eine neue Person, nicht +."
             return
         }
-        if let why = FaceEngine.referenceRejected(face, asFirstReference: identities[idx].faceIds.isEmpty) {
+        if let why = FaceEngine.referenceRejected(face, asFirstReference: identities[idx].faceIds.isEmpty, continuity: liveContinuity) {
             status = why
             return
         }
@@ -677,6 +683,9 @@ final class LibraryStore: ObservableObject {
     }
 
     func stopLive() {
+        livePending = nil
+        maskHoldSince.removeAll()
+        lastUSlotHint = 0
         liveCapture.stop()
         liveActive = false
         if let id = liveMediaId {
@@ -733,15 +742,32 @@ final class LibraryStore: ObservableObject {
     }
 
     private func ingestLiveFrame(_ image: CGImage, mediaId: UUID) {
-        if liveBusy { return }
+        if liveBusy {
+            livePending = (image, mediaId)
+            return
+        }
         liveBusy = true
+        runLiveDetect(image, mediaId: mediaId)
+    }
+
+    private func runLiveDetect(_ image: CGImage, mediaId: UUID) {
         let cont = liveCapture.isContinuity
         Task.detached(priority: .userInitiated) {
             let found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont)) ?? []
             await MainActor.run { [weak self] in
                 guard let self else { return }
+                if !self.liveActive || self.liveMediaId != mediaId {
+                    self.liveBusy = false
+                    self.livePending = nil
+                    return
+                }
                 self.applyLiveFaces(found, image: image, mediaId: mediaId)
-                self.liveBusy = false
+                if let pending = self.livePending {
+                    self.livePending = nil
+                    self.runLiveDetect(pending.image, mediaId: pending.mediaId)
+                } else {
+                    self.liveBusy = false
+                }
             }
         }
     }
@@ -889,6 +915,31 @@ final class LibraryStore: ObservableObject {
         reconnectGhosts.removeAll { used.contains($0.id) }
         nmsDropped = FaceEngine.lastNMSDropped
         rematch()
+        suggestUSlotIfHeld(adopted, now: now)
+    }
+
+    /// 1,2 s Maske im Track → Vorschlag, nie still schreiben.
+    private func suggestUSlotIfHeld(_ adopted: [FaceObservation], now: TimeInterval) {
+        let liveIds = Set(adopted.map(\.id))
+        maskHoldSince = maskHoldSince.filter { liveIds.contains($0.key) }
+        for face in adopted {
+            let masked = FaceEngine.lowerFaceOccluded(face)
+            if masked {
+                if maskHoldSince[face.id] == nil { maskHoldSince[face.id] = now }
+            } else {
+                maskHoldSince.removeValue(forKey: face.id)
+            }
+            guard let since = maskHoldSince[face.id], now - since >= 1.2 else { continue }
+            guard now - lastUSlotHint >= 4 else { continue }
+            let owner = identities.first { $0.faceIds.contains(face.id) }
+                ?? (identities.count == 1 ? identities.first : nil)
+            guard let owner else { continue }
+            let refs = faces.filter { owner.faceIds.contains($0.id) }
+            let hasU = refs.contains { $0.forcedPartial || FaceEngine.lowerFaceOccluded($0) }
+            if hasU { continue }
+            lastUSlotHint = now
+            status = "Maske 1,2 s · U für Teil-Print von \(owner.name) — nie still geschrieben"
+        }
     }
 
     func exportCSV() {
@@ -929,6 +980,7 @@ final class LibraryStore: ObservableObject {
         let media = self.media
         let enabled = self.enabled
         let threshold = self.threshold
+        let cameraOrient = self.cameraOrient
         busy = true
         status = "Laborbericht"
         Task {
@@ -938,7 +990,8 @@ final class LibraryStore: ObservableObject {
                     identities: identities,
                     media: media,
                     enabled: enabled,
-                    threshold: threshold
+                    threshold: threshold,
+                    cameraOrient: cameraOrient
                 )
             }.value
             try? text.write(to: url, atomically: true, encoding: .utf8)

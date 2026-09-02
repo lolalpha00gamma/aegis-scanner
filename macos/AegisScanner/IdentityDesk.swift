@@ -56,13 +56,14 @@ enum IdentityDesk {
         face: FaceObservation?,
         identities: [Identity],
         matches: [MatchResult],
-        threshold: Double
+        threshold: Double,
+        continuity: Bool = false
     ) -> ProbeState {
         guard let face else { return .none }
         if identities.contains(where: { $0.faceIds.contains(face.id) }) {
             return .enrolled
         }
-        if FaceEngine.qualityRejects(face.quality) {
+        if FaceEngine.qualityRejects(face.quality, continuity: continuity) {
             return .unfit
         }
         if let top = topCandidate(faceId: face.id, matches: matches), top.percent >= threshold {

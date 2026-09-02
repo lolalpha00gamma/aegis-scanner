@@ -13,13 +13,19 @@ enum MatchMath {
     static let familyFloorBump = 4.0
     static let rejectCosine = 0.90
     static let sharpnessFloor = 0.12
+    /// Continuity/Desk-View: Laplacian oft 0,10–0,14. Nur dort 0,08.
+    static let continuitySharpnessFloor = 0.08
+
+    static func activeSharpnessFloor(continuity: Bool) -> Double {
+        continuity ? continuitySharpnessFloor : sharpnessFloor
+    }
 
     enum Lamp: String, Equatable {
         case green, amber, red
     }
 
     /// Live-Ampel, bevor ein Name kommt. Grün/Amber/Rot für Capture, Schärfe, Yaw.
-    static func qualityLamps(capture: Double, sharpness: Double, yaw: Double) -> (capture: Lamp, sharpness: Lamp, yaw: Lamp) {
+    static func qualityLamps(capture: Double, sharpness: Double, yaw: Double, continuity: Bool = false) -> (capture: Lamp, sharpness: Lamp, yaw: Lamp) {
         func cap(_ v: Double, good: Double, ok: Double) -> Lamp {
             if v >= good { return .green }
             if v >= ok { return .amber }
@@ -32,7 +38,7 @@ enum MatchMath {
         else { yawLamp = .red }
         return (
             cap(capture, good: 0.50, ok: 0.35),
-            cap(sharpness, good: 0.22, ok: sharpnessFloor),
+            cap(sharpness, good: 0.22, ok: activeSharpnessFloor(continuity: continuity)),
             yawLamp
         )
     }
@@ -40,15 +46,16 @@ enum MatchMath {
     /// Laplacian unter Floor: Print-Request lohnt nicht.
     /// Continuity/Desk-View oft 0,10–0,14 — dort 0,08 statt 0,12.
     static func skipPrint(sharpness: Double, continuity: Bool = false) -> Bool {
-        sharpness < (continuity ? 0.08 : sharpnessFloor)
+        sharpness < activeSharpnessFloor(continuity: continuity)
     }
 
     /// Ampel über bis zu 8 Frames: schlechteste Capture/Schärfe, größtes |Yaw|.
-    static func sparkLamps(captures: [Double], sharps: [Double], yaws: [Double]) -> (capture: Lamp, sharpness: Lamp, yaw: Lamp) {
+    static func sparkLamps(captures: [Double], sharps: [Double], yaws: [Double], continuity: Bool = false) -> (capture: Lamp, sharpness: Lamp, yaw: Lamp) {
         qualityLamps(
             capture: captures.min() ?? 0,
             sharpness: sharps.min() ?? 0,
-            yaw: yaws.map { abs($0) }.max() ?? 0
+            yaw: yaws.map { abs($0) }.max() ?? 0,
+            continuity: continuity
         )
     }
 
@@ -220,9 +227,10 @@ enum MatchMath {
         eyes && !mouth
     }
 
-    /// Unscharf < 0,12: harte Ablehnung, nicht nur Score-Dämpfung.
-    static func qualityRejects(capture: Double, size: Double, sharpness: Double) -> Bool {
-        (capture < 0.35 && size < 0.16) || sharpness < sharpnessFloor
+    /// Unscharf unter aktivem Floor: harte Ablehnung, nicht nur Score-Dämpfung.
+    /// Continuity darf 0,10 — sonst skipPrint erzeugt den Print und qualityRejects wirft ihn weg.
+    static func qualityRejects(capture: Double, size: Double, sharpness: Double, continuity: Bool = false) -> Bool {
+        (capture < 0.35 && size < 0.16) || sharpness < activeSharpnessFloor(continuity: continuity)
     }
 
     /// Maske: voller Print enthält Stoff. Teil-Print (Stirn/Augen) führt, Deckel 88.

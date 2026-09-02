@@ -6,12 +6,15 @@ enum LabReport {
         identities: [Identity],
         media: [MediaItem],
         enabled: Set<StrategyID>,
-        threshold: Double
+        threshold: Double,
+        cameraOrient: String = "auto"
     ) -> String {
         var genuine: [Double] = []
         var genuinePartial: [Double] = []
         var genuineFull: [Double] = []
         var impostor: [Double] = []
+        var impostorPartial: [Double] = []
+        var impostorFull: [Double] = []
         var lines = ["person,probe,kind,score"]
         var pairScores: [String: [String: [Double]]] = [:]
 
@@ -35,7 +38,8 @@ enum LabReport {
                 let versus = rows.first?.hits.first { $0.strategy == .aegis }?.versus ?? []
                 let selfP = versus.first { $0.identityId == identity.id }?.percent ?? 0
                 genuine.append(selfP)
-                if probe.forcedPartial || FaceEngine.lowerFaceOccluded(probe) {
+                let probePartial = probe.forcedPartial || FaceEngine.lowerFaceOccluded(probe)
+                if probePartial {
                     genuinePartial.append(selfP)
                     lines.append("\(identity.name),\(probe.id.uuidString),genuine-partial,\(fmt(selfP))")
                 } else {
@@ -46,7 +50,13 @@ enum LabReport {
                 for v in versus where v.identityId != identity.id {
                     impostor.append(v.percent)
                     let name = held.first { $0.id == v.identityId }?.name ?? "?"
-                    lines.append("\(identity.name)→\(name),\(probe.id.uuidString),impostor,\(fmt(v.percent))")
+                    if probePartial {
+                        impostorPartial.append(v.percent)
+                        lines.append("\(identity.name)→\(name),\(probe.id.uuidString),impostor-partial,\(fmt(v.percent))")
+                    } else {
+                        impostorFull.append(v.percent)
+                        lines.append("\(identity.name)→\(name),\(probe.id.uuidString),impostor,\(fmt(v.percent))")
+                    }
                     pairScores[identity.name, default: [:]][name, default: []].append(v.percent)
                 }
             }
@@ -55,30 +65,31 @@ enum LabReport {
         var out: [String] = []
         out.append("Aegis \(AppVersion.display) — Laborbericht")
         out.append("Schwelle \(Int(threshold))  ·  Spuren \(enabled.map(\.label).sorted().joined(separator: ", "))")
+        let orientNote: String
+        switch cameraOrient {
+        case "auto":
+            orientNote = "Auto (videoRotationAngle) · Override aus · EXIF nur Fotos"
+        case "0", "90", "180", "270":
+            orientNote = "Override \(cameraOrient)° (Auto ignoriert) · EXIF nur Fotos"
+        default:
+            orientNote = "\(cameraOrient) · Auto vs Override vs EXIF"
+        }
+        out.append("Orient: \(orientNote)")
         out.append("Genuine-Paare \(genuine.count)  ·  Impostor-Paare \(impostor.count)")
         out.append(stats("Genuine", genuine))
         if !genuineFull.isEmpty { out.append(stats("Genuine frei", genuineFull)) }
         if !genuinePartial.isEmpty { out.append(stats("Genuine Teil-Print/Maske", genuinePartial)) }
         out.append(stats("Impostor", impostor))
+        if !impostorFull.isEmpty { out.append(stats("Impostor frei", impostorFull)) }
+        if !impostorPartial.isEmpty { out.append(stats("Impostor Teil-Print/Maske", impostorPartial)) }
         if !genuine.isEmpty, !impostor.isEmpty {
             out.append(String(format: "Rang-1 (genuine ≥ Schwelle)  %.1f%%", 100 * frac(genuine, threshold)))
             out.append(String(format: "FAR bei Schwelle            %.1f%%", 100 * frac(impostor, threshold)))
             out.append(eerLine(genuine, impostor))
-            if impostor.count < 200, let t = MatchMath.tarBootstrap(atFar: 0.001, genuine: genuine, impostor: impostor) {
-                out.append(String(
-                    format: "TAR @ 0,1 %% FAR  %.1f%%  [%.1f–%.1f]  (n_imp=%d, Bootstrap 95%%)",
-                    100 * t.tar, 100 * t.lo, 100 * t.hi, impostor.count
-                ))
-            } else if let t = MatchMath.tar(atFar: 0.001, genuine: genuine, impostor: impostor) {
-                out.append(String(format: "TAR @ 0,1 %% FAR  %.1f%%  (Schwelle %.1f, MatchMath floor)", 100 * t.tar, t.threshold))
-            }
-            if impostor.count < 200, let t = MatchMath.tarBootstrap(atFar: 0.01, genuine: genuine, impostor: impostor) {
-                out.append(String(
-                    format: "TAR @ 1 %% FAR    %.1f%%  [%.1f–%.1f]  (n_imp=%d, Bootstrap 95%%)",
-                    100 * t.tar, 100 * t.lo, 100 * t.hi, impostor.count
-                ))
-            } else if let t = MatchMath.tar(atFar: 0.01, genuine: genuine, impostor: impostor) {
-                out.append(String(format: "TAR @ 1 %% FAR    %.1f%%  (Schwelle %.1f, MatchMath floor)", 100 * t.tar, t.threshold))
+            tarLines(genuine: genuine, impostor: impostor, label: "", into: &out)
+            if !genuineFull.isEmpty, !impostorFull.isEmpty, impostorPartial.count + genuinePartial.count > 0 {
+                out.append("TAR ohne Masken-Paare (frei vs frei):")
+                tarLines(genuine: genuineFull, impostor: impostorFull, label: "frei ", into: &out)
             }
         } else {
             out.append("Zu wenig Referenzen: jede Person braucht mindestens zwei Fotos.")
@@ -127,6 +138,25 @@ enum LabReport {
         out.append("")
         out.append(lines.joined(separator: "\n"))
         return out.joined(separator: "\n")
+    }
+
+    private static func tarLines(genuine: [Double], impostor: [Double], label: String, into out: inout [String]) {
+        if impostor.count < 200, let t = MatchMath.tarBootstrap(atFar: 0.001, genuine: genuine, impostor: impostor) {
+            out.append(String(
+                format: "TAR \(label)@ 0,1 %% FAR  %.1f%%  [%.1f–%.1f]  (n_imp=%d, Bootstrap 95%%)",
+                100 * t.tar, 100 * t.lo, 100 * t.hi, impostor.count
+            ))
+        } else if let t = MatchMath.tar(atFar: 0.001, genuine: genuine, impostor: impostor) {
+            out.append(String(format: "TAR \(label)@ 0,1 %% FAR  %.1f%%  (Schwelle %.1f, MatchMath floor)", 100 * t.tar, t.threshold))
+        }
+        if impostor.count < 200, let t = MatchMath.tarBootstrap(atFar: 0.01, genuine: genuine, impostor: impostor) {
+            out.append(String(
+                format: "TAR \(label)@ 1 %% FAR    %.1f%%  [%.1f–%.1f]  (n_imp=%d, Bootstrap 95%%)",
+                100 * t.tar, 100 * t.lo, 100 * t.hi, impostor.count
+            ))
+        } else if let t = MatchMath.tar(atFar: 0.01, genuine: genuine, impostor: impostor) {
+            out.append(String(format: "TAR \(label)@ 1 %% FAR    %.1f%%  (Schwelle %.1f, MatchMath floor)", 100 * t.tar, t.threshold))
+        }
     }
 
     private static func fmt(_ n: Double) -> String { String(format: "%.2f", n) }

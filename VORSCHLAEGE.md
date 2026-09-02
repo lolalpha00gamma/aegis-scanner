@@ -1,13 +1,23 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.12 alpha**. Nur `main`. 2.1.7–2.1.11 von PR #3 nachgezogen.
+Stand: **2.1.13 alpha**. Nur `main`.
+
+## In 2.1.13 wirklich im Code
+
+Warum 2.1.12 auf Continuity/Desk-View trotzdem tot blieb: `skipPrint` ließ Laplacian 0,10 durch, aber `qualityRejects` / `tinyUnreliable` / Overlay-Ampel / Enrollment blieben hart bei 0,12 — der Print entstand und wurde sofort verworfen. Live warf den neuesten Frame weg, solange Detect lief. U-Slot wurde nie vorgeschlagen. Labor mischte Impostor-Full und -Partial.
+
+1. **`qualityRejects(continuity:)`.** Derselbe Floor wie `skipPrint` (0,08 Continuity / 0,12 sonst). `tinyUnreliable`, Overlay „unscharf“, Ampel-S, Enrollment.
+2. **Live-Coalesce.** `livePending` hält den letzten Frame. Kein Drop des aktuellen Bildes hinter Detect.
+3. **U-Slot nach 1,2 s Maske.** Status-Vorschlag „U für Teil-Print“ — nie still geschrieben.
+4. **Labor Impostor frei vs Teil-Print.** Extra TAR ohne Masken-Paare. Eine Orient-Zeile Auto vs Override vs EXIF.
+5. Ampel Continuity 0,10 = amber, nicht rot.
 
 ## In 2.1.12 wirklich im Code
 
 1. Alles aus 2.1.7–2.1.11 (Orient-Override, U-Slot, Ampel, Schärfe vor Print, Teil-Print, Masken-Veto, 1-Euro-Reset, TAR floor).
 2. **Ampel-Spark 8 Frames.** Schlechteste Capture/Schärfe, größtes |Yaw|.
 3. **Tile-Budget 2.** Mitte + eine Ecke, nicht 5 Origins.
-4. **Continuity-Schärfe 0,08** nur für Continuity/Desk-View.
+4. **Continuity-Schärfe 0,08** nur für Continuity/Desk-View — aber nur in `skipPrint`, nicht in `qualityRejects` (das ist 2.1.13).
 5. **Orient-Menü vor Live.** Pending-Override überlebt `configureCamera`.
 6. **„doch Name“** löscht Hard-Negativ.
 7. **Labor Genuine frei vs Teil-Print.**
@@ -23,7 +33,6 @@ Warum 2.1.10 trotz Schärfe-Floor Continuity und Masken trotzdem falsch drehte: 
 4. **Schärfe vor dem Print.** Laplacian < 0,12 → Request nicht, Print leer.
 
 ## In 2.1.10 wirklich im Code
-
 
 Warum 2.1.9 trotz Teil-Print Masken und Portraits trotzdem falsch taufte: die maskierte Probe (`partialVec`) ging gegen den vollen Galerie-Mean (Stoff vs. Gesicht). Eine Maske als erste Referenz hat den Centroid vergiftet. Portrait-Fotos mit einem großen Gesicht wurden trotzdem gekachelt (NMS-Zwillinge, falsche Print-IoU). Unschärfe < 0,12 hat trotzdem benannt.
 
@@ -82,9 +91,10 @@ Warum 2.1.5 trotz Cancel und HLS-Transform Galerien und Live trotzdem schief zog
 
 ## Nächste Fixes (klein)
 
-- Orient-Konflikt als eine Zeile Auto vs Override vs EXIF im Labor.
-- U-Slot-Vorschlag nach 1,2 s Maske im Live-Track, nie still schreiben.
-- ForcedPartial extra Laborzeile für TAR ohne Full-Paare (Genuine-Split ist da, Impostor noch gemischt).
+- Live-`rematch` nur für Live-Faces + Galerie-Modelle, nicht die ganze History jedes Frame.
+- Ampel-Spark Continuity-Floor auch in den gespeicherten `qualitySpark`-Werten markieren (jetzt über `item.kind == .live`).
+- ForcedPartial extra Laborzeile für Genuine-vs-U ohne Full-Paare ist da; Histogram Genuine vs Impostor als Spark im Labor.
+- Print-Blend 0,35 bei Continuity-Rauschen langsamer (0,20), Built-in bleibt 0,35.
 
 ## Erweiterungen
 
@@ -97,7 +107,7 @@ Warum 2.1.5 trotz Cancel und HLS-Transform Galerien und Live trotzdem schief zog
 - **Kalibrier-Set.** Fünf eigene Fotos (frontal, ¾, Hut, Nacht, Lächeln) als Selbsttest.
 - **Score-Kalibrierung pro Galerie.** Platt-Skalierung auf Leave-one-out statt globaler Sigmoid.
 - **Pose-normalisierter Print.** Yaw/Pitch vor dem Crop, nicht nur Slot-Mix.
-- **Helios-Bridge.** Eine Kamera-Session, eine TCC-Freigabe.
+- **Helios-Bridge.** Eine Kamera-Session, eine TCC-Freigabe — kein Code kopieren.
 - **Offen-Set.** Explizite „unbekannt“-Klasse mit eigener Schwelle.
 - **Identitäten mergen.** Bestätigung wenn Centroid-Cosine > 0,82.
 - **Watch-Folder.** Neue Fotos automatisch ingestieren.
@@ -110,21 +120,15 @@ Warum 2.1.5 trotz Cancel und HLS-Transform Galerien und Live trotzdem schief zog
 - **Familien-Cluster UI.** Pairwise-Heatmap im Labor, nicht nur +4 Floor.
 - **Print-Alter.** Referenz älter als N Tage markieren — Frisur/Bart driftet.
 - **Zwei-Kamera-Live.** Built-in + Continuity parallel, derselbe Track über Print, nicht IoU.
-- **Quality-Gate als harte Ablehnung** unter 0,12 sharpness, nicht nur Score-Dämpfung.
 - **Gallery.json Schema-Version** neben printRevision, damit 2.x Leser 3.x Felder überspringen.
-- **Hard-Negativ vergessen.** Taste „doch Name“ entfernt den Deckel.
 - **Score-Histogramm im Labor.** Genuine vs Impostor als ASCII/Spark, nicht nur mean/median.
-- **Live-Quality-Ampel.** Capture/sharpness/yaw als drei Punkte am Overlay, bevor der Name kommt.
-- **Print-Alter 90 Tage.** Referenz älter als N Tage markieren — liegt schon als „Print-Alter“ oben, UI- paler.
 - **Geschwister-Wizard.** Pairwise-Heatmap vorschlagen, Floor +4 bestätigen lassen.
 - **Masken-Enrollment-Slot.** Explizite „obere Hälfte“-Referenz, wenn jemand oft Maske trägt.
-- **PartialPrint-Laborzeile.** Genuine-Paare mit/ohne Maske getrennt, sonst TAR die Masken-Dämpfung.
-- **Tile-Budget.** Max. 2 Extra-Detects statt 5 Origins, wenn Crowd echt ist.
-- **Schärfe vor dem Print.** Laplacian < Floor → Request gar nicht erst, spart Vision.
-- **Continuity-Schärfe weicher.** Desk-View oft 0,10–0,14 — Floor 0,08 nur für diese uniqueID, nicht global.
-- **U-Slot vom Live-Hold.** 1,2 s Maske im Track → Vorschlag „als Teil-Print“, nie still schreiben.
-- **forcedPartial im Labor.** U-Refs extra Zeile, damit TAR nicht mit Full-Paaren gemischt wird.
-- **Orient-Menü auch ohne Live.** Letzte uniqueID merken, Override vor Webcam-Start setzen.
+- **Live-Quality-Ampel persistieren.** C/S/Y der letzten Session im Labor, nicht nur Overlay.
+- **Partial-vs-Full Confusion-Matrix** extra Block, nicht nur zwei Stats-Zeilen.
+- **Continuity uniqueID-Liste.** Manuell markieren, falls Desk-View nicht als Continuity erkannt wird.
+- **Yaw aus Landmarks**, wenn `face.yaw` nil (ältere Vision-Revisions).
+- **Box-1-Euro minCutoff** nach Frame-dt, nicht fest 1,2 — 8 fps vs 24 fps.
 
 ## Nicht tun
 
@@ -148,7 +152,10 @@ Warum 2.1.5 trotz Cancel und HLS-Transform Galerien und Live trotzdem schief zog
 - Teil-Print gegen den vollen Galerie-Centroid (Domain-Mix).
 - Maske als erste Referenz (Stoff im Mean).
 - Tiles über einem großen Portrait-Gesicht.
-- Schärfe < 0,12 trotzdem taufen.
+- Schärfe < 0,12 trotzdem taufen (Built-in). Continuity bleibt 0,08.
 - `VNGenerateFacePrint` auf unscharfen Crops (Laplacian < Floor).
 - U-Slot als erste Referenz (Stoff im Mean) — Taste U blockt das.
 - Continuity-Yaw hart aus `videoRotationAngle` ohne Override.
+- `qualityRejects` wieder ohne Continuity-Floor (Print erzeugen, dann verwerfen).
+- Live-Frames droppen statt coalescen.
+- U-Slot still schreiben nach Masken-Hold.

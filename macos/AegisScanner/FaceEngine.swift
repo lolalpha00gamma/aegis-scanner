@@ -329,10 +329,15 @@ enum FaceEngine {
         identities: [Identity],
         media: [MediaItem],
         threshold: Double = 78,
-        enabled: Set<StrategyID> = Set(StrategyID.allCases)
+        enabled: Set<StrategyID> = Set(StrategyID.allCases),
+        continuity: Bool = false
     ) -> [MatchResult] {
         var tracked = faces
         assignTracks(faces: &tracked, media: media)
+        let liveIds = Set(media.filter { $0.kind == .live }.map(\.id))
+        func faceContinuity(_ face: FaceObservation) -> Bool {
+            continuity && liveIds.contains(face.mediaId)
+        }
         let models = identities.map { identity -> IdentityModel in
             let owned = tracked.filter { identity.faceIds.contains($0.id) }
             let best = owned.max { $0.quality.capture < $1.quality.capture }
@@ -434,7 +439,7 @@ enum FaceEngine {
 
             let gated = rank(models, minMargin: embedMargin, floors: floors) { m in
                 let raw = bestPrintPercent(face, m.meanPrint)
-                if tinyUnreliable(face.quality) {
+                if tinyUnreliable(face.quality, continuity: faceContinuity(face)) {
                     return raw * (0.45 + 0.55 * (face.quality.capture / 0.35))
                 }
                 return raw
@@ -456,7 +461,7 @@ enum FaceEngine {
                 guard enabled.contains(s) else { return 0 }
                 return hits.first { $0.strategy == s }?.versus.first { $0.identityId == id }?.percent ?? 0
             }
-            let lowCapture = tinyUnreliable(face.quality)
+            let lowCapture = tinyUnreliable(face.quality, continuity: faceContinuity(face))
             func geoMixOf(_ id: UUID) -> Double {
                 let parts: [(StrategyID, Double)] = [
                     (.ratios, 0.20), (.faceShape, 0.16), (.midface, 0.14), (.eyeRegion, 0.14),
@@ -592,7 +597,7 @@ enum FaceEngine {
         return (f.match, f.solo)
     }
 
-    static func overlayHint(_ face: FaceObservation, gallery: [FaceObservation] = []) -> String? {
+    static func overlayHint(_ face: FaceObservation, gallery: [FaceObservation] = [], continuity: Bool = false) -> String? {
         if face.featurePrint.isEmpty {
             if face.quality.capture >= 0.40 { return "Print tot · Okklusion?" }
             return "Print tot"
@@ -600,7 +605,7 @@ enum FaceEngine {
         if face.quality.capture < 0.35 && face.quality.size < 0.16 { return "z zu klein" }
         if abs(face.quality.yaw) > 0.75 { return "Profil" }
         if face.quality.frontal < 0.22 { return "stark gedreht" }
-        if face.quality.sharpness < 0.12 { return "unscharf" }
+        if face.quality.sharpness < MatchMath.activeSharpnessFloor(continuity: continuity) { return "unscharf" }
         let eyes = face.strokes.contains { $0.label.hasPrefix("Auge") && $0.points.count >= 4 }
         let mouth = face.strokes.contains { ($0.label == "Mund" || $0.label == "Lippen") && $0.points.count >= 4 }
         if eyes && !mouth { return partialEmbedding(of: face).count >= 32 ? "Maske · Teil-Print" : "Maske?" }
@@ -1965,16 +1970,17 @@ enum FaceEngine {
         NSClassFromString("VNGenerateFacePrintRequest") != nil
     }
 
-    static func qualityRejects(_ q: FaceQuality) -> Bool {
-        MatchMath.qualityRejects(capture: q.capture, size: q.size, sharpness: q.sharpness)
+    static func qualityRejects(_ q: FaceQuality, continuity: Bool = false) -> Bool {
+        MatchMath.qualityRejects(capture: q.capture, size: q.size, sharpness: q.sharpness, continuity: continuity)
     }
 
-    static func referenceRejected(_ face: FaceObservation, asFirstReference: Bool = false) -> String? {
+    static func referenceRejected(_ face: FaceObservation, asFirstReference: Bool = false, continuity: Bool = false) -> String? {
         if face.featurePrint.isEmpty {
             return "Kein Face-Print — Referenz würde die Galerie vergiften."
         }
-        if face.quality.sharpness < MatchMath.sharpnessFloor {
-            return String(format: "Unscharf %.0f %% — mindestens %.0f %% für eine Referenz.", face.quality.sharpness * 100, MatchMath.sharpnessFloor * 100)
+        let floor = MatchMath.activeSharpnessFloor(continuity: continuity)
+        if face.quality.sharpness < floor {
+            return String(format: "Unscharf %.0f %% — mindestens %.0f %% für eine Referenz.", face.quality.sharpness * 100, floor * 100)
         }
         if face.quality.capture < 0.40 {
             return String(format: "Aufnahme %.0f %% — mindestens 40 %% für eine Referenz.", face.quality.capture * 100)
@@ -2018,12 +2024,12 @@ enum FaceEngine {
         return best
     }
 
-    private static func tinyUnreliable(_ q: FaceQuality) -> Bool {
-        MatchMath.qualityRejects(capture: q.capture, size: q.size, sharpness: q.sharpness)
+    private static func tinyUnreliable(_ q: FaceQuality, continuity: Bool = false) -> Bool {
+        MatchMath.qualityRejects(capture: q.capture, size: q.size, sharpness: q.sharpness, continuity: continuity)
     }
 
-    private static func textureIsReliable(_ q: FaceQuality) -> Bool {
-        q.capture >= 0.28 && q.sharpness >= 0.12
+    private static func textureIsReliable(_ q: FaceQuality, continuity: Bool = false) -> Bool {
+        q.capture >= 0.28 && q.sharpness >= MatchMath.activeSharpnessFloor(continuity: continuity)
     }
 
     /// Print is the score. Geometry vetoes a mismatch and may add a small

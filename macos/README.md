@@ -1,7 +1,7 @@
 # Aegis
 
 Lokaler Image- & Video-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**  
-Version **2.1.12 alpha**.
+Version **2.1.13 alpha**.
 
 ## Image-Datei
 
@@ -12,6 +12,10 @@ Version **2.1.12 alpha**.
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Die Datei ist ad-hoc signiert (kein Apple-Developer-Account) — deshalb der Rechtsklick beim ersten Start.
+
+## Neu in 2.1.13 alpha
+
+`qualityRejects` teilt den Continuity-Floor (0,08) mit `skipPrint`. Live coalesct den letzten Frame. U-Slot-Vorschlag nach 1,2 s Maske. Labor trennt Impostor frei/Teil-Print und schreibt Orient Auto vs Override.
 
 ## Neu in 2.1.12 alpha
 

@@ -626,7 +626,8 @@ struct FaceOverlay: View {
                         guard let ident else { return [] }
                         return store.faces.filter { ident.faceIds.contains($0.id) && $0.id != face.id }
                     }()
-                    let hint = FaceEngine.overlayHint(face, gallery: gallery)
+                    let liveCont = store.liveContinuity && item.kind == .live
+                    let hint = FaceEngine.overlayHint(face, gallery: gallery, continuity: liveCont)
                     let printLabel = printDead
                         ? "Print tot"
                         : String(format: "Print %.0f%%", printHit?.percent ?? 0)
@@ -647,7 +648,7 @@ struct FaceOverlay: View {
                             }
                             .overlay(alignment: .topTrailing) {
                                 VStack(alignment: .trailing, spacing: 2) {
-                                    QualityAmpel(qualities: face.qualitySpark.isEmpty ? [face.quality] : face.qualitySpark)
+                                    QualityAmpel(qualities: face.qualitySpark.isEmpty ? [face.quality] : face.qualitySpark, continuity: liveCont)
                                     Text(badge)
                                         .font(.caption2.monospacedDigit())
                                         .padding(.horizontal, 5)
@@ -699,12 +700,13 @@ struct FaceOverlay: View {
 
 private struct QualityAmpel: View {
     var qualities: [FaceQuality]
+    var continuity: Bool = false
 
     var body: some View {
         let caps = qualities.map(\.capture)
         let sharps = qualities.map(\.sharpness)
         let yaws = qualities.map(\.yaw)
-        let lamps = MatchMath.sparkLamps(captures: caps, sharps: sharps, yaws: yaws)
+        let lamps = MatchMath.sparkLamps(captures: caps, sharps: sharps, yaws: yaws, continuity: continuity)
         HStack(spacing: 3) {
             lamp(lamps.capture, label: "C")
             lamp(lamps.sharpness, label: "S")
