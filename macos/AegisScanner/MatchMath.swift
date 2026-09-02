@@ -18,6 +18,8 @@ enum MatchMath {
     static let lampSparkFrames = 8
     static let printStaleDays = 90
     static let maskHoldSeconds = 1.2
+    static let boxJumpIoU = 0.35
+    static let ingestDuplicateCosine = 0.95
 
     enum Lamp: String, Equatable {
         case green, amber, red
@@ -123,6 +125,26 @@ enum MatchMath {
     /// Unscharfe Leave-one-out-Paare sind keine Identitätsfrage.
     static func laborIncludesProbe(qualityRejected: Bool) -> Bool {
         !qualityRejected
+    }
+
+    /// Gallery-Seite im Leave-one-out: unscharfe Refs verdrehen TAR genauso.
+    static func laborIncludesRef(qualityRejected: Bool) -> Bool {
+        laborIncludesProbe(qualityRejected: qualityRejected)
+    }
+
+    /// Live-Box: IoU unter 0,35 hält die alte Kiste ein Frame, unabhängig von der Ampel.
+    static func boxHysteresisHold(iou: Double, floor: Double = boxJumpIoU) -> Bool {
+        iou < floor
+    }
+
+    /// Zweites Frame bestätigt den Sprung, wenn es an der pending-Box klebt.
+    static func boxHysteresisConfirm(iouToPending: Double, floor: Double = boxJumpIoU) -> Bool {
+        iouToPending >= floor
+    }
+
+    /// Nahezu identischer Print zur gleichen/anderen Datei — Burst-Kopie, nicht neue Pose.
+    static func ingestDuplicate(cosine: Double, floor: Double = ingestDuplicateCosine) -> Bool {
+        cosine > floor
     }
 
     /// Live-Maske so lange halten, bevor „Taste U“ vorgeschlagen wird — nie still schreiben.

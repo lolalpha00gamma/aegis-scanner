@@ -1,4 +1,4 @@
-# Aegis **2.1.13 alpha**
+# Aegis **2.1.14 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,14 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main` oder `bugfix`.
+
+## Neu in 2.1.14 alpha
+
+Warum 2.1.13 trotz Spark-Reset und Labor-Filter Live-Box und TAR trotzdem verzerrte: 1-Euro kroch bei IoU 0,12–0,35 über das Bild. Burst-Kopien wurden zweite Refs. Leave-one-out ließ unscharfe Gallery-Refs im Centroid.
+
+- **Box-Hysterese 2 Frames.** IoU < 0,35 hält die alte Kiste; erst das zweite ähnliche Frame darf springen (1-Euro reset). Unabhängig von der Ampel.
+- **Ingest-Duplikat Cosine > 0,95.** Tile-/Burst-Kopien derselben Datei oder schon gesehener Prints fallen raus.
+- **Labor qualityRejects auf der Gallery-Seite.** Unscharfe Refs im Leave-one-out zählen nicht in TAR.
 
 ## Neu in 2.1.13 alpha
 

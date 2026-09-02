@@ -25,6 +25,10 @@ enum LabReport {
                 var held = identities
                 if let idx = held.firstIndex(where: { $0.id == identity.id }) {
                     var ids = owned.enumerated().compactMap { $0.offset == i ? nil : $0.element.id }
+                    ids = ids.filter { id in
+                        guard let ref = owned.first(where: { $0.id == id }) else { return true }
+                        return MatchMath.laborIncludesRef(qualityRejected: FaceEngine.qualityRejects(ref.quality))
+                    }
                     if ids.isEmpty { continue }
                     held[idx].faceIds = ids
                 }

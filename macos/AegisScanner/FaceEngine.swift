@@ -1994,6 +1994,25 @@ enum FaceEngine {
         return best
     }
 
+    /// Burst-/Tile-Kopien: Cosine > 0,95 gegen schon gesehene Prints raus.
+    static func filterIngestDuplicates(_ incoming: [FaceObservation], existing: [FaceObservation]) -> [FaceObservation] {
+        var pool: [[Double]] = existing.compactMap { f in
+            let v = embedding(of: f)
+            return v.count >= 32 ? v : nil
+        }
+        var kept: [FaceObservation] = []
+        kept.reserveCapacity(incoming.count)
+        for face in incoming {
+            let v = embedding(of: face)
+            if v.count >= 32, pool.contains(where: { MatchMath.ingestDuplicate(cosine: MatchMath.cosine(v, $0)) }) {
+                continue
+            }
+            kept.append(face)
+            if v.count >= 32 { pool.append(v) }
+        }
+        return kept
+    }
+
     private static func tinyUnreliable(_ q: FaceQuality, hasPrint: Bool = false) -> Bool {
         if hasPrint, q.sharpness >= MatchMath.continuitySharpnessFloor {
             return q.capture < 0.35 && q.size < 0.16

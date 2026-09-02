@@ -53,6 +53,7 @@ final class LibraryStore: ObservableObject {
     private var liveGhosts: [(face: FaceObservation, until: TimeInterval)] = []
     private var reconnectGhosts: [FaceObservation] = []
     private var boxEuro: [UUID: (x: MatchMath.OneEuro, y: MatchMath.OneEuro, w: MatchMath.OneEuro, h: MatchMath.OneEuro)] = [:]
+    private var boxJumpPending: [UUID: FaceBox] = [:]
     private var lampHist: [UUID: (c: [MatchMath.Lamp], s: [MatchMath.Lamp], y: [MatchMath.Lamp])] = [:]
     private var maskHoldSince: [UUID: TimeInterval] = [:]
 
@@ -458,7 +459,8 @@ final class LibraryStore: ObservableObject {
                     canResumeScan = true
                     return
                 }
-                faces.append(contentsOf: found)
+                let kept = FaceEngine.filterIngestDuplicates(found, existing: faces)
+                faces.append(contentsOf: kept)
             } catch {
                 continue
             }
@@ -869,6 +871,25 @@ final class LibraryStore: ObservableObject {
                 face.id = old.id
                 face.trackId = old.trackId ?? old.id
                 face.enrolledAt = old.enrolledAt ?? face.enrolledAt
+                if MatchMath.boxHysteresisHold(iou: bestIoU) {
+                    if let pending = boxJumpPending[old.id],
+                       MatchMath.boxHysteresisConfirm(iouToPending: FaceEngine.iou(pending, face.box))
+                    {
+                        boxJumpPending.removeValue(forKey: old.id)
+                        boxEuro.removeValue(forKey: old.id)
+                    } else {
+                        boxJumpPending[old.id] = face.box
+                        face.box = old.box
+                        if face.featurePrint.isEmpty, !old.featurePrint.isEmpty {
+                            face.featurePrint = old.featurePrint
+                            face.printVec = old.printVec.isEmpty ? FaceEngine.embedding(of: old) : old.printVec
+                        }
+                        adopted.append(face)
+                        continue
+                    }
+                } else {
+                    boxJumpPending.removeValue(forKey: old.id)
+                }
                 let t = now
                 var euro = boxEuro[old.id] ?? (
                     MatchMath.OneEuro(), MatchMath.OneEuro(), MatchMath.OneEuro(), MatchMath.OneEuro()
@@ -900,6 +921,7 @@ final class LibraryStore: ObservableObject {
                 face.enrolledAt = old.enrolledAt ?? face.enrolledAt
                 // Ghost-Box darf nicht kleben: 1-Euro der UUID verwerfen.
                 boxEuro.removeValue(forKey: old.id)
+                boxJumpPending.removeValue(forKey: old.id)
                 lampHist.removeValue(forKey: old.id)
                 sparkLamps.removeValue(forKey: old.id)
                 if face.featurePrint.isEmpty, !old.featurePrint.isEmpty {
@@ -913,6 +935,7 @@ final class LibraryStore: ObservableObject {
         }
         liveGhosts.removeAll { $0.until < now }
         boxEuro = boxEuro.filter { used.contains($0.key) }
+        boxJumpPending = boxJumpPending.filter { used.contains($0.key) }
         if found.isEmpty {
             for old in previous where !enrolled.contains(old.id) {
                 liveGhosts.append((old, now + 1.8))

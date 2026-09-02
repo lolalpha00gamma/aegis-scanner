@@ -1,6 +1,14 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.13 alpha**. Branch `bugfix`. Fixes von 2.1.13 stehen auch in der README.
+Stand: **2.1.14 alpha**. Branch `bugfix`. Fixes von 2.1.14 stehen auch in der README.
+
+## In 2.1.14 wirklich im Code
+
+Warum 2.1.13 trotz Spark und Labor Live-Box und TAR trotzdem verzerrte: 1-Euro kroch bei IoU 0,12–0,35. Burst-Kopien wurden Refs. Leave-one-out ließ unscharfe Gallery-Refs im Centroid.
+
+1. **Box-Hysterese 2 Frames** bei IoU < 0,35, unabhängig von der Ampel.
+2. **Ingest skip Cosine > 0,95** (Tile-/Burst-Kopie).
+3. **Labor qualityRejects auf Gallery-Refs**, nicht nur der Probe.
 
 ## In 2.1.13 wirklich im Code
 
@@ -94,9 +102,11 @@ Warum 2.1.5 trotz Cancel und HLS-Transform Galerien und Live trotzdem schief zog
 
 ## Nächste Fixes (klein)
 
-- **Face-Box 2-Frame-Hysterese** unabhängig von der Ampel, wenn IoU < 0,35.
-- **Duplicate-skip beim Ingest.** Cosine > 0,95 zur gleichen Datei.
-- **Labor qualityRejects auch auf der Gallery-Seite.** Scharfe Probe gegen unscharfe Referenz verzerrt TAR weiter.
+- **Namens-Mehrheit 3 Frames.** Overlay tauft nicht am einzelnen Tick zwischen zwei Geschwistern.
+- **Live-Score-EMA.** Percent nicht jeden Frame neu, sonst flackert der Badge.
+- **Crop-Schärfe.** Laplacian auf dem Gesichtscrop, nicht nur dem Vollbild — Unschärfe am Rand tauft trotzdem.
+- **Gallery-Prune.** Zwei Refs derselben Person Cosine > 0,98 → schärfere behalten.
+- **Pairwise-Heatmap klickbar.** Labor-Zelle öffnet die beiden Fotos.
 
 ## Erweiterungen
 
@@ -129,6 +139,10 @@ Warum 2.1.5 trotz Cancel und HLS-Transform Galerien und Live trotzdem schief zog
 - **Continuity-Floor nur solange uniqueID Continuity ist** — Built-in nach Dock-Wechsel wieder 0,12 (passiert schon über uniqueID).
 - **Hard-Negativ-Liste** in der Personen-Karte, nicht nur am Probe-Gesicht.
 - **Labor CSV** mit kind=genuine-mask exportieren, nicht nur der Fließtext.
+- **Live-Name 3-Tick-Mehrheit**, analog Ampel-Spark — sitzt als nächster Fix.
+- **Enrollment-Crop-Laplacian.** Vollbild-Schärfe 0,20 hilft nicht, wenn das Gesicht bewegungsunscharf ist.
+- **Auto-Prune Cosine > 0,98** innerhalb einer Identität, schärfere Ref gewinnt.
+- **Reconnect-Hysterese der Box unabhängig vom Print-Pin.** Sitzt (2.1.14); Print-Pin bleibt 1-Euro-Reset.
 
 ## Nicht tun
 
@@ -167,3 +181,6 @@ Warum 2.1.5 trotz Cancel und HLS-Transform Galerien und Live trotzdem schief zog
 - 90-Tage-Refs über Foto-mtime statt `enrolledAt`.
 - Unscharfe Leave-one-out-Paare in TAR.
 - gallery.json ohne `.bak` überschreiben.
+- Live-Box bei IoU 0,12 sofort 1-Euro nachziehen (Ghost-Kriechen).
+- Burst-Kopien Cosine > 0,95 als zweite Referenz.
+- Unscharfe Gallery-Refs im Leave-one-out (TAR gegen weichen Centroid).
