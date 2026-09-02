@@ -532,7 +532,8 @@ final class LibraryStore: ObservableObject {
             probes: live,
             identities: identities,
             gallery: gallery,
-            threshold: threshold
+            threshold: threshold,
+            continuity: liveContinuity
         )
         let probeIds = Set(live.map(\.id))
         matches = matches.filter { !probeIds.contains($0.faceId) } + next
@@ -551,6 +552,9 @@ final class LibraryStore: ObservableObject {
                   let hi = matches[i].hits.firstIndex(where: { $0.strategy == .aegis })
             else { continue }
             var hit = matches[i].hits[hi]
+            if !hit.measured {
+                continue
+            }
             let token = hit.identityId?.uuidString ?? ""
             var hist = liveNameHist[fid] ?? []
             hist.append(token)
@@ -568,6 +572,8 @@ final class LibraryStore: ObservableObject {
                         identityId: ident.id,
                         fallback: hit.percent
                     )
+                } else {
+                    hit.identityId = nil
                 }
             }
             let ema = MatchMath.liveScoreEMA(prev: liveScoreEma[fid], next: hit.percent)
@@ -986,8 +992,7 @@ final class LibraryStore: ObservableObject {
             for old in previous where !used.contains(old.id) {
                 let o = FaceEngine.iou(old.box, face.box)
                 let pin = enrolled.contains(old.id)
-                let enough = pin ? o >= 0.12 : o >= MatchMath.leftoverIoU
-                guard enough else { continue }
+                guard MatchMath.trackPin(iou: o, enrolled: pin) else { continue }
                 if pin && !bestEnrolled {
                     best = old
                     bestIoU = o

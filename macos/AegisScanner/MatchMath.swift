@@ -22,6 +22,12 @@ enum MatchMath {
     static let pinPrintCosine = 0.80
     /// Leftover-Pin: enrolled Track ohne IoU-Treffer darf die ID nicht unter diesem Wert stehlen.
     static let leftoverIoU = 0.28
+    /// Enrolled-Track klebt nur bei echter Überlappung. 0,12 hat Nachbarn die UUID geklaut.
+    static let trackPinIoU = 0.28
+    /// Overlay „andere Person“ erst unter diesem Cosine (Genuine typisch 0,62–0,92).
+    static let hintCosineFloor = 0.50
+    /// Live-Centroid: 72 % Frontal-Mittel, 28 % alle Refs.
+    static let liveCentroidFront = 0.72
     static let liveBlendBuiltIn = 0.35
     static let liveBlendContinuity = 0.20
     /// Burst derselben Pose in der Galerie, nicht zweite Aufnahme.
@@ -128,6 +134,20 @@ enum MatchMath {
 
     static func leftoverPin(iou: Double, floor: Double = leftoverIoU) -> Bool {
         iou > floor
+    }
+
+    static func trackPin(iou: Double, enrolled: Bool) -> Bool {
+        iou >= (enrolled ? trackPinIoU : leftoverIoU)
+    }
+
+    /// Overlay-Warnung „andere Person“ — Genuine-Cosine 0,62 darf nicht feuern.
+    static func overlayAlienHint(cosine: Double, floor: Double = hintCosineFloor) -> Bool {
+        cosine < floor
+    }
+
+    /// 8 fps vs 24 fps: höherer Cutoff bei großem dt, sonst hängt die Box einen Frame hinterher.
+    static func oneEuroCutoff(base: Double, dt: Double) -> Double {
+        dt >= 0.10 ? base * 1.7 : base
     }
 
     /// Labor auf schon eingeschriebenen Refs: Continuity-Floor 0,08, nicht 0,12.
@@ -447,7 +467,7 @@ enum MatchMath {
             let dx = (value - prev) / dt
             let ad = alpha(dCutoff, dt: dt)
             dxHat = ad * dx + (1 - ad) * dxHat
-            let cutoff = minCutoff + beta * abs(dxHat)
+            let cutoff = MatchMath.oneEuroCutoff(base: minCutoff, dt: dt) + beta * abs(dxHat)
             let a = alpha(cutoff, dt: dt)
             let hat = a * value + (1 - a) * prev
             xHat = hat

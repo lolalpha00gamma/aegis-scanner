@@ -1,4 +1,4 @@
-# Aegis **2.1.21 alpha**
+# Aegis **2.1.22 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,17 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.22 alpha
+
+2.1.21 hat leftover 0,28 und lookOf ohne 60-Deckel — Live taufte Nachbarn trotzdem, weil der **enrolled Track bei IoU 0,12 klebte**. Overlay schrie „andere Person“, sobald Cosine unter 0,88 lag (Genuine sitzt oft bei 0,62–0,85). `matchLive` baute den Centroid ungewichtet über alle Posen und behandelte Continuity immer als Built-in. 1-Euro hing bei 8 fps einen Frame hinter der Box. Namensmehrheit hielt eine gelöschte UUID.
+
+- **Track-Pin 0,28** auch für eingeschriebene Live-IDs (`MatchMath.trackPin`). 0,12 hat dem Nachbarn die UUID geklaut.
+- **Live-Centroid 72/28** Frontal vs. alle Refs — Profile verdünnen den Treffer nicht.
+- **Overlay-Alien erst unter Cosine 0,50**, gegen denselben Live-Centroid. Genuine 0,75 ist kein „andere Person“.
+- **`tinyUnreliable(continuity:)`** aus der Webcam, nicht hart `false`.
+- **1-Euro Cutoff ×1,7** bei dt ≥ 0,10 s (Continuity 8 fps).
+- **Namensmehrheit** überspringt leere Prints; fehlende UUID wird gelöscht, nicht als Geist gehalten.
 
 ## Neu in 2.1.21 alpha
 

@@ -1,6 +1,18 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.21 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.22 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.22 wirklich im Code
+
+2.1.21 leftover 0,28 galt nur dem *zweiten* Pin. Der erste enrolled Track klebte weiter bei IoU **0,12** — zwei Köpfe im Bild, eine UUID wandert. Overlay `1 − cosine > 0,12` (also cosine < 0,88) markierte fast jeden echten Treffer als „andere Person“. `matchLive` rief `tinyUnreliable(..., continuity: false)` und `meanPrintVector` über alle Posen. `stabilizeLiveMatches` schrieb leere Prints in die Mehrheit und ließ gelöschte UUIDs stehen. 1-Euro bei 8 fps: Box einen Frame hinten.
+
+1. **`trackPinIoU` 0,28.** `MatchMath.trackPin` für enrolled und leftover. 0,12 ist tot.
+2. **`liveCentroid` 72 % Frontal + 28 % alle.** `matchLive` und Overlay-Hint nutzen denselben Vektor.
+3. **`overlayAlienHint` Cosine < 0,50.** Genuine 0,62–0,85 bleibt still.
+4. **`tinyUnreliable(continuity: liveContinuity)`** in `matchLive`.
+5. **`oneEuroCutoff`:** dt ≥ 0,10 → ×1,7.
+6. **`stabilizeLiveMatches`:** `!measured` skip; UUID nicht in der Galerie → `identityId = nil`.
+7. MARKETING_VERSION 2.1.22 (Build 50), `Models.swift` + `VERSION` gleich.
 
 ## In 2.1.21 wirklich im Code
 
@@ -72,10 +84,12 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - Gallery.json Schema-Version neben printRevision.
 - Labor: Genuine-vs-U ohne Full-Paare extra Zeile (ForcedPartial).
 - Snapshot-Live-Kopie `mediaId` in einer unsichtbaren Gallery-Media-Row, sonst Browse zählt sie nicht.
-- **Box-1-Euro minCutoff** nach mittlerem Frame-dt (8 fps vs 24 fps).
 - TER-Fusion in der Strategie-Liste als Diagnose, Default aus — `.aegis` braucht sie nicht mehr zum Taufen.
 - Jacobi nur noch im Labor / Still, nie Live. Cheap-Graph auch bei Scan-Tiles.
 - Restore bestätigt, wenn Backup älter als 7 Tage oder andere printRevision.
+- **`matchLive` echte Landmark-Geo** statt `geoAgrees: true` / `geoMix: percent`. Median-Shape der Refs, sonst bleibt Geo-Veto tot.
+- **Leftover nur auf namenlose adopted-Boxen.** Zweiter Pass darf keine schon gematchte UUID überschreiben.
+- Overlay-Notiz kürzen (erste Klausel), volle decide-Zeile nur in der Seitenliste.
 
 ## Erweiterungen
 
@@ -112,11 +126,9 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - **Identität umbenennen** in der Liste (jetzt nur löschen + neu).
 - **Export Labor als CSV-Datei**, nicht nur Textfeld.
 - **Live-Quality an Frame-dt.** 8 fps vs 24 fps: Spark-Fenster in Sekunden, nicht Frames.
-- **Centroid-Slot-Mix in matchLive** (72/28 Frontal vs alle), analog `fullPrintPercent`.
 - **Score-Kalibrierung live.** Platt auf den letzten 200 Live-Ticks, Slider nur Bias.
 - **Geschwister-Hold.** Wenn familyBump greift, Mehrheit bleibt 5 Ticks (jetzt default).
 - **Cheap-Graph auch Still**, wenn graphBio aus ist — Detect soll die Spur nicht trotzdem rechnen.
-- Overlay-Notiz kürzen (erste Klausel), volle decide-Zeile nur in der Seitenliste.
 - **Restore-Diff.** Backup vs. aktuell: welche IDs kämen zurück, bevor überschrieben wird.
 - **Enrollment-Wizard.** Pose-Coverage-Meter (frontal / ¾ / Profil) bevor die erste Person „fertig“ heißt.
 - **Live Hold-Still-Ring** 0,8 s vor Print-Request — spart unscharfe Embeds.
@@ -124,6 +136,9 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - **Licht-Eimer.** Tags Tag/Kunstlicht/Nacht am Face, Match bevorzugt denselben Eimer.
 - **Match-Log JSONL** (Tick, UUID, lookOf, geoMix, decide-Notiz) für Labor nach der Session.
 - **Hard-Neg „gleiche Jacke“.** Texture-Hit ohne Print → explizit ablehnen.
+- **Track-ID über Print, Box nur Hysterese.** IoU darf nie mehr eine fremde UUID setzen, wenn Cosine < `pinPrintCosine`.
+- **Labor TAR@FAR live-simuliert:** letzte 50 Webcam-Prints gegen die Galerie, nicht nur Still-Fotos.
+- **Box-Euro Reset** wenn IoU-Hold springt und Print-Pin eine andere UUID will — Ghost-Box der Vorperson.
 
 ## Nicht tun
 
@@ -166,3 +181,6 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - Leftover-IoU wieder 0,18.
 - Namensmehrheit ohne `votedPercent`.
 - Auswahl jedes Live-Frame auf `adopted.first` setzen.
+- Enrolled-Track-IoU wieder 0,12.
+- Overlay „andere Person“ bei Cosine 0,88.
+- `matchLive` immer `continuity: false`.

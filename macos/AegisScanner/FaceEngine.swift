@@ -599,13 +599,14 @@ enum FaceEngine {
         probes: [FaceObservation],
         identities: [Identity],
         gallery: [FaceObservation],
-        threshold: Double = 78
+        threshold: Double = 78,
+        continuity: Bool = false
     ) -> [MatchResult] {
         let f = MatchMath.floors(gallery: identities.count, slider: threshold)
         let floors = Floors(match: f.match, solo: f.solo)
         let models: [(id: UUID, name: String, vec: [Double])] = identities.map { ident in
             let owned = gallery.filter { ident.faceIds.contains($0.id) }
-            return (ident.id, ident.name, meanPrintVector(owned))
+            return (ident.id, ident.name, liveCentroid(owned))
         }
         return probes.map { face in
             let pv = embedding(of: face)
@@ -641,7 +642,7 @@ enum FaceEngine {
                 secondName: models.first { $0.id == second?.identityId }?.name,
                 geoAgrees: true,
                 geoMargin: margin,
-                lowCapture: tinyUnreliable(face.quality, continuity: false),
+                lowCapture: tinyUnreliable(face.quality, continuity: continuity),
                 appearance: nil,
                 geoMix: best?.percent ?? 0,
                 galleryZ: galleryZScore(best?.percent ?? 0, versus.dropFirst().map(\.percent)),
@@ -705,10 +706,10 @@ enum FaceEngine {
         if !eyes && mouth { return "Sonnenbrille / Okklusion?" }
         if gallery.count >= 1 {
             let pv = embedding(of: face)
-            let mean = meanPrintVector(gallery)
+            let mean = liveCentroid(gallery)
             if pv.count >= 32, mean.count == pv.count {
                 let c = cosine(pv, mean)
-                if 1 - c > 0.12 { return "andere Person oder Brille?" }
+                if MatchMath.overlayAlienHint(cosine: c) { return "andere Person oder Brille?" }
             }
         }
         return nil
@@ -1033,6 +1034,16 @@ enum FaceEngine {
         let inv = 1.0 / wsum
         for i in acc.indices { acc[i] *= inv }
         return l2normalize(acc)
+    }
+
+    /// Live: 72 % Frontal-Centroid + 28 % alle Refs. Profile verdünnen den Treffer nicht.
+    static func liveCentroid(_ faces: [FaceObservation]) -> [Double] {
+        let all = meanPrintVector(faces)
+        let front = meanPrintVector(faces.filter { poseSlot($0) == .frontal })
+        if front.count >= 32, all.count == front.count {
+            return blendEmbeddings(all, front, alpha: MatchMath.liveCentroidFront)
+        }
+        return all.isEmpty ? front : all
     }
 
     /// Teil-Print-Centroid nur aus Masken-Refs. Leeres Array = Galerie hat keinen U-Slot.
