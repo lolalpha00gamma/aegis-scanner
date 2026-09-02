@@ -60,7 +60,7 @@ enum MatchMathTests {
         }
 
         if let tar01 = MatchMath.tar(atFar: 0.01, genuine: [90], impostor: Array(repeating: 10.0, count: 100) + [80]) {
-            near(tar01.threshold, 80, 0.01, "FAR 1% / 101 Impostoren → ceil-Index")
+            near(tar01.threshold, 80, 0.01, "FAR 1% / 101 Impostoren → floor-Index")
         }
 
         if fails > 0 {

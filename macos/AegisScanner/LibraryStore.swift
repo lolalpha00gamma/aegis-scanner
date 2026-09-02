@@ -123,16 +123,17 @@ final class LibraryStore: ObservableObject {
         var roots: [URL] = []
         for url in panel.urls {
             roots.append(url)
+        }
+        retainAccess(roots)
+        for url in panel.urls {
             var isDir: ObjCBool = false
             FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir)
             if isDir.boolValue {
-                _ = url.startAccessingSecurityScopedResource()
                 urls.append(contentsOf: FrameExtractor.walk(folder: url))
             } else {
                 urls.append(url)
             }
         }
-        retainAccess(roots)
         let before = media.count
         ingest(urls: urls)
         if let firstNew = media.dropFirst(before).first(where: { $0.kind == .photo })
@@ -430,9 +431,9 @@ final class LibraryStore: ObservableObject {
     private func ingestLiveFrame(_ image: CGImage, mediaId: UUID) {
         if liveBusy { return }
         liveBusy = true
-        Task.detached(priority: .userInitiated) { [weak self] in
+        Task.detached(priority: .userInitiated) {
             let found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false)) ?? []
-            await MainActor.run {
+            await MainActor.run { [weak self] in
                 guard let self else { return }
                 self.applyLiveFaces(found, image: image, mediaId: mediaId)
                 self.liveBusy = false
@@ -543,10 +544,22 @@ final class LibraryStore: ObservableObject {
         for row in matches {
             for hit in row.hits {
                 let name = hit.identityId.flatMap { idNames[$0] } ?? ""
-                lines.append("\(row.faceId.uuidString),\(hit.strategy.label),\(name),\(String(format: "%.1f", hit.percent))")
+                lines.append([
+                    csvField(row.faceId.uuidString),
+                    csvField(hit.strategy.label),
+                    csvField(name),
+                    csvField(String(format: "%.1f", hit.percent)),
+                ].joined(separator: ","))
             }
         }
         try? lines.joined(separator: "\n").write(to: url, atomically: true, encoding: .utf8)
+    }
+
+    private func csvField(_ raw: String) -> String {
+        if raw.contains(",") || raw.contains("\"") || raw.contains("\n") || raw.contains("\r") {
+            return "\"" + raw.replacingOccurrences(of: "\"", with: "\"\"") + "\""
+        }
+        return raw
     }
 
     func exportLab() {
@@ -561,19 +574,19 @@ final class LibraryStore: ObservableObject {
         let threshold = self.threshold
         busy = true
         status = "Laborbericht"
-        Task.detached {
-            let text = LabReport.text(
-                faces: faces,
-                identities: identities,
-                media: media,
-                enabled: enabled,
-                threshold: threshold
-            )
-            await MainActor.run {
-                try? text.write(to: url, atomically: true, encoding: .utf8)
-                self.busy = false
-                self.status = "Laborbericht gespeichert"
-            }
+        Task {
+            let text = await Task.detached {
+                LabReport.text(
+                    faces: faces,
+                    identities: identities,
+                    media: media,
+                    enabled: enabled,
+                    threshold: threshold
+                )
+            }.value
+            try? text.write(to: url, atomically: true, encoding: .utf8)
+            busy = false
+            status = "Laborbericht gespeichert"
         }
     }
 }

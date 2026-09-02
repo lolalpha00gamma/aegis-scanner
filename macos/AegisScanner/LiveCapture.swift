@@ -243,7 +243,18 @@ private func cgImage(from pb: CVPixelBuffer) -> CGImage? {
         space: cs,
         bitmapInfo: CGBitmapInfo.byteOrder32Little.rawValue | CGImageAlphaInfo.premultipliedFirst.rawValue
     ) else { return nil }
-    return ctx.makeImage()
+    guard let wrapped = ctx.makeImage() else { return nil }
+    guard let owned = CGContext(
+        data: nil,
+        width: w,
+        height: h,
+        bitsPerComponent: 8,
+        bytesPerRow: w * 4,
+        space: cs,
+        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+    ) else { return wrapped }
+    owned.draw(wrapped, in: CGRect(x: 0, y: 0, width: w, height: h))
+    return owned.makeImage()
 }
 
 func sniffLiveKind(_ raw: String) -> (LiveKind, URL)? {

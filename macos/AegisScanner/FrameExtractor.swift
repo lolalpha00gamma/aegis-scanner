@@ -108,7 +108,7 @@ enum FrameExtractor {
             }
             let p5 = percentile(0.05)
             let p95 = percentile(0.95)
-            if mean >= 78 && p5 >= 22 { return ctx.makeImage() }
+            if mean >= 78 && p5 >= 22 { return copyOwnedGray(ctx.makeImage()) }
             let span = max(p95 - p5, 12.0)
             let gamma = mean < 55 ? 0.55 : mean < 70 ? 0.62 : 0.78
             for i in 0 ..< n {
@@ -118,8 +118,25 @@ enum FrameExtractor {
                 y2 = 255 * pow(y2 / 255, gamma)
                 ptr[i] = UInt8(min(255, max(0, y2.rounded())))
             }
-            return ctx.makeImage()
+            return copyOwnedGray(ctx.makeImage())
         }
+    }
+
+    private static func copyOwnedGray(_ image: CGImage?) -> CGImage? {
+        guard let image else { return nil }
+        let w = image.width
+        let h = image.height
+        guard let ctx = CGContext(
+            data: nil,
+            width: w,
+            height: h,
+            bitsPerComponent: 8,
+            bytesPerRow: w,
+            space: CGColorSpaceCreateDeviceGray(),
+            bitmapInfo: CGImageAlphaInfo.none.rawValue
+        ) else { return image }
+        ctx.draw(image, in: CGRect(x: 0, y: 0, width: w, height: h))
+        return ctx.makeImage()
     }
 
     static func sharpness(_ image: CGImage) -> Double {

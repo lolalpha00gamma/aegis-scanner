@@ -1,4 +1,4 @@
-# Aegis **2.1.4 alpha**
+# Aegis **2.1.6 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,17 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.6 alpha
+
+- **CI wieder grün.** TAR@FAR-Index ist `floor(far·n)−1` (101 Impostoren → Schwelle 80, nicht 10). Tests laufen nach dem App-Build, nicht davor.
+- **LibraryStore Live-Task** fängt `self` nicht mehr in `Task.detached` ein.
+- **Live-Print: Median**, nicht Mittel. [95, 92, 5] bleibt 92.
+- **Pose:** `yaw`/`pitch` optional. Fehlende Pose ≠ perfekt frontal; Frontalität 0 bekommt nicht Gewicht 1.
+- **3D-Spur** ist nur noch `1/cos`-Entzerrung. Der z-Lift war Dekoration in der Bildebene.
+- **TER fließt in decide**, nicht nur in die Anzeige.
+- Live-Pixelbuffer und Equalize-Gray werden kopiert, bevor der Puffer recycelt wird.
+- CSV mit Quoting. Scoped-Access einmal start, einmal stop. Print-Vektor-Cache.
 
 ## Neu in 2.1.4 alpha
 

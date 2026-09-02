@@ -2,9 +2,9 @@ import CoreGraphics
 import Foundation
 
 enum AppVersion {
-    static let marketing = "2.1.5"
+    static let marketing = "2.1.6"
     static let channel = "alpha"
-    static let display = "2.1.5 alpha"
+    static let display = "2.1.6 alpha"
 }
 
 enum StrategyTrack: String, CaseIterable, Identifiable {
@@ -91,7 +91,7 @@ enum StrategyID: String, CaseIterable, Identifiable, Codable {
         case .graphBio:
             return "KNN-6 über feste Knochenpunkte (ohne Mund). Alterungsstabil, unabhängig von Textur."
         case .geom3d:
-            return "2D-Landmarks mit Yaw/Pitch auf die Frontalebene gehoben. Kein neuronales 3DMM."
+            return "2D-Landmarks nach Yaw/Pitch entzerrt (1/cos). Keine erfundene Tiefe, kein 3DMM."
         case .texture:
             return "Tan–Triggs + LBP auf dem ausgerichteten Crop. Keine Zuordnungsstimme."
         case .qualityGate:
@@ -101,7 +101,7 @@ enum StrategyID: String, CaseIterable, Identifiable, Codable {
         case .featurePrint:
             return "Gesichts-Print (VNGenerateFacePrintRequest) auf dem ganzen Foto. Kein Bild-Print von Jacke/Hintergrund."
         case .terFusion:
-            return "Aktive Spuren → Total Error Rate, min-max nach Jain, nur eingeschaltete Matcher."
+            return "Aktive Spuren → TER. Fließt in die Aegis-Zuordnung, nicht nur Anzeige."
         case .aegis:
             return "Fusion der eingeschalteten Spuren. Print führt, Geometrie stützt und vetoiert. Aus = keine Namensvergabe."
         }
@@ -125,14 +125,14 @@ struct FaceQuality: Codable, Hashable {
     var size: Double
     var frontal: Double
     var capture: Double
-    var yaw: Double = 0
-    var pitch: Double = 0
+    var yaw: Double?
+    var pitch: Double?
 
     enum CodingKeys: String, CodingKey {
         case sharpness, size, frontal, capture, yaw, pitch
     }
 
-    init(sharpness: Double, size: Double, frontal: Double, capture: Double, yaw: Double = 0, pitch: Double = 0) {
+    init(sharpness: Double, size: Double, frontal: Double, capture: Double, yaw: Double? = nil, pitch: Double? = nil) {
         self.sharpness = sharpness
         self.size = size
         self.frontal = frontal
@@ -147,8 +147,18 @@ struct FaceQuality: Codable, Hashable {
         size = try c.decode(Double.self, forKey: .size)
         frontal = try c.decode(Double.self, forKey: .frontal)
         capture = try c.decode(Double.self, forKey: .capture)
-        yaw = try c.decodeIfPresent(Double.self, forKey: .yaw) ?? 0
-        pitch = try c.decodeIfPresent(Double.self, forKey: .pitch) ?? 0
+        yaw = try c.decodeIfPresent(Double.self, forKey: .yaw)
+        pitch = try c.decodeIfPresent(Double.self, forKey: .pitch)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(sharpness, forKey: .sharpness)
+        try c.encode(size, forKey: .size)
+        try c.encode(frontal, forKey: .frontal)
+        try c.encode(capture, forKey: .capture)
+        try c.encodeIfPresent(yaw, forKey: .yaw)
+        try c.encodeIfPresent(pitch, forKey: .pitch)
     }
 }
 

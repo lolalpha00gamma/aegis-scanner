@@ -176,8 +176,8 @@ enum FaceEngine {
             }
             let printData = Data()
             let bone = boneKeypoints(namedAligned)
-            let yaw = face.yaw?.doubleValue ?? 0
-            let pitch = face.pitch?.doubleValue ?? 0
+            let yaw = face.yaw?.doubleValue
+            let pitch = face.pitch?.doubleValue
 
             out.append(
                 FaceObservation(
@@ -190,7 +190,7 @@ enum FaceEngine {
                     featurePrint: printData,
                     appearance: appearance,
                     graph: graphBiomarkers(bone.isEmpty ? points : bone),
-                    geom3d: FaceShape3D.descriptor(named: namedAligned, yaw: yaw, pitch: pitch),
+                    geom3d: FaceShape3D.descriptor(named: namedAligned, yaw: yaw ?? 0, pitch: pitch ?? 0),
                     quality: FaceQuality(
                         sharpness: sharpness,
                         size: size,
@@ -472,8 +472,16 @@ enum FaceEngine {
                 let i = ids.firstIndex(of: m.identity.id) ?? 0
                 return i < terFused.count ? terFused[i] : 0
             }, floors: floors))
+            func fusedOf(_ id: UUID) -> Double {
+                if enabled.contains(.terFusion),
+                   let i = ids.firstIndex(of: id),
+                   i < terFused.count {
+                    return terFused[i]
+                }
+                return lookOfId(id)
+            }
             let ensemble = rank(models, minMargin: MatchMath.embedMargin, floors: floors) { m in
-                lookOfId(m.identity.id)
+                fusedOf(m.identity.id)
             }
             let geoRanked = models.map { (id: $0.identity.id, p: geoMixOf($0.identity.id)) }
                 .sorted { $0.p > $1.p }
@@ -482,7 +490,7 @@ enum FaceEngine {
             let fusedVersus = ensemble.versus.map { v in
                 IdentityScore(
                     identityId: v.identityId,
-                    percent: lookOfId(v.identityId),
+                    percent: fusedOf(v.identityId),
                     distance: v.distance
                 )
             }
@@ -683,15 +691,15 @@ enum FaceEngine {
         return top.reduce(0, +) / Double(top.count)
     }
 
-    /// Live: Mittel der letzten Prints statt eines scharfen Glücks-Frames.
+    /// Live: Median der letzten Prints. Mittel [95, 92, 5] = 64 kippt einen echten Treffer.
     private static func probePrintScore(_ face: FaceObservation, _ gallery: [FaceObservation]) -> Double {
         var probes = Array(face.printHistory.suffix(3).filter { !$0.isEmpty })
         if probes.isEmpty, !face.featurePrint.isEmpty {
             probes = [face.featurePrint]
         }
         guard !probes.isEmpty else { return 0 }
-        let scores = probes.map { bestPrintPercent($0, gallery) }
-        return scores.reduce(0, +) / Double(scores.count)
+        let scores = probes.map { bestPrintPercent($0, gallery) }.sorted()
+        return scores[(scores.count - 1) / 2]
     }
 
     /// Vision face boxes: origin lower-left of the image, normalized 0…1.
@@ -970,7 +978,25 @@ enum FaceEngine {
         return (left, right)
     }
 
+    private static let printVecLock = NSLock()
+    private static var printVecCache: [Data: [Double]] = [:]
+
     private static func printVector(_ data: Data) -> [Double] {
+        printVecLock.lock()
+        if let hit = printVecCache[data] {
+            printVecLock.unlock()
+            return hit
+        }
+        printVecLock.unlock()
+        let vals = decodePrintVector(data)
+        printVecLock.lock()
+        if printVecCache.count > 512 { printVecCache.removeAll(keepingCapacity: true) }
+        printVecCache[data] = vals
+        printVecLock.unlock()
+        return vals
+    }
+
+    private static func decodePrintVector(_ data: Data) -> [Double] {
         guard let obs = try? NSKeyedUnarchiver.unarchivedObject(ofClass: VNFeaturePrintObservation.self, from: data) else {
             return []
         }
@@ -1642,24 +1668,16 @@ enum FaceEngine {
     }
 
     /// Embedding leads. Geometry supports and vetoes. Raster never votes.
-    /// Pose (Vision yaw/pitch) shrinks the geometry weight off-frontal, so IOD
-    /// ratios cannot block a 99% print on a profile, and cannot assign a stranger.
-    /// `embed < 1` is the user-disabled-KI path (geo-only). Empty prints on a
-    /// live KI face are capped in `lookOfId`, not here.
-    private static func lookOf(geo: Double, embed: Double = 0, pose: Double = 1) -> Double {
-        MatchMath.lookOf(geo: geo, embed: embed, pose: pose, printMeasured: embed >= 1)
-    }
-
-    /// 1 = frontal, ~0.7 at 45°, 0 at 90°. Vision yaw/pitch are radians.
+    /// `MatchMath.lookOf` is the only implementation — no private twin.
     private static func poseWeight(_ q: FaceQuality) -> Double {
-        let off = hypot(q.yaw, q.pitch)
-        if off < 0.02 { return clamp01(q.frontal) == 0 ? 1 : max(q.frontal, 0.35) }
-        return clamp01(cos(min(off, Double.pi / 2)))
-    }
-
-    private static func fuseIdentity(_ appear: Double, _ geo: Double, _ q: FaceQuality) -> Double {
-        _ = appear
-        return lookOf(geo: geo, pose: poseWeight(q))
+        if let yaw = q.yaw {
+            let pitch = q.pitch ?? 0
+            let off = hypot(yaw, pitch)
+            return clamp01(cos(min(off, Double.pi / 2)))
+        }
+        let f = clamp01(q.frontal)
+        if f <= 0 { return 0.5 }
+        return max(f, 0.35)
     }
 
     private struct LumaStats {

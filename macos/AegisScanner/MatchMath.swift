@@ -48,8 +48,10 @@ enum MatchMath {
     static func tar(atFar far: Double, genuine: [Double], impostor: [Double]) -> (tar: Double, threshold: Double)? {
         guard !genuine.isEmpty, !impostor.isEmpty, far > 0, far < 1 else { return nil }
         let desc = impostor.sorted(by: >)
-        let k = max(0, Int((far * Double(desc.count)).rounded(.up)) - 1)
-        let idx = min(desc.count - 1, k)
+        // floor(far·n) − 1: n=10/far=0.1 → idx 0 (95); n=101/far=0.01 → idx 0 (80).
+        // ceil(far·n)−1 brach 101 Impostoren (idx 1 → 10 statt 80).
+        let m = Int(far * Double(desc.count))
+        let idx = min(desc.count - 1, max(0, m - 1))
         let t = desc[idx]
         let hits = genuine.filter { $0 >= t }.count
         return (Double(hits) / Double(genuine.count), t)
