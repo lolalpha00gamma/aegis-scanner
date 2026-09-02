@@ -314,7 +314,7 @@ enum FaceEngine {
         threshold: Double = 78,
         enabled: Set<StrategyID> = Set(StrategyID.allCases)
     ) -> [MatchResult] {
-        matchFloor = min(96, max(70, threshold))
+        matchFloor = min(96, max(70, adaptiveFloor(identities.count, slider: threshold)))
         soloFloor = min(96, matchFloor + 4)
         var tracked = faces
         assignTracks(faces: &tracked, media: media)
@@ -435,12 +435,8 @@ enum FaceEngine {
                 return parts.reduce(0.0) { $0 + ($1.1 / w) * pctVs($1.0, id) }
             }
             func embedOf(_ id: UUID) -> Double {
-                let ki: [StrategyID] = lowCapture
-                    ? [.qualityGate, .featurePrint]
-                    : [.featurePrint, .visionBox, .temporal, .photosStyle, .qualityGate]
-                let active = ki.filter { enabled.contains($0) }
-                guard !active.isEmpty else { return 0 }
-                return active.map { pctVs($0, id) }.max() ?? 0
+                if lowCapture { return pctVs(.qualityGate, id) }
+                return pctVs(.featurePrint, id)
             }
             func lookOfId(_ id: UUID) -> Double {
                 let geo = geoMixOf(id)
@@ -543,6 +539,16 @@ enum FaceEngine {
     private static let landmarkMargin = 14.0
     private static let zFloor = 1.5
 
+    /// Slider ist Bias um 78. Kleine Galerien brauchen höhere Floors, sonst
+    /// tauft ein einzelner Impostor-Treffer die einzige Person.
+    private static func adaptiveFloor(_ n: Int, slider: Double) -> Double {
+        let rec: Double
+        if n <= 1 { rec = 84 }
+        else if n <= 3 { rec = 80 }
+        else { rec = 78 }
+        return rec + (slider - 78)
+    }
+
     private struct IdentityModel {
         var identity: Identity
         var photos: FaceObservation?
@@ -644,14 +650,14 @@ enum FaceEngine {
         _ = appearance
         _ = textureReliable
         _ = evidence
-        _ = geoAgrees
-        _ = geoMargin
-        _ = geoMix
         guard let bestId, percent > 0 else {
             return (nil, "Keine Vergleichsperson.")
         }
         if lowCapture {
             return (nil, String(format: "Aufnahme zu schwach für eine Zuordnung, Nähe %.0f%%.", percent))
+        }
+        if !geoAgrees, geoMix < 42, percent < 94 {
+            return (nil, String(format: "Maße widersprechen (%.0f%%, Abstand %.1f). Print allein reicht nicht.", geoMix, geoMargin))
         }
         if secondName == nil {
             if percent >= soloFloor {
@@ -665,6 +671,9 @@ enum FaceEngine {
         if galleryZ < zFloor && percent < 92 {
             return (nil, String(format: "Kein Ausreißer in der Galerie (z=%.1f). Alle Personen ähnlich nah — nicht zugeordnet.", galleryZ))
         }
+        if geoAgrees, geoMargin >= 8, percent >= matchFloor - 3, margin >= 6 {
+            return (bestId, String(format: "Print + Maße einig. Abstand %.1f Pkt zu %@.", margin, second))
+        }
         if margin >= embedMargin || (percent >= 94 && margin >= 6) {
             return (bestId, String(format: "Abstand %.1f Pkt zu %@.", margin, second))
         }
@@ -673,12 +682,17 @@ enum FaceEngine {
 
     private static func bestPrintPercent(_ probe: Data, _ faces: [FaceObservation]) -> Double {
         guard !probe.isEmpty else { return 0 }
-        var best = 0.0
+        var scores: [Double] = []
         for f in faces where !f.featurePrint.isEmpty {
-            let p = printPercent(probe, f.featurePrint)
-            if p > best { best = p }
+            scores.append(printPercent(probe, f.featurePrint))
         }
-        return best
+        guard !scores.isEmpty else { return 0 }
+        scores.sort(by: >)
+        if scores.count == 1 { return scores[0] }
+        // Nicht max: ein Glückstreffer gegen eine schlechte Referenz tauft Impostoren.
+        let k = max(1, (scores.count + 1) / 2)
+        let top = scores.prefix(k)
+        return top.reduce(0, +) / Double(top.count)
     }
 
     /// Vision face boxes: origin lower-left of the image, normalized 0…1.
@@ -901,8 +915,13 @@ enum FaceEngine {
                 next.featurePrint = found[bestI].data
                 return next
             }
-            if let crop = self.crop(image, box: face.box, pad: 0.55),
-               let data = identityPrint(of: crop) {
+            // Kein IoU-Treffer. Crop-Fallback nur wenn Vision auf dem ganzen
+            // Foto gar keinen Face-Print gefunden hat — sonst landet die Jacke
+            // als Identität.
+            if found.isEmpty,
+               let crop = self.crop(image, box: face.box, pad: 0.55),
+               let data = identityPrint(of: crop)
+            {
                 next.featurePrint = data
             } else {
                 next.featurePrint = Data()
@@ -1003,8 +1022,8 @@ enum FaceEngine {
         return Double(d)
     }
 
-    /// Real face-print cosine. Same person in ¾/hat should stay high.
-    /// Empty or mixed print types (face vs image) are unmeasured — not "4%".
+    /// Genuine Apple-FacePrint-Cosine typisch 0,62–0,92; Impostoren 0,15–0,50.
+    /// Mitte 0,42 hat Impostoren bei 0,45 schon ~58 % gegeben.
     private static func printPercent(_ a: Data, _ b: Data) -> Double {
         guard !a.isEmpty, !b.isEmpty else { return 0 }
         let va = printVector(a)
@@ -1012,7 +1031,7 @@ enum FaceEngine {
         if va.count >= 32, vb.count >= 32 {
             guard va.count == vb.count else { return 0 }
             let c = cosine(va, vb)
-            return 100.0 / (1.0 + exp(-11.0 * (c - 0.42)))
+            return 100.0 / (1.0 + exp(-14.0 * (c - 0.55)))
         }
         let d = printDistance(a, b)
         if d >= 35 { return 0 }

@@ -129,7 +129,7 @@ final class LiveCapture: NSObject {
 
     private func startTimer() {
         timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: 0.48, repeats: true) { [weak self] _ in
+        timer = Timer.scheduledTimer(withTimeInterval: 0.22, repeats: true) { [weak self] _ in
             let capture = self
             Task { @MainActor in
                 capture?.grab()
@@ -180,7 +180,7 @@ private final class FrameTap: NSObject, AVCaptureVideoDataOutputSampleBufferDele
         from connection: AVCaptureConnection
     ) {
         let now = Date().timeIntervalSince1970
-        guard now - last >= 0.45 else { return }
+        guard now - last >= 0.18 else { return }
         last = now
         guard let pb = CMSampleBufferGetImageBuffer(sampleBuffer), let image = cgImage(from: pb) else { return }
         DispatchQueue.main.async { self.emit(image) }
