@@ -1,6 +1,17 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.14 alpha**. Branch `bugfix`. Fixes von 2.1.14 stehen auch in der README.
+Stand: **2.1.15 alpha**. Branch `bugfix`. Fixes von 2.1.15 stehen auch in der README.
+
+## In 2.1.15 wirklich im Code
+
+Warum 2.1.14 trotz Box-Hysterese Live und Geschwister trotzdem falsch taufte: `familyBump` hat jedes Paar 0,80–0,88 in der ganzen Galerie zum +4 Floor gemacht — auch für Unverwandte. `rematch()` jeden Live-Frame, Overlay sprang. Percent roh. Burst-Refs > 0,98 blieben beide.
+
+1. **Familien-Bump nur Best-Paar.** `familyBump(bestPairCosine:)`.
+2. **Namens-Mehrheit 3 Frames** pro Live-UUID. Gleichstand → älterer Name.
+3. **Live-Score-EMA 0,35.** Erster Tick roh.
+4. **Gallery-Prune Cosine > 0,98**, schärfere Ref bleibt.
+
+Crop-Laplacian auf dem Gesichtscrop sitzt seit 2.1.11 — nicht nochmal.
 
 ## In 2.1.14 wirklich im Code
 
@@ -102,11 +113,10 @@ Warum 2.1.5 trotz Cancel und HLS-Transform Galerien und Live trotzdem schief zog
 
 ## Nächste Fixes (klein)
 
-- **Namens-Mehrheit 3 Frames.** Overlay tauft nicht am einzelnen Tick zwischen zwei Geschwistern.
-- **Live-Score-EMA.** Percent nicht jeden Frame neu, sonst flackert der Badge.
-- **Crop-Schärfe.** Laplacian auf dem Gesichtscrop, nicht nur dem Vollbild — Unschärfe am Rand tauft trotzdem.
-- **Gallery-Prune.** Zwei Refs derselben Person Cosine > 0,98 → schärfere behalten.
 - **Pairwise-Heatmap klickbar.** Labor-Zelle öffnet die beiden Fotos.
+- **Identity-Merge bei Centroid 0,89–0,94.** Wahrscheinlich dieselbe Person, nicht Geschwister — Wizard, nicht still mergen.
+- **Overlay-Name erst nach Mehrheit auch auf Standbildern** (3 Fotos derselben Datei), analog Live.
+- **Labor-Zelle zeigt Best-Paar-Cosine**, wenn der Floor +4 war.
 
 ## Erweiterungen
 
@@ -139,10 +149,12 @@ Warum 2.1.5 trotz Cancel und HLS-Transform Galerien und Live trotzdem schief zog
 - **Continuity-Floor nur solange uniqueID Continuity ist** — Built-in nach Dock-Wechsel wieder 0,12 (passiert schon über uniqueID).
 - **Hard-Negativ-Liste** in der Personen-Karte, nicht nur am Probe-Gesicht.
 - **Labor CSV** mit kind=genuine-mask exportieren, nicht nur der Fließtext.
-- **Live-Name 3-Tick-Mehrheit**, analog Ampel-Spark — sitzt als nächster Fix.
-- **Enrollment-Crop-Laplacian.** Vollbild-Schärfe 0,20 hilft nicht, wenn das Gesicht bewegungsunscharf ist.
-- **Auto-Prune Cosine > 0,98** innerhalb einer Identität, schärfere Ref gewinnt.
+- **Live-Name 3-Tick-Mehrheit**, analog Ampel-Spark — sitzt (2.1.15).
+- **Enrollment-Crop-Laplacian.** Sitzt seit 2.1.11 auf faceCrop.
+- **Auto-Prune Cosine > 0,98** innerhalb einer Identität, schärfere Ref gewinnt — sitzt (2.1.15).
 - **Reconnect-Hysterese der Box unabhängig vom Print-Pin.** Sitzt (2.1.14); Print-Pin bleibt 1-Euro-Reset.
+- **Familien-Bump nur Best-Paar**, nicht Galerie-weit — sitzt (2.1.15).
+- **Live-Score-EMA** — sitzt (2.1.15); Spark-Histogramm der letzten 8 Scores wäre Extra.
 
 ## Nicht tun
 
@@ -184,3 +196,7 @@ Warum 2.1.5 trotz Cancel und HLS-Transform Galerien und Live trotzdem schief zog
 - Live-Box bei IoU 0,12 sofort 1-Euro nachziehen (Ghost-Kriechen).
 - Burst-Kopien Cosine > 0,95 als zweite Referenz.
 - Unscharfe Gallery-Refs im Leave-one-out (TAR gegen weichen Centroid).
+- familyBump auf die ganze Galerie, weil irgend ein Paar 0,80–0,88 Cosine hat.
+- Live-Name jeden Frame ohne 3-Tick-Mehrheit.
+- Live-Percent ohne EMA (Badge flackert).
+- Zwei Refs derselben Person Cosine > 0,98 beide im Centroid.

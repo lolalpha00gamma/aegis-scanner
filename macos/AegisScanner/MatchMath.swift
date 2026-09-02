@@ -20,6 +20,9 @@ enum MatchMath {
     static let maskHoldSeconds = 1.2
     static let boxJumpIoU = 0.35
     static let ingestDuplicateCosine = 0.95
+    static let pruneCosine = 0.98
+    static let nameVoteFrames = 3
+    static let liveScoreAlpha = 0.35
 
     enum Lamp: String, Equatable {
         case green, amber, red
@@ -147,6 +150,44 @@ enum MatchMath {
         cosine > floor
     }
 
+    /// Zwei Refs derselben Person, Cosine > 0,98 — Burst, nicht zweite Pose.
+    static func isNearDuplicate(cosine: Double, floor: Double = pruneCosine) -> Bool {
+        cosine > floor
+    }
+
+    /// nil = behalte beide. true = Incoming schärfer (alte raus). false = alte schärfer.
+    static func pruneKeepIncoming(
+        cosine: Double,
+        incomingSharp: Double,
+        existingSharp: Double,
+        floor: Double = pruneCosine
+    ) -> Bool? {
+        guard cosine > floor else { return nil }
+        return incomingSharp >= existingSharp
+    }
+
+    /// Mehrheit der letzten 3 Namen. Gleichstand → der ältere (erster im Fenster).
+    static func nameMajority(_ history: [String], window: Int = nameVoteFrames) -> String? {
+        let slice = Array(history.suffix(max(1, window)))
+        guard !slice.isEmpty else { return nil }
+        var counts: [String: Int] = [:]
+        for n in slice { counts[n, default: 0] += 1 }
+        let ranked = counts.sorted { lhs, rhs in
+            if lhs.value != rhs.value { return lhs.value > rhs.value }
+            let i = slice.firstIndex(of: lhs.key) ?? 0
+            let j = slice.firstIndex(of: rhs.key) ?? 0
+            return i < j
+        }
+        return ranked.first?.key
+    }
+
+    /// Live-Percent: erster Tick roh, danach EMA. Sonst flackert der Badge.
+    static func liveScoreEMA(prev: Double?, next: Double, alpha: Double = liveScoreAlpha) -> Double {
+        guard let prev else { return next }
+        let a = min(1, max(0, alpha))
+        return a * next + (1 - a) * prev
+    }
+
     /// Live-Maske so lange halten, bevor „Taste U“ vorgeschlagen wird — nie still schreiben.
     static func maskHoldReady(elapsed: Double, need: Double = maskHoldSeconds) -> Bool {
         elapsed >= need
@@ -219,11 +260,17 @@ enum MatchMath {
     }
 
     /// Geschwister / ähnliche Knochen: Centroid-Cosine 0,80–0,88 → +4 Floor.
+    /// Nur das **beste Paar** der Probe, nicht irgendwer in der Galerie.
     static func familyBump(pairwiseCosine: [Double]) -> Double {
         for c in pairwiseCosine where c >= familyCosineLo && c <= familyCosineHi {
             return familyFloorBump
         }
         return 0
+    }
+
+    static func familyBump(bestPairCosine: Double?) -> Double {
+        guard let c = bestPairCosine else { return 0 }
+        return familyBump(pairwiseCosine: [c])
     }
 
     static func cosine(_ a: [Double], _ b: [Double]) -> Double {

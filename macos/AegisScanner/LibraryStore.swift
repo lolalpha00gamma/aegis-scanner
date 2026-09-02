@@ -56,6 +56,8 @@ final class LibraryStore: ObservableObject {
     private var boxJumpPending: [UUID: FaceBox] = [:]
     private var lampHist: [UUID: (c: [MatchMath.Lamp], s: [MatchMath.Lamp], y: [MatchMath.Lamp])] = [:]
     private var maskHoldSince: [UUID: TimeInterval] = [:]
+    private var liveNameHist: [UUID: [String]] = [:]
+    private var liveScoreEma: [UUID: Double] = [:]
 
     init() {
         let packed = GalleryFile.load()
@@ -501,6 +503,40 @@ final class LibraryStore: ObservableObject {
             threshold: threshold,
             enabled: enabled
         )
+        stabilizeLiveMatches()
+    }
+
+    /// Live: 3-Tick-Namensmehrheit + Score-EMA, sonst flackert Overlay zwischen Geschwistern.
+    private func stabilizeLiveMatches() {
+        guard liveActive, let liveId = liveMediaId else { return }
+        let liveFaceIds = Set(faces.filter { $0.mediaId == liveId }.map(\.id))
+        liveNameHist = liveNameHist.filter { liveFaceIds.contains($0.key) }
+        liveScoreEma = liveScoreEma.filter { liveFaceIds.contains($0.key) }
+        for i in matches.indices {
+            let fid = matches[i].faceId
+            guard liveFaceIds.contains(fid),
+                  let hi = matches[i].hits.firstIndex(where: { $0.strategy == .aegis })
+            else { continue }
+            var hit = matches[i].hits[hi]
+            let token = hit.identityId?.uuidString ?? ""
+            var hist = liveNameHist[fid] ?? []
+            hist.append(token)
+            if hist.count > MatchMath.nameVoteFrames {
+                hist.removeFirst(hist.count - MatchMath.nameVoteFrames)
+            }
+            liveNameHist[fid] = hist
+            if let voted = MatchMath.nameMajority(hist) {
+                if voted.isEmpty {
+                    hit.identityId = nil
+                } else if let ident = identities.first(where: { $0.id.uuidString == voted }) {
+                    hit.identityId = ident.id
+                }
+            }
+            let ema = MatchMath.liveScoreEMA(prev: liveScoreEma[fid], next: hit.percent)
+            liveScoreEma[fid] = ema
+            hit.percent = ema
+            matches[i].hits[hi] = hit
+        }
     }
 
     func setEnabled(_ id: StrategyID, _ on: Bool) {
@@ -587,6 +623,17 @@ final class LibraryStore: ObservableObject {
         if let block = FaceEngine.poseCoverageBlocks(adding: face, to: identities[idx], faces: faces) {
             status = block + " — anderes Pose-Foto wählen, nicht denselben Slot füllen."
             return
+        }
+        if let prune = FaceEngine.pruneNearDuplicate(incoming: face, identity: identities[idx], faces: faces) {
+            if prune.keepIncoming {
+                identities[idx].faceIds.removeAll { $0 == prune.existingId }
+            } else {
+                status = String(
+                    format: "Nahezu identisch (%.0f %%) — schärfere Referenz behalten",
+                    prune.cosine * 100
+                )
+                return
+            }
         }
         let preview = FaceEngine.enrollmentPreview(
             face: face,
@@ -738,6 +785,8 @@ final class LibraryStore: ObservableObject {
         sparkLamps = [:]
         lampHist = [:]
         maskHoldSince = [:]
+        liveNameHist = [:]
+        liveScoreEma = [:]
         pendingUSlotId = nil
         pendingUSlotFace = nil
         if let id = liveMediaId {

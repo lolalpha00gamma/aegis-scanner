@@ -359,20 +359,10 @@ enum FaceEngine {
                 geom3ds: owned.map(\.geom3d).filter { !$0.isEmpty }
             )
         }
-        var pairCos: [Double] = []
-        for i in models.indices {
-            for j in (i + 1)..<models.count {
-                let a = models[i].meanVec
-                let b = models[j].meanVec
-                if a.count >= 32, b.count == a.count {
-                    pairCos.append(MatchMath.cosine(a, b))
-                }
-            }
-        }
         let f = MatchMath.floors(
             gallery: identities.count,
             slider: threshold,
-            familyBump: MatchMath.familyBump(pairwiseCosine: pairCos)
+            familyBump: 0
         )
         let floors = Floors(match: f.match, solo: f.solo)
 
@@ -523,6 +513,19 @@ enum FaceEngine {
             }
             let fusedBest = fusedVersus.first?.percent ?? 0
             let fusedSecond = fusedVersus.dropFirst().first?.percent ?? 0
+            let bestPairCos: Double? = {
+                guard let aId = fusedVersus.first?.identityId,
+                      let bId = fusedVersus.dropFirst().first?.identityId,
+                      let a = models.first(where: { $0.identity.id == aId })?.meanVec,
+                      let b = models.first(where: { $0.identity.id == bId })?.meanVec,
+                      a.count >= 32, b.count == a.count
+                else { return nil }
+                return MatchMath.cosine(a, b)
+            }()
+            let bump = MatchMath.familyBump(bestPairCosine: bestPairCos)
+            let decideFloors = bump > 0
+                ? Floors(match: min(96, floors.match + bump), solo: min(96, floors.solo + bump))
+                : floors
             let decided = decide(
                 percent: fusedBest,
                 margin: fusedBest - fusedSecond,
@@ -537,7 +540,7 @@ enum FaceEngine {
                 galleryZ: galleryZScore(fusedBest, Array(others)),
                 textureReliable: false,
                 evidence: fusedBest,
-                floors: floors
+                floors: decideFloors
             )
             var aegis = ensemble
             aegis.identityId = enabled.contains(.aegis) ? decided.id : nil
@@ -1989,6 +1992,38 @@ enum FaceEngine {
             let c = cosine(v, mean)
             if c > 0.88, c > (best?.1 ?? 0) {
                 best = (ident, c)
+            }
+        }
+        return best
+    }
+
+    struct PruneHit {
+        var existingId: UUID
+        var cosine: Double
+        var keepIncoming: Bool
+    }
+
+    /// Zwei Refs derselben Person Cosine > 0,98: schärfere behalten.
+    static func pruneNearDuplicate(
+        incoming: FaceObservation,
+        identity: Identity,
+        faces: [FaceObservation]
+    ) -> PruneHit? {
+        let v = embedding(of: incoming)
+        guard v.count >= 32 else { return nil }
+        var best: PruneHit?
+        for id in identity.faceIds where id != incoming.id {
+            guard let old = faces.first(where: { $0.id == id }) else { continue }
+            let ov = embedding(of: old)
+            guard ov.count == v.count else { continue }
+            let c = MatchMath.cosine(v, ov)
+            guard let keep = MatchMath.pruneKeepIncoming(
+                cosine: c,
+                incomingSharp: incoming.quality.sharpness,
+                existingSharp: old.quality.sharpness
+            ) else { continue }
+            if best == nil || c > best!.cosine {
+                best = PruneHit(existingId: id, cosine: c, keepIncoming: keep)
             }
         }
         return best

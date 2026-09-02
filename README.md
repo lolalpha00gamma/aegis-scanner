@@ -1,4 +1,4 @@
-# Aegis **2.1.14 alpha**
+# Aegis **2.1.15 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main` oder `bugfix`.
+
+## Neu in 2.1.15 alpha
+
+Warum 2.1.14 trotz Box-Hysterese Live-Namen und Floors trotzdem verzerrte: irgendein Geschwister-Paar in der Galerie hat den Floor für alle um +4 angehoben. `rematch()` jeden Live-Frame hat Overlay-Namen zwischen Geschwistern springen lassen. Percent ohne EMA flackerte. Burst-Refs Cosine > 0,98 derselben Person blieben beide im Centroid.
+
+- **Familien-Bump nur Best-Paar.** +4 Floor nur wenn die zwei Besten 0,80–0,88 Cosine haben, nicht weil irgendwer in der Galerie verwandt ist.
+- **Namens-Mehrheit 3 Frames.** Overlay tauft nicht am einzelnen Tick.
+- **Live-Score-EMA 0,35.** Badge flackert nicht mehr jedes Frame.
+- **Gallery-Prune Cosine > 0,98.** Schärfere Ref derselben Person gewinnt.
 
 ## Neu in 2.1.14 alpha
 
