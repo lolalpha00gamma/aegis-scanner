@@ -1,4 +1,4 @@
-# Aegis **2.1.26 alpha**
+# Aegis **2.1.27 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.27 alpha
+
+2.1.26 leftover brauchte Print ≥ 0,80 — Genuine sitzt oft bei 0,62–0,85, der Track war tot. `lookOf` kappte 80–83 % auf 60. Hold-Still IoU 0,82 klebte den alten Print beim Nicken. `liveCentroid` mischte immer alle Vektoren, auch wenn der Slot traf.
+
+- **Leftover-Print 0,72** (`leftoverPrintOk`). Pin-Print 0,80 bleibt für enrolled IoU-Steal.
+- **`lookOf` ≥ 80 nie kappen.** Nur Prints < 70 bei toter Geo auf 60.
+- **Hold-Still + Schärfe.** IoU 0,70; scharfes Nicken darf, Blur behält den alten Print.
+- **Slot-Centroid ohne All-Mean**, wenn der Pose-Slot Refs hat.
 
 ## Neu in 2.1.26 alpha
 

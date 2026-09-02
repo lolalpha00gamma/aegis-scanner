@@ -1109,7 +1109,7 @@ final class LibraryStore: ObservableObject {
                     face.featurePrint = old.featurePrint
                     face.printVec = old.printVec.isEmpty ? FaceEngine.embedding(of: old) : old.printVec
                 } else if !old.featurePrint.isEmpty, !face.featurePrint.isEmpty {
-                    if MatchMath.holdStillSkip(iou: bestIoU) {
+                    if MatchMath.holdStillSkip(iou: bestIoU, sharpness: face.quality.sharpness) {
                         face.featurePrint = old.featurePrint
                         face.printVec = old.printVec.isEmpty ? FaceEngine.embedding(of: old) : old.printVec
                     } else {

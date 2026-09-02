@@ -22,6 +22,8 @@ enum MatchMath {
     static let pinPrintCosine = 0.80
     /// Leftover-Pin: enrolled Track ohne IoU-Treffer darf die ID nicht unter diesem Wert stehlen.
     static let leftoverIoU = 0.28
+    /// Genuine-Print oft 0,62–0,85. 0,80 hat leftover tot gemacht.
+    static let leftoverPrintCosine = 0.72
     /// Enrolled-Track klebt nur bei echter Überlappung. 0,12 hat Nachbarn die UUID geklaut.
     static let trackPinIoU = 0.28
     /// Overlay „andere Person“ erst unter diesem Cosine (Genuine typisch 0,62–0,92).
@@ -43,8 +45,9 @@ enum MatchMath {
     static let geoVetoYawPrint = 80.0
     /// gallery.json Schema neben printRevision.
     static let gallerySchema = 2
-    /// Box-IoU unter dem Wert: Bewegung, neuen Print verwerfen (Motion-Blur).
-    static let holdStillIoU = 0.82
+    /// Box-IoU unter dem Wert: Bewegung. Mit Schärfe: kleines Nicken darf den Print.
+    static let holdStillIoU = 0.70
+    static let holdStillSharp = 0.18
 
     static func activeSharpnessFloor(continuity: Bool) -> Double {
         continuity ? continuitySharpnessFloor : sharpnessFloor
@@ -167,10 +170,7 @@ enum MatchMath {
     ) -> Int? {
         let ok = candidates.filter { leftoverPin(iou: $0.iou, floor: floor) }
         guard !ok.isEmpty else { return nil }
-        let printable = ok.filter { c in
-            guard let cos = c.cosine else { return false }
-            return !leftoverNeedsPrint(cosine: cos) && !iouPrintBlocks(cosine: cos)
-        }
+        let printable = ok.filter { leftoverPrintOk(cosine: $0.cosine) }
         if let best = printable.max(by: { ($0.cosine ?? -1) < ($1.cosine ?? -1) }) {
             return best.index
         }
@@ -192,9 +192,21 @@ enum MatchMath {
         return count == 1 ? "Leftover-Pin 1 Track" : "Leftover-Pin \(count) Tracks"
     }
 
-    /// Bewegung: neuen Print nicht übernehmen. Schärfe allein sieht 8-fps-Blur nicht.
-    static func holdStillSkip(iou: Double, floor: Double = holdStillIoU) -> Bool {
-        iou < floor
+    /// Leftover darf Genuine 0,72–0,79 halten. Pin-Print 0,80 bleibt für enrolled IoU-Steal.
+    static func leftoverPrintOk(cosine: Double?, floor: Double = leftoverPrintCosine) -> Bool {
+        guard let cosine else { return false }
+        return cosine >= floor
+    }
+
+    /// Bewegung + Unschärfe: neuen Print nicht übernehmen. Scharfes Nicken (IoU 0,75) darf.
+    static func holdStillSkip(iou: Double, sharpness: Double? = nil, floor: Double = holdStillIoU) -> Bool {
+        if iou >= 0.82 { return false }
+        if let s = sharpness {
+            if s < holdStillSharp { return true }
+            if iou < floor { return s < 0.28 }
+            return false
+        }
+        return iou < floor
     }
 
     /// Yaw-Skip hat ein Geo-Veto verhindert — Overlay/Labor sollen das sehen.
@@ -468,8 +480,7 @@ enum MatchMath {
     /// `printMeasured`: Face-Print wurde wirklich berechnet.
     /// Ein Impostor-Print von 0,4 % ist **nicht** „KI aus“ — sonst gewinnt Geometrie
     /// und tauft Fremde. Print *ist* der Score; Geo vetoiert oder gibt bis +4.
-    /// Starke Prints (≥ 84) niemals unter den Embed kappen — Landmark-Rauschen
-    /// (Jacke, Haar, ¾) ist keine andere Person.
+    /// ≥ 80 niemals auf 60 kappen. Nur schwache Prints (< 70) bei toter Geo.
     static func lookOf(geo: Double, embed: Double, pose: Double = 1, printMeasured: Bool) -> Double {
         if !printMeasured { return geo }
         if geo < 1 { return embed }
@@ -477,7 +488,13 @@ enum MatchMath {
             let agree = clamp01((geo - 52) / 38) * clamp01(pose)
             return min(100, embed + 4.0 * agree)
         }
-        if geo < 35 { return min(embed, 60) }
+        if embed >= 80 {
+            if geo < 35 { return embed }
+            let agree = clamp01((geo - 52) / 38) * clamp01(pose)
+            return min(100, embed + 4.0 * agree)
+        }
+        if embed < 70, geo < 35 { return min(embed, 60) }
+        if geo < 35 { return embed }
         let agree = clamp01((geo - 52) / 38) * clamp01(pose)
         return min(100, embed + 4.0 * agree)
     }

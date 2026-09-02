@@ -1,6 +1,16 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.26 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.27 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.27 wirklich im Code
+
+2.1.26 leftover ging über `iouPrintBlocks` (0,80) — Genuine 0,62–0,85 pinnten nicht. `lookOf` kappte 80–83 % auf 60 sobald Geo < 35. Hold-Still IoU 0,82 klebte den Print beim Nicken. `liveCentroid` rechnete immer den All-Mean, auch bei Slot-Hit.
+
+1. **`leftoverPrintCosine` 0,72** / `leftoverPrintOk`. Enrolled Pin bleibt 0,80.
+2. **`lookOf` ≥ 80 nie kappen.** < 70 + Geo < 35 → min(embed, 60).
+3. **Hold-Still + Schärfe.** IoU-Floor 0,70, `holdStillSharp` 0,18. Nicken mit scharfem Crop darf.
+4. **`liveCentroid` Slot zuerst**, All-Mean nur Fallback.
+5. MARKETING_VERSION 2.1.27 (Build 55), `Models.swift` + `VERSION` gleich.
 
 ## In 2.1.26 wirklich im Code
 
@@ -138,6 +148,9 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - **Jacobi nur Still-Labor**, Scan-Tiles sind cheap — Still-Foto-Detect ohne Tiles noch voller Graph wenn `tiles: false` und nicht live.
 - **Slot-Count in der Namensliste** (F 2 · ¾ 1 · P 0), nicht nur Statuszeile.
 - **Reject-Liste persistieren** — Hard-Negatives über Restarts, nicht nur RAM.
+- **leftoverPrint gewichtet mit Schärfe**, nicht nur Cosine — 0,73 unscharf verliert gegen 0,72 scharf.
+- **lookOf-Deckel-Log** eine Silbe im Overlay wenn Print < 70 gekappt wurde.
+- **Print-Trail verwerfen** wenn sharpness < 0,12, nicht nur Hold-Still den alten behalten.
 
 ## Erweiterungen
 
@@ -197,6 +210,10 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - **Hold-Still Ring** im Overlay 0,8 s, analog Peace.
 - **Pose-Meter als Balken** (F/¾/P) neben dem Namen, nicht nur Text.
 - **liveCentroid Cache** am Identity-Modell, nicht jedes Live-Frame neu mischen.
+- **Yaw-bedingtes leftover:** ¾-Sonde gegen leftover ¾-Print, nicht Frontal-Ghost.
+- **Quality-Spark der leftover-UUID** im Overlay, damit man sieht warum 0,73 hielt.
+- **decide-Notiz „Print gekappt“** nur unter 70 — 2.1.27 kappt ≥80 nicht mehr, Log fehlte.
+- **Pairwise leftover vs. enrolled** eine Zeile im Labor (war der Pin zu Recht 0,72?).
 
 ## Nicht tun
 
@@ -259,3 +276,7 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - TER-Fusion wieder default an.
 - Hysterese-Box der Vorperson trotz Print-Pin halten.
 - Restore ohne Dialog bei Schema < 2.
+- Leftover wieder über `pinPrintCosine` 0,80 (Genuine 0,75 tot).
+- `lookOf` 80–83 % wieder auf 60 kappen.
+- Hold-Still wieder hart IoU 0,82 ohne Schärfe.
+- `liveCentroid` All-Mean rechnen, bevor der Slot trifft.

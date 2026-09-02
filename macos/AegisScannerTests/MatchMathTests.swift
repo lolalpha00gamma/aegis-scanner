@@ -58,7 +58,13 @@ enum MatchMathTests {
         near(midPrintNoisy, 55, 0.01, "schwacher Print + tote Geo bleibt Embed")
 
         let cappedMid = MatchMath.lookOf(geo: 20, embed: 70, pose: 1, printMeasured: true)
-        near(cappedMid, 60, 0.01, "mittlerer Print unter 84 wird bei Geo 20 auf 60 gedeckelt")
+        near(cappedMid, 70, 0.01, "70 % Print bei Geo 20 bleibt 70, nicht 60")
+
+        let eightyNoCap = MatchMath.lookOf(geo: 20, embed: 82, pose: 1, printMeasured: true)
+        ok(eightyNoCap >= 82, "82 % Print nie auf 60 kappen (ist \(eightyNoCap))")
+
+        let weakCap = MatchMath.lookOf(geo: 20, embed: 65, pose: 1, printMeasured: true)
+        near(weakCap, 60, 0.01, "schwacher Print < 70 bei Geo 20 auf 60")
 
         let agree = MatchMath.lookOf(geo: 90, embed: 92, pose: 1, printMeasured: true)
         ok(agree > 92 && agree <= 96, "Print führt, Geo gibt bis +4 (ist \(agree))")
@@ -112,7 +118,17 @@ enum MatchMathTests {
 
         ok(MatchMath.holdStillSkip(iou: 0.50), "Bewegung 0,50 skippt neuen Print")
         ok(!MatchMath.holdStillSkip(iou: 0.90), "Stillstand 0,90 nimmt Print")
-        near(MatchMath.holdStillIoU, 0.82, 0.001, "Hold-Still IoU 0,82")
+        near(MatchMath.holdStillIoU, 0.70, 0.001, "Hold-Still IoU 0,70")
+        ok(!MatchMath.holdStillSkip(iou: 0.75, sharpness: 0.40), "Nicken + scharf nimmt Print")
+        ok(MatchMath.holdStillSkip(iou: 0.75, sharpness: 0.10), "Nicken + unscharf behält alt")
+        ok(MatchMath.holdStillSkip(iou: 0.50, sharpness: 0.20), "Sprung + weich skippt")
+        ok(!MatchMath.holdStillSkip(iou: 0.50, sharpness: 0.40), "scharfer Reframe darf")
+        near(MatchMath.leftoverPrintCosine, 0.72, 0.001, "Leftover-Print 0,72")
+        ok(MatchMath.leftoverPrintOk(cosine: 0.75), "Genuine 0,75 leftover ok")
+        ok(!MatchMath.leftoverPrintOk(cosine: 0.60), "0,60 leftover zu schwach")
+        ok(!MatchMath.leftoverPrintOk(cosine: nil), "nil leftover kein Print")
+        let leftoverE: [(index: Int, iou: Double, cosine: Double?)] = [(0, 0.40, 0.75)]
+        ok(MatchMath.leftoverPick(candidates: leftoverE) == 0, "0,75 leftover pinnt (nicht 0,80)")
         let idOld = UUID(uuidString: "00000000-0000-0000-0000-0000000000AA")!
         let idNew = UUID(uuidString: "00000000-0000-0000-0000-0000000000BB")!
         let leftoverA: [(index: Int, iou: Double, cosine: Double?)] = [
