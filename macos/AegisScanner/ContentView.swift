@@ -663,8 +663,9 @@ struct FaceOverlay: View {
                             }
                             .overlay(alignment: .bottomLeading) {
                                 if selected {
-                                    Text(pinned ? "\(owner!.name) \(Int(pct))%" : (near ? "Nähe \(ident!.name) \(Int(pct))%" : ((hit?.measured ?? true) ? "nicht zugeordnet" : "nicht gemessen")))
+                                    Text(overlayName(pinned: pinned, owner: owner, near: near, ident: ident, pct: pct, hit: hit))
                                         .font(.caption2.monospaced())
+                                        .lineLimit(2)
                                         .padding(.horizontal, 4)
                                         .padding(.vertical, 1)
                                         .background(.black.opacity(0.7))
@@ -699,6 +700,29 @@ struct FaceOverlay: View {
             }
         }
         .padding(12)
+    }
+
+    private func overlayName(
+        pinned: Bool,
+        owner: Identity?,
+        near: Bool,
+        ident: Identity?,
+        pct: Double,
+        hit: StrategyHit?
+    ) -> String {
+        if pinned, let owner {
+            return "\(owner.name) \(Int(pct))%"
+        }
+        if near, let ident {
+            return "Nähe \(ident.name) \(Int(pct))%"
+        }
+        if let hit, !hit.measured {
+            return "nicht gemessen"
+        }
+        if let note = hit?.note, !note.isEmpty {
+            return note
+        }
+        return "nicht zugeordnet"
     }
 }
 

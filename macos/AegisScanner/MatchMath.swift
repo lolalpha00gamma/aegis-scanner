@@ -21,13 +21,17 @@ enum MatchMath {
     /// Live-Track nach Verlust: unter 0,80 erben Geschwister die UUID.
     static let pinPrintCosine = 0.80
     /// Leftover-Pin: enrolled Track ohne IoU-Treffer darf die ID nicht unter diesem Wert stehlen.
-    static let leftoverIoU = 0.18
+    static let leftoverIoU = 0.28
     static let liveBlendBuiltIn = 0.35
     static let liveBlendContinuity = 0.20
     /// Burst derselben Pose in der Galerie, nicht zweite Aufnahme.
     static let pruneCosine = 0.98
-    static let nameVoteFrames = 3
+    static let nameVoteFrames = 5
     static let liveScoreAlpha = 0.35
+    /// Starker Print ist Identität. Geo unter 35 darf ihn nicht auf 60 kappen.
+    static let strongPrintFloor = 84.0
+    /// Ab diesem Print-Wert vetoiert Kleidung/Haar nicht mehr.
+    static let geoVetoSkipPrint = 88.0
 
     static func activeSharpnessFloor(continuity: Bool) -> Double {
         continuity ? continuitySharpnessFloor : sharpnessFloor
@@ -81,7 +85,7 @@ enum MatchMath {
         return incomingSharp >= existingSharp
     }
 
-    /// Mehrheit der letzten 3 Namen. Gleichstand → der ältere (erster im Fenster).
+    /// Mehrheit der letzten Namen. Gleichstand → der ältere (erster im Fenster).
     static func nameMajority(_ history: [String], window: Int = nameVoteFrames) -> String? {
         let slice = Array(history.suffix(max(1, window)))
         guard !slice.isEmpty else { return nil }
@@ -103,12 +107,18 @@ enum MatchMath {
         return a * next + (1 - a) * prev
     }
 
+    /// Nach Namensmehrheit: Prozent der gewählten Identität, nicht der Roh-Besten.
+    static func votedPercent(versus: [(id: UUID, percent: Double)], identityId: UUID?, fallback: Double) -> Double {
+        guard let identityId else { return fallback }
+        return versus.first { $0.id == identityId }?.percent ?? fallback
+    }
+
     /// Geo darf einen starken Print nicht kippen. Kleidung/Haare sind nicht Identität.
     /// true = Zuordnung blocken.
     static func geoVetoBlocks(geoAgrees: Bool, geoMix: Double, printPercent: Double) -> Bool {
         if geoAgrees { return false }
-        if printPercent >= 90 { return geoMix < 22 }
-        if printPercent >= 84 { return geoMix < 35 }
+        if printPercent >= geoVetoSkipPrint { return false }
+        if printPercent >= strongPrintFloor { return geoMix < 22 }
         return geoMix < 42 && printPercent < 94
     }
 
@@ -219,9 +229,15 @@ enum MatchMath {
     /// `printMeasured`: Face-Print wurde wirklich berechnet.
     /// Ein Impostor-Print von 0,4 % ist **nicht** „KI aus“ — sonst gewinnt Geometrie
     /// und tauft Fremde. Print *ist* der Score; Geo vetoiert oder gibt bis +4.
+    /// Starke Prints (≥ 84) niemals unter den Embed kappen — Landmark-Rauschen
+    /// (Jacke, Haar, ¾) ist keine andere Person.
     static func lookOf(geo: Double, embed: Double, pose: Double = 1, printMeasured: Bool) -> Double {
         if !printMeasured { return geo }
         if geo < 1 { return embed }
+        if embed >= strongPrintFloor {
+            let agree = clamp01((geo - 52) / 38) * clamp01(pose)
+            return min(100, embed + 4.0 * agree)
+        }
         if geo < 35 { return min(embed, 60) }
         let agree = clamp01((geo - 52) / 38) * clamp01(pose)
         return min(100, embed + 4.0 * agree)

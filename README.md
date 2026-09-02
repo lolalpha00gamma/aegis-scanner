@@ -1,4 +1,4 @@
-# Aegis **2.1.20 alpha**
+# Aegis **2.1.21 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.21 alpha
+
+2.1.20 hat Centroids und boxEuro-Reset — echte Live-Prints fielen trotzdem durch: `lookOf` kappte 90 % auf 60 sobald Jacke/Haar die Landmark-Geo ruiniert hat. Geo-Veto kippte 93 %. Overlay sagte nur „nicht zugeordnet“.
+
+- **Starker Print bleibt Print.** ≥ 84 % wird nicht auf 60 gedeckelt. Geo-Veto skippt ab 88 %.
+- **5-Tick-Namensmehrheit** plus Prozent der gewählten Person, nicht der Roh-Besten.
+- **Leftover-IoU 0,28.** Auswahl klebt am Track.
+- Overlay zeigt den decide-Grund.
 
 ## Neu in 2.1.20 alpha
 

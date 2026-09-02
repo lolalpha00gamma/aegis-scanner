@@ -1,6 +1,17 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.20 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.21 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.21 wirklich im Code
+
+2.1.20 hat Centroids und boxEuro-Reset — Live ließ echte 90 %-Prints trotzdem fallen: `lookOf` kappte auf 60 sobald Landmark-Geo < 35 (Jacke, Haar, ¾). Geo-Veto blockte 93 % bei Geo 18. Namensmehrheit 3 Ticks ohne den Prozentwert der gewählten ID. Leftover 0,18 klaute die UUID. Overlay schrieb nur „nicht zugeordnet“.
+
+1. **`lookOf` starker Print (≥ 84) nie unter Embed.** Geo gibt weiter bis +4, kappt nicht auf 60.
+2. **`geoVetoBlocks` skip ab 88 % Print.** 84–87 nur noch bei Geo < 22.
+3. **`nameVoteFrames` 5** + **`votedPercent`**: Overlay zeigt den Score der gewählten Identität, dann EMA.
+4. **`leftoverIoU` 0,28.** Auswahl bleibt am Track, solange er da ist.
+5. **Overlay-Badge** zeigt die decide-Notiz statt nur „nicht zugeordnet“.
+6. MARKETING_VERSION 2.1.21 (Build 49).
 
 ## In 2.1.20 wirklich im Code
 
@@ -103,10 +114,16 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - **Live-Quality an Frame-dt.** 8 fps vs 24 fps: Spark-Fenster in Sekunden, nicht Frames.
 - **Centroid-Slot-Mix in matchLive** (72/28 Frontal vs alle), analog `fullPrintPercent`.
 - **Score-Kalibrierung live.** Platt auf den letzten 200 Live-Ticks, Slider nur Bias.
-- **Geschwister-Hold.** Wenn familyBump greift, Mehrheit 5 Ticks statt 3.
+- **Geschwister-Hold.** Wenn familyBump greift, Mehrheit bleibt 5 Ticks (jetzt default).
 - **Cheap-Graph auch Still**, wenn graphBio aus ist — Detect soll die Spur nicht trotzdem rechnen.
-- **Overlay: „warum nicht getauft“.** geoVeto / zFloor / soloFloor als eine Zeile, nicht nur Prozent.
+- Overlay-Notiz kürzen (erste Klausel), volle decide-Zeile nur in der Seitenliste.
 - **Restore-Diff.** Backup vs. aktuell: welche IDs kämen zurück, bevor überschrieben wird.
+- **Enrollment-Wizard.** Pose-Coverage-Meter (frontal / ¾ / Profil) bevor die erste Person „fertig“ heißt.
+- **Live Hold-Still-Ring** 0,8 s vor Print-Request — spart unscharfe Embeds.
+- **Burst-Median** der letzten 5 Live-Prints beim `+`, nicht nur im Track.
+- **Licht-Eimer.** Tags Tag/Kunstlicht/Nacht am Face, Match bevorzugt denselben Eimer.
+- **Match-Log JSONL** (Tick, UUID, lookOf, geoMix, decide-Notiz) für Labor nach der Session.
+- **Hard-Neg „gleiche Jacke“.** Texture-Hit ohne Print → explizit ablehnen.
 
 ## Nicht tun
 
@@ -145,3 +162,7 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - TER-Fusion wieder in `.aegis` mischen. lookOf ist der Score.
 - Geo-Veto 42/94 gegen starke Prints.
 - 4× Jacobi pro Webcam-Frame.
+- `lookOf` starke Prints wieder auf 60 kappen.
+- Leftover-IoU wieder 0,18.
+- Namensmehrheit ohne `votedPercent`.
+- Auswahl jedes Live-Frame auf `adopted.first` setzen.

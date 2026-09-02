@@ -539,7 +539,7 @@ final class LibraryStore: ObservableObject {
         stabilizeLiveMatches()
     }
 
-    /// Live: 3-Tick-Namensmehrheit + Score-EMA, sonst flackert Overlay zwischen Geschwistern.
+    /// Live: 5-Tick-Namensmehrheit + Score der gewählten ID, sonst flackert Overlay zwischen Geschwistern.
     private func stabilizeLiveMatches() {
         guard liveActive, let liveId = liveMediaId else { return }
         let liveFaceIds = Set(faces.filter { $0.mediaId == liveId }.map(\.id))
@@ -563,6 +563,11 @@ final class LibraryStore: ObservableObject {
                     hit.identityId = nil
                 } else if let ident = identities.first(where: { $0.id.uuidString == voted }) {
                     hit.identityId = ident.id
+                    hit.percent = MatchMath.votedPercent(
+                        versus: hit.versus.map { ($0.identityId, $0.percent) },
+                        identityId: ident.id,
+                        fallback: hit.percent
+                    )
                 }
             }
             let ema = MatchMath.liveScoreEMA(prev: liveScoreEma[fid], next: hit.percent)
@@ -1101,6 +1106,8 @@ final class LibraryStore: ObservableObject {
                     adopted[bestJ].id = old.id
                     adopted[bestJ].trackId = old.trackId ?? old.id
                     adopted[bestJ].enrolledAt = old.enrolledAt ?? adopted[bestJ].enrolledAt
+                    boxEuro.removeValue(forKey: old.id)
+                    boxJumpPending.removeValue(forKey: old.id)
                     if adopted[bestJ].featurePrint.isEmpty {
                         adopted[bestJ].featurePrint = old.featurePrint
                     }
@@ -1113,7 +1120,13 @@ final class LibraryStore: ObservableObject {
             faces.append(contentsOf: adopted)
         }
         if selectedMediaId == mediaId {
-            selectedFaceId = found.isEmpty ? nil : adopted.first?.id
+            if found.isEmpty {
+                selectedFaceId = nil
+            } else if let cur = selectedFaceId, adopted.contains(where: { $0.id == cur }) {
+                // Auswahl halten, solange der Track da ist.
+            } else {
+                selectedFaceId = adopted.first?.id
+            }
         }
         reconnectGhosts.removeAll { used.contains($0.id) }
         nmsDropped = FaceEngine.lastNMSDropped
