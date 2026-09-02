@@ -58,9 +58,16 @@ struct ContentView: View {
                 if !editing { store.rematch() }
             }
             .frame(width: 110)
-            .help("Zuordnungsschwelle — wirkt auf Aegis, nicht nur auf das Label")
+            .help(store.floorHint)
+            Text(store.floorHint)
+                .font(.caption2.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .help("Effektiver Floor: Galerie-Größe plus Slider-Bias um 78.")
             Toggle("Anatomie", isOn: $store.showAnatomy)
                 .toggleStyle(.button)
+            Toggle("NMS", isOn: $store.showNMSDebug)
+                .toggleStyle(.button)
+                .help("Verworfene Tile-Zwillinge als gestrichelte Quadrate")
         }
     }
 
@@ -570,6 +577,7 @@ struct FaceOverlay: View {
                     let near = !pinned && ident != nil && (hit?.measured ?? false) && pct >= store.threshold
                     let selected = store.selectedFaceId == face.id
                     let printDead = face.featurePrint.isEmpty
+                    let hint = FaceEngine.overlayHint(face)
                     Button {
                         store.selectedFaceId = face.id
                         store.selectedMediaId = item.id
@@ -585,11 +593,11 @@ struct FaceOverlay: View {
                                     .offset(x: -4, y: -10)
                             }
                             .overlay(alignment: .topTrailing) {
-                                Text(printDead ? "Print tot" : String(format: "Print %.0f%%", printHit?.percent ?? 0))
+                                Text(hint ?? (printDead ? "Print tot" : String(format: "Print %.0f%%", printHit?.percent ?? 0)))
                                     .font(.caption2.monospacedDigit())
                                     .padding(.horizontal, 5)
                                     .padding(.vertical, 1)
-                                    .background(printDead ? Color.red.opacity(0.78) : Color.black.opacity(0.7))
+                                    .background((hint != nil && printDead) ? Color.red.opacity(0.78) : Color.black.opacity(0.7))
                                     .offset(x: 4, y: -10)
                             }
                             .overlay(alignment: .bottomLeading) {
@@ -615,6 +623,15 @@ struct FaceOverlay: View {
                     if store.showAnatomy {
                         AnatomyMesh(face: face, scale: scale, selected: selected)
                             .offset(x: ox, y: oy)
+                            .allowsHitTesting(false)
+                    }
+                }
+                if store.showNMSDebug {
+                    ForEach(Array(store.nmsDropped.enumerated()), id: \.offset) { _, box in
+                        Rectangle()
+                            .stroke(Color.orange.opacity(0.7), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                            .frame(width: CGFloat(box.width) * scale, height: CGFloat(box.height) * scale)
+                            .offset(x: ox + CGFloat(box.x) * scale, y: oy + CGFloat(box.y) * scale)
                             .allowsHitTesting(false)
                     }
                 }

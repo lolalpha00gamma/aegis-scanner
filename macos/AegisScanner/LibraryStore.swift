@@ -14,6 +14,8 @@ final class LibraryStore: ObservableObject {
     @Published var threshold: Double = 78
     @Published var strategy: StrategyID = .aegis
     @Published var showAnatomy = true
+    @Published var showNMSDebug = false
+    @Published var nmsDropped: [FaceBox] = []
     @Published var status: String = "Bereit"
     @Published var busy = false
     @Published var newPersonName = ""
@@ -78,6 +80,11 @@ final class LibraryStore: ObservableObject {
             return faces.first { $0.mediaId == mediaId }
         }
         return nil
+    }
+
+    var floorHint: String {
+        let f = FaceEngine.effectiveFloors(galleryCount: identities.count, slider: threshold)
+        return "Galerie \(identities.count): Floor \(Int(f.match)) · Solo \(Int(f.solo))"
     }
 
     var selectedHits: [StrategyHit] {
@@ -249,6 +256,7 @@ final class LibraryStore: ObservableObject {
             }
         }
         status = "Abgleich"
+        nmsDropped = FaceEngine.lastNMSDropped
         rematch()
         if let mediaId = selectedMediaId {
             if selectedFaceId == nil || !(faces.contains { $0.id == selectedFaceId && $0.mediaId == mediaId }) {
@@ -470,6 +478,12 @@ final class LibraryStore: ObservableObject {
                 used.insert(old.id)
                 face.id = old.id
                 face.trackId = old.trackId ?? old.id
+                face.box = FaceBox(
+                    x: 0.62 * old.box.x + 0.38 * face.box.x,
+                    y: 0.62 * old.box.y + 0.38 * face.box.y,
+                    width: 0.62 * old.box.width + 0.38 * face.box.width,
+                    height: 0.62 * old.box.height + 0.38 * face.box.height
+                )
                 if face.featurePrint.isEmpty, !old.featurePrint.isEmpty {
                     face.featurePrint = old.featurePrint
                     face.printVec = old.printVec
@@ -519,6 +533,7 @@ final class LibraryStore: ObservableObject {
         if selectedMediaId == mediaId {
             selectedFaceId = adopted.first?.id ?? leftoverPinned.first?.id
         }
+        nmsDropped = FaceEngine.lastNMSDropped
         rematch()
     }
 

@@ -1,6 +1,18 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.3 alpha**. Fixes von 2.1.3 stehen auch in der README.
+Stand: **2.1.4 alpha**. Fixes von 2.1.4 stehen auch in der README.
+
+## In 2.1.4 wirklich im Code
+
+Warum 2.1.3 trotz ehrlichem Print und lokalem Floor live schief lag: Vision hat jedes Webcam-Frame als `.up` gelesen, Video-Ingest hat 20× dieselbe Pose behalten, und der Slider hat den effektiven Floor nicht gezeigt.
+
+1. **Live-Orientierung.** `videoRotationAngle` der Capture-Connection dreht den CGImage, bevor Vision ihn sieht. Continuity/geklapptes MacBook kippt Yaw nicht mehr. CIContext wird wiederverwendet.
+2. **Keyframe-Yaw.** Video-Ingest nimmt scharfe Frames mit Δyaw ≥ 0,22, nicht 40× Frontal.
+3. **Overlay-Grund.** „Print tot · Okklusion?“, „z zu klein“, „Profil“, „unscharf“ am Kasten, nicht nur in der Spur.
+4. **Slider zeigt Floor.** `Galerie n: Floor 84 · Solo 86` statt nur 70…96.
+5. **NMS-Debug.** Toggle zeichnet verworfene Tile-Zwillinge gestrichelt orange.
+6. **Labor: Konfusion + EXIF.** Person × Person mean-% plus Zähler für Orientation ≠ 1.
+7. **Live-Box EMA** 0,62/0,38 — weniger Jitter bei gleichem Track.
 
 ## In 2.1.3 wirklich im Code
 
@@ -29,13 +41,11 @@ Die 2.1.2-Commits auf main hatten die härtere Kurve und den Galerie-Floor nur i
 
 ## Nächste Fixes (klein)
 
-- **NMS-Debug.** Optional Quadrate der verworfenen Tile-Treffer — sonst sieht man Twins nicht.
-- **EXIF-Orientierungstest** in den Laborbericht. Ein gedrehtes iPhone-Foto kippt Yaw.
-- **Vision-Handler-Orientierung am Live-Frame.** Webcam-BGRA oft landscape; `.up` verdreht Yaw/Pitch.
-- **Slider-Tooltip** zeigt den effektiven Floor (Galerie + Bias), nicht nur 70…96.
-- **Confusion-Matrix** im Laborbericht (Person × Person), nicht nur Genuine/Impostor-Listen.
-- **Sonnenbrille / starke Okklusion** als Ablehnungsgrund am Overlay, nicht stiller Print-Tod.
-- **Keyframe-Auswahl nach Yaw-Diversität** beim Video-Ingest (frontal + ¾, nicht 40× dasselbe).
+- **HLS/Player-Transform.** `grab()` auf AVPlayer dreht noch nicht nach `preferredTransform` — nur die Webcam-Connection.
+- **Enrollment-Veto bei Yaw > 0,7.** Profil als erste Referenz verdreht den Centroid.
+- **Duplikat-Warnung.** Anlegen, wenn Centroid-Cosine zu einer existierenden Person > 0,88.
+- **Print-% bleibt am Badge**, auch wenn der Hinweis „Profil“ ist.
+- **Scan abbrechen.** Ordner-Walk hat keinen Cancel — große Mediatheken blocken die UI-Statuszeile Minuten.
 
 ## Erweiterungen
 
@@ -59,6 +69,9 @@ Die 2.1.2-Commits auf main hatten die härtere Kurve und den Galerie-Floor nur i
 - **Print quantisieren** (int8) für kleinere Library-Files, Cosine auf dequantisiertem Centroid.
 - **Aktives Lernen.** „Ist das dieselbe Person?“ an unsicheren Rändern, eine Klick-Referenz.
 - **Softmax-Temperatur auf Look-Scores**, sichtbar im Labor, analog zu Helios' Fusion-T.
+- **HEIC-Burst.** Erstes scharfes Frame statt Index 0, wenn die Datei ein Live-Photo ist.
+- **Ablehnen-Taste am Overlay.** Ein Klick schreibt „nicht diese Person“ in die Labor-Liste, ohne die Galerie zu löschen.
+- **Live-FPS an Last.** 5 fps fest; bei 0 Gesichtern 2 fps, bei Track 8 fps — analog Helios' Idle-Kamera.
 
 ## Nicht tun
 

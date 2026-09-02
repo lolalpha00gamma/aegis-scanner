@@ -3,6 +3,7 @@ import CoreGraphics
 import Foundation
 import ImageIO
 import UniformTypeIdentifiers
+import Vision
 
 enum FrameExtractor {
     static func isVideo(_ url: URL) -> Bool {
@@ -62,8 +63,42 @@ enum FrameExtractor {
             }
         }
         scored.sort { $0.2 > $1.2 }
-        let kept = Array(scored.prefix(maxFrames)).sorted { $0.0 < $1.0 }
+        let kept = pickDiverse(scored, maxFrames: maxFrames)
         return kept.map { ($0.0, $0.1) }
+    }
+
+    /// Schärfe plus Yaw-Diversität: nicht 20× dieselbe Frontal-Pose.
+    private static func pickDiverse(_ scored: [(Double, CGImage, Double)], maxFrames: Int) -> [(Double, CGImage, Double)] {
+        guard scored.count > maxFrames else { return scored.sorted { $0.0 < $1.0 } }
+        var yawOf: [Int: Double] = [:]
+        for (i, item) in scored.enumerated() {
+            yawOf[i] = faceYaw(item.1) ?? 999
+        }
+        var picked: [Int] = []
+        // Schärfstes zuerst, dann Frames deren Yaw sich um ≥ 0,22 unterscheidet.
+        for (i, _) in scored.enumerated() {
+            if picked.count >= maxFrames { break }
+            let y = yawOf[i] ?? 999
+            guard y != 999 else { continue }
+            let far = picked.allSatisfy { abs((yawOf[$0] ?? 0) - y) >= 0.22 }
+            if picked.isEmpty || far { picked.append(i) }
+        }
+        for (i, _) in scored.enumerated() where !picked.contains(i) {
+            if picked.count >= maxFrames { break }
+            picked.append(i)
+        }
+        return picked.map { scored[$0] }.sorted { $0.0 < $1.0 }
+    }
+
+    private static func faceYaw(_ image: CGImage) -> Double? {
+        let req = VNDetectFaceRectanglesRequest()
+        req.revision = VNDetectFaceRectanglesRequestRevision3
+        let handler = VNImageRequestHandler(cgImage: image, orientation: .up, options: [:])
+        guard (try? handler.perform([req])) != nil else { return nil }
+        let best = req.results?.max {
+            $0.boundingBox.width * $0.boundingBox.height < $1.boundingBox.width * $1.boundingBox.height
+        }
+        return best?.yaw?.doubleValue
     }
 
     static func structure(_ image: CGImage) -> Double {
@@ -156,6 +191,14 @@ enum FrameExtractor {
             return n > 0 ? acc / Double(n) / 255.0 : 0
         }
         return score
+    }
+
+    static func exifOrientation(url: URL) -> Int {
+        guard let src = CGImageSourceCreateWithURL(url as CFURL, nil),
+              let props = CGImageSourceCopyPropertiesAtIndex(src, 0, nil) as? [CFString: Any],
+              let o = props[kCGImagePropertyOrientation] as? Int
+        else { return 1 }
+        return o
     }
 
     static func walk(folder: URL) -> [URL] {

@@ -1,4 +1,4 @@
-# Aegis **2.1.3 alpha**
+# Aegis **2.1.4 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.4 alpha
+
+2.1.3 hat den Score ehrlich gemacht — Live und Video haben ihn trotzdem verdreht: Vision las jedes Frame als `.up`, der Ingest behielt 20× dieselbe Pose, der Slider log den Floor.
+
+- **Live-Orientierung** aus der Capture-Connection, wiederverwendeter CIContext.
+- **Yaw-diverse Keyframes** beim Video (Δyaw ≥ 0,22).
+- **Overlay-Grund** (Okklusion / z / Profil / unscharf), **NMS-Twins** optional gestrichelt.
+- **Slider zeigt effektiven Floor**, Labor **Konfusion + EXIF**, Live-Box **EMA**.
 
 ## Neu in 2.1.3 alpha
 

@@ -1,9 +1,11 @@
 import AppKit
 import AVFoundation
 import CoreGraphics
+import CoreImage
 import CoreMedia
 import CoreVideo
 import Foundation
+import ImageIO
 import Vision
 
 enum LiveKind: String {
@@ -182,8 +184,31 @@ private final class FrameTap: NSObject, AVCaptureVideoDataOutputSampleBufferDele
         let now = Date().timeIntervalSince1970
         guard now - last >= 0.18 else { return }
         last = now
-        guard let pb = CMSampleBufferGetImageBuffer(sampleBuffer), let image = cgImage(from: pb) else { return }
+        guard let pb = CMSampleBufferGetImageBuffer(sampleBuffer),
+              let image = cgImage(from: pb, orientation: visionOrientation(connection))
+        else { return }
         DispatchQueue.main.async { self.emit(image) }
+    }
+}
+
+private func visionOrientation(_ connection: AVCaptureConnection) -> CGImagePropertyOrientation {
+    let angle: CGFloat
+    if #available(macOS 14.0, *) {
+        angle = connection.videoRotationAngle
+    } else {
+        switch connection.videoOrientation {
+        case .portrait: angle = 90
+        case .portraitUpsideDown: angle = 270
+        case .landscapeRight: angle = 180
+        default: angle = 0
+        }
+    }
+    let wrapped = Int(((angle.truncatingRemainder(dividingBy: 360)) + 360).truncatingRemainder(dividingBy: 360).rounded())
+    switch wrapped {
+    case 90: return .right
+    case 180: return .down
+    case 270: return .left
+    default: return .up
     }
 }
 
@@ -199,7 +224,9 @@ private func cgImage(from data: Data) -> CGImage? {
     NSImage(data: data)?.cgImage(forProposedRect: nil, context: nil, hints: nil)
 }
 
-private func cgImage(from pb: CVPixelBuffer) -> CGImage? {
+private let liveOrientContext = CIContext(options: [.cacheIntermediates: false])
+
+private func cgImage(from pb: CVPixelBuffer, orientation: CGImagePropertyOrientation = .up) -> CGImage? {
     let w = CVPixelBufferGetWidth(pb)
     let h = CVPixelBufferGetHeight(pb)
     CVPixelBufferLockBaseAddress(pb, .readOnly)
@@ -216,7 +243,10 @@ private func cgImage(from pb: CVPixelBuffer) -> CGImage? {
         space: cs,
         bitmapInfo: CGBitmapInfo.byteOrder32Little.rawValue | CGImageAlphaInfo.premultipliedFirst.rawValue
     ) else { return nil }
-    return ctx.makeImage()
+    guard let raw = ctx.makeImage() else { return nil }
+    if orientation == .up { return raw }
+    let oriented = CIImage(cgImage: raw).oriented(orientation)
+    return liveOrientContext.createCGImage(oriented, from: oriented.extent)
 }
 
 func sniffLiveKind(_ raw: String) -> (LiveKind, URL)? {

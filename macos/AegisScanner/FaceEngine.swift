@@ -1,12 +1,20 @@
 import CoreGraphics
 import Foundation
+import ImageIO
 import Vision
 
 enum FaceEngine {
-    static func detect(in image: CGImage, mediaId: UUID, tiles: Bool = true) throws -> [FaceObservation] {
+    private static let nmsLock = NSLock()
+    private static var _dropped: [FaceBox] = []
+    static var lastNMSDropped: [FaceBox] {
+        nmsLock.lock(); defer { nmsLock.unlock() }
+        return _dropped
+    }
+
+    static func detect(in image: CGImage, mediaId: UUID, tiles: Bool = true, orientation: CGImagePropertyOrientation = .up) throws -> [FaceObservation] {
         let w = Double(image.width)
         let h = Double(image.height)
-        var out = try detectOnce(in: image, mediaId: mediaId, originX: 0, originY: 0, imageWidth: w, imageHeight: h)
+        var out = try detectOnce(in: image, mediaId: mediaId, originX: 0, originY: 0, imageWidth: w, imageHeight: h, orientation: orientation)
         let stats = lumaStats(image)
         if stats.dark || out.isEmpty, let lifted = equalize(image) {
             let extra = try detectOnce(
@@ -16,14 +24,14 @@ enum FaceEngine {
                 originY: 0,
                 imageWidth: w,
                 imageHeight: h,
-                minConfidence: out.isEmpty ? 0.12 : 0.15
+                minConfidence: out.isEmpty ? 0.12 : 0.15,
+                orientation: orientation
             )
             if stats.dark {
                 out = extra + out
             } else {
                 out.append(contentsOf: extra)
             }
-            out = nms(out)
         }
         let largest = out.map { max($0.box.width, $0.box.height) }.max() ?? 0
         let covered = out.reduce(0.0) { $0 + $1.box.width * $1.box.height }
@@ -50,13 +58,13 @@ enum FaceEngine {
                     originY: Double(oy),
                     imageWidth: w,
                     imageHeight: h,
-                    minConfidence: stats.dark ? 0.12 : 0.15
+                    minConfidence: stats.dark ? 0.12 : 0.15,
+                    orientation: orientation
                 )
                 out.append(contentsOf: found)
             }
-            out = nms(out)
         }
-        return stampPrints(nms(out), from: image)
+        return stampPrints(nms(out), from: image, orientation: orientation)
     }
 
     private static func detectOnce(
@@ -66,9 +74,10 @@ enum FaceEngine {
         originY: Double,
         imageWidth: Double,
         imageHeight: Double,
-        minConfidence: Float = 0.15
+        minConfidence: Float = 0.15,
+        orientation: CGImagePropertyOrientation = .up
     ) throws -> [FaceObservation] {
-        let handler = VNImageRequestHandler(cgImage: image, orientation: .up, options: [:])
+        let handler = VNImageRequestHandler(cgImage: image, orientation: orientation, options: [:])
         let facesReq = VNDetectFaceRectanglesRequest()
         facesReq.revision = VNDetectFaceRectanglesRequestRevision3
         try handler.perform([facesReq])
@@ -212,10 +221,17 @@ enum FaceEngine {
     private static func nms(_ faces: [FaceObservation], iouThresh: Double = 0.28) -> [FaceObservation] {
         let ranked = faces.sorted { $0.score > $1.score }
         var kept: [FaceObservation] = []
+        var dropped: [FaceBox] = []
         for face in ranked {
-            if kept.contains(where: { duplicateDetection($0.box, face.box) }) { continue }
+            if kept.contains(where: { duplicateDetection($0.box, face.box) }) {
+                dropped.append(face.box)
+                continue
+            }
             kept.append(face)
         }
+        nmsLock.lock()
+        _dropped = dropped
+        nmsLock.unlock()
         return kept.sorted { $0.box.x + $0.box.y * 0.15 < $1.box.x + $1.box.y * 0.15 }
     }
 
@@ -548,6 +564,23 @@ enum FaceEngine {
 
     /// Slider ist Bias um 78. Kleine Galerien brauchen höhere Floors, sonst
     /// tauft ein einzelner Impostor-Treffer die einzige Person.
+    static func effectiveFloors(galleryCount: Int, slider: Double) -> (match: Double, solo: Double) {
+        let match = min(96, max(70, adaptiveFloor(galleryCount, slider: slider)))
+        return (match, min(96, match + 2))
+    }
+
+    static func overlayHint(_ face: FaceObservation) -> String? {
+        if face.featurePrint.isEmpty {
+            if face.quality.capture >= 0.40 { return "Print tot · Okklusion?" }
+            return "Print tot"
+        }
+        if face.quality.capture < 0.35 && face.quality.size < 0.16 { return "z zu klein" }
+        if abs(face.quality.yaw) > 0.75 { return "Profil" }
+        if face.quality.frontal < 0.22 { return "stark gedreht" }
+        if face.quality.sharpness < 0.08 { return "unscharf" }
+        return nil
+    }
+
     private static func adaptiveFloor(_ n: Int, slider: Double) -> Double {
         let rec: Double
         if n <= 1 { rec = 84 }
@@ -914,10 +947,10 @@ enum FaceEngine {
         facePrintOnly(of: image)
     }
 
-    private static func facePrintOnly(of image: CGImage?) -> Data? {
+    private static func facePrintOnly(of image: CGImage?, orientation: CGImagePropertyOrientation = .up) -> Data? {
         guard let image else { return nil }
         guard let req = makeFacePrintRequest() else { return nil }
-        let handler = VNImageRequestHandler(cgImage: image, orientation: .up, options: [:])
+        let handler = VNImageRequestHandler(cgImage: image, orientation: orientation, options: [:])
         guard (try? handler.perform([req])) != nil else { return nil }
         for obs in req.results ?? [] {
             if let data = extractPrint(obs) { return data }
@@ -958,8 +991,8 @@ enum FaceEngine {
         }
     }
 
-    private static func stampPrints(_ faces: [FaceObservation], from image: CGImage) -> [FaceObservation] {
-        let found = facePrintsInImage(image)
+    private static func stampPrints(_ faces: [FaceObservation], from image: CGImage, orientation: CGImagePropertyOrientation = .up) -> [FaceObservation] {
+        let found = facePrintsInImage(image, orientation: orientation)
         var used = Set<Int>()
         return faces.map { face in
             var next = face
@@ -999,9 +1032,9 @@ enum FaceEngine {
 
     /// Run Apple's face-print on the whole photo so Vision can detect and align itself.
     /// Warped 256px patches made the request fail and silently stored an image-print of the jacket.
-    private static func facePrintsInImage(_ image: CGImage) -> [LocatedPrint] {
+    private static func facePrintsInImage(_ image: CGImage, orientation: CGImagePropertyOrientation = .up) -> [LocatedPrint] {
         guard let req = makeFacePrintRequest() else { return [] }
-        let handler = VNImageRequestHandler(cgImage: image, orientation: .up, options: [:])
+        let handler = VNImageRequestHandler(cgImage: image, orientation: orientation, options: [:])
         guard (try? handler.perform([req])) != nil else { return [] }
         let w = Double(image.width)
         let h = Double(image.height)

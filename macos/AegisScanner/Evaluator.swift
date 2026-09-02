@@ -11,6 +11,7 @@ enum LabReport {
         var genuine: [Double] = []
         var impostor: [Double] = []
         var lines = ["person,probe,kind,score"]
+        var pairScores: [String: [String: [Double]]] = [:]
 
         for identity in identities {
             let owned = faces.filter { identity.faceIds.contains($0.id) }
@@ -33,10 +34,12 @@ enum LabReport {
                 let selfP = versus.first { $0.identityId == identity.id }?.percent ?? 0
                 genuine.append(selfP)
                 lines.append("\(identity.name),\(probe.id.uuidString),genuine,\(fmt(selfP))")
+                pairScores[identity.name, default: [:]][identity.name, default: []].append(selfP)
                 for v in versus where v.identityId != identity.id {
                     impostor.append(v.percent)
                     let name = held.first { $0.id == v.identityId }?.name ?? "?"
                     lines.append("\(identity.name)→\(name),\(probe.id.uuidString),impostor,\(fmt(v.percent))")
+                    pairScores[identity.name, default: [:]][name, default: []].append(v.percent)
                 }
             }
         }
@@ -55,6 +58,29 @@ enum LabReport {
             out.append(tarAtFar(genuine, impostor, far: 0.01, label: "TAR @ 1 % FAR"))
         } else {
             out.append("Zu wenig Referenzen: jede Person braucht mindestens zwei Fotos.")
+        }
+        let photos = media.filter { $0.kind == .photo }
+        if !photos.isEmpty {
+            var rotated = 0
+            for item in photos {
+                let o = FrameExtractor.exifOrientation(url: item.url)
+                if o != 1 { rotated += 1 }
+            }
+            out.append("EXIF: \(photos.count) Fotos, \(rotated) mit Orientation ≠ 1 (Thumbnails mit Transform).")
+        }
+        if pairScores.count >= 1 {
+            out.append("")
+            out.append("Konfusion (mean % Probe → Galerie)")
+            let names = identities.map(\.name)
+            out.append("probe\\ref\t" + names.joined(separator: "\t"))
+            for probe in names {
+                var row = [probe]
+                for ref in names {
+                    let xs = pairScores[probe]?[ref] ?? []
+                    row.append(xs.isEmpty ? "—" : String(format: "%.0f", xs.reduce(0, +) / Double(xs.count)))
+                }
+                out.append(row.joined(separator: "\t"))
+            }
         }
         out.append("")
         out.append(lines.joined(separator: "\n"))
