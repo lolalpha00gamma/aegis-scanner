@@ -2,9 +2,9 @@ import CoreGraphics
 import Foundation
 
 enum AppVersion {
-    static let marketing = "2.1.10"
+    static let marketing = "2.1.11"
     static let channel = "alpha"
-    static let display = "2.1.10 alpha"
+    static let display = "2.1.11 alpha"
 }
 
 enum StrategyTrack: String, CaseIterable, Identifiable {
@@ -205,11 +205,13 @@ struct FaceObservation: Identifiable, Hashable, Codable {
     /// Stirn/Augen-Print bei okkludierter unterer Hälfte. Persistiert, Vec nicht.
     var partialPrint: Data = Data()
     var partialVec: [Double] = []
+    /// Taste „als Teil-Print speichern“ — Slot U auch ohne Auto-Maske.
+    var forcedPartial: Bool = false
 
     enum CodingKeys: String, CodingKey {
         case id, mediaId, box, score, landmarks, aligned, featurePrint
         case appearance, graph, geom3d, quality, trackId, strokes, namedAligned, ratioSheet
-        case partialPrint
+        case partialPrint, forcedPartial
     }
 
     init(
@@ -230,7 +232,8 @@ struct FaceObservation: Identifiable, Hashable, Codable {
         ratioSheet: [NamedRatio] = [],
         printVec: [Double] = [],
         partialPrint: Data = Data(),
-        partialVec: [Double] = []
+        partialVec: [Double] = [],
+        forcedPartial: Bool = false
     ) {
         self.id = id
         self.mediaId = mediaId
@@ -250,6 +253,7 @@ struct FaceObservation: Identifiable, Hashable, Codable {
         self.printVec = printVec
         self.partialPrint = partialPrint
         self.partialVec = partialVec
+        self.forcedPartial = forcedPartial
     }
 
     init(from decoder: Decoder) throws {
@@ -270,6 +274,7 @@ struct FaceObservation: Identifiable, Hashable, Codable {
         namedAligned = try c.decodeIfPresent([Point2].self, forKey: .namedAligned) ?? []
         ratioSheet = try c.decodeIfPresent([NamedRatio].self, forKey: .ratioSheet) ?? []
         partialPrint = try c.decodeIfPresent(Data.self, forKey: .partialPrint) ?? Data()
+        forcedPartial = try c.decodeIfPresent(Bool.self, forKey: .forcedPartial) ?? false
     }
 
     func encode(to encoder: Encoder) throws {
@@ -290,6 +295,7 @@ struct FaceObservation: Identifiable, Hashable, Codable {
         try c.encode(namedAligned, forKey: .namedAligned)
         try c.encode(ratioSheet, forKey: .ratioSheet)
         try c.encode(partialPrint, forKey: .partialPrint)
+        if forcedPartial { try c.encode(forcedPartial, forKey: .forcedPartial) }
     }
 }
 

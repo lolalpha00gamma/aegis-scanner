@@ -599,6 +599,7 @@ enum FaceEngine {
         let eyes = face.strokes.contains { $0.label.hasPrefix("Auge") && $0.points.count >= 4 }
         let mouth = face.strokes.contains { ($0.label == "Mund" || $0.label == "Lippen") && $0.points.count >= 4 }
         if eyes && !mouth { return partialEmbedding(of: face).count >= 32 ? "Maske · Teil-Print" : "Maske?" }
+        if face.forcedPartial { return partialEmbedding(of: face).count >= 32 ? "U-Slot · Teil-Print" : "U-Slot" }
         if !eyes && mouth { return "Sonnenbrille / Okklusion?" }
         if gallery.count >= 1 {
             let pv = embedding(of: face)
@@ -624,7 +625,7 @@ enum FaceEngine {
     }
 
     static func poseSlot(_ face: FaceObservation) -> PoseSlot {
-        if lowerFaceOccluded(face) { return .upper }
+        if face.forcedPartial || lowerFaceOccluded(face) { return .upper }
         let y = abs(face.quality.yaw)
         if y >= 0.70 { return .profile }
         if y >= 0.28 { return .threeQuarter }
@@ -1192,10 +1193,16 @@ enum FaceEngine {
     }
 
     private static func stampPrints(_ faces: [FaceObservation], from image: CGImage, orientation: CGImagePropertyOrientation = .up) -> [FaceObservation] {
-        let found = facePrintsInImage(image, orientation: orientation)
+        let anySharp = faces.contains { !MatchMath.skipPrint(sharpness: $0.quality.sharpness) }
+        let found = anySharp ? facePrintsInImage(image, orientation: orientation) : []
         var used = Set<Int>()
         return faces.map { face in
             var next = face
+            if MatchMath.skipPrint(sharpness: face.quality.sharpness) {
+                next.featurePrint = Data()
+                next.printVec = []
+                return next
+            }
             var bestI = -1
             var bestIoU = 0.32
             for (i, item) in found.enumerated() where !used.contains(i) {
@@ -1222,7 +1229,7 @@ enum FaceEngine {
                 next.featurePrint = Data()
                 next.printVec = []
             }
-            if lowerFaceOccluded(next),
+            if lowerFaceOccluded(next) || next.forcedPartial,
                let crop = upperFaceCrop(image, box: face.box),
                let data = facePrintOnly(of: crop, orientation: orientation)
             {
@@ -1231,6 +1238,18 @@ enum FaceEngine {
             }
             return next
         }
+    }
+
+    /// Expliziter U-Slot: oberes Crop auch ohne Auto-Maske.
+    static func stampForcedPartial(_ face: FaceObservation, from image: CGImage, orientation: CGImagePropertyOrientation = .up) -> FaceObservation? {
+        guard let crop = upperFaceCrop(image, box: face.box),
+              let data = facePrintOnly(of: crop, orientation: orientation)
+        else { return nil }
+        var next = face
+        next.partialPrint = data
+        next.partialVec = printVector(data)
+        next.forcedPartial = true
+        return next
     }
 
     private struct LocatedPrint {

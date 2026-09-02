@@ -106,6 +106,21 @@ enum MatchMathTests {
         ok(!MatchMath.qualityRejects(capture: 0.9, size: 0.5, sharpness: 0.20), "scharf reicht")
         ok(MatchMath.qualityRejects(capture: 0.20, size: 0.10, sharpness: 0.50), "winzig + schwach")
         near(MatchMath.sharpnessFloor, 0.12, 0.001, "Schärfe-Floor 0,12")
+        ok(MatchMath.skipPrint(sharpness: 0.10), "Laplacian unter Floor spart den Print")
+        ok(!MatchMath.skipPrint(sharpness: 0.20), "scharf geht zum Print")
+
+        let lampsHi = MatchMath.qualityLamps(capture: 0.80, sharpness: 0.40, yaw: 0.05)
+        ok(lampsHi.capture == .green && lampsHi.sharpness == .green && lampsHi.yaw == .green, "Ampel grün frontal scharf")
+        let lampsLo = MatchMath.qualityLamps(capture: 0.20, sharpness: 0.08, yaw: 0.90)
+        ok(lampsLo.capture == .red && lampsLo.sharpness == .red && lampsLo.yaw == .red, "Ampel rot unscharf Profil")
+        let lampsMid = MatchMath.qualityLamps(capture: 0.40, sharpness: 0.15, yaw: 0.40)
+        ok(lampsMid.capture == .amber && lampsMid.sharpness == .amber && lampsMid.yaw == .amber, "Ampel amber ¾")
+
+        ok(MatchMath.orientOverride("auto") == nil, "Orient auto = videoRotationAngle")
+        ok(MatchMath.orientOverride("90") == "right", "Orient 90 = right")
+        ok(MatchMath.orientOverride("180") == "down", "Orient 180 = down")
+        ok(MatchMath.orientOverride("270") == "left", "Orient 270 = left")
+        ok(MatchMath.orientOverride("0") == "up", "Orient 0 = up")
 
         let genuineHi = [90.0, 92, 88, 85, 80, 78, 91, 87]
         let impostorLo = [40.0, 50, 60, 30, 20, 10, 5, 2, 1, 15]

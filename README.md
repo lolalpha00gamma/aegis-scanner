@@ -1,4 +1,4 @@
-# Aegis **2.1.10 alpha**
+# Aegis **2.1.11 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main` oder `bugfix`.
+
+## Neu in 2.1.11 alpha
+
+Warum 2.1.10 trotz Schärfe-Floor und U-Slot Live und Masken trotzdem falsch drehte:
+
+- **Per-Kamera Orientierungs-Override.** Continuity/`videoRotationAngle` lügt oft — Menü Auto/0/90/180/270 pro `uniqueID`.
+- **Taste „U“ = Teil-Print.** Expliziter Masken-Slot, nicht nur Auto wenn der Mund fehlt.
+- **Live-Quality-Ampel.** Capture / Schärfe / Yaw als drei Punkte am Overlay, bevor der Name kommt.
+- **Schärfe vor dem Print.** Laplacian < 0,12 → `VNGenerateFacePrint` läuft nicht. Spart Vision, tauft niemanden unscharf.
 
 ## Neu in 2.1.10 alpha
 

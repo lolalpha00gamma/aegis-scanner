@@ -1,8 +1,18 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.10 alpha**. Branch `bugfix`. Fixes von 2.1.10 stehen auch in der README.
+Stand: **2.1.11 alpha**. Branch `bugfix`. Fixes von 2.1.11 stehen auch in der README.
+
+## In 2.1.11 wirklich im Code
+
+Warum 2.1.10 trotz Schärfe-Floor Continuity und Masken trotzdem falsch drehte: `videoRotationAngle` lügt bei Desk-View, U-Slot nur auto wenn der Mund fehlt, Overlay nennt den Namen vor Capture/Schärfe/Yaw, und unscharfe Gesichter gingen trotzdem in `VNGenerateFacePrint`.
+
+1. **Per-Kamera Orient-Override.** Auto/0/90/180/270, Key `aegis.camOrient.{uniqueID}`.
+2. **Taste U.** Expliziter Teil-Print, auch ohne Auto-Maske. Erste Referenz bleibt frei.
+3. **Live-Ampel C/S/Y** am Overlay, bevor der Name kommt.
+4. **Schärfe vor dem Print.** Laplacian < 0,12 → Request nicht, Print leer.
 
 ## In 2.1.10 wirklich im Code
+
 
 Warum 2.1.9 trotz Teil-Print Masken und Portraits trotzdem falsch taufte: die maskierte Probe (`partialVec`) ging gegen den vollen Galerie-Mean (Stoff vs. Gesicht). Eine Maske als erste Referenz hat den Centroid vergiftet. Portrait-Fotos mit einem großen Gesicht wurden trotzdem gekachelt (NMS-Zwillinge, falsche Print-IoU). Unschärfe < 0,12 hat trotzdem benannt.
 
@@ -61,9 +71,10 @@ Warum 2.1.5 trotz Cancel und HLS-Transform Galerien und Live trotzdem schief zog
 
 ## Nächste Fixes (klein)
 
-- **Per-Kamera Orientierungs-Override**, falls Continuity `videoRotationAngle` falsch meldet.
-- **Masken-Enrollment-Slot explizit.** Taste „als Teil-Print speichern“, statt nur Auto-U.
-- **Live-Quality-Ampel.** Capture/sharpness/yaw als drei Punkte am Overlay, bevor der Name kommt.
+- **PartialPrint-Laborzeile.** Genuine-Paare mit/ohne Maske getrennt, sonst TAR die Masken-Dämpfung.
+- **Tile-Budget.** Max. 2 Extra-Detects statt 5 Origins, wenn Crowd echt ist.
+- **Ampel-Spark 8 Frames.** Live-History, nicht nur der aktuelle Tick.
+- **Orient-Konflikt loggen.** EXIF vs. Override vs. `videoRotationAngle` in einer Zeile.
 
 ## Erweiterungen
 
@@ -100,6 +111,10 @@ Warum 2.1.5 trotz Cancel und HLS-Transform Galerien und Live trotzdem schief zog
 - **PartialPrint-Laborzeile.** Genuine-Paare mit/ohne Maske getrennt, sonst TAR die Masken-Dämpfung.
 - **Tile-Budget.** Max. 2 Extra-Detects statt 5 Origins, wenn Crowd echt ist.
 - **Schärfe vor dem Print.** Laplacian < Floor → Request gar nicht erst, spart Vision.
+- **Continuity-Schärfe weicher.** Desk-View oft 0,10–0,14 — Floor 0,08 nur für diese uniqueID, nicht global.
+- **U-Slot vom Live-Hold.** 1,2 s Maske im Track → Vorschlag „als Teil-Print“, nie still schreiben.
+- **forcedPartial im Labor.** U-Refs extra Zeile, damit TAR nicht mit Full-Paaren gemischt wird.
+- **Orient-Menü auch ohne Live.** Letzte uniqueID merken, Override vor Webcam-Start setzen.
 
 ## Nicht tun
 
@@ -124,3 +139,6 @@ Warum 2.1.5 trotz Cancel und HLS-Transform Galerien und Live trotzdem schief zog
 - Maske als erste Referenz (Stoff im Mean).
 - Tiles über einem großen Portrait-Gesicht.
 - Schärfe < 0,12 trotzdem taufen.
+- `VNGenerateFacePrint` auf unscharfen Crops (Laplacian < Floor).
+- U-Slot als erste Referenz (Stoff im Mean) — Taste U blockt das.
+- Continuity-Yaw hart aus `videoRotationAngle` ohne Override.

@@ -14,6 +14,45 @@ enum MatchMath {
     static let rejectCosine = 0.90
     static let sharpnessFloor = 0.12
 
+    enum Lamp: String, Equatable {
+        case green, amber, red
+    }
+
+    /// Live-Ampel, bevor ein Name kommt. Grün/Amber/Rot für Capture, Schärfe, Yaw.
+    static func qualityLamps(capture: Double, sharpness: Double, yaw: Double) -> (capture: Lamp, sharpness: Lamp, yaw: Lamp) {
+        func cap(_ v: Double, good: Double, ok: Double) -> Lamp {
+            if v >= good { return .green }
+            if v >= ok { return .amber }
+            return .red
+        }
+        let ay = abs(yaw)
+        let yawLamp: Lamp
+        if ay < 0.28 { yawLamp = .green }
+        else if ay < 0.70 { yawLamp = .amber }
+        else { yawLamp = .red }
+        return (
+            cap(capture, good: 0.50, ok: 0.35),
+            cap(sharpness, good: 0.22, ok: sharpnessFloor),
+            yawLamp
+        )
+    }
+
+    /// Laplacian unter Floor: Print-Request lohnt nicht.
+    static func skipPrint(sharpness: Double) -> Bool {
+        sharpness < sharpnessFloor
+    }
+
+    /// Continuity-Override. nil = Auto aus `videoRotationAngle`.
+    static func orientOverride(_ stored: String) -> String? {
+        switch stored {
+        case "0": return "up"
+        case "90": return "right"
+        case "180": return "down"
+        case "270": return "left"
+        default: return nil
+        }
+    }
+
     struct Floors: Equatable {
         var match: Double
         var solo: Double

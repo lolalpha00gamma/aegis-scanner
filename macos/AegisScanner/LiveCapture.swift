@@ -28,6 +28,18 @@ final class LiveCapture: NSObject {
     var onReady: (() -> Void)?
     /// Live-Tap: 2 fps ohne Gesicht, 8 fps sobald ein Track sitzt.
     private(set) var facesPresent = false
+    private(set) var cameraUniqueID: String = ""
+    private(set) var orientOverride: String = "auto"
+
+    static func orientKey(_ uniqueID: String) -> String { "aegis.camOrient.\(uniqueID)" }
+
+    func setOrientOverride(_ value: String) {
+        orientOverride = value
+        tap?.orientOverride = value
+        if !cameraUniqueID.isEmpty {
+            UserDefaults.standard.set(value, forKey: Self.orientKey(cameraUniqueID))
+        }
+    }
 
     func setFacesPresent(_ on: Bool) {
         let changed = on != facesPresent
@@ -95,6 +107,8 @@ final class LiveCapture: NSObject {
             onError?("Keine Webcam gefunden.")
             return
         }
+        cameraUniqueID = device.uniqueID
+        orientOverride = UserDefaults.standard.string(forKey: Self.orientKey(device.uniqueID)) ?? "auto"
         if session.canAddInput(input) { session.addInput(input) }
         let out = AVCaptureVideoDataOutput()
         out.alwaysDiscardsLateVideoFrames = true
@@ -102,6 +116,8 @@ final class LiveCapture: NSObject {
         let delegate = FrameTap { [weak self] image in
             self?.onFrame?(image)
         }
+        delegate.uniqueID = device.uniqueID
+        delegate.orientOverride = orientOverride
         self.tap = delegate
         out.setSampleBufferDelegate(delegate, queue: outputQueue)
         if session.canAddOutput(out) { session.addOutput(out) }
@@ -218,6 +234,8 @@ final class LiveCapture: NSObject {
 private final class FrameTap: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     private var last: TimeInterval = 0
     var minInterval: TimeInterval = 0.50
+    var uniqueID: String = ""
+    var orientOverride: String = "auto"
     private let emit: (CGImage) -> Void
     init(emit: @escaping (CGImage) -> Void) { self.emit = emit }
     func captureOutput(
@@ -229,13 +247,20 @@ private final class FrameTap: NSObject, AVCaptureVideoDataOutputSampleBufferDele
         guard now - last >= minInterval else { return }
         last = now
         guard let pb = CMSampleBufferGetImageBuffer(sampleBuffer),
-              let image = cgImage(from: pb, orientation: visionOrientation(connection))
+              let image = cgImage(from: pb, orientation: visionOrientation(connection, override: orientOverride))
         else { return }
         DispatchQueue.main.async { self.emit(image) }
     }
 }
 
-private func visionOrientation(_ connection: AVCaptureConnection) -> CGImagePropertyOrientation {
+private func visionOrientation(_ connection: AVCaptureConnection, override: String = "auto") -> CGImagePropertyOrientation {
+    switch override {
+    case "0": return .up
+    case "90": return .right
+    case "180": return .down
+    case "270": return .left
+    default: break
+    }
     let angle: CGFloat
     if #available(macOS 14.0, *) {
         angle = connection.videoRotationAngle

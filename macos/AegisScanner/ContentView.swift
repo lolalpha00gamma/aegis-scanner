@@ -80,6 +80,20 @@ struct ContentView: View {
             Toggle("NMS", isOn: $store.showNMSDebug)
                 .toggleStyle(.button)
                 .help("Verworfene Tile-Zwillinge als gestrichelte Quadrate")
+            Picker("Orient", selection: Binding(
+                get: { store.cameraOrient },
+                set: { store.setCameraOrient($0) }
+            )) {
+                Text("Auto").tag("auto")
+                Text("0°").tag("0")
+                Text("90°").tag("90")
+                Text("180°").tag("180")
+                Text("270°").tag("270")
+            }
+            .pickerStyle(.menu)
+            .frame(width: 88)
+            .help("Continuity/Desk-View: videoRotationAngle überschreiben, wenn Yaw kippt")
+            .disabled(!store.liveActive)
         }
     }
 
@@ -119,6 +133,9 @@ struct ContentView: View {
                     Button("+") { store.addSelectedTo(identity.id) }
                         .disabled(store.selectedFace == nil || !store.newPersonName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         .help("Weitere Aufnahme dieser Person. Name im Feld → Anlegen, nicht +.")
+                    Button("U") { store.addSelectedAsPartial(identity.id) }
+                        .disabled(store.selectedFace == nil || identity.faceIds.isEmpty)
+                        .help("Als Teil-Print (obere Hälfte / Maske) speichern, auch ohne Auto-Maske.")
                     Button(role: .destructive) { store.removeIdentity(identity.id) } label: {
                         Image(systemName: "trash")
                     }
@@ -624,12 +641,15 @@ struct FaceOverlay: View {
                                     .offset(x: -4, y: -10)
                             }
                             .overlay(alignment: .topTrailing) {
-                                Text(badge)
-                                    .font(.caption2.monospacedDigit())
-                                    .padding(.horizontal, 5)
-                                    .padding(.vertical, 1)
-                                    .background((hint != nil && printDead) ? Color.red.opacity(0.78) : Color.black.opacity(0.7))
-                                    .offset(x: 4, y: -10)
+                                VStack(alignment: .trailing, spacing: 2) {
+                                    QualityAmpel(quality: face.quality)
+                                    Text(badge)
+                                        .font(.caption2.monospacedDigit())
+                                        .padding(.horizontal, 5)
+                                        .padding(.vertical, 1)
+                                        .background((hint != nil && printDead) ? Color.red.opacity(0.78) : Color.black.opacity(0.7))
+                                }
+                                .offset(x: 4, y: -10)
                             }
                             .overlay(alignment: .bottomLeading) {
                                 if selected {
@@ -669,6 +689,51 @@ struct FaceOverlay: View {
             }
         }
         .padding(12)
+    }
+}
+
+private struct QualityAmpel: View {
+    var quality: FaceQuality
+
+    var body: some View {
+        let lamps = MatchMath.qualityLamps(
+            capture: quality.capture,
+            sharpness: quality.sharpness,
+            yaw: quality.yaw
+        )
+        HStack(spacing: 3) {
+            lamp(lamps.capture, label: "C")
+            lamp(lamps.sharpness, label: "S")
+            lamp(lamps.yaw, label: "Y")
+        }
+        .padding(.horizontal, 4)
+        .padding(.vertical, 2)
+        .background(Color.black.opacity(0.72))
+        .help(String(
+            format: "Aufnahme %.0f %% · Schärfe %.0f %% · Yaw %.0f°",
+            quality.capture * 100,
+            quality.sharpness * 100,
+            quality.yaw * 180 / .pi
+        ))
+    }
+
+    private func lamp(_ value: MatchMath.Lamp, label: String) -> some View {
+        HStack(spacing: 1) {
+            Circle()
+                .fill(color(value))
+                .frame(width: 7, height: 7)
+            Text(label)
+                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                .foregroundStyle(.white.opacity(0.85))
+        }
+    }
+
+    private func color(_ value: MatchMath.Lamp) -> Color {
+        switch value {
+        case .green: return Color.green
+        case .amber: return Color.orange
+        case .red: return Color.red
+        }
     }
 }
 

@@ -33,6 +33,8 @@ final class LibraryStore: ObservableObject {
     @Published var pendingDuplicateName: String?
     @Published var revisionWarning: String = ""
     @Published var canResumeScan = false
+    @Published var cameraOrient: String = "auto"
+    @Published var cameraUniqueID: String = ""
 
     private let liveCapture = LiveCapture()
     private var liveMediaId: UUID?
@@ -584,6 +586,48 @@ final class LibraryStore: ObservableObject {
         }
     }
 
+    func addSelectedAsPartial(_ identityId: UUID) {
+        guard var face = selectedFace else {
+            status = "Zuerst ein Gesicht anklicken"
+            return
+        }
+        guard let idx = identities.firstIndex(where: { $0.id == identityId }) else { return }
+        guard let item = selectedMedia, let image = item.preview else {
+            status = "Kein Bild für Teil-Print"
+            return
+        }
+        if identities[idx].faceIds.isEmpty {
+            status = "Erste Referenz muss frei sein — U-Slot nur als Zusatz."
+            return
+        }
+        if let owner = FaceEngine.identityOwning(face: face, identities: identities, faces: faces),
+           owner.id != identityId
+        {
+            status = "Dieses Gesicht gehört zu \(owner.name)"
+            return
+        }
+        guard let stamped = FaceEngine.stampForcedPartial(face, from: image) else {
+            status = "Teil-Print fehlgeschlagen — Crop ohne Face-Print"
+            return
+        }
+        if let i = faces.firstIndex(where: { $0.id == stamped.id }) {
+            faces[i] = stamped
+            face = stamped
+        }
+        if !identities[idx].faceIds.contains(face.id) {
+            identities[idx].faceIds.append(face.id)
+        }
+        rematch()
+        persist()
+        status = "Teil-Print (U) zu \(identities[idx].name)"
+    }
+
+    func setCameraOrient(_ value: String) {
+        cameraOrient = value
+        liveCapture.setOrientOverride(value)
+        status = value == "auto" ? "Kamera-Orientierung auto" : "Kamera-Orientierung \(value)°"
+    }
+
     func removeIdentity(_ id: UUID) {
         identities.removeAll { $0.id == id }
         persist()
@@ -661,7 +705,10 @@ final class LibraryStore: ObservableObject {
         liveActive = true
         status = "Live · verbindet"
         liveCapture.onReady = { [weak self] in
-            self?.status = "Live"
+            guard let self else { return }
+            self.status = "Live"
+            self.cameraUniqueID = self.liveCapture.cameraUniqueID
+            self.cameraOrient = self.liveCapture.orientOverride
         }
         liveCapture.onError = { [weak self] msg in
             self?.status = msg
