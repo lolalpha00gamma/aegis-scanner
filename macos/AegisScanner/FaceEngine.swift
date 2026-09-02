@@ -604,14 +604,14 @@ enum FaceEngine {
     ) -> [MatchResult] {
         let f = MatchMath.floors(gallery: identities.count, slider: threshold)
         let floors = Floors(match: f.match, solo: f.solo)
-        let models: [(id: UUID, name: String, vec: [Double], ratios: [Double])] = identities.map { ident in
+        let models: [(id: UUID, name: String, vec: [Double], owned: [FaceObservation])] = identities.map { ident in
             let owned = gallery.filter { ident.faceIds.contains($0.id) }
-            let ratioPool = owned.map { $0.ratioSheet.filter(\.identity).map(\.value) }.filter { !$0.isEmpty }
-            return (ident.id, ident.name, liveCentroid(owned), MatchMath.medianComponents(ratioPool))
+            return (ident.id, ident.name, liveCentroid(owned), owned)
         }
         return probes.map { face in
             let pv = embedding(of: face)
             let probeRatios = face.ratioSheet.filter(\.identity).map(\.value)
+            let probeSlot = poseSlot(face)
             var versus: [IdentityScore] = []
             versus.reserveCapacity(models.count)
             var geoVersus: [(id: UUID, percent: Double)] = []
@@ -624,7 +624,10 @@ enum FaceEngine {
                     pct = 0
                 }
                 versus.append(IdentityScore(identityId: m.id, percent: pct))
-                let geo = MatchMath.ratioPercent(probeRatios, m.ratios)
+                let slotOwned = m.owned.filter { poseSlot($0) == probeSlot }
+                let poolSrc = slotOwned.isEmpty ? m.owned : slotOwned
+                let ratioPool = poolSrc.map { $0.ratioSheet.filter(\.identity).map(\.value) }.filter { !$0.isEmpty }
+                let geo = MatchMath.ratioPercent(probeRatios, MatchMath.medianComponents(ratioPool))
                 geoVersus.append((m.id, geo))
             }
             versus.sort { $0.percent > $1.percent }
@@ -666,7 +669,8 @@ enum FaceEngine {
                 galleryZ: galleryZScore(best?.percent ?? 0, versus.dropFirst().map(\.percent)),
                 textureReliable: false,
                 evidence: best?.percent ?? 0,
-                floors: liveFloors
+                floors: liveFloors,
+                yawAbs: abs(face.quality.yaw)
             )
             let printHit = StrategyHit(
                 strategy: .featurePrint,
@@ -946,7 +950,8 @@ enum FaceEngine {
         galleryZ: Double,
         textureReliable: Bool = false,
         evidence: Double? = nil,
-        floors: Floors
+        floors: Floors,
+        yawAbs: Double = 0
     ) -> (id: UUID?, note: String) {
         let best = bestName ?? "Beste"
         let second = secondName ?? "Zweite"
@@ -959,7 +964,7 @@ enum FaceEngine {
         if lowCapture {
             return (nil, String(format: "Aufnahme zu schwach für eine Zuordnung, Nähe %.0f%%.", percent))
         }
-        if MatchMath.geoVetoBlocks(geoAgrees: geoAgrees, geoMix: geoMix, printPercent: percent) {
+        if MatchMath.geoVetoBlocks(geoAgrees: geoAgrees, geoMix: geoMix, printPercent: percent, yawAbs: yawAbs) {
             return (nil, String(format: "Maße widersprechen (%.0f%%, Abstand %.1f). Print allein reicht nicht.", geoMix, geoMargin))
         }
         if secondName == nil {

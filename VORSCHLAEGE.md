@@ -1,6 +1,18 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.23 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.24 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.24 wirklich im Code
+
+2.1.23 hat echte Geo und leftover-Adopt — Namen flackerten trotzdem: `leftoverPinned` filterte `identities.faceIds` (Galerie-Snapshot). Seit 2.1.17 hat der Live-Track eine eigene UUID, leftover war immer leer. Leftover ohne Print klebte die UUID auf den Nachbarn. `matchLive` nahm den Maß-Median über **alle** Posen: ¾-Sonde vs. Frontal-Centroid → geoMix ~15, `geoVetoBlocks` kippte echte 80–87 %-Prints. `gallery.json` ohne Schema-Version.
+
+1. **Leftover über namedTracks.** Letzter `.aegis`-Treffer am Live-Track, nicht Galerie-UUID. `leftoverNamedTrack`.
+2. **Leftover braucht Print.** `leftoverNeedsPrint` — nil-Cosine pinnt nicht.
+3. **Track-Pin `namedTracks`.** IoU-Print-Veto gilt dem genannten Live-Track, nicht nur enrolled Snapshot-UUIDs.
+4. **Geo je Pose-Slot.** ¾-Sonde gegen ¾-Refs, sonst Fallback alle. Frontal-Maße vetoieren ¾ nicht.
+5. **`geoVetoBlocks(..., yawAbs)`.** Yaw ≥ 0,28 und Print ≥ 80 → kein Veto (`geoVetoYawSkip` / `geoVetoYawPrint`).
+6. **`gallery.json` Schema 2** neben `printRevision`.
+7. MARKETING_VERSION 2.1.24 (Build 52), `Models.swift` + `VERSION` gleich.
 
 ## In 2.1.23 wirklich im Code
 
@@ -92,7 +104,6 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 
 - Ampel-Spark Continuity-Floor in gespeicherten `qualitySpark` markieren (jetzt über `item.kind == .live`).
 - `enrolledAt` paler in der UI, wenn `printAgeDays ≥ 90`.
-- Gallery.json Schema-Version neben printRevision.
 - Labor: Genuine-vs-U ohne Full-Paare extra Zeile (ForcedPartial).
 - Snapshot-Live-Kopie `mediaId` in einer unsichtbaren Gallery-Media-Row, sonst Browse zählt sie nicht.
 - TER-Fusion in der Strategie-Liste als Diagnose, Default aus — `.aegis` braucht sie nicht mehr zum Taufen.
@@ -102,6 +113,10 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - `ratioSheet` im Live-Pfad nur Identitätszeilen, Mimik gar nicht erst rechnen.
 - Leftover-Pin loggen (Status eine Zeile), sonst bleibt UUID-Sprung unsichtbar.
 - boxEuro Reset auch wenn IoU hält aber Hysterese die Box der Vorperson zeigt — Print-Pin gewinnt in dem Frame.
+- Overlay-Zeile wenn Yaw-Geo-Skip greift („¾, Maße ignoriert“), sonst sieht man nur den Print.
+- `liveCentroid` analog Geo: ¾-Sonde gegen ¾-Print-Mittel, 72/28 nur Fallback.
+- schemaVersion < 2 beim Restore erwähnen.
+- namedTracks als „gehalten“ vs. „neu“ im Overlay, eine Silbe.
 
 ## Erweiterungen
 
@@ -153,9 +168,15 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - **Per-Identität leftover.** Nur die UUID, deren Centroid am nächsten liegt, darf leftover — nie die älteste.
 - **Track-ID entkoppelt von Face-UUID.** Live-Track `T…`, Galerie bleibt Snapshot-UUID — Anlegen kann nicht mehr den Track umbiegen.
 - **ratioSheet Cache** am Identity-Modell, nicht jedes Live-Frame neu medianen.
-- **Yaw-bin Geo.** ¾-Refs nur gegen ¾-Sonden, sonst Profile zerstören den Median.
 - **Print-first Matcher** als eigene Strategy-Hit-Zeile im Live (nicht nur .aegis), zum Debug.
 - **Box-Hysterese + Print-Pin in einem Pass.** Jetzt IoU dann Print; bei Uneinigkeit zwei Frames UUID-Flackern.
+- **Per-Slot Print-Centroid.** Geo ist yaw-bin, der Face-Print noch 72/28 über alle Posen — ¾-Treffer bleiben weich.
+- **Match-Notiz „Yaw-Skip“.** Labor und Overlay sollen sehen, warum Geo nicht vetoete.
+- **Track-ID `T…` in der UI.** intern `trackId` gibt es, die Kiste zeigt die Snapshot-UUID.
+- **Leftover nur nächster Centroid.** namedTrack darf leftover, aber bei zwei namenlosen Boxen gewinnt der Print, nicht die ältere.
+- **Continuity 8 fps:** Spark-Fenster in Sekunden (schon als Idee), analog Helios sampleDt.
+- **Anlegen-Wizard Pose-Meter** bevor die Person „fertig“ heißt (frontal + ¾ Pflicht).
+- **Drop-in `.mlmodel` bleibt der große Sprung** — Apple-Print ist die Decke.
 
 ## Nicht tun
 
@@ -205,3 +226,9 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - Leftover auf schon gematchte/enrolled Boxen.
 - IoU-UUID setzen bei Cosine < `pinPrintCosine`.
 - Volle decide-Notiz in die Overlay-Kiste.
+- Leftover über Galerie-UUIDs (Live-Track ≠ Snapshot seit 2.1.17).
+- Leftover ohne Print (nil-Cosine).
+- Geo-Median über alle Posen gegen eine ¾-Sonde.
+- Geo-Veto ¾-Sonde (yaw ≥ 0,28) gegen Frontal-Maße bei Print ≥ 80.
+- `gallery.json` ohne schemaVersion schreiben.
+- `bugfix`-Branch anlegen oder fortsetzen. Nur `main`.

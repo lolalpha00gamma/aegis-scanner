@@ -38,6 +38,11 @@ enum MatchMath {
     static let strongPrintFloor = 84.0
     /// Ab diesem Print-Wert vetoiert Kleidung/Haar nicht mehr.
     static let geoVetoSkipPrint = 88.0
+    /// ¾/Profil: Maße vs. Frontal-Centroid lügen. Print ≥ 80 nicht vetoen.
+    static let geoVetoYawSkip = 0.28
+    static let geoVetoYawPrint = 80.0
+    /// gallery.json Schema neben printRevision.
+    static let gallerySchema = 2
 
     static func activeSharpnessFloor(continuity: Bool) -> Double {
         continuity ? continuitySharpnessFloor : sharpnessFloor
@@ -121,9 +126,11 @@ enum MatchMath {
 
     /// Geo darf einen starken Print nicht kippen. Kleidung/Haare sind nicht Identität.
     /// true = Zuordnung blocken.
-    static func geoVetoBlocks(geoAgrees: Bool, geoMix: Double, printPercent: Double) -> Bool {
+    /// yawAbs ≥ 0,28 (¾/Profil): Landmark-Median der Frontals lügt — nicht vetoen.
+    static func geoVetoBlocks(geoAgrees: Bool, geoMix: Double, printPercent: Double, yawAbs: Double = 0) -> Bool {
         if geoAgrees { return false }
         if printPercent >= geoVetoSkipPrint { return false }
+        if yawAbs >= geoVetoYawSkip, printPercent >= geoVetoYawPrint { return false }
         if printPercent >= strongPrintFloor { return geoMix < 22 }
         return geoMix < 42 && printPercent < 94
     }
@@ -139,6 +146,16 @@ enum MatchMath {
     /// Leftover darf keine schon eingeschriebene adopted-Box überschreiben.
     static func leftoverAdoptAllowed(adoptedEnrolled: Bool) -> Bool {
         !adoptedEnrolled
+    }
+
+    /// Live-Track mit Namen. Galerie-UUIDs sind nach Snapshot nicht der Track.
+    static func leftoverNamedTrack(hadName: Bool) -> Bool {
+        hadName
+    }
+
+    /// Leftover ohne Print stiehlt die UUID. nil = nicht pinning.
+    static func leftoverNeedsPrint(cosine: Double?) -> Bool {
+        cosine == nil
     }
 
     /// IoU darf eine UUID nicht setzen, wenn der Print gemessen und unter pinPrintCosine liegt.

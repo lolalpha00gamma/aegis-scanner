@@ -86,6 +86,29 @@ enum MatchMathTests {
         ok(MatchMath.geoVetoBlocks(geoAgrees: false, geoMix: 18, printPercent: 80), "80 % Print tot bei Geo 18")
         ok(MatchMath.geoVetoBlocks(geoAgrees: false, geoMix: 30, printPercent: 80), "schwacher Print + Geo 30")
         ok(!MatchMath.geoVetoBlocks(geoAgrees: false, geoMix: 50, printPercent: 80), "Geo 50 kein Veto")
+        ok(
+            !MatchMath.geoVetoBlocks(geoAgrees: false, geoMix: 15, printPercent: 82, yawAbs: 0.30),
+            "¾ + 82 % Print: Maße vs. Frontal lügen — kein Veto"
+        )
+        ok(
+            MatchMath.geoVetoBlocks(geoAgrees: false, geoMix: 15, printPercent: 82, yawAbs: 0.10),
+            "frontal 82 % + Geo 15 veto"
+        )
+        ok(
+            !MatchMath.geoVetoBlocks(geoAgrees: false, geoMix: 15, printPercent: 80, yawAbs: 0.28),
+            "¾-Kante 80 % skip"
+        )
+        ok(
+            MatchMath.geoVetoBlocks(geoAgrees: false, geoMix: 15, printPercent: 79, yawAbs: 0.50),
+            "¾ + 79 % noch Veto"
+        )
+        near(MatchMath.geoVetoYawSkip, 0.28, 0.001, "Yaw-Skip 0,28 = ¾-Slot")
+        near(MatchMath.geoVetoYawPrint, 80, 0.01, "Yaw-Skip ab 80 % Print")
+        ok(MatchMath.leftoverNamedTrack(hadName: true), "genannter Live-Track leftover")
+        ok(!MatchMath.leftoverNamedTrack(hadName: false), "namenlos kein leftover")
+        ok(MatchMath.leftoverNeedsPrint(cosine: nil), "ohne Print kein leftover-Pin")
+        ok(!MatchMath.leftoverNeedsPrint(cosine: 0.90), "mit Print leftover darf")
+        ok(MatchMath.gallerySchema == 2, "gallery.json Schema 2")
 
         let unit = MatchMath.l2normalize([3, 4])
         near(hypot(unit[0], unit[1]), 1, 0.001, "L2")
@@ -232,13 +255,13 @@ enum MatchMathTests {
             nose: (30, 40)
         )
         ok(abs(yawF) < 0.08, "Nase in der Mitte → frontal (ist \(yawF))")
-        let med = MatchMath.medianBlend([
+        let blend = MatchMath.medianBlend([
             [1] + [Double](repeating: 0, count: 31),
             [0.2] + [Double](repeating: 0, count: 31),
             [0.9] + [Double](repeating: 0, count: 31)
         ])
-        ok(med.count == 32, "Median-Blend dim")
-        ok(med[0] > 0.8, "Median zieht nicht zum Ausreißer 0,2")
+        ok(blend.count == 32, "Median-Blend dim")
+        ok(blend[0] > 0.8, "Median zieht nicht zum Ausreißer 0,2")
         ok(MatchMath.laborQualityRejects(capture: 0.9, size: 0.5, sharpness: 0.06), "Labor 0,06 raus")
         ok(!MatchMath.laborQualityRejects(capture: 0.9, size: 0.5, sharpness: 0.10), "Labor Continuity 0,10 bleibt (eingeschriebene Refs)")
         near(MatchMath.liveBlendAlpha(continuity: false), 0.35, 0.001, "Built-in Blend 0,35")

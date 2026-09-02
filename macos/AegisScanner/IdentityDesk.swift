@@ -12,6 +12,7 @@ struct GalleryPayload: Codable {
     var identities: [Identity]
     var faces: [FaceObservation]
     var printRevision: String?
+    var schemaVersion: Int?
 }
 
 enum GalleryFile {
@@ -58,7 +59,8 @@ enum GalleryFile {
         let payload = GalleryPayload(
             identities: identities,
             faces: faces.filter { enrolled.contains($0.id) },
-            printRevision: MatchMath.printRevision
+            printRevision: MatchMath.printRevision,
+            schemaVersion: MatchMath.gallerySchema
         )
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]

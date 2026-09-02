@@ -1,4 +1,4 @@
-# Aegis **2.1.23 alpha**
+# Aegis **2.1.24 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.24 alpha
+
+2.1.23 hat echte Geo — Namen flackerten trotzdem, weil leftover die **Galerie-UUID** suchte. Live-Tracks haben seit 2.1.17 eigene UUIDs, leftover war tot. ¾-Sonden liefen gegen den Frontal-Maß-Median, Geo-Veto kippte echte 80–87 %-Prints.
+
+- **Leftover am named Live-Track**, nicht an `identities.faceIds`. Ohne Print kein Pin.
+- **Geo je Pose-Slot** (¾ vs. ¾). Yaw ≥ 0,28 und Print ≥ 80 vetoiert nicht.
+- **`gallery.json` Schema 2.**
+- Track-Pin-Print-Veto gilt dem genannten Live-Track.
 
 ## Neu in 2.1.23 alpha
 

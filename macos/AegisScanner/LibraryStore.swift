@@ -982,6 +982,10 @@ final class LibraryStore: ObservableObject {
         let now = Date().timeIntervalSince1970
         let enrolled = Set(identities.flatMap(\.faceIds))
         let previous = faces.filter { $0.mediaId == mediaId }
+        let namedTracks = Set(previous.compactMap { old -> UUID? in
+            let hit = matches.first { $0.faceId == old.id }?.hits.first { $0.strategy == .aegis }
+            return hit?.identityId != nil ? old.id : nil
+        })
         var used = Set<UUID>()
         var adopted: [FaceObservation] = []
         adopted.reserveCapacity(found.count)
@@ -992,7 +996,7 @@ final class LibraryStore: ObservableObject {
             var bestEnrolled = false
             for old in previous where !used.contains(old.id) {
                 let o = FaceEngine.iou(old.box, face.box)
-                let pin = enrolled.contains(old.id)
+                let pin = namedTracks.contains(old.id) || enrolled.contains(old.id)
                 guard MatchMath.trackPin(iou: o, enrolled: pin) else { continue }
                 let ov = old.printVec.count >= 32 ? old.printVec : FaceEngine.embedding(of: old)
                 let cosine: Double? = {
@@ -1106,12 +1110,16 @@ final class LibraryStore: ObservableObject {
             }
             faces.removeAll { $0.mediaId == mediaId }
         } else {
-            let leftoverPinned = previous.filter { enrolled.contains($0.id) && !used.contains($0.id) }
+            let leftoverPinned = previous.filter {
+                MatchMath.leftoverNamedTrack(hadName: namedTracks.contains($0.id)) && !used.contains($0.id)
+            }
             for old in leftoverPinned {
                 var bestJ = -1
                 var bestD = MatchMath.leftoverIoU
                 for (j, face) in adopted.enumerated() {
-                    guard MatchMath.leftoverAdoptAllowed(adoptedEnrolled: enrolled.contains(face.id)) else { continue }
+                    guard MatchMath.leftoverAdoptAllowed(
+                        adoptedEnrolled: namedTracks.contains(face.id) || enrolled.contains(face.id)
+                    ) else { continue }
                     guard !used.contains(face.id) else { continue }
                     let o = FaceEngine.iou(old.box, face.box)
                     if o > bestD {
@@ -1127,6 +1135,7 @@ final class LibraryStore: ObservableObject {
                         if v.count >= 32, ov.count == v.count { return MatchMath.cosine(v, ov) }
                         return nil
                     }()
+                    if MatchMath.leftoverNeedsPrint(cosine: cosine) { continue }
                     if MatchMath.iouPrintBlocks(cosine: cosine) {
                         continue
                     }
