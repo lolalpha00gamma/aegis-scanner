@@ -536,7 +536,7 @@ final class LibraryStore: ObservableObject {
     func createIdentity() {
         let name = newPersonName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else { return }
-        guard let face = FaceEngine.faceForNewIdentity(
+        guard let raw = FaceEngine.faceForNewIdentity(
             selected: selectedFace,
             visibleMediaId: selectedMediaId,
             faces: faces,
@@ -552,14 +552,17 @@ final class LibraryStore: ObservableObject {
             }
             return
         }
+        let face = snapshotLiveIfNeeded(raw)
         if let why = FaceEngine.referenceRejected(face, asFirstReference: true, continuity: liveContinuity) {
             status = why
+            dropOrphanSnapshot(face, original: raw)
             return
         }
         if let dup = FaceEngine.duplicateOf(face: face, identities: identities, faces: faces) {
             if pendingDuplicateName != name {
                 pendingDuplicateName = name
                 status = "Ähnlich \(dup.0.name) (\(Int(dup.1 * 100)) %). Nochmal Anlegen bestätigt, sonst anderen Namen."
+                dropOrphanSnapshot(face, original: raw)
                 return
             }
         }
@@ -569,9 +572,9 @@ final class LibraryStore: ObservableObject {
         identities.append(Identity(id: UUID(), name: name, faceIds: [face.id]))
         stampEnrolled(face.id)
         newPersonName = ""
-        selectedFaceId = face.id
+        selectedFaceId = raw.id
         rematch()
-        if let next = FaceEngine.unnamedFace(on: face.mediaId, faces: faces, identities: identities) {
+        if let next = FaceEngine.unnamedFace(on: raw.mediaId, faces: faces, identities: identities) {
             selectedFaceId = next.id
             status = "\(name) angelegt · nächstes Gesicht gewählt\(note)"
         } else {
@@ -581,28 +584,41 @@ final class LibraryStore: ObservableObject {
     }
 
     func addSelectedTo(_ identityId: UUID) {
-        let typed = newPersonName.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !typed.isEmpty {
-            createIdentity()
+        guard let raw = selectedFace else {
+            status = "Zuerst ein Gesicht anklicken"
             return
         }
-        guard let face = selectedFace else { return }
         guard let idx = identities.firstIndex(where: { $0.id == identityId }) else { return }
-        if let owner = FaceEngine.identityOwning(face: face, identities: identities, faces: faces) {
-            if owner.id == identityId {
+        let live = selectedMedia?.kind == .live
+        if let owner = FaceEngine.identityOwning(face: raw, identities: identities, faces: faces) {
+            if owner.id != identityId {
+                status = "Dieses Gesicht gehört zu \(owner.name). Anlegen für eine neue Person, nicht +."
+                return
+            }
+            if !live {
                 status = "Dieses Gesicht ist schon Referenz von \(owner.name)"
                 return
             }
-            status = "Dieses Gesicht gehört zu \(owner.name). Anlegen für eine neue Person, nicht +."
-            return
+            // Live-Track trägt die UUID der ersten Referenz. + speichert eine Kopie.
+        } else if identities[idx].faceIds.contains(raw.id) {
+            if !live {
+                status = "Dieses Gesicht ist schon Referenz von \(identities[idx].name)"
+                return
+            }
         }
-        if let why = FaceEngine.referenceRejected(face, asFirstReference: identities[idx].faceIds.isEmpty, continuity: liveContinuity) {
+        let face = snapshotLiveIfNeeded(raw)
+        if let why = FaceEngine.referenceRejected(
+            face,
+            asFirstReference: identities[idx].faceIds.isEmpty,
+            continuity: liveContinuity
+        ) {
             status = why
+            dropOrphanSnapshot(face, original: raw)
             return
         }
-        if let block = FaceEngine.poseCoverageBlocks(adding: face, to: identities[idx], faces: faces) {
-            status = block + " — anderes Pose-Foto wählen, nicht denselben Slot füllen."
-            return
+        var note = ""
+        if let warn = FaceEngine.poseCoverageWarning(adding: face, to: identities[idx], faces: faces) {
+            note = " · \(warn)"
         }
         let preview = FaceEngine.enrollmentPreview(
             face: face,
@@ -616,11 +632,31 @@ final class LibraryStore: ObservableObject {
         stampEnrolled(face.id)
         rematch()
         persist()
-        if preview.isEmpty {
-            status = "Referenz zu \(identities[idx].name) hinzugefügt"
-        } else {
-            status = "Referenz zu \(identities[idx].name) · \(preview)"
+        let extra = preview.isEmpty ? note : " · \(preview)\(note)"
+        status = extra.isEmpty
+            ? "Referenz zu \(identities[idx].name) hinzugefügt"
+            : "Referenz zu \(identities[idx].name)\(extra)"
+    }
+
+    /// Live-UUID ist der Track, nicht die Galerie. +/Anlegen legt eine stabile Kopie an,
+    /// sonst überschreibt der nächste Frame die Referenz und + sagt „schon drin“.
+    private func snapshotLiveIfNeeded(_ face: FaceObservation) -> FaceObservation {
+        guard selectedMedia?.kind == .live else { return face }
+        var copy = face
+        copy.id = UUID()
+        copy.mediaId = UUID()
+        copy.trackId = face.trackId ?? face.id
+        copy.enrolledAt = Date()
+        copy.qualitySpark = []
+        if !faces.contains(where: { $0.id == copy.id }) {
+            faces.append(copy)
         }
+        return copy
+    }
+
+    private func dropOrphanSnapshot(_ face: FaceObservation, original: FaceObservation) {
+        guard face.id != original.id else { return }
+        faces.removeAll { $0.id == face.id }
     }
 
     func addSelectedAsPartial(_ identityId: UUID) {
@@ -643,8 +679,10 @@ final class LibraryStore: ObservableObject {
             status = "Dieses Gesicht gehört zu \(owner.name)"
             return
         }
+        face = snapshotLiveIfNeeded(face)
         guard let stamped = FaceEngine.stampForcedPartial(face, from: image) else {
             status = "Teil-Print fehlgeschlagen — Crop ohne Face-Print"
+            dropOrphanSnapshot(face, original: selectedFace ?? face)
             return
         }
         if let i = faces.firstIndex(where: { $0.id == stamped.id }) {

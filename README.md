@@ -1,4 +1,4 @@
-# Aegis **2.1.16 alpha**
+# Aegis **2.1.17 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,12 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.17 alpha
+
+- **Live + Anlegen/Hinzufügen:** der Track behält seine UUID. Galerie bekommt eine Kopie. `+` sagt nicht mehr „schon Referenz“, während das Gesicht vor der Kamera sitzt.
+- **Pose-Slot blockt nicht mehr.** Dritter Frontal wird gespeichert, Status warnt wenn ¾ fehlt.
+- **`+` bleibt aktiv**, auch wenn das Namensfeld nicht leer ist.
 
 ## Neu in 2.1.16 alpha
 

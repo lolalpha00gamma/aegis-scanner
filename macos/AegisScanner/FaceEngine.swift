@@ -1984,8 +1984,12 @@ enum FaceEngine {
         if face.quality.sharpness < floor {
             return String(format: "Unscharf %.0f %% — mindestens %.0f %% für eine Referenz.", face.quality.sharpness * 100, floor * 100)
         }
-        if face.quality.capture < 0.40 {
-            return String(format: "Aufnahme %.0f %% — mindestens 40 %% für eine Referenz.", face.quality.capture * 100)
+        if face.quality.capture < (asFirstReference ? 0.40 : 0.28) {
+            return String(
+                format: "Aufnahme %.0f %% — mindestens %.0f %% für eine Referenz.",
+                face.quality.capture * 100,
+                (asFirstReference ? 0.40 : 0.28) * 100
+            )
         }
         // Profil als erste Referenz verdreht den L2-Centroid; spätere ¾-Shots sind ok.
         if asFirstReference, abs(face.quality.yaw) > 0.7 {

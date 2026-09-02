@@ -130,8 +130,8 @@ struct ContentView: View {
                     }
                     Spacer()
                     Button("+") { store.addSelectedTo(identity.id) }
-                        .disabled(store.selectedFace == nil || !store.newPersonName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                        .help("Weitere Aufnahme dieser Person. Name im Feld → Anlegen, nicht +.")
+                        .disabled(store.selectedFace == nil)
+                        .help("Weitere Aufnahme dieser Person. Live: speichert eine Kopie des aktuellen Frames.")
                     Button("U") { store.addSelectedAsPartial(identity.id) }
                         .disabled(store.selectedFace == nil || identity.faceIds.isEmpty)
                         .help("Als Teil-Print (obere Hälfte / Maske) speichern, auch ohne Auto-Maske.")
