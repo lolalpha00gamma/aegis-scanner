@@ -690,7 +690,9 @@ enum FaceEngine {
         to identity: Identity,
         faces: [FaceObservation]
     ) -> String? {
-        poseCoverageWarning(adding: face, to: identity, faces: faces)
+        // Warnung ja, Block nein — dritter Frontal darf rein.
+        _ = (face, identity, faces)
+        return nil
     }
 
     static func enrollmentPreview(

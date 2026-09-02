@@ -424,6 +424,7 @@ final class LibraryStore: ObservableObject {
             let set = Set(only)
             pending = pending.filter { set.contains($0.id) }
         }
+        var ingestSkipped = 0
         for (i, item) in pending.enumerated() {
             if generation != scanGeneration {
                 rememberDetectRemaining(Array(pending.dropFirst(i).map(\.id)))
@@ -447,7 +448,13 @@ final class LibraryStore: ObservableObject {
                     canResumeScan = true
                     return
                 }
-                faces.append(contentsOf: FaceEngine.filterIngestDuplicates(found, existing: faces))
+                let kept = FaceEngine.filterIngestDuplicates(found, existing: faces)
+                let skipped = found.count - kept.count
+                ingestSkipped += skipped
+                faces.append(contentsOf: kept)
+                if skipped > 0 {
+                    status = "Gesicht · \(i + 1)/\(pending.count) · \(skipped) Burst-Kopien übersprungen"
+                }
             } catch {
                 continue
             }
@@ -470,12 +477,13 @@ final class LibraryStore: ObservableObject {
             selectedFaceId = faces.first?.id
         }
         let emptyPrints = faces.filter { $0.featurePrint.isEmpty }.count
+        let skipNote = ingestSkipped > 0 ? " · \(ingestSkipped) Burst-Kopien übersprungen" : ""
         if !FaceEngine.facePrintAvailable {
-            status = "Fertig · \(faces.count) Gesichter · Face-Print nicht verfügbar — nur Geometrie"
+            status = "Fertig · \(faces.count) Gesichter · Face-Print nicht verfügbar — nur Geometrie\(skipNote)"
         } else if !faces.isEmpty, emptyPrints == faces.count {
-            status = "Fertig · \(faces.count) Gesichter · Face-Print leer — nur Geometrie"
+            status = "Fertig · \(faces.count) Gesichter · Face-Print leer — nur Geometrie\(skipNote)"
         } else {
-            status = "Fertig · \(faces.count) Gesichter"
+            status = "Fertig · \(faces.count) Gesichter\(skipNote)"
         }
         busy = false
     }
@@ -851,14 +859,14 @@ final class LibraryStore: ObservableObject {
         let v = FaceEngine.embedding(of: face)
         guard v.count >= 32 else { return nil }
         var best: FaceObservation?
-        var bestC = 0.72
+        var bestC = MatchMath.pinPrintCosine
         var seen = Set<UUID>()
         for old in pool where !used.contains(old.id) && !seen.contains(old.id) {
             seen.insert(old.id)
             let ov = old.printVec.count >= 32 ? old.printVec : FaceEngine.embedding(of: old)
             guard ov.count == v.count else { continue }
             let c = MatchMath.cosine(v, ov)
-            if c > bestC {
+            if MatchMath.pinByPrint(cosine: c), c > bestC {
                 bestC = c
                 best = old
             }
@@ -979,15 +987,12 @@ final class LibraryStore: ObservableObject {
             for old in previous where !enrolled.contains(old.id) {
                 liveGhosts.append((old, now + 1.8))
             }
-        }
-        let leftoverPinned = previous.filter { enrolled.contains($0.id) && !used.contains($0.id) }
-        if found.isEmpty {
             faces.removeAll { $0.mediaId == mediaId }
-            faces.append(contentsOf: leftoverPinned + adopted)
         } else {
+            let leftoverPinned = previous.filter { enrolled.contains($0.id) && !used.contains($0.id) }
             for old in leftoverPinned {
                 var bestJ = -1
-                var bestD = 0.08
+                var bestD = 0.18
                 for (j, face) in adopted.enumerated() where !used.contains(face.id) {
                     let o = FaceEngine.iou(old.box, face.box)
                     if o > bestD {
@@ -1012,7 +1017,7 @@ final class LibraryStore: ObservableObject {
             faces.append(contentsOf: adopted)
         }
         if selectedMediaId == mediaId {
-            selectedFaceId = adopted.first?.id ?? leftoverPinned.first?.id
+            selectedFaceId = found.isEmpty ? nil : adopted.first?.id
         }
         reconnectGhosts.removeAll { used.contains($0.id) }
         nmsDropped = FaceEngine.lastNMSDropped

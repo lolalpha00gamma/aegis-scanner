@@ -22,7 +22,11 @@ enum LabReport {
             let owned = faces.filter { identity.faceIds.contains($0.id) }
             guard owned.count >= 2 else { continue }
             for (i, probe) in owned.enumerated() {
-                if !MatchMath.laborIncludesProbe(qualityRejected: FaceEngine.qualityRejects(probe.quality)) {
+                if !MatchMath.laborIncludesProbe(qualityRejected: MatchMath.laborQualityRejects(
+                    capture: probe.quality.capture,
+                    size: probe.quality.size,
+                    sharpness: probe.quality.sharpness
+                )) {
                     continue
                 }
                 var held = identities
@@ -30,7 +34,11 @@ enum LabReport {
                     var ids = owned.enumerated().compactMap { $0.offset == i ? nil : $0.element.id }
                     ids = ids.filter { id in
                         guard let ref = owned.first(where: { $0.id == id }) else { return true }
-                        return MatchMath.laborIncludesRef(qualityRejected: FaceEngine.qualityRejects(ref.quality))
+                        return MatchMath.laborIncludesRef(qualityRejected: MatchMath.laborQualityRejects(
+                            capture: ref.quality.capture,
+                            size: ref.quality.size,
+                            sharpness: ref.quality.sharpness
+                        ))
                     }
                     if ids.isEmpty { continue }
                     held[idx].faceIds = ids

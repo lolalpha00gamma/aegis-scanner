@@ -1,4 +1,4 @@
-# Aegis **2.1.17 alpha**
+# Aegis **2.1.18 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.18 alpha
+
+- **Keine Geister-Kisten.** Live ohne Gesicht räumt den Track. Enrolled-Kopien bleiben in der Galerie (anderes `mediaId`).
+- **Pin-Print 0,80.** 0,72 hat Geschwistern die UUID geklebt.
+- **Leftover-IoU 0,18** statt 0,08 — Nachbar erbt die ID nicht.
+- **Webcam: Front-Wide zuerst**, wie Helios. Continuity/Desk-View nicht als Default.
+- **Labor** nutzt Continuity-Floor 0,08 für eingeschriebene Refs (0,10 fliegt nicht mehr raus).
+- **Burst-Kopien** stehen in der Statuszeile, nicht still.
+- **`+` bleibt aktiv** bei vollem Namensfeld — Caption sagt dasselbe wie der Button.
 
 ## Neu in 2.1.17 alpha
 

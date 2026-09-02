@@ -18,6 +18,8 @@ enum MatchMath {
     static let boxJumpIoU = 0.35
     /// Burst-/Tile-Kopie, nicht neue Pose.
     static let ingestDuplicateCosine = 0.95
+    /// Live-Track nach Verlust: unter 0,80 erben Geschwister die UUID.
+    static let pinPrintCosine = 0.80
     static let liveBlendBuiltIn = 0.35
     static let liveBlendContinuity = 0.20
 
@@ -55,6 +57,15 @@ enum MatchMath {
     /// Nahezu identischer Print — Burst-Kopie, nicht neue Pose.
     static func ingestDuplicate(cosine: Double, floor: Double = ingestDuplicateCosine) -> Bool {
         cosine > floor
+    }
+
+    static func pinByPrint(cosine: Double, floor: Double = pinPrintCosine) -> Bool {
+        cosine > floor
+    }
+
+    /// Labor auf schon eingeschriebenen Refs: Continuity-Floor 0,08, nicht 0,12.
+    static func laborQualityRejects(capture: Double, size: Double, sharpness: Double) -> Bool {
+        qualityRejects(capture: capture, size: size, sharpness: sharpness, continuity: true)
     }
 
     /// ASCII-Spark 0…100, 10 Bins. Labor, nicht Live.

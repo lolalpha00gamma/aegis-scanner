@@ -70,6 +70,10 @@ final class LiveCapture: NSObject {
         timer = nil
         snapshotURL = nil
         snapshotInFlight = false
+        tap = nil
+        isContinuity = false
+        facesPresent = false
+        cameraUniqueID = ""
         if let failObserver {
             NotificationCenter.default.removeObserver(failObserver)
             self.failObserver = nil
@@ -151,6 +155,11 @@ final class LiveCapture: NSObject {
             mediaType: .video,
             position: .unspecified
         ).devices
+        if let front = discovered.first(where: {
+            $0.deviceType == .builtInWideAngleCamera && ($0.position == .front || $0.position == .unspecified)
+        }) {
+            return front
+        }
         if let builtIn = discovered.first(where: { $0.deviceType == .builtInWideAngleCamera }) {
             return builtIn
         }

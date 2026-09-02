@@ -1,43 +1,40 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.15 alpha**. Nur `main`. `bugfix` ist Altlast — fehlende Helfer wurden nachgezogen, der Branch nicht fortgesetzt.
+Stand: **2.1.18 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 
-## In 2.1.15 wirklich im Code
+## In 2.1.18 wirklich im Code
 
-Warum 2.1.14 sich tot anfühlte: der Versionsstempel in Xcode blieb 2.1.13 (CI-Tag), Live matchte **jedes** Scan-Gesicht jedes Frame, Print-Blend war 0,35 auch auf Continuity, und Box/Ingest/Labor-Qualität aus `bugfix` lag nicht auf `main`.
+Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Geister-Kiste wenn niemand da war (IoU-Rest 0,08 klaute die ID vom Nachbarn), Pin-Print 0,72 vertauschte Geschwister, die Webcam nahm das erste Built-in (nicht Front), Labor warf Continuity-Refs mit Laplacian 0,10 raus, Burst-Filter schwieg.
 
-1. **`rematchLive`.** Galerie-Refs + Live-Sonden. History-Fotos nicht neu scoren.
-2. **`liveBlendAlpha`.** Continuity 0,20 / Built-in 0,35.
-3. **Box-Hysterese.** IoU < 0,35 hält; zweites Frame an der pending-Box bestätigt.
-4. **`filterIngestDuplicates`.** Cosine > 0,95.
-5. **Labor:** `laborIncludesProbe/Ref` skippt Unschärfe; `scoreHistogram`.
-6. **`gallery.json.bak`** vor atomarem Save.
-7. **`enrolledAt`.** Spark-Reset nach `pinByPrint`.
-8. TAR bleibt `floor(far·n)−1` (n=101 FAR 1 % → 80). `bugfix` ceil−1 nicht übernommen.
-9. **Face-Print-Box:** `VNObservation.boundingBox` gibt es auf Xcode 15/Vision nicht — Cast auf `VNFaceObservation` / `VNDetectedObjectObservation` (CI macos-14).
+1. **Geister-Kisten.** `found.isEmpty` → Live-Faces weg. Galerie-Snapshots haben anderes `mediaId`.
+2. **`pinPrintCosine` 0,80.** `MatchMath.pinByPrint`. 0,72 klebte Geschwister.
+3. **Leftover-IoU 0,18.**
+4. **`preferredCamera` Front-Wide** vor Continuity/Desk-View.
+5. **`LiveCapture.stop`** räumt tap / Continuity / uniqueID.
+6. **Labor-Floor 0,08** (`laborQualityRejects`) für eingeschriebene Refs.
+7. **Ingest-Duplikat** in der Statuszeile (`n Burst-Kopien übersprungen`).
+8. Caption `+` = extra Foto, Namensfeld egal.
+9. `poseCoverageBlocks` gibt nil — dritter Frontal blockt nicht.
+10. MARKETING_VERSION 2.1.18 (Build 46), `Models.swift` + `VERSION` gleich.
 
-## In 2.1.14 (Models/VERSION, nicht vollständig im Binary)
+## In 2.1.17 wirklich im Code
 
-Claim: rematchLive, Continuity-Blend, 1-Euro dt, Labor-Histogramm. 1-Euro `dt` war schon in `OneEuro.filter`. Der Rest sitzt erst in 2.1.15.
+- Live + Anlegen: Track behält UUID, Galerie bekommt Kopie.
+- Pose-Slot warnt, blockt nicht.
+- `+` disabled nur ohne Gesicht.
 
-## In 2.1.13 wirklich im Code
+## In 2.1.15–2.1.16
 
-1. **`qualityRejects(continuity:)`.** Derselbe Floor wie `skipPrint`.
-2. **Live-Coalesce.** `livePending`.
-3. **U-Slot nach 1,2 s Maske.** Status-Vorschlag, nie still geschrieben.
-4. **Labor Impostor frei vs Teil-Print.** TAR ohne Masken-Paare.
-
-## In 2.1.12–2.1.7
-
-Siehe Git-Log. Kurz: Ampel-Spark, Tile-Budget 2, Continuity-Floor 0,08, Orient-Override, U-Slot, Teil-Print vs Teil-Centroid, 1-Euro-Reset, TAR floor, lookOf ohne Geo-Fallback.
+`rematchLive`, Continuity-Blend 0,20, Box-Hysterese, Ingest-Duplikat 0,95, Labor ohne Unschärfe-Paare, `gallery.json.bak`, `enrolledAt`, Spark-Reset, familyBump pro Paar, OneEuro-Init öffentlich. TAR `floor(far·n)−1`.
 
 ## Nächste Fixes (klein)
 
 - Ampel-Spark Continuity-Floor in gespeicherten `qualitySpark` markieren (jetzt über `item.kind == .live`).
 - `enrolledAt` paler in der UI, wenn `printAgeDays ≥ 90`.
-- `boxJumpPending` nach Monitor-/Kamerawchsel hart leeren (stopLive tut es).
 - Gallery.json Schema-Version neben printRevision.
 - Labor: Genuine-vs-U ohne Full-Paare extra Zeile (ForcedPartial).
+- `boxEuro` hart leeren wenn `cameraUniqueID` wechselt (Reconnect in derselben Session).
+- Snapshot-Live-Kopie `mediaId` in einer unsichtbaren Gallery-Media-Row, sonst Browse zählt sie nicht.
 
 ## Erweiterungen
 
@@ -69,9 +66,15 @@ Siehe Git-Log. Kurz: Ampel-Spark, Tile-Budget 2, Continuity-Floor 0,08, Orient-O
 - **Yaw aus Landmarks**, wenn `face.yaw` 0 und Vision keine Pose lieferte.
 - **Box-1-Euro minCutoff** nach mittlerem Frame-dt (8 fps vs 24 fps) — Filter hat dt, Cutoff ist fest.
 - **Gallery-Restore.** UI „letzte gallery.json.bak laden“ nach kaputtem Save.
-- **Ingest-Duplikat-Log.** Status „12 Burst-Kopien übersprungen“, nicht still.
 - **Print-Drift-Spark.** Overlay-Linie Cosine zum Centroid über 8 Frames.
 - **Leave-one-identity-out Labor.** Neben Leave-one-photo, damit 2-Personen-Galerien nicht sich selbst messen.
+- **Live-Match nur Centroids.** `rematchLive` soll nicht jedes Ref-Foto neu scoren — ein Dot pro Identität.
+- **Median-Blend** der letzten 5 Live-Prints statt One-Euro-alpha, weniger Glücks-Frame.
+- **Hard-Negativ im Overlay.** Taste N wie U, ohne Umweg über Ablehnen-Menü.
+- **Scan-Queue priorisiert große Gesichter** (Portrait zuerst, Crowd später).
+- **HEIC-Gain-Map** als Capture-Qualität, nicht nur Laplacian.
+- **Identität umbenennen** in der Liste (jetzt nur löschen + neu).
+- **Export Labor als CSV-Datei**, nicht nur Textfeld.
 
 ## Nicht tun
 
@@ -104,3 +107,6 @@ Siehe Git-Log. Kurz: Ampel-Spark, Tile-Budget 2, Continuity-Floor 0,08, Orient-O
 - U-Slot still schreiben nach Masken-Hold.
 - `bugfix`-Branch fortsetzen. Nur `main`.
 - Versionsstempel in Models ohne MARKETING_VERSION.
+- Live-Track in der Overlay-Liste lassen, wenn `found.isEmpty`.
+- Pin-Print unter 0,80.
+- Leftover-IoU 0,08.
