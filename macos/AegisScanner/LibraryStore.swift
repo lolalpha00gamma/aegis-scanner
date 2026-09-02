@@ -730,8 +730,12 @@ final class LibraryStore: ObservableObject {
         rematch()
         persist()
         let extra = preview.isEmpty ? note : " · \(preview)\(note)"
+        let cov = FaceEngine.poseCoverage(identity: identities[idx], faces: faces)
+        let meter = MatchMath.poseMeterLabel(
+            frontal: cov.frontal, threeQuarter: cov.threeQuarter, profile: cov.profile, upper: cov.upper
+        )
         status = extra.isEmpty
-            ? "Referenz zu \(identities[idx].name) hinzugefügt"
+            ? "Referenz zu \(identities[idx].name) hinzugefügt · \(meter)"
             : "Referenz zu \(identities[idx].name)\(extra)"
     }
 
@@ -1064,6 +1068,10 @@ final class LibraryStore: ObservableObject {
                     face.featurePrint = old.featurePrint
                     face.printVec = old.printVec.isEmpty ? FaceEngine.embedding(of: old) : old.printVec
                 } else if !old.featurePrint.isEmpty, !face.featurePrint.isEmpty {
+                    if MatchMath.holdStillSkip(iou: bestIoU) {
+                        face.featurePrint = old.featurePrint
+                        face.printVec = old.printVec.isEmpty ? FaceEngine.embedding(of: old) : old.printVec
+                    } else {
                     let prev = old.printVec.count >= 32 ? old.printVec : FaceEngine.embedding(of: old)
                     let next = FaceEngine.embedding(of: face)
                     var trail = livePrintTrail[old.id] ?? []
@@ -1073,6 +1081,7 @@ final class LibraryStore: ObservableObject {
                     livePrintTrail[old.id] = trail
                     let median = MatchMath.medianBlend(trail)
                     face.printVec = median.isEmpty ? FaceEngine.blendEmbeddings(prev, next, alpha: blend) : median
+                    }
                 } else if face.printVec.isEmpty {
                     face.printVec = FaceEngine.embedding(of: face)
                 }
@@ -1113,45 +1122,56 @@ final class LibraryStore: ObservableObject {
             let leftoverPinned = previous.filter {
                 MatchMath.leftoverNamedTrack(hadName: namedTracks.contains($0.id)) && !used.contains($0.id)
             }
+            var leftoverItems: [(old: FaceObservation, bestCos: Double?, cands: [(index: Int, iou: Double, cosine: Double?)])] = []
+            leftoverItems.reserveCapacity(leftoverPinned.count)
             for old in leftoverPinned {
-                var bestJ = -1
-                var bestD = MatchMath.leftoverIoU
+                var cands: [(index: Int, iou: Double, cosine: Double?)] = []
+                let ov = old.printVec.count >= 32 ? old.printVec : FaceEngine.embedding(of: old)
                 for (j, face) in adopted.enumerated() {
                     guard MatchMath.leftoverAdoptAllowed(
                         adoptedEnrolled: namedTracks.contains(face.id) || enrolled.contains(face.id)
                     ) else { continue }
                     guard !used.contains(face.id) else { continue }
                     let o = FaceEngine.iou(old.box, face.box)
-                    if o > bestD {
-                        bestD = o
-                        bestJ = j
-                    }
-                }
-                if bestJ >= 0, MatchMath.leftoverPin(iou: bestD) {
-                    let incoming = adopted[bestJ]
-                    let v = FaceEngine.embedding(of: incoming)
-                    let ov = old.printVec.count >= 32 ? old.printVec : FaceEngine.embedding(of: old)
+                    let v = FaceEngine.embedding(of: face)
                     let cosine: Double? = {
                         if v.count >= 32, ov.count == v.count { return MatchMath.cosine(v, ov) }
                         return nil
                     }()
-                    if MatchMath.leftoverNeedsPrint(cosine: cosine) { continue }
-                    if MatchMath.iouPrintBlocks(cosine: cosine) {
-                        continue
-                    }
-                    used.insert(old.id)
-                    adopted[bestJ].id = old.id
-                    adopted[bestJ].trackId = old.trackId ?? old.id
-                    adopted[bestJ].enrolledAt = old.enrolledAt ?? adopted[bestJ].enrolledAt
-                    boxEuro.removeValue(forKey: old.id)
-                    boxJumpPending.removeValue(forKey: old.id)
-                    if adopted[bestJ].featurePrint.isEmpty {
-                        adopted[bestJ].featurePrint = old.featurePrint
-                    }
-                    if adopted[bestJ].printVec.isEmpty, !old.printVec.isEmpty {
-                        adopted[bestJ].printVec = old.printVec
-                    }
+                    cands.append((j, o, cosine))
                 }
+                leftoverItems.append((old, cands.compactMap(\.cosine).max(), cands))
+            }
+            let order = MatchMath.leftoverRank(leftoverItems.map { ($0.old.id, $0.bestCos) })
+            var leftoverPins = 0
+            for id in order {
+                guard let item = leftoverItems.first(where: { $0.old.id == id }) else { continue }
+                let remaining = item.cands.filter { cand in
+                    let face = adopted[cand.index]
+                    return MatchMath.leftoverAdoptAllowed(
+                        adoptedEnrolled: namedTracks.contains(face.id) || enrolled.contains(face.id)
+                    ) && !used.contains(face.id)
+                }
+                guard let bestJ = MatchMath.leftoverPick(candidates: remaining) else { continue }
+                let old = item.old
+                used.insert(old.id)
+                adopted[bestJ].id = old.id
+                adopted[bestJ].trackId = old.trackId ?? old.id
+                adopted[bestJ].enrolledAt = old.enrolledAt ?? adopted[bestJ].enrolledAt
+                boxEuro.removeValue(forKey: old.id)
+                boxJumpPending.removeValue(forKey: old.id)
+                if adopted[bestJ].featurePrint.isEmpty {
+                    adopted[bestJ].featurePrint = old.featurePrint
+                }
+                if adopted[bestJ].printVec.isEmpty, !old.printVec.isEmpty {
+                    adopted[bestJ].printVec = old.printVec
+                }
+                leftoverPins += 1
+            }
+            if leftoverPins > 0, let line = MatchMath.leftoverPinStatus(count: leftoverPins) {
+                status = "Live · \(line)"
+            } else if status.hasPrefix("Live · Leftover") {
+                status = "Live"
             }
             faces.removeAll { $0.mediaId == mediaId }
             faces.append(contentsOf: adopted)

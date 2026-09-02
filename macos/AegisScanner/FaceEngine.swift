@@ -604,9 +604,9 @@ enum FaceEngine {
     ) -> [MatchResult] {
         let f = MatchMath.floors(gallery: identities.count, slider: threshold)
         let floors = Floors(match: f.match, solo: f.solo)
-        let models: [(id: UUID, name: String, vec: [Double], owned: [FaceObservation])] = identities.map { ident in
+        let models: [(id: UUID, name: String, owned: [FaceObservation])] = identities.map { ident in
             let owned = gallery.filter { ident.faceIds.contains($0.id) }
-            return (ident.id, ident.name, liveCentroid(owned), owned)
+            return (ident.id, ident.name, owned)
         }
         return probes.map { face in
             let pv = embedding(of: face)
@@ -616,10 +616,13 @@ enum FaceEngine {
             versus.reserveCapacity(models.count)
             var geoVersus: [(id: UUID, percent: Double)] = []
             geoVersus.reserveCapacity(models.count)
+            var modelVec: [UUID: [Double]] = [:]
             for m in models {
+                let vec = liveCentroid(m.owned, slot: probeSlot)
+                modelVec[m.id] = vec
                 let pct: Double
-                if pv.count >= 32, m.vec.count == pv.count {
-                    pct = MatchMath.printSigmoid(cosine: cosine(pv, m.vec))
+                if pv.count >= 32, vec.count == pv.count {
+                    pct = MatchMath.printSigmoid(cosine: cosine(pv, vec))
                 } else {
                     pct = 0
                 }
@@ -644,8 +647,7 @@ enum FaceEngine {
             let geoMargin = (geoBest?.percent ?? 0) - (geoVersus.dropFirst().first?.percent ?? 0)
             let bump: Double = {
                 guard let a = best?.identityId, let b = second?.identityId,
-                      let va = models.first(where: { $0.id == a })?.vec,
-                      let vb = models.first(where: { $0.id == b })?.vec,
+                      let va = modelVec[a], let vb = modelVec[b],
                       va.count >= 32, va.count == vb.count
                 else { return 0 }
                 return MatchMath.familyBump(bestPairCosine: cosine(va, vb))
@@ -728,7 +730,7 @@ enum FaceEngine {
         if !eyes && mouth { return "Sonnenbrille / Okklusion?" }
         if gallery.count >= 1 {
             let pv = embedding(of: face)
-            let mean = liveCentroid(gallery)
+            let mean = liveCentroid(gallery, slot: poseSlot(face))
             if pv.count >= 32, mean.count == pv.count {
                 let c = cosine(pv, mean)
                 if MatchMath.overlayAlienHint(cosine: c) { return "andere Person oder Brille?" }
@@ -841,6 +843,8 @@ enum FaceEngine {
             if let w = poseCoverageWarning(adding: face, to: dest, faces: faces) {
                 parts.append(w)
             }
+            let c = poseCoverage(identity: dest, faces: faces)
+            parts.append(MatchMath.poseMeterLabel(frontal: c.frontal, threeQuarter: c.threeQuarter, profile: c.profile, upper: c.upper))
         }
         if let dup = duplicateOf(face: face, identities: identities, faces: faces),
            dup.0.id != addingTo?.id
@@ -967,9 +971,12 @@ enum FaceEngine {
         if MatchMath.geoVetoBlocks(geoAgrees: geoAgrees, geoMix: geoMix, printPercent: percent, yawAbs: yawAbs) {
             return (nil, String(format: "Maße widersprechen (%.0f%%, Abstand %.1f). Print allein reicht nicht.", geoMix, geoMargin))
         }
+        let yawNote = MatchMath.geoVetoYawSkipped(
+            geoAgrees: geoAgrees, geoMix: geoMix, printPercent: percent, yawAbs: yawAbs
+        ) ? "\(MatchMath.yawSkipNote()). " : ""
         if secondName == nil {
             if percent >= floors.solo {
-                return (bestId, String(format: "Nur eine Person eingeschrieben. Nähe %.0f%% reicht.", percent))
+                return (bestId, yawNote + String(format: "Nur eine Person eingeschrieben. Nähe %.0f%% reicht.", percent))
             }
             return (nil, String(format: "Nur eine Person eingeschrieben. Nähe %.0f%% reicht nicht (braucht %.0f%%). Andere Gesichter bleiben offen.", percent, floors.solo))
         }
@@ -980,10 +987,10 @@ enum FaceEngine {
             return (nil, String(format: "Kein Ausreißer in der Galerie (z=%.1f). Alle Personen ähnlich nah — nicht zugeordnet.", galleryZ))
         }
         if geoAgrees, geoMargin >= 8, percent >= floors.match - 3, margin >= 6 {
-            return (bestId, String(format: "Print + Maße einig. Abstand %.1f Pkt zu %@.", margin, second))
+            return (bestId, yawNote + String(format: "Print + Maße einig. Abstand %.1f Pkt zu %@.", margin, second))
         }
         if margin >= embedMargin || (percent >= 94 && margin >= 6) {
-            return (bestId, String(format: "Abstand %.1f Pkt zu %@.", margin, second))
+            return (bestId, yawNote + String(format: "Abstand %.1f Pkt zu %@.", margin, second))
         }
         return (nil, String(format: "%@ %.0f%% und %@ %.0f%% zu nah — nicht zugeordnet.", best, percent, second, percent - margin))
     }
@@ -1059,9 +1066,13 @@ enum FaceEngine {
         return l2normalize(acc)
     }
 
-    /// Live: 72 % Frontal-Centroid + 28 % alle Refs. Profile verdünnen den Treffer nicht.
-    static func liveCentroid(_ faces: [FaceObservation]) -> [Double] {
+    /// Live: Slot-Centroid wenn der Pose-Slot Refs hat, sonst 72 % Frontal + 28 % alle.
+    static func liveCentroid(_ faces: [FaceObservation], slot: PoseSlot? = nil) -> [Double] {
         let all = meanPrintVector(faces)
+        if let slot, MatchMath.preferSlotCentroid(slotCount: faces.filter { poseSlot($0) == slot }.count) {
+            let slotMean = meanPrintVector(faces.filter { poseSlot($0) == slot })
+            if slotMean.count >= 32 { return slotMean }
+        }
         let front = meanPrintVector(faces.filter { poseSlot($0) == .frontal })
         if front.count >= 32, all.count == front.count {
             return blendEmbeddings(all, front, alpha: MatchMath.liveCentroidFront)

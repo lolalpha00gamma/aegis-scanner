@@ -1,6 +1,18 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.24 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.25 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.25 wirklich im Code
+
+2.1.24 hat Geo je Pose-Slot — der **Print** blieb 72/28 über alle Posen: ¾-Sonde vs. Frontal-Centroid weich. Leftover nahm first-in-order, nicht den nächsten Print. `overlayHint` mischte die Galerie. Yaw-Skip war unsichtbar. Bewegung lieferte trotzdem einen neuen Print (Blur). Enrollment-Pose nur schwach in der Statuszeile.
+
+1. **`liveCentroid(slot:)`.** ¾-Sonde gegen ¾-Refs, 72/28 nur Fallback. `matchLive` und Overlay-Hint.
+2. **Leftover nächster Print.** `leftoverPick` / `leftoverRank` — nicht die ältere UUID.
+3. **Leftover-Status** eine Zeile (`Live · Leftover-Pin n Track`).
+4. **Yaw-Skip in decide-Notiz** (`¾, Maße ignoriert`).
+5. **Hold-Still** IoU < 0,82 → alten Print behalten.
+6. **Pose-Meter** in Anlegen-Status (`Pose fehlt Frontal+¾` / `Pose fertig`).
+7. MARKETING_VERSION 2.1.25 (Build 53), `Models.swift` + `VERSION` gleich.
 
 ## In 2.1.24 wirklich im Code
 
@@ -111,10 +123,7 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - Restore bestätigt, wenn Backup älter als 7 Tage oder andere printRevision.
 - Live-Geo-Spark neben C/S/Y (eine Zahl, Median-Maße vs. gewählter Centroid).
 - `ratioSheet` im Live-Pfad nur Identitätszeilen, Mimik gar nicht erst rechnen.
-- Leftover-Pin loggen (Status eine Zeile), sonst bleibt UUID-Sprung unsichtbar.
 - boxEuro Reset auch wenn IoU hält aber Hysterese die Box der Vorperson zeigt — Print-Pin gewinnt in dem Frame.
-- Overlay-Zeile wenn Yaw-Geo-Skip greift („¾, Maße ignoriert“), sonst sieht man nur den Print.
-- `liveCentroid` analog Geo: ¾-Sonde gegen ¾-Print-Mittel, 72/28 nur Fallback.
 - schemaVersion < 2 beim Restore erwähnen.
 - namedTracks als „gehalten“ vs. „neu“ im Overlay, eine Silbe.
 
@@ -157,26 +166,25 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - **Geschwister-Hold.** Wenn familyBump greift, Mehrheit bleibt 5 Ticks (jetzt default).
 - **Cheap-Graph auch Still**, wenn graphBio aus ist — Detect soll die Spur nicht trotzdem rechnen.
 - **Restore-Diff.** Backup vs. aktuell: welche IDs kämen zurück, bevor überschrieben wird.
-- **Enrollment-Wizard.** Pose-Coverage-Meter (frontal / ¾ / Profil) bevor die erste Person „fertig“ heißt.
-- **Live Hold-Still-Ring** 0,8 s vor Print-Request — spart unscharfe Embeds.
+- **Enrollment-Wizard.** Pose-Coverage-Meter vor „fertig“ bleibt UI-Ring, Statuszeile ist 2.1.25.
+- **Live Hold-Still-Ring** 0,8 s vor Print-Request — spart unscharfe Embeds visuell (Skip ist 2.1.25).
 - **Burst-Median** der letzten 5 Live-Prints beim `+`, nicht nur im Track.
 - **Licht-Eimer.** Tags Tag/Kunstlicht/Nacht am Face, Match bevorzugt denselben Eimer.
 - **Match-Log JSONL** (Tick, UUID, lookOf, geoMix, decide-Notiz) für Labor nach der Session.
 - **Hard-Neg „gleiche Jacke“.** Texture-Hit ohne Print → explizit ablehnen.
 - **Labor TAR@FAR live-simuliert:** letzte 50 Webcam-Prints gegen die Galerie, nicht nur Still-Fotos.
 - **Geo-Veto-Log.** Eine Zeile im Overlay wenn Maße blocken, nicht nur „nicht zugeordnet“.
-- **Per-Identität leftover.** Nur die UUID, deren Centroid am nächsten liegt, darf leftover — nie die älteste.
 - **Track-ID entkoppelt von Face-UUID.** Live-Track `T…`, Galerie bleibt Snapshot-UUID — Anlegen kann nicht mehr den Track umbiegen.
 - **ratioSheet Cache** am Identity-Modell, nicht jedes Live-Frame neu medianen.
 - **Print-first Matcher** als eigene Strategy-Hit-Zeile im Live (nicht nur .aegis), zum Debug.
 - **Box-Hysterese + Print-Pin in einem Pass.** Jetzt IoU dann Print; bei Uneinigkeit zwei Frames UUID-Flackern.
-- **Per-Slot Print-Centroid.** Geo ist yaw-bin, der Face-Print noch 72/28 über alle Posen — ¾-Treffer bleiben weich.
-- **Match-Notiz „Yaw-Skip“.** Labor und Overlay sollen sehen, warum Geo nicht vetoete.
 - **Track-ID `T…` in der UI.** intern `trackId` gibt es, die Kiste zeigt die Snapshot-UUID.
-- **Leftover nur nächster Centroid.** namedTrack darf leftover, aber bei zwei namenlosen Boxen gewinnt der Print, nicht die ältere.
 - **Continuity 8 fps:** Spark-Fenster in Sekunden (schon als Idee), analog Helios sampleDt.
-- **Anlegen-Wizard Pose-Meter** bevor die Person „fertig“ heißt (frontal + ¾ Pflicht).
 - **Drop-in `.mlmodel` bleibt der große Sprung** — Apple-Print ist die Decke.
+- **Per-Identität leftover-Log** in der Overlay-Kiste, nicht nur Statuszeile.
+- **Hold-Still Ring** im Overlay 0,8 s, analog Peace.
+- **Pose-Meter als Balken** (F/¾/P) neben dem Namen, nicht nur Text.
+- **liveCentroid Cache** am Identity-Modell, nicht jedes Live-Frame neu mischen.
 
 ## Nicht tun
 
@@ -232,3 +240,7 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - Geo-Veto ¾-Sonde (yaw ≥ 0,28) gegen Frontal-Maße bei Print ≥ 80.
 - `gallery.json` ohne schemaVersion schreiben.
 - `bugfix`-Branch anlegen oder fortsetzen. Nur `main`.
+- Leftover first-in-order statt nächstem Print.
+- `liveCentroid` wieder 72/28 über alle Posen gegen eine ¾-Sonde.
+- Neuen Print bei Box-Sprung (Motion-Blur) übernehmen.
+- Yaw-Skip ohne Notiz.

@@ -110,6 +110,52 @@ enum MatchMathTests {
         ok(!MatchMath.leftoverNeedsPrint(cosine: 0.90), "mit Print leftover darf")
         ok(MatchMath.gallerySchema == 2, "gallery.json Schema 2")
 
+        ok(MatchMath.holdStillSkip(iou: 0.50), "Bewegung 0,50 skippt neuen Print")
+        ok(!MatchMath.holdStillSkip(iou: 0.90), "Stillstand 0,90 nimmt Print")
+        near(MatchMath.holdStillIoU, 0.82, 0.001, "Hold-Still IoU 0,82")
+        let idOld = UUID(uuidString: "00000000-0000-0000-0000-0000000000AA")!
+        let idNew = UUID(uuidString: "00000000-0000-0000-0000-0000000000BB")!
+        let leftoverA: [(index: Int, iou: Double, cosine: Double?)] = [
+            (0, 0.40, 0.92),
+            (1, 0.35, 0.50)
+        ]
+        ok(MatchMath.leftoverPick(candidates: leftoverA) == 0, "Leftover nimmt nächsten Print, nicht first-in-order")
+        let leftoverB: [(index: Int, iou: Double, cosine: Double?)] = [
+            (0, 0.32, 0.45),
+            (1, 0.40, 0.91)
+        ]
+        ok(MatchMath.leftoverPick(candidates: leftoverB) == 1, "höherer Cosine gewinnt trotz zweiter Stelle")
+        let leftoverC: [(index: Int, iou: Double, cosine: Double?)] = [(0, 0.10, 0.95)]
+        ok(MatchMath.leftoverPick(candidates: leftoverC) == nil, "IoU unter leftover-Floor kein Pin")
+        let leftoverD: [(index: Int, iou: Double, cosine: Double?)] = [(0, 0.40, nil)]
+        ok(MatchMath.leftoverPick(candidates: leftoverD) == nil, "ohne Print kein leftover-Pick")
+        ok(
+            MatchMath.leftoverRank([(idOld, 0.40), (idNew, 0.90)]) == [idNew, idOld],
+            "Leftover-Rank nächster Print zuerst"
+        )
+        ok(MatchMath.leftoverPinStatus(count: 0) == nil, "kein Leftover keine Statuszeile")
+        ok(MatchMath.leftoverPinStatus(count: 1) == "Leftover-Pin 1 Track", "Leftover-Status 1")
+        ok(
+            MatchMath.geoVetoYawSkipped(geoAgrees: false, geoMix: 15, printPercent: 82, yawAbs: 0.30),
+            "Yaw-Skip sichtbar wenn ¾ ein Veto verhindert"
+        )
+        ok(
+            !MatchMath.geoVetoYawSkipped(geoAgrees: false, geoMix: 15, printPercent: 82, yawAbs: 0.10),
+            "frontal kein Yaw-Skip-Hinweis"
+        )
+        ok(
+            !MatchMath.geoVetoYawSkipped(geoAgrees: true, geoMix: 80, printPercent: 90, yawAbs: 0.40),
+            "einig kein Yaw-Skip-Hinweis"
+        )
+        ok(MatchMath.yawSkipNote() == "¾, Maße ignoriert", "Yaw-Skip-Notiz")
+        ok(MatchMath.overlayNoteFirst("¾, Maße ignoriert. Abstand 14 Pkt zu B.") == "¾, Maße ignoriert", "Yaw-Skip erste Overlay-Klausel")
+        ok(!MatchMath.poseMeterReady(frontal: 1, threeQuarter: 0), "ohne ¾ nicht fertig")
+        ok(MatchMath.poseMeterReady(frontal: 1, threeQuarter: 1), "Frontal+¾ fertig")
+        ok(MatchMath.poseMeterLabel(frontal: 0, threeQuarter: 1, profile: 0, upper: 0).contains("Frontal"), "Meter fehlt Frontal")
+        ok(MatchMath.poseMeterLabel(frontal: 1, threeQuarter: 1, profile: 0, upper: 0).contains("fertig"), "Meter fertig")
+        ok(MatchMath.preferSlotCentroid(slotCount: 1), "Slot mit Refs bevorzugt")
+        ok(!MatchMath.preferSlotCentroid(slotCount: 0), "leerer Slot → 72/28")
+
         let unit = MatchMath.l2normalize([3, 4])
         near(hypot(unit[0], unit[1]), 1, 0.001, "L2")
 

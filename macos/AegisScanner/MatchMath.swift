@@ -43,6 +43,8 @@ enum MatchMath {
     static let geoVetoYawPrint = 80.0
     /// gallery.json Schema neben printRevision.
     static let gallerySchema = 2
+    /// Box-IoU unter dem Wert: Bewegung, neuen Print verwerfen (Motion-Blur).
+    static let holdStillIoU = 0.82
 
     static func activeSharpnessFloor(continuity: Bool) -> Double {
         continuity ? continuitySharpnessFloor : sharpnessFloor
@@ -156,6 +158,72 @@ enum MatchMath {
     /// Leftover ohne Print stiehlt die UUID. nil = nicht pinning.
     static func leftoverNeedsPrint(cosine: Double?) -> Bool {
         cosine == nil
+    }
+
+    /// Unter den IoU-Kandidaten den nächsten Print, nicht first-in-order.
+    static func leftoverPick(
+        candidates: [(index: Int, iou: Double, cosine: Double?)],
+        floor: Double = leftoverIoU
+    ) -> Int? {
+        let ok = candidates.filter { leftoverPin(iou: $0.iou, floor: floor) }
+        guard !ok.isEmpty else { return nil }
+        let printable = ok.filter { c in
+            guard let cos = c.cosine else { return false }
+            return !leftoverNeedsPrint(cosine: cos) && !iouPrintBlocks(cosine: cos)
+        }
+        if let best = printable.max(by: { ($0.cosine ?? -1) < ($1.cosine ?? -1) }) {
+            return best.index
+        }
+        return nil
+    }
+
+    /// Leftover-Tracks: höchster Print zuerst, nicht die ältere UUID.
+    static func leftoverRank(_ items: [(id: UUID, cosine: Double?)]) -> [UUID] {
+        items.sorted { a, b in
+            let ca = a.cosine ?? -1
+            let cb = b.cosine ?? -1
+            if ca != cb { return ca > cb }
+            return a.id.uuidString < b.id.uuidString
+        }.map(\.id)
+    }
+
+    static func leftoverPinStatus(count: Int) -> String? {
+        guard count > 0 else { return nil }
+        return count == 1 ? "Leftover-Pin 1 Track" : "Leftover-Pin \(count) Tracks"
+    }
+
+    /// Bewegung: neuen Print nicht übernehmen. Schärfe allein sieht 8-fps-Blur nicht.
+    static func holdStillSkip(iou: Double, floor: Double = holdStillIoU) -> Bool {
+        iou < floor
+    }
+
+    /// Yaw-Skip hat ein Geo-Veto verhindert — Overlay/Labor sollen das sehen.
+    static func geoVetoYawSkipped(geoAgrees: Bool, geoMix: Double, printPercent: Double, yawAbs: Double) -> Bool {
+        if geoAgrees { return false }
+        if yawAbs < geoVetoYawSkip { return false }
+        if printPercent < geoVetoYawPrint { return false }
+        return geoVetoBlocks(geoAgrees: geoAgrees, geoMix: geoMix, printPercent: printPercent, yawAbs: 0)
+    }
+
+    static func yawSkipNote() -> String { "¾, Maße ignoriert" }
+
+    static func poseMeterReady(frontal: Int, threeQuarter: Int) -> Bool {
+        frontal >= 1 && threeQuarter >= 1
+    }
+
+    static func poseMeterLabel(frontal: Int, threeQuarter: Int, profile: Int, upper: Int) -> String {
+        var miss: [String] = []
+        if frontal == 0 { miss.append("Frontal") }
+        if threeQuarter == 0 { miss.append("¾") }
+        if miss.isEmpty {
+            return "Pose fertig F\(frontal) · ¾\(threeQuarter) · P\(profile) · U\(upper)"
+        }
+        return "Pose fehlt \(miss.joined(separator: "+")) · F\(frontal) · ¾\(threeQuarter) · P\(profile) · U\(upper)"
+    }
+
+    /// Slot-Centroid wenn der Slot Refs hat, sonst 72/28-Fallback.
+    static func preferSlotCentroid(slotCount: Int) -> Bool {
+        slotCount >= 1
     }
 
     /// IoU darf eine UUID nicht setzen, wenn der Print gemessen und unter pinPrintCosine liegt.

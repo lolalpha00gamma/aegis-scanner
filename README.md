@@ -1,4 +1,4 @@
-# Aegis **2.1.24 alpha**
+# Aegis **2.1.25 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.25 alpha
+
+2.1.24 hat Geo je Pose-Slot — Live blieb weich, weil der **Print** 72/28 über Frontal+Profil mischte. Leftover klebte die ältere UUID. Bewegung schrieb trotzdem einen neuen (unscharfen) Print.
+
+- **Live-Centroid je Pose-Slot.** ¾ gegen ¾, 72/28 nur Fallback.
+- **Leftover nächster Print**, Statuszeile wenn ein Track pinned.
+- **Yaw-Skip sichtbar** (`¾, Maße ignoriert`).
+- **Hold-Still:** IoU < 0,82 behält den alten Print.
+- **Pose-Meter** in der Anlegen-Statuszeile (Frontal+¾ Pflicht).
 
 ## Neu in 2.1.24 alpha
 
