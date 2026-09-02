@@ -9,6 +9,8 @@ enum LabReport {
         threshold: Double
     ) -> String {
         var genuine: [Double] = []
+        var genuineFull: [Double] = []
+        var genuineMask: [Double] = []
         var impostor: [Double] = []
         var lines = ["person,probe,kind,score"]
         var pairScores: [String: [String: [Double]]] = [:]
@@ -33,7 +35,10 @@ enum LabReport {
                 let versus = rows.first?.hits.first { $0.strategy == .aegis }?.versus ?? []
                 let selfP = versus.first { $0.identityId == identity.id }?.percent ?? 0
                 genuine.append(selfP)
-                lines.append("\(identity.name),\(probe.id.uuidString),genuine,\(fmt(selfP))")
+                let masked = probe.forcedPartial || FaceEngine.lowerFaceOccluded(probe)
+                let kind = MatchMath.laborPairKind(probeMasked: masked)
+                if masked { genuineMask.append(selfP) } else { genuineFull.append(selfP) }
+                lines.append("\(identity.name),\(probe.id.uuidString),\(kind),\(fmt(selfP))")
                 pairScores[identity.name, default: [:]][identity.name, default: []].append(selfP)
                 for v in versus where v.identityId != identity.id {
                     impostor.append(v.percent)
@@ -47,9 +52,17 @@ enum LabReport {
         var out: [String] = []
         out.append("Aegis \(AppVersion.display) — Laborbericht")
         out.append("Schwelle \(Int(threshold))  ·  Spuren \(enabled.map(\.label).sorted().joined(separator: ", "))")
-        out.append("Genuine-Paare \(genuine.count)  ·  Impostor-Paare \(impostor.count)")
+        out.append("Genuine-Paare \(genuine.count)  ·  voll \(genuineFull.count)  ·  Maske/U \(genuineMask.count)  ·  Impostor-Paare \(impostor.count)")
         out.append(stats("Genuine", genuine))
+        if !genuineFull.isEmpty { out.append(stats("Genuine voll", genuineFull)) }
+        if !genuineMask.isEmpty { out.append(stats("Genuine Maske/U", genuineMask)) }
         out.append(stats("Impostor", impostor))
+        if !genuine.isEmpty {
+            out.append("Histogramm Genuine  " + MatchMath.scoreHistogram(genuine))
+        }
+        if !impostor.isEmpty {
+            out.append("Histogramm Impostor " + MatchMath.scoreHistogram(impostor))
+        }
         if !genuine.isEmpty, !impostor.isEmpty {
             out.append(String(format: "Rang-1 (genuine ≥ Schwelle)  %.1f%%", 100 * frac(genuine, threshold)))
             out.append(String(format: "FAR bei Schwelle            %.1f%%", 100 * frac(impostor, threshold)))
@@ -69,6 +82,12 @@ enum LabReport {
                 ))
             } else if let t = MatchMath.tar(atFar: 0.01, genuine: genuine, impostor: impostor) {
                 out.append(String(format: "TAR @ 1 %% FAR    %.1f%%  (Schwelle %.1f, MatchMath ceil-1)", 100 * t.tar, t.threshold))
+            }
+            if genuineFull.count >= 2, let t = MatchMath.tar(atFar: 0.01, genuine: genuineFull, impostor: impostor) {
+                out.append(String(format: "TAR voll @ 1 %% FAR %.1f%%  (ohne Masken-Paare)", 100 * t.tar))
+            }
+            if genuineMask.count >= 2, let t = MatchMath.tar(atFar: 0.01, genuine: genuineMask, impostor: impostor) {
+                out.append(String(format: "TAR Maske @ 1 %% FAR %.1f%%", 100 * t.tar))
             }
         } else {
             out.append("Zu wenig Referenzen: jede Person braucht mindestens zwei Fotos.")

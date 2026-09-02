@@ -92,8 +92,7 @@ struct ContentView: View {
             }
             .pickerStyle(.menu)
             .frame(width: 88)
-            .help("Continuity/Desk-View: videoRotationAngle überschreiben, wenn Yaw kippt")
-            .disabled(!store.liveActive)
+            .help("Continuity/Desk-View: videoRotationAngle überschreiben, wenn Yaw kippt. Letzte Kamera bleibt gespeichert.")
         }
     }
 
@@ -383,6 +382,16 @@ struct ContentView: View {
                     Text(note)
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                } else if let blocked = store.selectedFace.flatMap({ store.blockedIdentity(for: $0) }) {
+                    HStack {
+                        Text("Hard-Negativ \(blocked.name)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Button("doch \(blocked.name)") {
+                            store.unrejectGuess(blocked.id)
+                        }
+                        .help("Hebt den Score-Deckel 35 für dieses Gesicht wieder auf.")
+                    }
                 } else if !assignedPass, let guess = store.identities.first(where: { $0.id == hit?.versus.first?.identityId }) {
                     HStack {
                         Text("Nähe \(guess.name) · Prozent bleibt sichtbar")
@@ -642,7 +651,7 @@ struct FaceOverlay: View {
                             }
                             .overlay(alignment: .topTrailing) {
                                 VStack(alignment: .trailing, spacing: 2) {
-                                    QualityAmpel(quality: face.quality)
+                                    QualityAmpel(quality: face.quality, lamps: store.sparkLamps[face.id])
                                     Text(badge)
                                         .font(.caption2.monospacedDigit())
                                         .padding(.horizontal, 5)
@@ -694,17 +703,18 @@ struct FaceOverlay: View {
 
 private struct QualityAmpel: View {
     var quality: FaceQuality
+    var lamps: (capture: MatchMath.Lamp, sharpness: MatchMath.Lamp, yaw: MatchMath.Lamp)?
 
     var body: some View {
-        let lamps = MatchMath.qualityLamps(
+        let shown = lamps ?? MatchMath.qualityLamps(
             capture: quality.capture,
             sharpness: quality.sharpness,
             yaw: quality.yaw
         )
         HStack(spacing: 3) {
-            lamp(lamps.capture, label: "C")
-            lamp(lamps.sharpness, label: "S")
-            lamp(lamps.yaw, label: "Y")
+            lamp(shown.capture, label: "C")
+            lamp(shown.sharpness, label: "S")
+            lamp(shown.yaw, label: "Y")
         }
         .padding(.horizontal, 4)
         .padding(.vertical, 2)

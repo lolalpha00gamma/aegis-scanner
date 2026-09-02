@@ -26,6 +26,7 @@ final class LiveCapture: NSObject {
     var onFrame: ((CGImage) -> Void)?
     var onError: ((String) -> Void)?
     var onReady: (() -> Void)?
+    var onNote: ((String) -> Void)?
     /// Live-Tap: 2 fps ohne Gesicht, 8 fps sobald ein Track sitzt.
     private(set) var facesPresent = false
     private(set) var cameraUniqueID: String = ""
@@ -118,6 +119,9 @@ final class LiveCapture: NSObject {
         }
         delegate.uniqueID = device.uniqueID
         delegate.orientOverride = orientOverride
+        delegate.onConflict = { [weak self] line in
+            DispatchQueue.main.async { self?.onNote?(line) }
+        }
         self.tap = delegate
         out.setSampleBufferDelegate(delegate, queue: outputQueue)
         if session.canAddOutput(out) { session.addOutput(out) }
@@ -236,6 +240,8 @@ private final class FrameTap: NSObject, AVCaptureVideoDataOutputSampleBufferDele
     var minInterval: TimeInterval = 0.50
     var uniqueID: String = ""
     var orientOverride: String = "auto"
+    var onConflict: ((String) -> Void)?
+    private var lastConflict = ""
     private let emit: (CGImage) -> Void
     init(emit: @escaping (CGImage) -> Void) { self.emit = emit }
     func captureOutput(
@@ -247,20 +253,25 @@ private final class FrameTap: NSObject, AVCaptureVideoDataOutputSampleBufferDele
         guard now - last >= minInterval else { return }
         last = now
         guard let pb = CMSampleBufferGetImageBuffer(sampleBuffer),
-              let image = cgImage(from: pb, orientation: visionOrientation(connection, override: orientOverride))
+              let image = cgImage(
+                from: pb,
+                orientation: visionOrientation(connection, override: orientOverride) { line in
+                    if line != self.lastConflict {
+                        self.lastConflict = line
+                        self.onConflict?(line)
+                    }
+                }
+              )
         else { return }
         DispatchQueue.main.async { self.emit(image) }
     }
 }
 
-private func visionOrientation(_ connection: AVCaptureConnection, override: String = "auto") -> CGImagePropertyOrientation {
-    switch override {
-    case "0": return .up
-    case "90": return .right
-    case "180": return .down
-    case "270": return .left
-    default: break
-    }
+private func visionOrientation(
+    _ connection: AVCaptureConnection,
+    override: String = "auto",
+    onConflict: ((String) -> Void)? = nil
+) -> CGImagePropertyOrientation {
     let angle: CGFloat
     if #available(macOS 14.0, *) {
         angle = connection.videoRotationAngle
@@ -273,6 +284,16 @@ private func visionOrientation(_ connection: AVCaptureConnection, override: Stri
         }
     }
     let wrapped = Int(((angle.truncatingRemainder(dividingBy: 360)) + 360).truncatingRemainder(dividingBy: 360).rounded())
+    if let line = MatchMath.orientConflict(override: override, videoAngle: wrapped) {
+        onConflict?(line)
+    }
+    switch override {
+    case "0": return .up
+    case "90": return .right
+    case "180": return .down
+    case "270": return .left
+    default: break
+    }
     switch wrapped {
     case 90: return .right
     case 180: return .down

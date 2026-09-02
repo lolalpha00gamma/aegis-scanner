@@ -13,6 +13,9 @@ enum MatchMath {
     static let familyFloorBump = 4.0
     static let rejectCosine = 0.90
     static let sharpnessFloor = 0.12
+    static let continuitySharpnessFloor = 0.08
+    static let tileBudget = 2
+    static let lampSparkFrames = 8
 
     enum Lamp: String, Equatable {
         case green, amber, red
@@ -38,8 +41,94 @@ enum MatchMath {
     }
 
     /// Laplacian unter Floor: Print-Request lohnt nicht.
-    static func skipPrint(sharpness: Double) -> Bool {
-        sharpness < sharpnessFloor
+    static func skipPrint(sharpness: Double, continuity: Bool = false) -> Bool {
+        sharpness < (continuity ? continuitySharpnessFloor : sharpnessFloor)
+    }
+
+    /// Continuity/Desk-View: uniqueID oder Name, nicht die globale 0,12-Schwelle.
+    static func isContinuityCamera(uniqueID: String, name: String = "") -> Bool {
+        let s = (uniqueID + " " + name).lowercased()
+        return s.contains("continuity") || s.contains("desk view") || s.contains("deskview")
+            || s.contains("iphone") || s.contains("ipad")
+    }
+
+    /// Override vs. `videoRotationAngle`. nil = kein Konflikt oder Auto.
+    static func orientConflict(override: String, videoAngle: Int) -> String? {
+        guard override != "auto", !override.isEmpty else { return nil }
+        let mapped: Int
+        switch override {
+        case "0": mapped = 0
+        case "90": mapped = 90
+        case "180": mapped = 180
+        case "270": mapped = 270
+        default: return nil
+        }
+        let wrapped = ((videoAngle % 360) + 360) % 360
+        guard mapped != wrapped else { return nil }
+        return "Orient-Konflikt Override \(override)° vs videoRotationAngle \(wrapped)°"
+    }
+
+    /// Crowd-Tiles: Diagonale statt 5 Origins. Portrait bleibt ohne Tiles.
+    static func tileOrigins(imageWidth: Int, imageHeight: Int, tileWidth: Int, tileHeight: Int, budget: Int = tileBudget) -> [(Int, Int)] {
+        let tw = max(1, tileWidth)
+        let th = max(1, tileHeight)
+        let all = [
+            (0, 0),
+            (max(0, imageWidth - tw), max(0, imageHeight - th)),
+            (max(0, (imageWidth - tw) / 2), max(0, (imageHeight - th) / 2)),
+            (max(0, imageWidth - tw), 0),
+            (0, max(0, imageHeight - th)),
+        ]
+        var seen = Set<String>()
+        var out: [(Int, Int)] = []
+        for o in all {
+            let k = "\(o.0),\(o.1)"
+            if seen.contains(k) { continue }
+            seen.insert(k)
+            out.append(o)
+            if out.count >= max(1, budget) { break }
+        }
+        return out
+    }
+
+    /// Mehrheit der letzten 8 Ticks, Gleichstand → schlechter (Rot > Amber > Grün).
+    static func sparkLamp(_ history: [Lamp]) -> Lamp {
+        let slice = Array(history.suffix(lampSparkFrames))
+        guard !slice.isEmpty else { return .red }
+        var g = 0, a = 0, r = 0
+        for x in slice {
+            switch x {
+            case .green: g += 1
+            case .amber: a += 1
+            case .red: r += 1
+            }
+        }
+        if r >= g && r >= a { return .red }
+        if a >= g { return .amber }
+        return .green
+    }
+
+    static func laborPairKind(probeMasked: Bool) -> String {
+        probeMasked ? "genuine-mask" : "genuine-full"
+    }
+
+    /// ASCII-Spark 0…100, 10 Bins. Labor, nicht Live.
+    static func scoreHistogram(_ xs: [Double], bins: Int = 10, lo: Double = 0, hi: Double = 100) -> String {
+        let n = max(1, bins)
+        guard !xs.isEmpty else { return String(repeating: "▁", count: n) }
+        let width = max(1e-9, (hi - lo) / Double(n))
+        var counts = [Int](repeating: 0, count: n)
+        for x in xs {
+            var i = Int(((x - lo) / width).rounded(.down))
+            i = min(n - 1, max(0, i))
+            counts[i] += 1
+        }
+        let maxC = max(1, counts.max() ?? 1)
+        let bars = Array("▁▂▃▄▅▆▇█")
+        return counts.map { c in
+            let idx = min(bars.count - 1, Int((Double(c) / Double(maxC) * Double(bars.count - 1)).rounded()))
+            return String(bars[idx])
+        }.joined()
     }
 
     /// Continuity-Override. nil = Auto aus `videoRotationAngle`.
@@ -211,8 +300,8 @@ enum MatchMath {
     }
 
     /// Unscharf < 0,12: harte Ablehnung, nicht nur Score-Dämpfung.
-    static func qualityRejects(capture: Double, size: Double, sharpness: Double) -> Bool {
-        (capture < 0.35 && size < 0.16) || sharpness < sharpnessFloor
+    static func qualityRejects(capture: Double, size: Double, sharpness: Double, continuity: Bool = false) -> Bool {
+        (capture < 0.35 && size < 0.16) || skipPrint(sharpness: sharpness, continuity: continuity)
     }
 
     /// Maske: voller Print enthält Stoff. Teil-Print (Stirn/Augen) führt, Deckel 88.

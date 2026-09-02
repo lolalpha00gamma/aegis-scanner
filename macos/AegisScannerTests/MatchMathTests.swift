@@ -108,6 +108,32 @@ enum MatchMathTests {
         near(MatchMath.sharpnessFloor, 0.12, 0.001, "Schärfe-Floor 0,12")
         ok(MatchMath.skipPrint(sharpness: 0.10), "Laplacian unter Floor spart den Print")
         ok(!MatchMath.skipPrint(sharpness: 0.20), "scharf geht zum Print")
+        ok(!MatchMath.skipPrint(sharpness: 0.10, continuity: true), "Continuity 0,10 geht zum Print")
+        ok(MatchMath.skipPrint(sharpness: 0.07, continuity: true), "Continuity 0,07 tot")
+        ok(MatchMath.isContinuityCamera(uniqueID: "com.apple.continuity.camera"), "Continuity uniqueID")
+        ok(MatchMath.isContinuityCamera(uniqueID: "x", name: "Desk View"), "Desk-View Name")
+        ok(!MatchMath.isContinuityCamera(uniqueID: "FaceTime HD Camera"), "Built-in keine Continuity")
+        near(MatchMath.continuitySharpnessFloor, 0.08, 0.001, "Continuity-Floor 0,08")
+
+        let tiles = MatchMath.tileOrigins(imageWidth: 2000, imageHeight: 1500, tileWidth: 1160, tileHeight: 870)
+        ok(tiles.count == 2, "Tile-Budget 2 (ist \(tiles.count))")
+        ok(tiles[0] == (0, 0), "erste Tile oben links")
+        ok(tiles[1].0 > 0 && tiles[1].1 > 0, "zweite Tile Diagonale unten rechts")
+
+        let sparkG = MatchMath.sparkLamp([.green, .green, .green, .amber, .green, .green, .green, .green])
+        ok(sparkG == .green, "Spark folgt Mehrheit Grün")
+        let sparkR = MatchMath.sparkLamp([.red, .red, .red, .amber, .red, .green, .red, .red])
+        ok(sparkR == .red, "Spark Rot bei Mehrheit Rot")
+        ok(MatchMath.laborPairKind(probeMasked: true) == "genuine-mask", "Labor Maske")
+        ok(MatchMath.laborPairKind(probeMasked: false) == "genuine-full", "Labor voll")
+
+        ok(MatchMath.orientConflict(override: "auto", videoAngle: 90) == nil, "Auto kein Konflikt")
+        ok(MatchMath.orientConflict(override: "90", videoAngle: 90) == nil, "Override trifft Angle")
+        ok(MatchMath.orientConflict(override: "90", videoAngle: 0) != nil, "Override 90 vs 0 loggt")
+
+        let hist = MatchMath.scoreHistogram([90, 92, 88, 40, 50, 20, 10])
+        ok(hist.count == 10, "Histogramm 10 Bins (ist \(hist.count))")
+        ok(hist.contains("█") || hist.contains("▇") || hist.contains("▆"), "Histogramm hat Balken")
 
         let lampsHi = MatchMath.qualityLamps(capture: 0.80, sharpness: 0.40, yaw: 0.05)
         ok(lampsHi.capture == .green && lampsHi.sharpness == .green && lampsHi.yaw == .green, "Ampel grün frontal scharf")

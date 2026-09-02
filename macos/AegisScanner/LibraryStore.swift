@@ -35,6 +35,7 @@ final class LibraryStore: ObservableObject {
     @Published var canResumeScan = false
     @Published var cameraOrient: String = "auto"
     @Published var cameraUniqueID: String = ""
+    @Published var sparkLamps: [UUID: (capture: MatchMath.Lamp, sharpness: MatchMath.Lamp, yaw: MatchMath.Lamp)] = [:]
 
     private let liveCapture = LiveCapture()
     private var liveMediaId: UUID?
@@ -46,9 +47,11 @@ final class LibraryStore: ObservableObject {
     private let resumeBookmarkKey = "aegis.scanResume.bookmark"
     private let resumeRemainingKey = "aegis.scanResume.remaining"
     private let resumeDetectKey = "aegis.scanResume.detect"
+    private let lastCamKey = "aegis.lastCamUniqueID"
     private var liveGhosts: [(face: FaceObservation, until: TimeInterval)] = []
     private var reconnectGhosts: [FaceObservation] = []
     private var boxEuro: [UUID: (x: MatchMath.OneEuro, y: MatchMath.OneEuro, w: MatchMath.OneEuro, h: MatchMath.OneEuro)] = [:]
+    private var lampHist: [UUID: (c: [MatchMath.Lamp], s: [MatchMath.Lamp], y: [MatchMath.Lamp])] = [:]
 
     init() {
         let packed = GalleryFile.load()
@@ -62,6 +65,10 @@ final class LibraryStore: ObservableObject {
             if !set.isEmpty { enabled = set }
         }
         canResumeScan = hasResumeWork()
+        cameraUniqueID = UserDefaults.standard.string(forKey: lastCamKey) ?? ""
+        if !cameraUniqueID.isEmpty {
+            cameraOrient = UserDefaults.standard.string(forKey: LiveCapture.orientKey(cameraUniqueID)) ?? "auto"
+        }
         if !identities.isEmpty {
             status = revisionWarning.isEmpty
                 ? "Galerie · \(identities.count) Personen"
@@ -625,6 +632,11 @@ final class LibraryStore: ObservableObject {
     func setCameraOrient(_ value: String) {
         cameraOrient = value
         liveCapture.setOrientOverride(value)
+        let id = cameraUniqueID.isEmpty ? liveCapture.cameraUniqueID : cameraUniqueID
+        if !id.isEmpty {
+            UserDefaults.standard.set(value, forKey: LiveCapture.orientKey(id))
+            UserDefaults.standard.set(id, forKey: lastCamKey)
+        }
         status = value == "auto" ? "Kamera-Orientierung auto" : "Kamera-Orientierung \(value)°"
     }
 
@@ -651,6 +663,33 @@ final class LibraryStore: ObservableObject {
         status = "Nicht \(identities[idx].name) — Hard-Negativ gespeichert"
     }
 
+    func unrejectGuess(_ identityId: UUID) {
+        guard let face = selectedFace else { return }
+        guard let idx = identities.firstIndex(where: { $0.id == identityId }) else { return }
+        let v = FaceEngine.embedding(of: face)
+        guard v.count >= 32 else {
+            status = "Kein Print — Zurücknehmen braucht Face-Print"
+            return
+        }
+        let before = identities[idx].rejectedVecs.count
+        identities[idx].rejectedVecs.removeAll { MatchMath.cosine($0, v) >= MatchMath.rejectCosine }
+        guard identities[idx].rejectedVecs.count < before else {
+            status = "Kein Hard-Negativ für \(identities[idx].name)"
+            return
+        }
+        persist()
+        rematch()
+        status = "Doch \(identities[idx].name) — Hard-Negativ entfernt"
+    }
+
+    func blockedIdentity(for face: FaceObservation) -> Identity? {
+        let v = FaceEngine.embedding(of: face)
+        guard v.count >= 32 else { return nil }
+        return identities.first { ident in
+            ident.rejectedVecs.contains { MatchMath.cosine($0, v) >= MatchMath.rejectCosine }
+        }
+    }
+
     func startLiveFromField() {
         let raw = liveURLText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let parsed = sniffLiveKind(raw) else {
@@ -667,6 +706,8 @@ final class LibraryStore: ObservableObject {
     func stopLive() {
         liveCapture.stop()
         liveActive = false
+        sparkLamps = [:]
+        lampHist = [:]
         if let id = liveMediaId {
             let gone = Set(faces.filter { $0.mediaId == id }.map(\.id))
             faces.removeAll { $0.mediaId == id }
@@ -709,10 +750,16 @@ final class LibraryStore: ObservableObject {
             self.status = "Live"
             self.cameraUniqueID = self.liveCapture.cameraUniqueID
             self.cameraOrient = self.liveCapture.orientOverride
+            if !self.cameraUniqueID.isEmpty {
+                UserDefaults.standard.set(self.cameraUniqueID, forKey: self.lastCamKey)
+            }
         }
         liveCapture.onError = { [weak self] msg in
             self?.status = msg
             self?.liveActive = false
+        }
+        liveCapture.onNote = { [weak self] msg in
+            self?.status = msg
         }
         liveCapture.onFrame = { [weak self] image in
             self?.ingestLiveFrame(image, mediaId: id)
@@ -723,8 +770,9 @@ final class LibraryStore: ObservableObject {
     private func ingestLiveFrame(_ image: CGImage, mediaId: UUID) {
         if liveBusy { return }
         liveBusy = true
+        let cont = MatchMath.isContinuityCamera(uniqueID: cameraUniqueID)
         Task.detached(priority: .userInitiated) { [weak self] in
-            let found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false)) ?? []
+            let found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont)) ?? []
             await MainActor.run {
                 guard let self else { return }
                 self.applyLiveFaces(found, image: image, mediaId: mediaId)
@@ -871,7 +919,48 @@ final class LibraryStore: ObservableObject {
         }
         reconnectGhosts.removeAll { used.contains($0.id) }
         nmsDropped = FaceEngine.lastNMSDropped
+        refreshSparkLamps(adopted)
         rematch()
+    }
+
+    private func refreshSparkLamps(_ live: [FaceObservation]) {
+        let ids = Set(live.map(\.id))
+        sparkLamps = sparkLamps.filter { ids.contains($0.key) }
+        var next = sparkLamps
+        for face in live {
+            let now = MatchMath.qualityLamps(
+                capture: face.quality.capture,
+                sharpness: face.quality.sharpness,
+                yaw: face.quality.yaw
+            )
+            // sparkLamps speichert den geglätteten Stand; History hängt am Tuple-Array daneben.
+            let prevC: [MatchMath.Lamp]
+            let prevS: [MatchMath.Lamp]
+            let prevY: [MatchMath.Lamp]
+            if let old = lampHist[face.id] {
+                prevC = old.c
+                prevS = old.s
+                prevY = old.y
+            } else {
+                prevC = []
+                prevS = []
+                prevY = []
+            }
+            var c = prevC + [now.capture]
+            var s = prevS + [now.sharpness]
+            var y = prevY + [now.yaw]
+            if c.count > MatchMath.lampSparkFrames { c.removeFirst(c.count - MatchMath.lampSparkFrames) }
+            if s.count > MatchMath.lampSparkFrames { s.removeFirst(s.count - MatchMath.lampSparkFrames) }
+            if y.count > MatchMath.lampSparkFrames { y.removeFirst(y.count - MatchMath.lampSparkFrames) }
+            lampHist[face.id] = (c, s, y)
+            next[face.id] = (
+                MatchMath.sparkLamp(c),
+                MatchMath.sparkLamp(s),
+                MatchMath.sparkLamp(y)
+            )
+        }
+        lampHist = lampHist.filter { ids.contains($0.key) }
+        sparkLamps = next
     }
 
     func exportCSV() {

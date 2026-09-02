@@ -1,6 +1,19 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.11 alpha**. Branch `bugfix`. Fixes von 2.1.11 stehen auch in der README.
+Stand: **2.1.12 alpha**. Branch `bugfix`. Fixes von 2.1.12 stehen auch in der README.
+
+## In 2.1.12 wirklich im Code
+
+Warum 2.1.11 trotz Ampel und Override Crowd, Masken-Labor und Continuity trotzdem verzerrte: 5 Tile-Origins, TAR mischt Masken-Paare, Ampel ein Tick, Desk-View unter 0,12 tot, Orient-Picker nur live, Hard-Negativ ohne Undo.
+
+1. **Tile-Budget 2** (Diagonale).
+2. **Labor Maske/Voll getrennt** plus TAR voll @ 1 % FAR.
+3. **Score-Histogramm** ASCII 10 Bins.
+4. **Ampel-Spark 8 Frames.**
+5. **Continuity-Floor 0,08** nur für Continuity/Desk-View uniqueID.
+6. **Orient-Konflikt** Override vs `videoRotationAngle`.
+7. **„doch Name“** entfernt den Hard-Negativ-Deckel.
+8. **Orient-Menü ohne Live**, letzte uniqueID.
 
 ## In 2.1.11 wirklich im Code
 
@@ -71,10 +84,9 @@ Warum 2.1.5 trotz Cancel und HLS-Transform Galerien und Live trotzdem schief zog
 
 ## Nächste Fixes (klein)
 
-- **PartialPrint-Laborzeile.** Genuine-Paare mit/ohne Maske getrennt, sonst TAR die Masken-Dämpfung.
-- **Tile-Budget.** Max. 2 Extra-Detects statt 5 Origins, wenn Crowd echt ist.
-- **Ampel-Spark 8 Frames.** Live-History, nicht nur der aktuelle Tick.
-- **Orient-Konflikt loggen.** EXIF vs. Override vs. `videoRotationAngle` in einer Zeile.
+- **U-Slot vom Live-Hold.** 1,2 s Maske im Track → Vorschlag „als Teil-Print“, nie still schreiben.
+- **Print-Alter UI.** Referenz älter als 90 Tage paler, nicht nur Laborzeile.
+- **Spark reset nach pinByPrint**, analog 1-Euro — sonst klebt die Ampel am Ghost.
 
 ## Erweiterungen
 
@@ -100,21 +112,14 @@ Warum 2.1.5 trotz Cancel und HLS-Transform Galerien und Live trotzdem schief zog
 - **Familien-Cluster UI.** Pairwise-Heatmap im Labor, nicht nur +4 Floor.
 - **Print-Alter.** Referenz älter als N Tage markieren — Frisur/Bart driftet.
 - **Zwei-Kamera-Live.** Built-in + Continuity parallel, derselbe Track über Print, nicht IoU.
-- **Quality-Gate als harte Ablehnung** unter 0,12 sharpness, nicht nur Score-Dämpfung.
 - **Gallery.json Schema-Version** neben printRevision, damit 2.x Leser 3.x Felder überspringen.
-- **Hard-Negativ vergessen.** Taste „doch Name“ entfernt den Deckel.
-- **Score-Histogramm im Labor.** Genuine vs Impostor als ASCII/Spark, nicht nur mean/median.
-- **Live-Quality-Ampel.** Capture/sharpness/yaw als drei Punkte am Overlay, bevor der Name kommt.
-- **Print-Alter 90 Tage.** Referenz älter als N Tage markieren — liegt schon als „Print-Alter“ oben, UI- paler.
 - **Geschwister-Wizard.** Pairwise-Heatmap vorschlagen, Floor +4 bestätigen lassen.
-- **Masken-Enrollment-Slot.** Explizite „obere Hälfte“-Referenz, wenn jemand oft Maske trägt.
-- **PartialPrint-Laborzeile.** Genuine-Paare mit/ohne Maske getrennt, sonst TAR die Masken-Dämpfung.
-- **Tile-Budget.** Max. 2 Extra-Detects statt 5 Origins, wenn Crowd echt ist.
-- **Schärfe vor dem Print.** Laplacian < Floor → Request gar nicht erst, spart Vision.
-- **Continuity-Schärfe weicher.** Desk-View oft 0,10–0,14 — Floor 0,08 nur für diese uniqueID, nicht global.
-- **U-Slot vom Live-Hold.** 1,2 s Maske im Track → Vorschlag „als Teil-Print“, nie still schreiben.
-- **forcedPartial im Labor.** U-Refs extra Zeile, damit TAR nicht mit Full-Paaren gemischt wird.
-- **Orient-Menü auch ohne Live.** Letzte uniqueID merken, Override vor Webcam-Start setzen.
+- **EXIF vs Override vs Angle** in einer Laborzeile, nicht nur Live-Status.
+- **Ampel auch auf Standbildern** als 1-Tick (kein Spark) — sitzt, Spark nur Live.
+- **Tile-Budget Slider** 0/2/5 für Archive vs. Crowd.
+- **Continuity-Floor nur solange uniqueID Continuity ist** — Built-in nach Dock-Wechsel wieder 0,12 (passiert schon über uniqueID).
+- **Hard-Negativ-Liste** in der Personen-Karte, nicht nur am Probe-Gesicht.
+- **Labor CSV** mit kind=genuine-mask exportieren, nicht nur der Fließtext.
 
 ## Nicht tun
 
@@ -142,3 +147,9 @@ Warum 2.1.5 trotz Cancel und HLS-Transform Galerien und Live trotzdem schief zog
 - `VNGenerateFacePrint` auf unscharfen Crops (Laplacian < Floor).
 - U-Slot als erste Referenz (Stoff im Mean) — Taste U blockt das.
 - Continuity-Yaw hart aus `videoRotationAngle` ohne Override.
+- 5 Tile-Origins über Crowd (NMS-Flut).
+- TAR Maske+Voll in einer Zahl ohne Split.
+- Ampel nur vom aktuellen Tick (flackert).
+- Continuity-Laplacian 0,12 (Desk-View bleibt tot).
+- Hard-Negativ ohne „doch Name“.
+- Orient-Picker nur während Live.

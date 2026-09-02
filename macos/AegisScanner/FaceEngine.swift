@@ -11,7 +11,7 @@ enum FaceEngine {
         return _dropped
     }
 
-    static func detect(in image: CGImage, mediaId: UUID, tiles: Bool = true, orientation: CGImagePropertyOrientation = .up) throws -> [FaceObservation] {
+    static func detect(in image: CGImage, mediaId: UUID, tiles: Bool = true, orientation: CGImagePropertyOrientation = .up, continuity: Bool = false) throws -> [FaceObservation] {
         let w = Double(image.width)
         let h = Double(image.height)
         var out = try detectOnce(in: image, mediaId: mediaId, originX: 0, originY: 0, imageWidth: w, imageHeight: h, orientation: orientation)
@@ -44,13 +44,12 @@ enum FaceEngine {
         if tiles, crowd, max(image.width, image.height) >= 900 {
             let tw = max(280, Int((w * 0.58).rounded()))
             let th = max(280, Int((h * 0.58).rounded()))
-            let origins: [(Int, Int)] = [
-                (0, 0),
-                (max(0, image.width - tw), 0),
-                (0, max(0, image.height - th)),
-                (max(0, image.width - tw), max(0, image.height - th)),
-                (max(0, (image.width - tw) / 2), max(0, (image.height - th) / 2)),
-            ]
+            let origins = MatchMath.tileOrigins(
+                imageWidth: image.width,
+                imageHeight: image.height,
+                tileWidth: tw,
+                tileHeight: th
+            )
             for (ox, oy) in origins {
                 let tileBox = FaceBox(x: Double(ox), y: Double(oy), width: Double(tw), height: Double(th))
                 guard let tile = crop(image, box: tileBox, pad: 0) else { continue }
@@ -68,7 +67,7 @@ enum FaceEngine {
                 out.append(contentsOf: found)
             }
         }
-        return stampPrints(nms(out), from: image, orientation: orientation)
+        return stampPrints(nms(out), from: image, orientation: orientation, continuity: continuity)
     }
 
     private static func detectOnce(
@@ -437,7 +436,7 @@ enum FaceEngine {
 
             let gated = rank(models, minMargin: embedMargin, floors: floors) { m in
                 let raw = bestPrintPercent(face, m.meanPrint)
-                if tinyUnreliable(face.quality) {
+                if tinyUnreliable(face.quality, hasPrint: !face.featurePrint.isEmpty) {
                     return raw * (0.45 + 0.55 * (face.quality.capture / 0.35))
                 }
                 return raw
@@ -459,7 +458,7 @@ enum FaceEngine {
                 guard enabled.contains(s) else { return 0 }
                 return hits.first { $0.strategy == s }?.versus.first { $0.identityId == id }?.percent ?? 0
             }
-            let lowCapture = tinyUnreliable(face.quality)
+            let lowCapture = tinyUnreliable(face.quality, hasPrint: !face.featurePrint.isEmpty)
             func geoMixOf(_ id: UUID) -> Double {
                 let parts: [(StrategyID, Double)] = [
                     (.ratios, 0.20), (.faceShape, 0.16), (.midface, 0.14), (.eyeRegion, 0.14),
@@ -1192,13 +1191,13 @@ enum FaceEngine {
         }
     }
 
-    private static func stampPrints(_ faces: [FaceObservation], from image: CGImage, orientation: CGImagePropertyOrientation = .up) -> [FaceObservation] {
-        let anySharp = faces.contains { !MatchMath.skipPrint(sharpness: $0.quality.sharpness) }
+    private static func stampPrints(_ faces: [FaceObservation], from image: CGImage, orientation: CGImagePropertyOrientation = .up, continuity: Bool = false) -> [FaceObservation] {
+        let anySharp = faces.contains { !MatchMath.skipPrint(sharpness: $0.quality.sharpness, continuity: continuity) }
         let found = anySharp ? facePrintsInImage(image, orientation: orientation) : []
         var used = Set<Int>()
         return faces.map { face in
             var next = face
-            if MatchMath.skipPrint(sharpness: face.quality.sharpness) {
+            if MatchMath.skipPrint(sharpness: face.quality.sharpness, continuity: continuity) {
                 next.featurePrint = Data()
                 next.printVec = []
                 return next
@@ -1995,8 +1994,11 @@ enum FaceEngine {
         return best
     }
 
-    private static func tinyUnreliable(_ q: FaceQuality) -> Bool {
-        MatchMath.qualityRejects(capture: q.capture, size: q.size, sharpness: q.sharpness)
+    private static func tinyUnreliable(_ q: FaceQuality, hasPrint: Bool = false) -> Bool {
+        if hasPrint, q.sharpness >= MatchMath.continuitySharpnessFloor {
+            return q.capture < 0.35 && q.size < 0.16
+        }
+        return MatchMath.qualityRejects(capture: q.capture, size: q.size, sharpness: q.sharpness)
     }
 
     private static func textureIsReliable(_ q: FaceQuality) -> Bool {

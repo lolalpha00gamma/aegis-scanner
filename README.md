@@ -1,4 +1,4 @@
-# Aegis **2.1.11 alpha**
+# Aegis **2.1.12 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,19 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main` oder `bugfix`.
+
+## Neu in 2.1.12 alpha
+
+Warum 2.1.11 trotz Ampel und Orient-Override Crowd, Masken-Labor und Continuity trotzdem verzerrte:
+
+- **Tile-Budget 2.** Crowd bekommt Diagonale statt 5 Origins — weniger NMS-Zwillinge.
+- **Labor trennt Maske/Voll.** Genuine-Paare `genuine-mask` vs `genuine-full`, TAR ohne Masken-Dämpfung extra.
+- **Score-Histogramm** Genuine/Impostor als ASCII-Spark im Labor.
+- **Ampel-Spark 8 Frames.** Live-History, nicht der einzelne Tick.
+- **Continuity-Schärfe 0,08.** Desk-View darf 0,10–0,14 noch zum Print, Built-in bleibt 0,12.
+- **Orient-Konflikt** einmal loggen, wenn Override und `videoRotationAngle` auseinanderliegen.
+- **„doch Name“.** Hard-Negativ-Deckel 35 wieder aufheben.
+- **Orient-Menü ohne Live.** Letzte `uniqueID` bleibt gespeichert, Override vor Webcam-Start.
 
 ## Neu in 2.1.11 alpha
 
