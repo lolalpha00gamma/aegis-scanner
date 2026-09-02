@@ -358,9 +358,15 @@ struct ContentView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } else if !assignedPass, let guess = store.identities.first(where: { $0.id == hit?.versus.first?.identityId }) {
-                    Text("Nähe \(guess.name) · Prozent bleibt sichtbar")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    HStack {
+                        Text("Nähe \(guess.name) · Prozent bleibt sichtbar")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Button("nicht \(guess.name)") {
+                            store.rejectGuess(guess.id)
+                        }
+                        .help("Hard-Negativ: dieses Gesicht ist nicht diese Person. Hebt den lokalen Floor, ohne die Galerie zu löschen.")
+                    }
                 }
                 Text(String(format: "Qualität %.0f%%  ·  Schärfe %.0f%%  ·  Frontal %.0f%%",
                             face.quality.capture * 100,

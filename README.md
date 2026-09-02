@@ -1,4 +1,4 @@
-# Aegis **2.1.6 alpha**
+# Aegis **2.1.7 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -14,7 +14,21 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 2. **Aegis** in den Ordner Programme ziehen
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
-macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main` oder `bugfix`.
+
+## Neu in 2.1.7 alpha
+
+Warum 2.1.6 trotz gewichtetem Centroid noch Fremde taufte und Live-IDs verlor:
+
+- **`lookOf` 0,4 % Print ist kein „KI aus“.** `embed < 1 → geo` ist weg. Gemessener Impostor-Print bleibt Impostor, Geometrie tauft niemanden.
+- **Crop-Print mit Orientierung.** Fallback-Crop in `stampPrints` läuft nicht mehr als `.up`.
+- **Coverage-Slot blockt.** + auf einen vollen Frontal-Slot ohne ¾ wird abgelehnt, nicht nur gewarnt.
+- **Live-Reconnect hält UUID.** Nach Kamera-Drop matcht der Print (Cosine > 0,72) gegen Ghosts 1,8 s — nicht nur IoU.
+- **Built-in-Webcam zuerst.** Continuity ist Fallback, analog Helios.
+- **Familien-Floor +4**, wenn zwei Galerie-Centroids Cosine 0,80–0,88 haben.
+- **„nicht Name“.** Hard-Negativ-Vektor, Score-Deckel 35 für diese Person.
+- **Anlegen-Bestätigung** bei Duplikat-Cosine > 0,88.
+- **MatchMath** wieder im Target und im CI. Overlay „Maske?“ / „Sonnenbrille?“.
 
 ## Neu in 2.1.6 alpha
 

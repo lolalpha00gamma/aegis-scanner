@@ -2,7 +2,7 @@ name: Aegis.dmg
 
 on:
   push:
-    branches: [main]
+    branches: [main, bugfix]
   workflow_dispatch:
 
 permissions:
@@ -26,6 +26,11 @@ jobs:
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "title=$TITLE" >> "$GITHUB_OUTPUT"
           echo "Publishing $TITLE as $TAG"
+
+      - name: MatchMath tests
+        run: |
+          swiftc macos/AegisScanner/MatchMath.swift macos/AegisScannerTests/MatchMathTests.swift -o /tmp/aegismath
+          /tmp/aegismath
 
       - name: Build Aegis.app
         run: |

@@ -1,0 +1,117 @@
+import Foundation
+
+/// Schwellen und Kurven an einer Stelle. Engine, Labor, Tests, Slider.
+enum MatchMath {
+    static let embedMargin = 12.0
+    static let landmarkMargin = 14.0
+    static let zFloor = 1.5
+    static let printSigmoidMid = 0.55
+    static let printSigmoidSlope = 14.0
+    static let printRevision = "VNGenerateFacePrint/1"
+    static let familyCosineLo = 0.80
+    static let familyCosineHi = 0.88
+    static let familyFloorBump = 4.0
+    static let rejectCosine = 0.90
+
+    struct Floors: Equatable {
+        var match: Double
+        var solo: Double
+    }
+
+    /// Slider ist Bias um 78. Kleine Galerien brauchen höhere Floors.
+    /// Solo +2 (nicht +4): sonst landet ein echter 86er-Print unter der Linie.
+    static func floors(gallery: Int, slider: Double, familyBump: Double = 0) -> Floors {
+        let rec: Double
+        if gallery <= 1 { rec = 84 }
+        else if gallery <= 3 { rec = 80 }
+        else { rec = 78 }
+        let match = min(96, max(70, rec + (slider - 78) + familyBump))
+        return Floors(match: match, solo: min(96, match + 2))
+    }
+
+    /// Genuine Apple-FacePrint-Cosine typisch 0,62–0,92; Impostoren 0,15–0,50.
+    static func printSigmoid(cosine: Double) -> Double {
+        100.0 / (1.0 + exp(-printSigmoidSlope * (cosine - printSigmoidMid)))
+    }
+
+    /// `printMeasured`: Face-Print wurde wirklich berechnet.
+    /// Ein Impostor-Print von 0,4 % ist **nicht** „KI aus“ — sonst gewinnt Geometrie
+    /// und tauft Fremde. Print *ist* der Score; Geo vetoiert oder gibt bis +4.
+    static func lookOf(geo: Double, embed: Double, pose: Double = 1, printMeasured: Bool) -> Double {
+        if !printMeasured { return geo }
+        if geo < 1 { return embed }
+        if geo < 35 { return min(embed, 60) }
+        let agree = clamp01((geo - 52) / 38) * clamp01(pose)
+        return min(100, embed + 4.0 * agree)
+    }
+
+    /// Geschwister / ähnliche Knochen: Centroid-Cosine 0,80–0,88 → +4 Floor.
+    static func familyBump(pairwiseCosine: [Double]) -> Double {
+        for c in pairwiseCosine where c >= familyCosineLo && c <= familyCosineHi {
+            return familyFloorBump
+        }
+        return 0
+    }
+
+    static func cosine(_ a: [Double], _ b: [Double]) -> Double {
+        let n = min(a.count, b.count)
+        guard n > 0 else { return 0 }
+        var dot = 0.0
+        var na = 0.0
+        var nb = 0.0
+        for i in 0 ..< n {
+            dot += a[i] * b[i]
+            na += a[i] * a[i]
+            nb += b[i] * b[i]
+        }
+        let d = sqrt(na) * sqrt(nb)
+        guard d > 1e-12 else { return 0 }
+        return max(-1, min(1, dot / d))
+    }
+
+    static func l2normalize(_ v: [Double]) -> [Double] {
+        var s = 0.0
+        for x in v { s += x * x }
+        let n = sqrt(s)
+        guard n > 1e-12 else { return v }
+        return v.map { $0 / n }
+    }
+
+    /// Gewichteter Mittelvektor. `weights` parallel zu `vectors`.
+    static func weightedMean(_ vectors: [[Double]], weights: [Double]) -> [Double] {
+        guard !vectors.isEmpty, vectors.count == weights.count else { return [] }
+        let dim = vectors[0].count
+        guard dim >= 32 else { return [] }
+        var acc = [Double](repeating: 0, count: dim)
+        var wsum = 0.0
+        for (v, wRaw) in zip(vectors, weights) {
+            guard v.count == dim else { continue }
+            let w = max(0.08, wRaw)
+            for i in 0 ..< dim { acc[i] += v[i] * w }
+            wsum += w
+        }
+        guard wsum > 0 else { return [] }
+        let inv = 1.0 / wsum
+        for i in acc.indices { acc[i] *= inv }
+        return l2normalize(acc)
+    }
+
+    static func rejected(_ probe: [Double], by gallery: [[Double]]) -> Bool {
+        guard probe.count >= 32 else { return false }
+        for v in gallery where v.count == probe.count {
+            if cosine(probe, v) >= rejectCosine { return true }
+        }
+        return false
+    }
+
+    static func tar(atFar far: Double, genuine: [Double], impostor: [Double]) -> (tar: Double, threshold: Double)? {
+        guard !genuine.isEmpty, !impostor.isEmpty, far > 0, far < 1 else { return nil }
+        let desc = impostor.sorted(by: >)
+        let idx = min(desc.count - 1, max(0, Int((far * Double(desc.count)).rounded(.down))))
+        let t = desc[idx]
+        let hits = genuine.filter { $0 >= t }.count
+        return (Double(hits) / Double(genuine.count), t)
+    }
+
+    private static func clamp01(_ n: Double) -> Double { min(1, max(0, n)) }
+}

@@ -89,7 +89,7 @@ final class LiveCapture: NSObject {
         let session = AVCaptureSession()
         session.sessionPreset = .hd1280x720
         guard
-            let device = AVCaptureDevice.default(for: .video),
+            let device = preferredCamera(),
             let input = try? AVCaptureDeviceInput(device: device)
         else {
             onError?("Keine Webcam gefunden.")
@@ -111,6 +111,26 @@ final class LiveCapture: NSObject {
     }
 
     private var tap: FrameTap?
+
+    private func preferredCamera() -> AVCaptureDevice? {
+        var types: [AVCaptureDevice.DeviceType] = [
+            .builtInWideAngleCamera,
+            .continuityCamera,
+            .external
+        ]
+        if #available(macOS 14.0, *) {
+            types.append(.deskViewCamera)
+        }
+        let discovered = AVCaptureDevice.DiscoverySession(
+            deviceTypes: types,
+            mediaType: .video,
+            position: .unspecified
+        ).devices
+        if let builtIn = discovered.first(where: { $0.deviceType == .builtInWideAngleCamera }) {
+            return builtIn
+        }
+        return discovered.first ?? AVCaptureDevice.default(for: .video)
+    }
 
     private func startPlayer(url: URL) {
         let item = AVPlayerItem(url: url)

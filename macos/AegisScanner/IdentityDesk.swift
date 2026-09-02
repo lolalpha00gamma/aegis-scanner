@@ -11,6 +11,7 @@ enum ProbeState: String {
 struct GalleryPayload: Codable {
     var identities: [Identity]
     var faces: [FaceObservation]
+    var printRevision: String?
 }
 
 enum GalleryFile {
@@ -40,7 +41,8 @@ enum GalleryFile {
         let enrolled = Set(identities.flatMap(\.faceIds))
         let payload = GalleryPayload(
             identities: identities,
-            faces: faces.filter { enrolled.contains($0.id) }
+            faces: faces.filter { enrolled.contains($0.id) },
+            printRevision: MatchMath.printRevision
         )
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]

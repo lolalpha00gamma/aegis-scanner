@@ -30,6 +30,7 @@ final class LibraryStore: ObservableObject {
     @Published var liveURLText = ""
     @Published var liveActive = false
     @Published var enabled: Set<StrategyID> = Set(StrategyID.allCases)
+    @Published var pendingDuplicateName: String?
 
     private let liveCapture = LiveCapture()
     private var liveMediaId: UUID?
@@ -38,6 +39,8 @@ final class LibraryStore: ObservableObject {
     private var scanGeneration = 0
     private let scanFlag = AegisScanFlag()
     private let enabledKey = "aegis.enabledStrategies"
+    private var liveGhosts: [(face: FaceObservation, until: TimeInterval)] = []
+    private var reconnectGhosts: [FaceObservation] = []
 
     init() {
         let packed = GalleryFile.load()
@@ -400,6 +403,14 @@ final class LibraryStore: ObservableObject {
             status = why
             return
         }
+        if let dup = FaceEngine.duplicateOf(face: face, identities: identities, faces: faces) {
+            if pendingDuplicateName != name {
+                pendingDuplicateName = name
+                status = "Ähnlich \(dup.0.name) (\(Int(dup.1 * 100)) %). Nochmal Anlegen bestätigt, sonst anderen Namen."
+                return
+            }
+        }
+        pendingDuplicateName = nil
         let preview = FaceEngine.enrollmentPreview(face: face, identities: identities, faces: faces)
         let note = preview.isEmpty ? "" : " · \(preview)"
         identities.append(Identity(id: UUID(), name: name, faceIds: [face.id]))
@@ -435,6 +446,10 @@ final class LibraryStore: ObservableObject {
             status = why
             return
         }
+        if let block = FaceEngine.poseCoverageBlocks(adding: face, to: identities[idx], faces: faces) {
+            status = block + " — anderes Pose-Foto wählen, nicht denselben Slot füllen."
+            return
+        }
         let preview = FaceEngine.enrollmentPreview(
             face: face,
             identities: identities,
@@ -457,6 +472,23 @@ final class LibraryStore: ObservableObject {
         identities.removeAll { $0.id == id }
         persist()
         rematch()
+    }
+
+    func rejectGuess(_ identityId: UUID) {
+        guard let face = selectedFace else { return }
+        guard let idx = identities.firstIndex(where: { $0.id == identityId }) else { return }
+        let v = FaceEngine.embedding(of: face)
+        guard v.count >= 32 else {
+            status = "Kein Print — Ablehnen braucht Face-Print"
+            return
+        }
+        identities[idx].rejectedVecs.append(v)
+        if identities[idx].rejectedVecs.count > 8 {
+            identities[idx].rejectedVecs.removeFirst(identities[idx].rejectedVecs.count - 8)
+        }
+        persist()
+        rematch()
+        status = "Nicht \(identities[idx].name) — Hard-Negativ gespeichert"
     }
 
     func startLiveFromField() {
@@ -493,6 +525,9 @@ final class LibraryStore: ObservableObject {
     }
 
     private func startLive(url: URL, kind: LiveKind, name: String) {
+        if let id = liveMediaId {
+            reconnectGhosts = faces.filter { $0.mediaId == id }
+        }
         stopLive()
         let id = UUID()
         liveMediaId = id
@@ -533,6 +568,29 @@ final class LibraryStore: ObservableObject {
                 self.liveBusy = false
             }
         }
+    }
+
+    private func pinByPrint(
+        _ face: FaceObservation,
+        pool: [FaceObservation],
+        used: Set<UUID>
+    ) -> FaceObservation? {
+        let v = FaceEngine.embedding(of: face)
+        guard v.count >= 32 else { return nil }
+        var best: FaceObservation?
+        var bestC = 0.72
+        var seen = Set<UUID>()
+        for old in pool where !used.contains(old.id) && !seen.contains(old.id) {
+            seen.insert(old.id)
+            let ov = old.printVec.count >= 32 ? old.printVec : FaceEngine.embedding(of: old)
+            guard ov.count == v.count else { continue }
+            let c = MatchMath.cosine(v, ov)
+            if c > bestC {
+                bestC = c
+                best = old
+            }
+        }
+        return best
     }
 
     private func applyLiveFaces(_ found: [FaceObservation], image: CGImage, mediaId: UUID) {
@@ -587,8 +645,25 @@ final class LibraryStore: ObservableObject {
                 } else if face.printVec.isEmpty {
                     face.printVec = FaceEngine.embedding(of: face)
                 }
+            } else if let old = pinByPrint(face, pool: previous + reconnectGhosts + liveGhosts.map(\.face), used: used) {
+                used.insert(old.id)
+                face.id = old.id
+                face.trackId = old.trackId ?? old.id
+                if face.featurePrint.isEmpty, !old.featurePrint.isEmpty {
+                    face.featurePrint = old.featurePrint
+                    face.printVec = old.printVec.isEmpty ? FaceEngine.embedding(of: old) : old.printVec
+                } else if !old.printVec.isEmpty, !face.featurePrint.isEmpty {
+                    face.printVec = FaceEngine.blendEmbeddings(old.printVec, FaceEngine.embedding(of: face), alpha: 0.35)
+                }
             }
             adopted.append(face)
+        }
+        let now = Date().timeIntervalSince1970
+        liveGhosts.removeAll { $0.until < now }
+        if found.isEmpty {
+            for old in previous where !enrolled.contains(old.id) {
+                liveGhosts.append((old, now + 1.8))
+            }
         }
         var leftoverPinned = previous.filter { enrolled.contains($0.id) && !used.contains($0.id) }
         if found.isEmpty {
@@ -623,6 +698,7 @@ final class LibraryStore: ObservableObject {
         if selectedMediaId == mediaId {
             selectedFaceId = adopted.first?.id ?? leftoverPinned.first?.id
         }
+        reconnectGhosts.removeAll { used.contains($0.id) }
         nmsDropped = FaceEngine.lastNMSDropped
         rematch()
     }

@@ -2,9 +2,9 @@ import CoreGraphics
 import Foundation
 
 enum AppVersion {
-    static let marketing = "2.1.6"
+    static let marketing = "2.1.7"
     static let channel = "alpha"
-    static let display = "2.1.6 alpha"
+    static let display = "2.1.7 alpha"
 }
 
 enum StrategyTrack: String, CaseIterable, Identifiable {
@@ -213,6 +213,27 @@ struct Identity: Identifiable, Hashable, Codable {
     let id: UUID
     var name: String
     var faceIds: [UUID]
+    /// Hard-Negatives: Prints, die ausdrücklich *nicht* diese Person sind.
+    var rejectedVecs: [[Double]] = []
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, faceIds, rejectedVecs
+    }
+
+    init(id: UUID, name: String, faceIds: [UUID], rejectedVecs: [[Double]] = []) {
+        self.id = id
+        self.name = name
+        self.faceIds = faceIds
+        self.rejectedVecs = rejectedVecs
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        name = try c.decode(String.self, forKey: .name)
+        faceIds = try c.decode([UUID].self, forKey: .faceIds)
+        rejectedVecs = try c.decodeIfPresent([[Double]].self, forKey: .rejectedVecs) ?? []
+    }
 }
 
 struct IdentityScore: Hashable {

@@ -330,10 +330,6 @@ enum FaceEngine {
         threshold: Double = 78,
         enabled: Set<StrategyID> = Set(StrategyID.allCases)
     ) -> [MatchResult] {
-        let floors = Floors(
-            match: min(96, max(70, adaptiveFloor(identities.count, slider: threshold))),
-            solo: min(96, min(96, max(70, adaptiveFloor(identities.count, slider: threshold))) + 2)
-        )
         var tracked = faces
         assignTracks(faces: &tracked, media: media)
         let models = identities.map { identity -> IdentityModel in
@@ -360,6 +356,22 @@ enum FaceEngine {
                 geom3ds: owned.map(\.geom3d).filter { !$0.isEmpty }
             )
         }
+        var pairCos: [Double] = []
+        for i in models.indices {
+            for j in (i + 1)..<models.count {
+                let a = models[i].meanVec
+                let b = models[j].meanVec
+                if a.count >= 32, b.count == a.count {
+                    pairCos.append(MatchMath.cosine(a, b))
+                }
+            }
+        }
+        let f = MatchMath.floors(
+            gallery: identities.count,
+            slider: threshold,
+            familyBump: MatchMath.familyBump(pairwiseCosine: pairCos)
+        )
+        let floors = Floors(match: f.match, solo: f.solo)
 
         return tracked.map { face in
             var hits: [StrategyHit] = []
@@ -454,19 +466,21 @@ enum FaceEngine {
                 return parts.reduce(0.0) { $0 + ($1.1 / w) * pctVs($1.0, id) }
             }
             func embedOf(_ id: UUID) -> Double {
-                if lowCapture { return pctVs(.qualityGate, id) }
-                return pctVs(.featurePrint, id)
+                let raw = lowCapture ? pctVs(.qualityGate, id) : pctVs(.featurePrint, id)
+                if let ident = models.first(where: { $0.identity.id == id }),
+                   MatchMath.rejected(embedding(of: face), by: ident.identity.rejectedVecs)
+                {
+                    return min(raw, 35)
+                }
+                return raw
             }
             func lookOfId(_ id: UUID) -> Double {
                 let geo = geoMixOf(id)
                 let embed = embedOf(id)
-                // KI an, aber kein Face-Print auf diesem Gesicht:
-                // Geometrie allein darf niemanden benennen (Fremde mit ähnlichen Maßen).
-                // KI aus (Nutzer) bleibt reines Geometrie-Matching.
                 if kiOn && !printOn {
                     return min(geo, 49)
                 }
-                return lookOf(geo: geo, embed: embed, pose: poseWeight(face.quality))
+                return lookOf(geo: geo, embed: embed, pose: poseWeight(face.quality), printMeasured: printOn)
             }
             let ids = models.map(\.identity.id)
             let embedRow = ids.map { embedOf($0) }
@@ -564,9 +578,9 @@ enum FaceEngine {
 
     /// Slider ist Bias um 78. Kleine Galerien brauchen höhere Floors, sonst
     /// tauft ein einzelner Impostor-Treffer die einzige Person.
-    static func effectiveFloors(galleryCount: Int, slider: Double) -> (match: Double, solo: Double) {
-        let match = min(96, max(70, adaptiveFloor(galleryCount, slider: slider)))
-        return (match, min(96, match + 2))
+    static func effectiveFloors(galleryCount: Int, slider: Double, familyBump: Double = 0) -> (match: Double, solo: Double) {
+        let f = MatchMath.floors(gallery: galleryCount, slider: slider, familyBump: familyBump)
+        return (f.match, f.solo)
     }
 
     static func overlayHint(_ face: FaceObservation, gallery: [FaceObservation] = []) -> String? {
@@ -578,6 +592,10 @@ enum FaceEngine {
         if abs(face.quality.yaw) > 0.75 { return "Profil" }
         if face.quality.frontal < 0.22 { return "stark gedreht" }
         if face.quality.sharpness < 0.08 { return "unscharf" }
+        let eyes = face.strokes.contains { $0.label.hasPrefix("Auge") && $0.points.count >= 4 }
+        let mouth = face.strokes.contains { ($0.label == "Mund" || $0.label == "Lippen") && $0.points.count >= 4 }
+        if eyes && !mouth { return "Maske?" }
+        if !eyes && mouth { return "Sonnenbrille / Okklusion?" }
         if gallery.count >= 1 {
             let pv = embedding(of: face)
             let mean = meanPrintVector(gallery)
@@ -647,6 +665,14 @@ enum FaceEngine {
         return "\(slot.titleDE) schon \(have)× — fehlt \(missing.joined(separator: ", "))"
     }
 
+    static func poseCoverageBlocks(
+        adding face: FaceObservation,
+        to identity: Identity,
+        faces: [FaceObservation]
+    ) -> String? {
+        poseCoverageWarning(adding: face, to: identity, faces: faces)
+    }
+
     static func enrollmentPreview(
         face: FaceObservation,
         identities: [Identity],
@@ -675,14 +701,6 @@ enum FaceEngine {
             parts.append(poseSlot(face).titleDE)
         }
         return parts.joined(separator: " · ")
-    }
-
-    private static func adaptiveFloor(_ n: Int, slider: Double) -> Double {
-        let rec: Double
-        if n <= 1 { rec = 84 }
-        else if n <= 3 { rec = 80 }
-        else { rec = 78 }
-        return rec + (slider - 78)
     }
 
     private struct IdentityModel {
@@ -886,8 +904,7 @@ enum FaceEngine {
     }
 
     private static func sigmoidCosine(_ a: [Double], _ b: [Double]) -> Double {
-        let c = cosine(a, b)
-        return 100.0 / (1.0 + exp(-14.0 * (c - 0.55)))
+        MatchMath.printSigmoid(cosine: cosine(a, b))
     }
 
     /// Vision face boxes: origin lower-left of the image, normalized 0…1.
@@ -1116,7 +1133,7 @@ enum FaceEngine {
             // als Identität.
             if found.isEmpty,
                let crop = self.crop(image, box: face.box, pad: 0.55),
-               let data = identityPrint(of: crop)
+               let data = facePrintOnly(of: crop, orientation: orientation)
             {
                 next.featurePrint = data
                 next.printVec = printVector(data)
@@ -1876,12 +1893,8 @@ enum FaceEngine {
     /// Print is the score. Geometry vetoes a mismatch and may add a small
     /// boost when it agrees — never a 0.25 mix that pulls a 92 % print under
     /// the 1-person soloFloor.
-    private static func lookOf(geo: Double, embed: Double = 0, pose: Double = 1) -> Double {
-        if embed < 1 { return geo }
-        if geo < 1 { return embed }
-        if geo < 35 { return min(embed, 60) }
-        let agree = clamp01((geo - 52) / 38) * clamp01(pose)
-        return min(100, embed + 4.0 * agree)
+    private static func lookOf(geo: Double, embed: Double = 0, pose: Double = 1, printMeasured: Bool = false) -> Double {
+        MatchMath.lookOf(geo: geo, embed: embed, pose: pose, printMeasured: printMeasured)
     }
 
     /// 1 = frontal, ~0.7 at 45°, 0 at 90°. Vision yaw/pitch are radians.
