@@ -1,12 +1,20 @@
 import CoreGraphics
 import Foundation
+import ImageIO
 import Vision
 
 enum FaceEngine {
-    static func detect(in image: CGImage, mediaId: UUID, tiles: Bool = true) throws -> [FaceObservation] {
+    private static let nmsLock = NSLock()
+    private static var _dropped: [FaceBox] = []
+    static var lastNMSDropped: [FaceBox] {
+        nmsLock.lock(); defer { nmsLock.unlock() }
+        return _dropped
+    }
+
+    static func detect(in image: CGImage, mediaId: UUID, tiles: Bool = true, orientation: CGImagePropertyOrientation = .up, minSharpness: Double = MatchMath.sharpnessFloor, continuity: Bool = false) throws -> [FaceObservation] {
         let w = Double(image.width)
         let h = Double(image.height)
-        var out = try detectOnce(in: image, mediaId: mediaId, originX: 0, originY: 0, imageWidth: w, imageHeight: h)
+        var out = try detectOnce(in: image, mediaId: mediaId, originX: 0, originY: 0, imageWidth: w, imageHeight: h, orientation: orientation)
         let stats = lumaStats(image)
         if stats.dark || out.isEmpty, let lifted = equalize(image) {
             let extra = try detectOnce(
@@ -16,28 +24,29 @@ enum FaceEngine {
                 originY: 0,
                 imageWidth: w,
                 imageHeight: h,
-                minConfidence: out.isEmpty ? 0.12 : 0.15
+                minConfidence: out.isEmpty ? 0.12 : 0.15,
+                orientation: orientation
             )
             if stats.dark {
                 out = extra + out
             } else {
                 out.append(contentsOf: extra)
             }
-            out = nms(out)
         }
         let largest = out.map { max($0.box.width, $0.box.height) }.max() ?? 0
         let covered = out.reduce(0.0) { $0 + $1.box.width * $1.box.height }
         let coverage = covered / max(1, w * h)
-        let crowd = out.isEmpty || largest < min(w, h) * 0.22 || (coverage < 0.14 && max(w, h) >= 1000)
+        let minSide = min(w, h)
+        // Portrait mit einem großen Gesicht: Tiles erzeugen NMS-Zwillinge und
+        // falsche Print-IoU. Nur crowd/klein oder leeres Bild kacheln.
+        let hasLargeFace = largest >= minSide * 0.28
+        let crowd = !hasLargeFace && (out.isEmpty || largest < minSide * 0.22 || (coverage < 0.14 && max(w, h) >= 1000))
         if tiles, crowd, max(image.width, image.height) >= 900 {
             let tw = max(280, Int((w * 0.58).rounded()))
             let th = max(280, Int((h * 0.58).rounded()))
             let origins: [(Int, Int)] = [
-                (0, 0),
-                (max(0, image.width - tw), 0),
-                (0, max(0, image.height - th)),
-                (max(0, image.width - tw), max(0, image.height - th)),
                 (max(0, (image.width - tw) / 2), max(0, (image.height - th) / 2)),
+                (0, 0),
             ]
             for (ox, oy) in origins {
                 let tileBox = FaceBox(x: Double(ox), y: Double(oy), width: Double(tw), height: Double(th))
@@ -50,13 +59,13 @@ enum FaceEngine {
                     originY: Double(oy),
                     imageWidth: w,
                     imageHeight: h,
-                    minConfidence: stats.dark ? 0.12 : 0.15
+                    minConfidence: stats.dark ? 0.12 : 0.15,
+                    orientation: orientation
                 )
                 out.append(contentsOf: found)
             }
-            out = nms(out)
         }
-        return stampPrints(nms(out), from: image)
+        return stampPrints(nms(out), from: image, orientation: orientation, continuity: continuity, minSharpness: minSharpness)
     }
 
     private static func detectOnce(
@@ -66,9 +75,10 @@ enum FaceEngine {
         originY: Double,
         imageWidth: Double,
         imageHeight: Double,
-        minConfidence: Float = 0.15
+        minConfidence: Float = 0.15,
+        orientation: CGImagePropertyOrientation = .up
     ) throws -> [FaceObservation] {
-        let handler = VNImageRequestHandler(cgImage: image, orientation: .up, options: [:])
+        let handler = VNImageRequestHandler(cgImage: image, orientation: orientation, options: [:])
         let facesReq = VNDetectFaceRectanglesRequest()
         facesReq.revision = VNDetectFaceRectanglesRequestRevision3
         try handler.perform([facesReq])
@@ -176,8 +186,8 @@ enum FaceEngine {
             }
             let printData = Data()
             let bone = boneKeypoints(namedAligned)
-            let yaw = face.yaw?.doubleValue
-            let pitch = face.pitch?.doubleValue
+            let yaw = face.yaw?.doubleValue ?? 0
+            let pitch = face.pitch?.doubleValue ?? 0
 
             out.append(
                 FaceObservation(
@@ -190,7 +200,7 @@ enum FaceEngine {
                     featurePrint: printData,
                     appearance: appearance,
                     graph: graphBiomarkers(bone.isEmpty ? points : bone),
-                    geom3d: FaceShape3D.descriptor(named: namedAligned, yaw: yaw ?? 0, pitch: pitch ?? 0),
+                    geom3d: FaceShape3D.descriptor(named: namedAligned, yaw: yaw, pitch: pitch),
                     quality: FaceQuality(
                         sharpness: sharpness,
                         size: size,
@@ -212,10 +222,17 @@ enum FaceEngine {
     private static func nms(_ faces: [FaceObservation], iouThresh: Double = 0.28) -> [FaceObservation] {
         let ranked = faces.sorted { $0.score > $1.score }
         var kept: [FaceObservation] = []
+        var dropped: [FaceBox] = []
         for face in ranked {
-            if kept.contains(where: { duplicateDetection($0.box, face.box) }) { continue }
+            if kept.contains(where: { duplicateDetection($0.box, face.box) }) {
+                dropped.append(face.box)
+                continue
+            }
             kept.append(face)
         }
+        nmsLock.lock()
+        _dropped = dropped
+        nmsLock.unlock()
         return kept.sorted { $0.box.x + $0.box.y * 0.15 < $1.box.x + $1.box.y * 0.15 }
     }
 
@@ -314,7 +331,6 @@ enum FaceEngine {
         threshold: Double = 78,
         enabled: Set<StrategyID> = Set(StrategyID.allCases)
     ) -> [MatchResult] {
-        let floors = MatchMath.floors(gallery: identities.count, slider: threshold)
         var tracked = faces
         assignTracks(faces: &tracked, media: media)
         let models = identities.map { identity -> IdentityModel in
@@ -326,6 +342,7 @@ enum FaceEngine {
                 identity: identity,
                 photos: photos,
                 meanPrint: owned,
+                meanVec: meanPrintVector(owned),
                 landmarkSets: namedSets.filter { !$0.isEmpty },
                 temporal: owned.filter { face in
                     media.first { $0.id == face.mediaId }?.kind == .frame
@@ -340,15 +357,31 @@ enum FaceEngine {
                 geom3ds: owned.map(\.geom3d).filter { !$0.isEmpty }
             )
         }
+        var pairCos: [Double] = []
+        for i in models.indices {
+            for j in (i + 1)..<models.count {
+                let a = models[i].meanVec
+                let b = models[j].meanVec
+                if a.count >= 32, b.count == a.count {
+                    pairCos.append(MatchMath.cosine(a, b))
+                }
+            }
+        }
+        let f = MatchMath.floors(
+            gallery: identities.count,
+            slider: threshold,
+            familyBump: MatchMath.familyBump(pairwiseCosine: pairCos)
+        )
+        let floors = Floors(match: f.match, solo: f.solo)
 
         return tracked.map { face in
             var hits: [StrategyHit] = []
 
-            let photos = rank(models, minMargin: MatchMath.embedMargin, floors: floors) { m in
+            let photos = rank(models, minMargin: embedMargin, floors: floors) { m in
                 guard face.quality.capture >= 0.35 else { return 0 }
-                return probePrintScore(face, m.meanPrint)
+                return bestPrintPercent(face, m.meanPrint)
             }
-            let printOn = !face.featurePrint.isEmpty || !face.printHistory.isEmpty
+            let printOn = !face.featurePrint.isEmpty
             let geoOn = !(face.namedAligned.isEmpty && face.aligned.isEmpty)
             let texOn = !face.appearance.isEmpty
             let kiOn = enabled.contains(where: { $0.track == .ki })
@@ -359,65 +392,65 @@ enum FaceEngine {
 
             hits.append(toHit(.photosStyle, face.quality.capture < 0.35
                 ? Ranked(identityId: nil, percent: 0, margin: photos.margin, versus: photos.versus)
-                : photos, measured: printOn, floors: floors))
+                : photos, floors: floors, measured: printOn))
 
-            let box = rank(models, minMargin: MatchMath.embedMargin, floors: floors) { m in
-                probePrintScore(face, m.meanPrint)
+            let box = rank(models, minMargin: embedMargin, floors: floors) { m in
+                bestPrintPercent(face, m.meanPrint)
             }
-            hits.append(toHit(.visionBox, box, measured: printOn, floors: floors))
+            hits.append(toHit(.visionBox, box, floors: floors, measured: printOn))
 
             let geoPts = face.namedAligned.isEmpty ? face.aligned : face.namedAligned
-            let geo = rank(models, minMargin: MatchMath.landmarkMargin, floors: floors) { m in
+            let geo = rank(models, minMargin: landmarkMargin, floors: floors) { m in
                 bestLandmarkPercent(geoPts, m.landmarkSets)
             }
-            hits.append(hint(.landmarkGeo, geo, measured: geoOn, floors: floors))
+            hits.append(hint(.landmarkGeo, geo, floors: floors, measured: geoOn))
 
             let probeM = measures(face)
             let ratioInv = pooledInverse(models.flatMap(\.ratios))
-            hits.append(hint(.ratios, rank(models, minMargin: MatchMath.landmarkMargin, floors: floors) { m in
+            hits.append(hint(.ratios, rank(models, minMargin: landmarkMargin, floors: floors) { m in
                 mahalanobisPercent(probeM.ratios, m.ratios, pooledInv: ratioInv)
-            }, measured: !probeM.ratios.isEmpty, floors: floors))
-            hits.append(hint(.faceShape, rank(models, minMargin: MatchMath.landmarkMargin, floors: floors) { m in
+            }, floors: floors, measured: !probeM.ratios.isEmpty))
+            hits.append(hint(.faceShape, rank(models, minMargin: landmarkMargin, floors: floors) { m in
                 bestRatioPercent(probeM.shape, m.shape)
-            }, measured: !probeM.shape.isEmpty, floors: floors))
-            hits.append(hint(.eyeRegion, rank(models, minMargin: MatchMath.landmarkMargin, floors: floors) { m in
+            }, floors: floors, measured: !probeM.shape.isEmpty))
+            hits.append(hint(.eyeRegion, rank(models, minMargin: landmarkMargin, floors: floors) { m in
                 bestRatioPercent(probeM.eyes, m.eyes)
-            }, measured: !probeM.eyes.isEmpty, floors: floors))
-            hits.append(hint(.midface, rank(models, minMargin: MatchMath.landmarkMargin, floors: floors) { m in
+            }, floors: floors, measured: !probeM.eyes.isEmpty))
+            hits.append(hint(.midface, rank(models, minMargin: landmarkMargin, floors: floors) { m in
                 bestRatioPercent(probeM.midface, m.midface)
-            }, measured: !probeM.midface.isEmpty, floors: floors))
-            hits.append(hint(.jawline, rank(models, minMargin: MatchMath.landmarkMargin, floors: floors) { m in
+            }, floors: floors, measured: !probeM.midface.isEmpty))
+            hits.append(hint(.jawline, rank(models, minMargin: landmarkMargin, floors: floors) { m in
                 bestRatioPercent(probeM.jaw, m.jaw)
-            }, measured: !probeM.jaw.isEmpty, floors: floors))
-            hits.append(hint(.graphBio, rank(models, minMargin: MatchMath.landmarkMargin, floors: floors) { m in
+            }, floors: floors, measured: !probeM.jaw.isEmpty))
+            hits.append(hint(.graphBio, rank(models, minMargin: landmarkMargin, floors: floors) { m in
                 bestVecPercent(face.graph, m.graphs)
-            }, measured: !face.graph.isEmpty, floors: floors))
-            hits.append(hint(.geom3d, rank(models, minMargin: MatchMath.landmarkMargin, floors: floors) { m in
+            }, floors: floors, measured: !face.graph.isEmpty))
+            hits.append(hint(.geom3d, rank(models, minMargin: landmarkMargin, floors: floors) { m in
                 bestRatioPercent(face.geom3d, m.geom3ds)
-            }, measured: !face.geom3d.isEmpty, floors: floors))
-            hits.append(hint(.texture, rank(models, minMargin: MatchMath.landmarkMargin, floors: floors) { m in
+            }, floors: floors, measured: !face.geom3d.isEmpty))
+            hits.append(hint(.texture, rank(models, minMargin: landmarkMargin, floors: floors) { m in
                 bestAppearance(face.appearance, m.appearances)
-            }, measured: texOn, floors: floors))
+            }, floors: floors, measured: texOn))
 
-            let gated = rank(models, minMargin: MatchMath.embedMargin, floors: floors) { m in
-                let raw = probePrintScore(face, m.meanPrint)
+            let gated = rank(models, minMargin: embedMargin, floors: floors) { m in
+                let raw = bestPrintPercent(face, m.meanPrint)
                 if tinyUnreliable(face.quality) {
                     return raw * (0.45 + 0.55 * (face.quality.capture / 0.35))
                 }
                 return raw
             }
-            hits.append(toHit(.qualityGate, gated, measured: printOn, floors: floors))
+            hits.append(toHit(.qualityGate, gated, floors: floors, measured: printOn))
 
-            let temporal = rank(models, minMargin: MatchMath.embedMargin, floors: floors) { m in
+            let temporal = rank(models, minMargin: embedMargin, floors: floors) { m in
                 let gallery = m.temporal.isEmpty ? m.meanPrint : m.temporal
-                return probePrintScore(face, gallery)
+                return bestPrintPercent(face, gallery)
             }
-            hits.append(toHit(.temporal, temporal, measured: printOn, floors: floors))
+            hits.append(toHit(.temporal, temporal, floors: floors, measured: printOn))
 
-            let fp = rank(models, minMargin: MatchMath.embedMargin, floors: floors) { m in
-                probePrintScore(face, m.meanPrint)
+            let fp = rank(models, minMargin: embedMargin, floors: floors) { m in
+                bestPrintPercent(face, m.meanPrint)
             }
-            hits.append(toHit(.featurePrint, fp, measured: printOn, floors: floors))
+            hits.append(toHit(.featurePrint, fp, floors: floors, measured: printOn))
 
             func pctVs(_ s: StrategyID, _ id: UUID) -> Double {
                 guard enabled.contains(s) else { return 0 }
@@ -434,8 +467,13 @@ enum FaceEngine {
                 return parts.reduce(0.0) { $0 + ($1.1 / w) * pctVs($1.0, id) }
             }
             func embedOf(_ id: UUID) -> Double {
-                if lowCapture { return pctVs(.qualityGate, id) }
-                return pctVs(.featurePrint, id)
+                let raw = lowCapture ? pctVs(.qualityGate, id) : pctVs(.featurePrint, id)
+                if let ident = models.first(where: { $0.identity.id == id }),
+                   MatchMath.rejected(embedding(of: face), by: ident.identity.rejectedVecs)
+                {
+                    return min(raw, 35)
+                }
+                return raw
             }
             func lookOfId(_ id: UUID) -> Double {
                 let geo = geoMixOf(id)
@@ -443,12 +481,7 @@ enum FaceEngine {
                 if kiOn && !printOn {
                     return min(geo, 49)
                 }
-                return MatchMath.lookOf(
-                    geo: geo,
-                    embed: embed,
-                    pose: poseWeight(face.quality),
-                    printMeasured: kiOn && printOn
-                )
+                return lookOf(geo: geo, embed: embed, pose: poseWeight(face.quality), printMeasured: printOn)
             }
             let ids = models.map(\.identity.id)
             let embedRow = ids.map { embedOf($0) }
@@ -468,7 +501,7 @@ enum FaceEngine {
             if enabled.contains(.geom3d) { matchers.append(geom3dRow); weights.append(0.05) }
             if enabled.contains(.texture) { matchers.append(textureRow); weights.append(0.03) }
             let terFused = terFusion(matchers, weights)
-            hits.append(hint(.terFusion, rank(models, minMargin: MatchMath.embedMargin, floors: floors) { m in
+            hits.append(hint(.terFusion, rank(models, minMargin: embedMargin, floors: floors) { m in
                 let i = ids.firstIndex(of: m.identity.id) ?? 0
                 return i < terFused.count ? terFused[i] : 0
             }, floors: floors))
@@ -480,7 +513,7 @@ enum FaceEngine {
                 }
                 return lookOfId(id)
             }
-            let ensemble = rank(models, minMargin: MatchMath.embedMargin, floors: floors) { m in
+            let ensemble = rank(models, minMargin: embedMargin, floors: floors) { m in
                 fusedOf(m.identity.id)
             }
             let geoRanked = models.map { (id: $0.identity.id, p: geoMixOf($0.identity.id)) }
@@ -520,7 +553,7 @@ enum FaceEngine {
             let aegisNote = enabled.contains(.aegis)
                 ? decided.note
                 : "Spur ausgeschaltet — keine Namensvergabe."
-            hits.append(toHit(.aegis, aegis, note: aegisNote, measured: kiOn || shapeOn || enabled.contains(.geom3d), floors: floors))
+            hits.append(toHit(.aegis, aegis, floors: floors, note: aegisNote, measured: kiOn || shapeOn || enabled.contains(.geom3d)))
             if let owner = identities.first(where: { $0.faceIds.contains(face.id) }) {
                 hits = hits.map { h in
                     let selfP = h.versus.first { $0.identityId == owner.id }?.percent ?? h.percent
@@ -543,10 +576,153 @@ enum FaceEngine {
 
     // MARK: - geometry / prints
 
+    private struct Floors {
+        let match: Double
+        let solo: Double
+    }
+
+    private static let embedMargin = 12.0
+    private static let landmarkMargin = 14.0
+    private static let zFloor = 1.5
+
+    /// Slider ist Bias um 78. Kleine Galerien brauchen höhere Floors, sonst
+    /// tauft ein einzelner Impostor-Treffer die einzige Person.
+    static func effectiveFloors(galleryCount: Int, slider: Double, familyBump: Double = 0) -> (match: Double, solo: Double) {
+        let f = MatchMath.floors(gallery: galleryCount, slider: slider, familyBump: familyBump)
+        return (f.match, f.solo)
+    }
+
+    static func overlayHint(_ face: FaceObservation, gallery: [FaceObservation] = []) -> String? {
+        if face.featurePrint.isEmpty {
+            if face.quality.capture >= 0.40 { return "Print tot · Okklusion?" }
+            return "Print tot"
+        }
+        if face.quality.capture < 0.35 && face.quality.size < 0.16 { return "z zu klein" }
+        if abs(face.quality.yaw) > 0.75 { return "Profil" }
+        if face.quality.frontal < 0.22 { return "stark gedreht" }
+        if face.quality.sharpness < 0.12 { return "unscharf" }
+        let eyes = face.strokes.contains { $0.label.hasPrefix("Auge") && $0.points.count >= 4 }
+        let mouth = face.strokes.contains { ($0.label == "Mund" || $0.label == "Lippen") && $0.points.count >= 4 }
+        if eyes && !mouth { return partialEmbedding(of: face).count >= 32 ? "Maske · Teil-Print" : "Maske?" }
+        if face.forcedPartial { return partialEmbedding(of: face).count >= 32 ? "U-Slot · Teil-Print" : "U-Slot" }
+        if !eyes && mouth { return "Sonnenbrille / Okklusion?" }
+        if gallery.count >= 1 {
+            let pv = embedding(of: face)
+            let mean = meanPrintVector(gallery)
+            if pv.count >= 32, mean.count == pv.count {
+                let c = cosine(pv, mean)
+                if 1 - c > 0.12 { return "andere Person oder Brille?" }
+            }
+        }
+        return nil
+    }
+
+    enum PoseSlot: String {
+        case frontal, threeQuarter, profile, upper
+        var titleDE: String {
+            switch self {
+            case .frontal: return "Frontal"
+            case .threeQuarter: return "¾"
+            case .profile: return "Profil"
+            case .upper: return "Teil-Print"
+            }
+        }
+    }
+
+    static func poseSlot(_ face: FaceObservation) -> PoseSlot {
+        if face.forcedPartial || lowerFaceOccluded(face) { return .upper }
+        let y = abs(face.quality.yaw)
+        if y >= 0.70 { return .profile }
+        if y >= 0.28 { return .threeQuarter }
+        return .frontal
+    }
+
+    static func poseCoverage(identity: Identity, faces: [FaceObservation]) -> (frontal: Int, threeQuarter: Int, profile: Int, upper: Int) {
+        let refs = faces.filter { identity.faceIds.contains($0.id) }
+        var f = 0, q = 0, p = 0, u = 0
+        for r in refs {
+            switch poseSlot(r) {
+            case .frontal: f += 1
+            case .threeQuarter: q += 1
+            case .profile: p += 1
+            case .upper: u += 1
+            }
+        }
+        return (f, q, p, u)
+    }
+
+    static func poseCoverageLabel(identity: Identity, faces: [FaceObservation]) -> String {
+        let c = poseCoverage(identity: identity, faces: faces)
+        return "F\(c.frontal) · ¾\(c.threeQuarter) · P\(c.profile) · U\(c.upper)"
+    }
+
+    static func poseCoverageWarning(
+        adding face: FaceObservation,
+        to identity: Identity,
+        faces: [FaceObservation]
+    ) -> String? {
+        let slot = poseSlot(face)
+        let c = poseCoverage(identity: identity, faces: faces)
+        let have: Int
+        switch slot {
+        case .frontal: have = c.frontal
+        case .threeQuarter: have = c.threeQuarter
+        case .profile: have = c.profile
+        case .upper: have = c.upper
+        }
+        guard have >= 2 else { return nil }
+        var missing: [String] = []
+        if c.frontal == 0 { missing.append("Frontal") }
+        if c.threeQuarter == 0 { missing.append("¾") }
+        if c.profile == 0 { missing.append("Profil") }
+        if c.upper == 0, lowerFaceOccluded(face) { missing.append("Teil-Print") }
+        guard !missing.isEmpty else { return nil }
+        return "\(slot.titleDE) schon \(have)× — fehlt \(missing.joined(separator: ", "))"
+    }
+
+    static func poseCoverageBlocks(
+        adding face: FaceObservation,
+        to identity: Identity,
+        faces: [FaceObservation]
+    ) -> String? {
+        poseCoverageWarning(adding: face, to: identity, faces: faces)
+    }
+
+    static func enrollmentPreview(
+        face: FaceObservation,
+        identities: [Identity],
+        faces: [FaceObservation],
+        addingTo: Identity? = nil
+    ) -> String {
+        var parts: [String] = []
+        if let dest = addingTo {
+            let refs = faces.filter { dest.faceIds.contains($0.id) }
+            let mean = meanPrintVector(refs)
+            let v = embedding(of: face)
+            if mean.count >= 32, v.count == mean.count {
+                let p = 100.0 / (1.0 + exp(-14.0 * (cosine(v, mean) - 0.55)))
+                parts.append(String(format: "zu \(dest.name) %.0f %%", p))
+            }
+            if let w = poseCoverageWarning(adding: face, to: dest, faces: faces) {
+                parts.append(w)
+            }
+        }
+        if let dup = duplicateOf(face: face, identities: identities, faces: faces),
+           dup.0.id != addingTo?.id
+        {
+            parts.append(String(format: "ähnlich \(dup.0.name) %.0f %%", dup.1 * 100))
+        }
+        if addingTo == nil, !face.featurePrint.isEmpty {
+            parts.append(poseSlot(face).titleDE)
+        }
+        return parts.joined(separator: " · ")
+    }
+
     private struct IdentityModel {
         var identity: Identity
         var photos: FaceObservation?
         var meanPrint: [FaceObservation]
+        var meanVec: [Double]
         var landmarkSets: [[Point2]]
         var temporal: [FaceObservation]
         var ratios: [[Double]]
@@ -569,7 +745,7 @@ enum FaceEngine {
     private static func rank(
         _ models: [IdentityModel],
         minMargin: Double,
-        floors: MatchMath.Floors,
+        floors: Floors,
         scoreOf: (IdentityModel) -> Double
     ) -> Ranked {
         var versus = models.map { IdentityScore(identityId: $0.identity.id, percent: scoreOf($0)) }
@@ -583,7 +759,7 @@ enum FaceEngine {
         if hasRival {
             assign = (best?.percent ?? 0) >= floors.match && (margin >= minMargin || strong)
         } else {
-            assign = (best?.percent ?? 0) >= floors.solo && minMargin <= MatchMath.embedMargin
+            assign = (best?.percent ?? 0) >= floors.solo && minMargin <= embedMargin
         }
         return Ranked(
             identityId: assign ? best?.identityId : nil,
@@ -593,13 +769,13 @@ enum FaceEngine {
         )
     }
 
-    private static func hint(_ strategy: StrategyID, _ ranked: Ranked, measured: Bool = true, floors: MatchMath.Floors) -> StrategyHit {
+    private static func hint(_ strategy: StrategyID, _ ranked: Ranked, floors: Floors, measured: Bool = true) -> StrategyHit {
         var copy = ranked
         copy.identityId = nil
-        return toHit(strategy, copy, measured: measured, floors: floors)
+        return toHit(strategy, copy, floors: floors, measured: measured)
     }
 
-    private static func toHit(_ strategy: StrategyID, _ ranked: Ranked, note: String = "", measured: Bool = true, floors: MatchMath.Floors) -> StrategyHit {
+    private static func toHit(_ strategy: StrategyID, _ ranked: Ranked, floors: Floors, note: String = "", measured: Bool = true) -> StrategyHit {
         let text: String
         if !measured {
             text = "nicht gemessen"
@@ -608,7 +784,7 @@ enum FaceEngine {
         } else if ranked.identityId != nil {
             text = String(format: "Abstand %.1f Pkt.", ranked.margin)
         } else if ranked.versus.count < 2 {
-            text = String(format: "Nur eine Person eingeschrieben. Nähe %.0f%% reicht nicht.", ranked.percent)
+            text = String(format: "Nur eine Person eingeschrieben. Nähe %.0f%% reicht nicht (braucht %.0f%%).", ranked.percent, floors.solo)
         } else if ranked.percent < floors.match {
             text = String(format: "Beste Nähe %.0f%% liegt unter %.0f%%.", ranked.percent, floors.match)
         } else {
@@ -639,7 +815,7 @@ enum FaceEngine {
         galleryZ: Double,
         textureReliable: Bool = false,
         evidence: Double? = nil,
-        floors: MatchMath.Floors
+        floors: Floors
     ) -> (id: UUID?, note: String) {
         let best = bestName ?? "Beste"
         let second = secondName ?? "Zweite"
@@ -664,23 +840,54 @@ enum FaceEngine {
         if percent < floors.match {
             return (nil, String(format: "Beste Nähe %.0f%% liegt unter %.0f%%. Nicht zugeordnet.", percent, floors.match))
         }
-        if galleryZ < MatchMath.zFloor && percent < 92 {
+        if galleryZ < zFloor && percent < 92 {
             return (nil, String(format: "Kein Ausreißer in der Galerie (z=%.1f). Alle Personen ähnlich nah — nicht zugeordnet.", galleryZ))
         }
         if geoAgrees, geoMargin >= 8, percent >= floors.match - 3, margin >= 6 {
             return (bestId, String(format: "Print + Maße einig. Abstand %.1f Pkt zu %@.", margin, second))
         }
-        if margin >= MatchMath.embedMargin || (percent >= 94 && margin >= 6) {
+        if margin >= embedMargin || (percent >= 94 && margin >= 6) {
             return (bestId, String(format: "Abstand %.1f Pkt zu %@.", margin, second))
         }
         return (nil, String(format: "%@ %.0f%% und %@ %.0f%% zu nah — nicht zugeordnet.", best, percent, second, percent - margin))
     }
 
-    private static func bestPrintPercent(_ probe: Data, _ faces: [FaceObservation]) -> Double {
-        guard !probe.isEmpty else { return 0 }
+    private static func bestPrintPercent(_ probe: FaceObservation, _ faces: [FaceObservation]) -> Double {
+        let full = fullPrintPercent(probe, faces)
+        if lowerFaceOccluded(probe), probe.partialVec.count >= 32 || !probe.partialPrint.isEmpty {
+            let pv = partialEmbedding(of: probe)
+            let pMean = meanPartialVector(faces)
+            if pv.count >= 32, pMean.count == pv.count {
+                let partial = sigmoidCosine(pv, pMean)
+                return MatchMath.combinePrint(full: full, partial: partial, occluded: true, galleryHasPartial: true)
+            }
+            // Kein Teil-Print in der Galerie: Partial nicht gegen Full-Centroid.
+            return MatchMath.combinePrint(full: full, partial: 0, occluded: true, galleryHasPartial: false)
+        }
+        return full
+    }
+
+    private static func fullPrintPercent(_ probe: FaceObservation, _ faces: [FaceObservation]) -> Double {
+        let pv = embedding(of: probe)
+        let slot = poseSlot(probe)
+        let same = faces.filter { poseSlot($0) == slot }
+        let slotMean = meanPrintVector(same)
+        let allMean = meanPrintVector(faces)
+        if pv.count >= 32, slotMean.count == pv.count, same.count >= 1 {
+            let a = sigmoidCosine(pv, slotMean)
+            if allMean.count == pv.count, same.count < faces.count {
+                return 0.72 * a + 0.28 * sigmoidCosine(pv, allMean)
+            }
+            return a
+        }
+        if pv.count >= 32, allMean.count == pv.count {
+            return sigmoidCosine(pv, allMean)
+        }
+        guard !probe.featurePrint.isEmpty else { return 0 }
         var scores: [Double] = []
-        for f in faces where !f.featurePrint.isEmpty {
-            scores.append(printPercent(probe, f.featurePrint))
+        let pool = same.isEmpty ? faces : same
+        for f in pool where !f.featurePrint.isEmpty {
+            scores.append(printPercent(probe.featurePrint, f.featurePrint))
         }
         guard !scores.isEmpty else { return 0 }
         scores.sort(by: >)
@@ -691,15 +898,90 @@ enum FaceEngine {
         return top.reduce(0, +) / Double(top.count)
     }
 
-    /// Live: Median der letzten Prints. Mittel [95, 92, 5] = 64 kippt einen echten Treffer.
-    private static func probePrintScore(_ face: FaceObservation, _ gallery: [FaceObservation]) -> Double {
-        var probes = Array(face.printHistory.suffix(3).filter { !$0.isEmpty })
-        if probes.isEmpty, !face.featurePrint.isEmpty {
-            probes = [face.featurePrint]
+    /// L2-normierter Mittel-Vektor der Galerie-Prints. Unscharfe Refs zählen
+    /// mit `capture * sharpness`, nicht 1/n — eine verwackelte Kopie zieht
+    /// den Mittelvektor nicht mehr auf Impostor-Niveau.
+    static func meanPrintVector(_ faces: [FaceObservation]) -> [Double] {
+        let clear = faces.filter { !lowerFaceOccluded($0) }
+        let pool = clear.isEmpty ? faces : clear
+        var acc: [Double] = []
+        var wsum = 0.0
+        for f in pool {
+            let v = embedding(of: f)
+            guard v.count >= 32 else { continue }
+            let w = max(0.08, f.quality.capture * (0.35 + 0.65 * max(0, f.quality.sharpness)))
+            if acc.isEmpty {
+                acc = v.map { $0 * w }
+            } else if acc.count == v.count {
+                for i in acc.indices { acc[i] += v[i] * w }
+            } else { continue }
+            wsum += w
         }
-        guard !probes.isEmpty else { return 0 }
-        let scores = probes.map { bestPrintPercent($0, gallery) }.sorted()
-        return scores[(scores.count - 1) / 2]
+        guard wsum > 0, !acc.isEmpty else { return [] }
+        let inv = 1.0 / wsum
+        for i in acc.indices { acc[i] *= inv }
+        return l2normalize(acc)
+    }
+
+    /// Teil-Print-Centroid nur aus Masken-Refs. Leeres Array = Galerie hat keinen U-Slot.
+    static func meanPartialVector(_ faces: [FaceObservation]) -> [Double] {
+        var acc: [Double] = []
+        var wsum = 0.0
+        for f in faces {
+            let v = partialEmbedding(of: f)
+            guard v.count >= 32 else { continue }
+            let w = max(0.08, f.quality.capture * (0.35 + 0.65 * max(0, f.quality.sharpness)))
+            if acc.isEmpty {
+                acc = v.map { $0 * w }
+            } else if acc.count == v.count {
+                for i in acc.indices { acc[i] += v[i] * w }
+            } else { continue }
+            wsum += w
+        }
+        guard wsum > 0, !acc.isEmpty else { return [] }
+        let inv = 1.0 / wsum
+        for i in acc.indices { acc[i] *= inv }
+        return l2normalize(acc)
+    }
+
+    static func printWeights(_ faces: [FaceObservation]) -> [(id: UUID, weight: Double, slot: String)] {
+        faces.map { f in
+            let has = f.printVec.count >= 32 || !f.featurePrint.isEmpty
+            let w = has ? max(0.08, f.quality.capture * (0.35 + 0.65 * max(0, f.quality.sharpness))) : 0
+            return (f.id, w, poseSlot(f).titleDE)
+        }
+    }
+
+    static func embedding(of face: FaceObservation) -> [Double] {
+        if face.printVec.count >= 32 { return face.printVec }
+        return printVector(face.featurePrint)
+    }
+
+    static func partialEmbedding(of face: FaceObservation) -> [Double] {
+        if face.partialVec.count >= 32 { return face.partialVec }
+        return printVector(face.partialPrint)
+    }
+
+    static func blendEmbeddings(_ old: [Double], _ new: [Double], alpha: Double) -> [Double] {
+        guard old.count == new.count, old.count >= 32 else {
+            return new.count >= 32 ? l2normalize(new) : old
+        }
+        let a = min(1, max(0, alpha))
+        var out = [Double](repeating: 0, count: old.count)
+        for i in old.indices { out[i] = old[i] * (1 - a) + new[i] * a }
+        return l2normalize(out)
+    }
+
+    private static func l2normalize(_ v: [Double]) -> [Double] {
+        var s = 0.0
+        for x in v { s += x * x }
+        let n = sqrt(s)
+        guard n > 1e-12 else { return v }
+        return v.map { $0 / n }
+    }
+
+    private static func sigmoidCosine(_ a: [Double], _ b: [Double]) -> Double {
+        MatchMath.printSigmoid(cosine: cosine(a, b))
     }
 
     /// Vision face boxes: origin lower-left of the image, normalized 0…1.
@@ -853,16 +1135,28 @@ enum FaceEngine {
         return image.cropping(to: CGRect(x: x, y: y, width: max(1, w), height: max(1, h)))
     }
 
+    static func lowerFaceOccluded(_ face: FaceObservation) -> Bool {
+        let eyes = face.strokes.contains { $0.label.hasPrefix("Auge") && $0.points.count >= 4 }
+        let mouth = face.strokes.contains { ($0.label == "Mund" || $0.label == "Lippen") && $0.points.count >= 4 }
+        return MatchMath.lowerFaceOccluded(eyes: eyes, mouth: mouth)
+    }
+
+    private static func upperFaceCrop(_ image: CGImage, box: FaceBox) -> CGImage? {
+        var u = box
+        u.height = max(8, box.height * 0.56)
+        return crop(image, box: u, pad: 0.10)
+    }
+
     /// Apple face-identity print on a natural crop. Never image-print, never warp —
     /// Vision aligns internally. Image-print was matching jackets, not faces (4% same person).
     private static func identityPrint(of image: CGImage?) -> Data? {
         facePrintOnly(of: image)
     }
 
-    private static func facePrintOnly(of image: CGImage?) -> Data? {
+    private static func facePrintOnly(of image: CGImage?, orientation: CGImagePropertyOrientation = .up) -> Data? {
         guard let image else { return nil }
         guard let req = makeFacePrintRequest() else { return nil }
-        let handler = VNImageRequestHandler(cgImage: image, orientation: .up, options: [:])
+        let handler = VNImageRequestHandler(cgImage: image, orientation: orientation, options: [:])
         guard (try? handler.perform([req])) != nil else { return nil }
         for obs in req.results ?? [] {
             if let data = extractPrint(obs) { return data }
@@ -903,11 +1197,17 @@ enum FaceEngine {
         }
     }
 
-    private static func stampPrints(_ faces: [FaceObservation], from image: CGImage) -> [FaceObservation] {
-        let found = facePrintsInImage(image)
+    private static func stampPrints(_ faces: [FaceObservation], from image: CGImage, orientation: CGImagePropertyOrientation = .up, continuity: Bool = false, minSharpness: Double = MatchMath.sharpnessFloor) -> [FaceObservation] {
+        let anySharp = faces.contains { !MatchMath.skipPrint(sharpness: $0.quality.sharpness, continuity: continuity) && $0.quality.sharpness >= minSharpness }
+        let found = anySharp ? facePrintsInImage(image, orientation: orientation) : []
         var used = Set<Int>()
         return faces.map { face in
             var next = face
+            if MatchMath.skipPrint(sharpness: face.quality.sharpness, continuity: continuity) {
+                next.featurePrint = Data()
+                next.printVec = []
+                return next
+            }
             var bestI = -1
             var bestIoU = 0.32
             for (i, item) in found.enumerated() where !used.contains(i) {
@@ -920,21 +1220,41 @@ enum FaceEngine {
             if bestI >= 0 {
                 used.insert(bestI)
                 next.featurePrint = found[bestI].data
-                return next
-            }
-            // Kein IoU-Treffer. Crop-Fallback nur wenn Vision auf dem ganzen
-            // Foto gar keinen Face-Print gefunden hat — sonst landet die Jacke
-            // als Identität.
-            if found.isEmpty,
+                next.printVec = printVector(found[bestI].data)
+            } else if found.isEmpty,
                let crop = self.crop(image, box: face.box, pad: 0.55),
-               let data = identityPrint(of: crop)
+               let data = facePrintOnly(of: crop, orientation: orientation)
             {
+                // Kein IoU-Treffer. Crop-Fallback nur wenn Vision auf dem ganzen
+                // Foto gar keinen Face-Print gefunden hat — sonst landet die Jacke
+                // als Identität.
                 next.featurePrint = data
-            } else {
+                next.printVec = printVector(data)
+            } else if bestI < 0 {
                 next.featurePrint = Data()
+                next.printVec = []
+            }
+            if lowerFaceOccluded(next) || next.forcedPartial,
+               let crop = upperFaceCrop(image, box: face.box),
+               let data = facePrintOnly(of: crop, orientation: orientation)
+            {
+                next.partialPrint = data
+                next.partialVec = printVector(data)
             }
             return next
         }
+    }
+
+    /// Expliziter U-Slot: oberes Crop auch ohne Auto-Maske.
+    static func stampForcedPartial(_ face: FaceObservation, from image: CGImage, orientation: CGImagePropertyOrientation = .up) -> FaceObservation? {
+        guard let crop = upperFaceCrop(image, box: face.box),
+              let data = facePrintOnly(of: crop, orientation: orientation)
+        else { return nil }
+        var next = face
+        next.partialPrint = data
+        next.partialVec = printVector(data)
+        next.forcedPartial = true
+        return next
     }
 
     private struct LocatedPrint {
@@ -944,9 +1264,9 @@ enum FaceEngine {
 
     /// Run Apple's face-print on the whole photo so Vision can detect and align itself.
     /// Warped 256px patches made the request fail and silently stored an image-print of the jacket.
-    private static func facePrintsInImage(_ image: CGImage) -> [LocatedPrint] {
+    private static func facePrintsInImage(_ image: CGImage, orientation: CGImagePropertyOrientation = .up) -> [LocatedPrint] {
         guard let req = makeFacePrintRequest() else { return [] }
-        let handler = VNImageRequestHandler(cgImage: image, orientation: .up, options: [:])
+        let handler = VNImageRequestHandler(cgImage: image, orientation: orientation, options: [:])
         guard (try? handler.perform([req])) != nil else { return [] }
         let w = Double(image.width)
         let h = Double(image.height)
@@ -1056,7 +1376,7 @@ enum FaceEngine {
         if va.count >= 32, vb.count >= 32 {
             guard va.count == vb.count else { return 0 }
             let c = cosine(va, vb)
-            return MatchMath.printSigmoid(cosine: c)
+            return 100.0 / (1.0 + exp(-14.0 * (c - 0.55)))
         }
         let d = printDistance(a, b)
         if d >= 35 { return 0 }
@@ -1646,38 +1966,83 @@ enum FaceEngine {
     }
 
     static func qualityRejects(_ q: FaceQuality) -> Bool {
-        q.capture < 0.35 && q.size < 0.16
+        MatchMath.qualityRejects(capture: q.capture, size: q.size, sharpness: q.sharpness)
     }
 
-    static func enrollmentBlock(_ face: FaceObservation, kiOn: Bool) -> String? {
-        if qualityRejects(face.quality) {
-            return "Aufnahme zu schwach zum Anlegen."
+    static func referenceRejected(_ face: FaceObservation, asFirstReference: Bool = false) -> String? {
+        if face.featurePrint.isEmpty {
+            return "Kein Face-Print — Referenz würde die Galerie vergiften."
         }
-        if kiOn, facePrintAvailable, face.featurePrint.isEmpty {
-            return "Kein Face-Print auf diesem Gesicht. Anderes Foto wählen."
+        if face.quality.sharpness < MatchMath.sharpnessFloor {
+            return String(format: "Unscharf %.0f %% — mindestens %.0f %% für eine Referenz.", face.quality.sharpness * 100, MatchMath.sharpnessFloor * 100)
+        }
+        if face.quality.capture < 0.40 {
+            return String(format: "Aufnahme %.0f %% — mindestens 40 %% für eine Referenz.", face.quality.capture * 100)
+        }
+        // Profil als erste Referenz verdreht den L2-Centroid; spätere ¾-Shots sind ok.
+        if asFirstReference, abs(face.quality.yaw) > 0.7 {
+            return String(
+                format: "Profil (Yaw %.0f°) — erste Referenz muss frontal sein, sonst verdreht der Centroid.",
+                face.quality.yaw * 180 / .pi
+            )
+        }
+        if asFirstReference, lowerFaceOccluded(face) {
+            return "Maske — erste Referenz muss frei sein, sonst vergiftet der Stoff den Centroid. Extra-Foto ohne Maske."
         }
         return nil
     }
 
+    /// Cosine zweier L2-Embeddings. Öffentlich für Duplikat-Warnung und Labor.
+    static func centroidCosine(_ a: [Double], _ b: [Double]) -> Double {
+        cosine(a, b)
+    }
+
+    /// Höchste Centroid-Ähnlichkeit gegen eine andere Identität. Nil unter 0,88.
+    static func duplicateOf(
+        face: FaceObservation,
+        identities: [Identity],
+        faces: [FaceObservation]
+    ) -> (Identity, Double)? {
+        let v = embedding(of: face)
+        guard v.count >= 32 else { return nil }
+        var best: (Identity, Double)?
+        for ident in identities {
+            let refs = faces.filter { ident.faceIds.contains($0.id) }
+            let mean = meanPrintVector(refs)
+            guard mean.count >= 32 else { continue }
+            let c = cosine(v, mean)
+            if c > 0.88, c > (best?.1 ?? 0) {
+                best = (ident, c)
+            }
+        }
+        return best
+    }
+
     private static func tinyUnreliable(_ q: FaceQuality) -> Bool {
-        q.capture < 0.35 && q.size < 0.16
+        MatchMath.qualityRejects(capture: q.capture, size: q.size, sharpness: q.sharpness)
     }
 
     private static func textureIsReliable(_ q: FaceQuality) -> Bool {
         q.capture >= 0.28 && q.sharpness >= 0.12
     }
 
-    /// Embedding leads. Geometry supports and vetoes. Raster never votes.
-    /// `MatchMath.lookOf` is the only implementation — no private twin.
+    /// Print is the score. Geometry vetoes a mismatch and may add a small
+    /// boost when it agrees — never a 0.25 mix that pulls a 92 % print under
+    /// the 1-person soloFloor.
+    private static func lookOf(geo: Double, embed: Double = 0, pose: Double = 1, printMeasured: Bool = false) -> Double {
+        MatchMath.lookOf(geo: geo, embed: embed, pose: pose, printMeasured: printMeasured)
+    }
+
+    /// 1 = frontal, ~0.7 at 45°, 0 at 90°. Vision yaw/pitch are radians.
+    /// yaw=0 und frontal=0 ist „keine Pose“, nicht maximales Vertrauen.
     private static func poseWeight(_ q: FaceQuality) -> Double {
-        if let yaw = q.yaw {
-            let pitch = q.pitch ?? 0
-            let off = hypot(yaw, pitch)
-            return clamp01(cos(min(off, Double.pi / 2)))
+        let off = hypot(q.yaw, q.pitch)
+        if off < 0.02 {
+            let f = clamp01(q.frontal)
+            if f <= 0 { return 0.5 }
+            return max(f, 0.35)
         }
-        let f = clamp01(q.frontal)
-        if f <= 0 { return 0.5 }
-        return max(f, 0.35)
+        return clamp01(cos(min(off, Double.pi / 2)))
     }
 
     private struct LumaStats {

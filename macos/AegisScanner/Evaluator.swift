@@ -9,8 +9,11 @@ enum LabReport {
         threshold: Double
     ) -> String {
         var genuine: [Double] = []
+        var genuinePartial: [Double] = []
+        var genuineFull: [Double] = []
         var impostor: [Double] = []
         var lines = ["person,probe,kind,score"]
+        var pairScores: [String: [String: [Double]]] = [:]
 
         for identity in identities {
             let owned = faces.filter { identity.faceIds.contains($0.id) }
@@ -32,11 +35,19 @@ enum LabReport {
                 let versus = rows.first?.hits.first { $0.strategy == .aegis }?.versus ?? []
                 let selfP = versus.first { $0.identityId == identity.id }?.percent ?? 0
                 genuine.append(selfP)
-                lines.append("\(identity.name),\(probe.id.uuidString),genuine,\(fmt(selfP))")
+                if probe.forcedPartial || FaceEngine.lowerFaceOccluded(probe) {
+                    genuinePartial.append(selfP)
+                    lines.append("\(identity.name),\(probe.id.uuidString),genuine-partial,\(fmt(selfP))")
+                } else {
+                    genuineFull.append(selfP)
+                    lines.append("\(identity.name),\(probe.id.uuidString),genuine,\(fmt(selfP))")
+                }
+                pairScores[identity.name, default: [:]][identity.name, default: []].append(selfP)
                 for v in versus where v.identityId != identity.id {
                     impostor.append(v.percent)
                     let name = held.first { $0.id == v.identityId }?.name ?? "?"
                     lines.append("\(identity.name)→\(name),\(probe.id.uuidString),impostor,\(fmt(v.percent))")
+                    pairScores[identity.name, default: [:]][name, default: []].append(v.percent)
                 }
             }
         }
@@ -46,19 +57,72 @@ enum LabReport {
         out.append("Schwelle \(Int(threshold))  ·  Spuren \(enabled.map(\.label).sorted().joined(separator: ", "))")
         out.append("Genuine-Paare \(genuine.count)  ·  Impostor-Paare \(impostor.count)")
         out.append(stats("Genuine", genuine))
+        if !genuineFull.isEmpty { out.append(stats("Genuine frei", genuineFull)) }
+        if !genuinePartial.isEmpty { out.append(stats("Genuine Teil-Print/Maske", genuinePartial)) }
         out.append(stats("Impostor", impostor))
         if !genuine.isEmpty, !impostor.isEmpty {
             out.append(String(format: "Rang-1 (genuine ≥ Schwelle)  %.1f%%", 100 * frac(genuine, threshold)))
             out.append(String(format: "FAR bei Schwelle            %.1f%%", 100 * frac(impostor, threshold)))
             out.append(eerLine(genuine, impostor))
-            if let t01 = MatchMath.tar(atFar: 0.001, genuine: genuine, impostor: impostor) {
-                out.append(String(format: "TAR @ 0,1%% FAR          %.1f%%  (Schwelle %.1f)", 100 * t01.tar, t01.threshold))
+            if impostor.count < 200, let t = MatchMath.tarBootstrap(atFar: 0.001, genuine: genuine, impostor: impostor) {
+                out.append(String(
+                    format: "TAR @ 0,1 %% FAR  %.1f%%  [%.1f–%.1f]  (n_imp=%d, Bootstrap 95%%)",
+                    100 * t.tar, 100 * t.lo, 100 * t.hi, impostor.count
+                ))
+            } else if let t = MatchMath.tar(atFar: 0.001, genuine: genuine, impostor: impostor) {
+                out.append(String(format: "TAR @ 0,1 %% FAR  %.1f%%  (Schwelle %.1f, MatchMath floor)", 100 * t.tar, t.threshold))
             }
-            if let t1 = MatchMath.tar(atFar: 0.01, genuine: genuine, impostor: impostor) {
-                out.append(String(format: "TAR @ 1%% FAR            %.1f%%  (Schwelle %.1f)", 100 * t1.tar, t1.threshold))
+            if impostor.count < 200, let t = MatchMath.tarBootstrap(atFar: 0.01, genuine: genuine, impostor: impostor) {
+                out.append(String(
+                    format: "TAR @ 1 %% FAR    %.1f%%  [%.1f–%.1f]  (n_imp=%d, Bootstrap 95%%)",
+                    100 * t.tar, 100 * t.lo, 100 * t.hi, impostor.count
+                ))
+            } else if let t = MatchMath.tar(atFar: 0.01, genuine: genuine, impostor: impostor) {
+                out.append(String(format: "TAR @ 1 %% FAR    %.1f%%  (Schwelle %.1f, MatchMath floor)", 100 * t.tar, t.threshold))
             }
         } else {
             out.append("Zu wenig Referenzen: jede Person braucht mindestens zwei Fotos.")
+        }
+        var weightLines: [String] = ["person,face,slot,capture,sharpness,weight"]
+        for identity in identities {
+            let owned = faces.filter { identity.faceIds.contains($0.id) }
+            for row in FaceEngine.printWeights(owned) {
+                let face = owned.first { $0.id == row.id }
+                let cap = face?.quality.capture ?? 0
+                let sh = face?.quality.sharpness ?? 0
+                weightLines.append(String(
+                    format: "%@,%@,%@,%.3f,%.3f,%.3f",
+                    identity.name, row.id.uuidString, row.slot, cap, sh, row.weight
+                ))
+            }
+        }
+        if weightLines.count > 1 {
+            out.append("")
+            out.append("Centroid-Gewichte (capture · (0,35 + 0,65·sharpness), Floor 0,08)")
+            out.append(contentsOf: weightLines)
+        }
+        let photos = media.filter { $0.kind == .photo }
+        if !photos.isEmpty {
+            var rotated = 0
+            for item in photos {
+                let o = FrameExtractor.exifOrientation(url: item.url)
+                if o != 1 { rotated += 1 }
+            }
+            out.append("EXIF: \(photos.count) Fotos, \(rotated) mit Orientation ≠ 1 (Thumbnails mit Transform).")
+        }
+        if pairScores.count >= 1 {
+            out.append("")
+            out.append("Konfusion (mean % Probe → Galerie)")
+            let names = identities.map(\.name)
+            out.append("probe\\ref\t" + names.joined(separator: "\t"))
+            for probe in names {
+                var row = [probe]
+                for ref in names {
+                    let xs = pairScores[probe]?[ref] ?? []
+                    row.append(xs.isEmpty ? "—" : String(format: "%.0f", xs.reduce(0, +) / Double(xs.count)))
+                }
+                out.append(row.joined(separator: "\t"))
+            }
         }
         out.append("")
         out.append(lines.joined(separator: "\n"))

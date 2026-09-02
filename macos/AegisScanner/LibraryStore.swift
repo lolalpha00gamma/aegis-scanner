@@ -3,6 +3,14 @@ import Combine
 import Foundation
 import UniformTypeIdentifiers
 
+private final class AegisScanFlag: @unchecked Sendable {
+    private let lock = NSLock()
+    private var _alive = true
+    func reset() { lock.lock(); _alive = true; lock.unlock() }
+    func stop() { lock.lock(); _alive = false; lock.unlock() }
+    var alive: Bool { lock.lock(); defer { lock.unlock() }; return _alive }
+}
+
 @MainActor
 final class LibraryStore: ObservableObject {
     @Published var media: [MediaItem] = []
@@ -14,29 +22,50 @@ final class LibraryStore: ObservableObject {
     @Published var threshold: Double = 78
     @Published var strategy: StrategyID = .aegis
     @Published var showAnatomy = true
+    @Published var showNMSDebug = false
+    @Published var nmsDropped: [FaceBox] = []
     @Published var status: String = "Bereit"
     @Published var busy = false
     @Published var newPersonName = ""
     @Published var liveURLText = ""
     @Published var liveActive = false
     @Published var enabled: Set<StrategyID> = Set(StrategyID.allCases)
+    @Published var pendingDuplicateName: String?
+    @Published var revisionWarning: String = ""
+    @Published var canResumeScan = false
+    @Published var cameraOrient: String = "auto"
+    @Published var cameraUniqueID: String = ""
 
     private let liveCapture = LiveCapture()
     private var liveMediaId: UUID?
     private var scopedRoots: [URL] = []
     private var liveBusy = false
+    private var scanGeneration = 0
+    private let scanFlag = AegisScanFlag()
     private let enabledKey = "aegis.enabledStrategies"
+    private let resumeBookmarkKey = "aegis.scanResume.bookmark"
+    private let resumeRemainingKey = "aegis.scanResume.remaining"
+    private let resumeDetectKey = "aegis.scanResume.detect"
+    private var liveGhosts: [(face: FaceObservation, until: TimeInterval)] = []
+    private var reconnectGhosts: [FaceObservation] = []
+    private var boxEuro: [UUID: (x: MatchMath.OneEuro, y: MatchMath.OneEuro, w: MatchMath.OneEuro, h: MatchMath.OneEuro)] = [:]
 
     init() {
         let packed = GalleryFile.load()
         identities = packed.identities
         faces = packed.faces
+        if let stored = packed.printRevision, stored != MatchMath.printRevision {
+            revisionWarning = "Galerie-Print \(stored), App \(MatchMath.printRevision) — Scores können springen. Neu scannen."
+        }
         if let raw = UserDefaults.standard.array(forKey: enabledKey) as? [String] {
             let set = Set(raw.compactMap(StrategyID.init(rawValue:)))
             if !set.isEmpty { enabled = set }
         }
+        canResumeScan = hasResumeWork()
         if !identities.isEmpty {
-            status = "Galerie · \(identities.count) Personen"
+            status = revisionWarning.isEmpty
+                ? "Galerie · \(identities.count) Personen"
+                : revisionWarning
         }
     }
 
@@ -80,6 +109,20 @@ final class LibraryStore: ObservableObject {
         return nil
     }
 
+    var floorHint: String {
+        let f = FaceEngine.effectiveFloors(galleryCount: identities.count, slider: threshold)
+        return "Galerie \(identities.count): Floor \(Int(f.match)) · Solo \(Int(f.solo))"
+    }
+
+    var enrollmentHint: String {
+        guard let face = selectedFace else { return "" }
+        return FaceEngine.enrollmentPreview(
+            face: face,
+            identities: identities,
+            faces: faces
+        )
+    }
+
     var selectedHits: [StrategyHit] {
         guard let id = selectedFace?.id else { return [] }
         return matches.first { $0.faceId == id }?.hits ?? []
@@ -118,29 +161,140 @@ final class LibraryStore: ObservableObject {
         panel.allowedContentTypes = [.folder, .image, .movie, .jpeg, .png, .heic, .mpeg4Movie, .quickTimeMovie]
         panel.prompt = "Scannen"
         panel.message = "Ordner oder mehrere Fotos wählen — danach mit ← → blättern."
+        if let data = UserDefaults.standard.data(forKey: resumeBookmarkKey) {
+            var stale = false
+            if let url = try? URL(
+                resolvingBookmarkData: data,
+                options: [.withSecurityScope],
+                relativeTo: nil,
+                bookmarkDataIsStale: &stale
+            ) {
+                panel.directoryURL = url
+            }
+        }
         guard panel.runModal() == .OK else { return }
-        var urls: [URL] = []
         var roots: [URL] = []
+        var files: [URL] = []
+        var folders: [URL] = []
         for url in panel.urls {
             roots.append(url)
-        }
-        retainAccess(roots)
-        for url in panel.urls {
             var isDir: ObjCBool = false
             FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir)
             if isDir.boolValue {
-                urls.append(contentsOf: FrameExtractor.walk(folder: url))
+                folders.append(url)
             } else {
-                urls.append(url)
+                files.append(url)
             }
         }
+        retainAccess(roots)
+        rememberFolder(roots.first)
+        scanGeneration += 1
+        scanFlag.reset()
+        let gen = scanGeneration
+        let flag = scanFlag
+        busy = true
+        status = "Ordner lesen …"
+        Task {
+            var urls = files
+            for folder in folders {
+                if gen != self.scanGeneration { return }
+                let found = await Task.detached {
+                    FrameExtractor.walk(folder: folder) { flag.alive }
+                }.value
+                if gen != self.scanGeneration {
+                    self.rememberRemaining(urls)
+                    self.status = "Scan abgebrochen — Fortsetzen möglich"
+                    self.busy = false
+                    return
+                }
+                urls.append(contentsOf: found)
+            }
+            if gen != self.scanGeneration {
+                self.rememberRemaining(urls)
+                self.status = "Scan abgebrochen — Fortsetzen möglich"
+                self.busy = false
+                return
+            }
+            await self.ingestAndScan(urls: urls, generation: gen)
+        }
+    }
+
+    func resumeScan() {
+        let paths = UserDefaults.standard.stringArray(forKey: resumeRemainingKey) ?? []
+        let urls = paths.map { URL(fileURLWithPath: $0) }.filter { FileManager.default.fileExists(atPath: $0.path) }
+        let detectIds = (UserDefaults.standard.stringArray(forKey: resumeDetectKey) ?? [])
+            .compactMap(UUID.init(uuidString:))
+        guard !urls.isEmpty || !detectIds.isEmpty else {
+            canResumeScan = false
+            status = "Nichts zum Fortsetzen"
+            return
+        }
+        scanGeneration += 1
+        scanFlag.reset()
+        let gen = scanGeneration
+        busy = true
+        if !urls.isEmpty {
+            status = "Scan fortsetzen · \(urls.count) Dateien"
+            Task {
+                await self.ingestAndScan(urls: urls, generation: gen)
+            }
+        } else {
+            status = "Erkennung fortsetzen · \(detectIds.count) Medien"
+            Task {
+                await self.scan(generation: gen, onlyMedia: detectIds)
+            }
+        }
+    }
+
+    private func ingestAndScan(urls: [URL], generation: Int) async {
+        var remaining = urls
         let before = media.count
-        ingest(urls: urls)
+        for url in urls {
+            if generation != scanGeneration {
+                rememberRemaining(remaining)
+                status = "Scan abgebrochen — Fortsetzen möglich"
+                busy = false
+                canResumeScan = true
+                return
+            }
+            ingest(urls: [url])
+            remaining.removeAll { $0 == url }
+        }
+        rememberRemaining([])
+        canResumeScan = false
         if let firstNew = media.dropFirst(before).first(where: { $0.kind == .photo })
-            ?? media.dropFirst(before).first {
+            ?? media.dropFirst(before).first
+        {
             selectedMediaId = firstNew.id
         }
-        Task { await scan() }
+        if generation != scanGeneration {
+            busy = false
+            return
+        }
+        await scan(generation: generation)
+    }
+
+    private func rememberFolder(_ url: URL?) {
+        guard let url else { return }
+        if let data = try? url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil) {
+            UserDefaults.standard.set(data, forKey: resumeBookmarkKey)
+        }
+    }
+
+    private func rememberRemaining(_ urls: [URL]) {
+        UserDefaults.standard.set(urls.map(\.path), forKey: resumeRemainingKey)
+        canResumeScan = hasResumeWork()
+    }
+
+    private func rememberDetectRemaining(_ ids: [UUID]) {
+        UserDefaults.standard.set(ids.map(\.uuidString), forKey: resumeDetectKey)
+        canResumeScan = hasResumeWork()
+    }
+
+    private func hasResumeWork() -> Bool {
+        let files = UserDefaults.standard.stringArray(forKey: resumeRemainingKey) ?? []
+        let detect = UserDefaults.standard.stringArray(forKey: resumeDetectKey) ?? []
+        return !files.isEmpty || !detect.isEmpty
     }
 
     private func retainAccess(_ urls: [URL]) {
@@ -199,15 +353,40 @@ final class LibraryStore: ObservableObject {
         }
     }
 
+    func cancelScan() {
+        guard busy else { return }
+        scanFlag.stop()
+        scanGeneration += 1
+        busy = false
+        canResumeScan = hasResumeWork()
+        status = canResumeScan ? "Scan abgebrochen — Fortsetzen möglich" : "Scan abgebrochen"
+    }
+
     func scan() async {
+        scanGeneration += 1
+        scanFlag.reset()
+        await scan(generation: scanGeneration)
+    }
+
+    private func scan(generation: Int, onlyMedia: [UUID]? = nil) async {
         busy = true
         status = "Frames extrahieren"
         let videos = media.filter { $0.kind == .video }
         let haveFrames = Set(media.compactMap { $0.parentId })
         for video in videos where !haveFrames.contains(video.id) {
+            if generation != scanGeneration {
+                status = "Scan abgebrochen"
+                busy = false
+                return
+            }
             status = "Video · \(video.name)"
             do {
                 let frames = try await FrameExtractor.extract(from: video.url)
+                if generation != scanGeneration {
+                    status = "Scan abgebrochen"
+                    busy = false
+                    return
+                }
                 if frames.isEmpty {
                     status = "\(video.name): keine Frames"
                     continue
@@ -232,10 +411,21 @@ final class LibraryStore: ObservableObject {
                 continue
             }
         }
-        let pending = media.filter { item in
+        var pending = media.filter { item in
             (item.kind == .photo || item.kind == .frame) && !faces.contains { $0.mediaId == item.id }
         }
+        if let only = onlyMedia, !only.isEmpty {
+            let set = Set(only)
+            pending = pending.filter { set.contains($0.id) }
+        }
         for (i, item) in pending.enumerated() {
+            if generation != scanGeneration {
+                rememberDetectRemaining(Array(pending.dropFirst(i).map(\.id)))
+                status = "Scan abgebrochen — Fortsetzen möglich"
+                busy = false
+                canResumeScan = true
+                return
+            }
             status = "Gesicht · \(i + 1)/\(pending.count)"
             let image = item.preview ?? FrameExtractor.loadCGImage(url: item.url)
             guard let image else { continue }
@@ -244,12 +434,27 @@ final class LibraryStore: ObservableObject {
                 let found = try await Task.detached(priority: .userInitiated) {
                     try FaceEngine.detect(in: image, mediaId: mediaId)
                 }.value
+                if generation != scanGeneration {
+                    rememberDetectRemaining(Array(pending.dropFirst(i).map(\.id)))
+                    status = "Scan abgebrochen — Fortsetzen möglich"
+                    busy = false
+                    canResumeScan = true
+                    return
+                }
                 faces.append(contentsOf: found)
             } catch {
                 continue
             }
         }
+        rememberDetectRemaining([])
+        if generation != scanGeneration {
+            status = "Scan abgebrochen — Fortsetzen möglich"
+            busy = false
+            canResumeScan = hasResumeWork()
+            return
+        }
         status = "Abgleich"
+        nmsDropped = FaceEngine.lastNMSDropped
         rematch()
         if let mediaId = selectedMediaId {
             if selectedFaceId == nil || !(faces.contains { $0.id == selectedFaceId && $0.mediaId == mediaId }) {
@@ -312,20 +517,29 @@ final class LibraryStore: ObservableObject {
             }
             return
         }
-        let kiOn = enabled.contains(where: { $0.track == .ki })
-        if let block = FaceEngine.enrollmentBlock(face, kiOn: kiOn) {
-            status = block
+        if let why = FaceEngine.referenceRejected(face, asFirstReference: true) {
+            status = why
             return
         }
+        if let dup = FaceEngine.duplicateOf(face: face, identities: identities, faces: faces) {
+            if pendingDuplicateName != name {
+                pendingDuplicateName = name
+                status = "Ähnlich \(dup.0.name) (\(Int(dup.1 * 100)) %). Nochmal Anlegen bestätigt, sonst anderen Namen."
+                return
+            }
+        }
+        pendingDuplicateName = nil
+        let preview = FaceEngine.enrollmentPreview(face: face, identities: identities, faces: faces)
+        let note = preview.isEmpty ? "" : " · \(preview)"
         identities.append(Identity(id: UUID(), name: name, faceIds: [face.id]))
         newPersonName = ""
         selectedFaceId = face.id
         rematch()
         if let next = FaceEngine.unnamedFace(on: face.mediaId, faces: faces, identities: identities) {
             selectedFaceId = next.id
-            status = "\(name) angelegt · nächstes Gesicht gewählt"
+            status = "\(name) angelegt · nächstes Gesicht gewählt\(note)"
         } else {
-            status = "\(name) angelegt"
+            status = "\(name) angelegt\(note)"
         }
         persist()
     }
@@ -346,23 +560,107 @@ final class LibraryStore: ObservableObject {
             status = "Dieses Gesicht gehört zu \(owner.name). Anlegen für eine neue Person, nicht +."
             return
         }
-        let kiOn = enabled.contains(where: { $0.track == .ki })
-        if let block = FaceEngine.enrollmentBlock(face, kiOn: kiOn) {
-            status = block
+        if let why = FaceEngine.referenceRejected(face, asFirstReference: identities[idx].faceIds.isEmpty) {
+            status = why
             return
+        }
+        if let block = FaceEngine.poseCoverageBlocks(adding: face, to: identities[idx], faces: faces) {
+            status = block + " — anderes Pose-Foto wählen, nicht denselben Slot füllen."
+            return
+        }
+        let preview = FaceEngine.enrollmentPreview(
+            face: face,
+            identities: identities,
+            faces: faces,
+            addingTo: identities[idx]
+        )
+        if !identities[idx].faceIds.contains(face.id) {
+            identities[idx].faceIds.append(face.id)
+        }
+        rematch()
+        persist()
+        if preview.isEmpty {
+            status = "Referenz zu \(identities[idx].name) hinzugefügt"
+        } else {
+            status = "Referenz zu \(identities[idx].name) · \(preview)"
+        }
+    }
+
+    func addSelectedAsPartial(_ identityId: UUID) {
+        guard var face = selectedFace else {
+            status = "Zuerst ein Gesicht anklicken"
+            return
+        }
+        guard let idx = identities.firstIndex(where: { $0.id == identityId }) else { return }
+        guard let item = selectedMedia, let image = item.preview else {
+            status = "Kein Bild für Teil-Print"
+            return
+        }
+        if identities[idx].faceIds.isEmpty {
+            status = "Erste Referenz muss frei sein — U-Slot nur als Zusatz."
+            return
+        }
+        if let owner = FaceEngine.identityOwning(face: face, identities: identities, faces: faces),
+           owner.id != identityId
+        {
+            status = "Dieses Gesicht gehört zu \(owner.name)"
+            return
+        }
+        guard let stamped = FaceEngine.stampForcedPartial(face, from: image) else {
+            status = "Teil-Print fehlgeschlagen — Crop ohne Face-Print"
+            return
+        }
+        if let i = faces.firstIndex(where: { $0.id == stamped.id }) {
+            faces[i] = stamped
+            face = stamped
         }
         if !identities[idx].faceIds.contains(face.id) {
             identities[idx].faceIds.append(face.id)
         }
         rematch()
         persist()
-        status = "Referenz zu \(identities[idx].name) hinzugefügt"
+        status = "Teil-Print (U) zu \(identities[idx].name)"
+    }
+
+    func setCameraOrient(_ value: String) {
+        cameraOrient = value
+        liveCapture.setOrientOverride(value)
+        if value == "auto" {
+            status = "Kamera-Orientierung auto"
+        } else {
+            status = "Kamera-Orientierung \(value)° — Auto (videoRotationAngle) ignoriert"
+        }
     }
 
     func removeIdentity(_ id: UUID) {
         identities.removeAll { $0.id == id }
         persist()
         rematch()
+    }
+
+    func rejectGuess(_ identityId: UUID) {
+        guard let face = selectedFace else { return }
+        guard let idx = identities.firstIndex(where: { $0.id == identityId }) else { return }
+        let v = FaceEngine.embedding(of: face)
+        guard v.count >= 32 else {
+            status = "Kein Print — Ablehnen braucht Face-Print"
+            return
+        }
+        identities[idx].rejectedVecs.append(v)
+        if identities[idx].rejectedVecs.count > 8 {
+            identities[idx].rejectedVecs.removeFirst(identities[idx].rejectedVecs.count - 8)
+        }
+        persist()
+        rematch()
+        status = "Nicht \(identities[idx].name) — Hard-Negativ gespeichert"
+    }
+
+    func clearReject(_ identityId: UUID) {
+        guard let idx = identities.firstIndex(where: { $0.id == identityId }) else { return }
+        identities[idx].rejectedVecs.removeAll()
+        persist()
+        rematch()
+        status = "Doch \(identities[idx].name) — Hard-Negativ gelöscht"
     }
 
     func startLiveFromField() {
@@ -399,6 +697,9 @@ final class LibraryStore: ObservableObject {
     }
 
     private func startLive(url: URL, kind: LiveKind, name: String) {
+        if let id = liveMediaId {
+            reconnectGhosts = faces.filter { $0.mediaId == id }
+        }
         stopLive()
         let id = UUID()
         liveMediaId = id
@@ -416,7 +717,10 @@ final class LibraryStore: ObservableObject {
         liveActive = true
         status = "Live · verbindet"
         liveCapture.onReady = { [weak self] in
-            self?.status = "Live"
+            guard let self else { return }
+            self.status = "Live"
+            self.cameraUniqueID = self.liveCapture.cameraUniqueID
+            self.cameraOrient = self.liveCapture.orientOverride
         }
         liveCapture.onError = { [weak self] msg in
             self?.status = msg
@@ -431,8 +735,9 @@ final class LibraryStore: ObservableObject {
     private func ingestLiveFrame(_ image: CGImage, mediaId: UUID) {
         if liveBusy { return }
         liveBusy = true
+        let cont = liveCapture.isContinuity
         Task.detached(priority: .userInitiated) {
-            let found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false)) ?? []
+            let found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont)) ?? []
             await MainActor.run { [weak self] in
                 guard let self else { return }
                 self.applyLiveFaces(found, image: image, mediaId: mediaId)
@@ -441,11 +746,36 @@ final class LibraryStore: ObservableObject {
         }
     }
 
+    private func pinByPrint(
+        _ face: FaceObservation,
+        pool: [FaceObservation],
+        used: Set<UUID>
+    ) -> FaceObservation? {
+        let v = FaceEngine.embedding(of: face)
+        guard v.count >= 32 else { return nil }
+        var best: FaceObservation?
+        var bestC = 0.72
+        var seen = Set<UUID>()
+        for old in pool where !used.contains(old.id) && !seen.contains(old.id) {
+            seen.insert(old.id)
+            let ov = old.printVec.count >= 32 ? old.printVec : FaceEngine.embedding(of: old)
+            guard ov.count == v.count else { continue }
+            let c = MatchMath.cosine(v, ov)
+            if c > bestC {
+                bestC = c
+                best = old
+            }
+        }
+        return best
+    }
+
     private func applyLiveFaces(_ found: [FaceObservation], image: CGImage, mediaId: UUID) {
+        liveCapture.setFacesPresent(!found.isEmpty)
         guard let idx = media.firstIndex(where: { $0.id == mediaId }) else { return }
         media[idx].width = image.width
         media[idx].height = image.height
         media[idx].preview = image
+        let now = Date().timeIntervalSince1970
         let enrolled = Set(identities.flatMap(\.faceIds))
         let previous = faces.filter { $0.mediaId == mediaId }
         var used = Set<UUID>()
@@ -473,64 +803,91 @@ final class LibraryStore: ObservableObject {
                 used.insert(old.id)
                 face.id = old.id
                 face.trackId = old.trackId ?? old.id
-                let a = 0.55
-                face.box = FaceBox(
-                    x: a * face.box.x + (1 - a) * old.box.x,
-                    y: a * face.box.y + (1 - a) * old.box.y,
-                    width: a * face.box.width + (1 - a) * old.box.width,
-                    height: a * face.box.height + (1 - a) * old.box.height
+                let t = now
+                var euro = boxEuro[old.id] ?? (
+                    MatchMath.OneEuro(), MatchMath.OneEuro(), MatchMath.OneEuro(), MatchMath.OneEuro()
                 )
-                var hist = old.printHistory
-                if hist.isEmpty, !old.featurePrint.isEmpty { hist.append(old.featurePrint) }
-                if !face.featurePrint.isEmpty {
-                    hist.append(face.featurePrint)
-                    if hist.count > 3 { hist.removeFirst(hist.count - 3) }
-                } else if !old.featurePrint.isEmpty {
+                face.box = FaceBox(
+                    x: euro.x.filter(face.box.x, now: t),
+                    y: euro.y.filter(face.box.y, now: t),
+                    width: euro.w.filter(face.box.width, now: t),
+                    height: euro.h.filter(face.box.height, now: t)
+                )
+                boxEuro[old.id] = euro
+                if face.featurePrint.isEmpty, !old.featurePrint.isEmpty {
                     face.featurePrint = old.featurePrint
+                    face.printVec = old.printVec
+                } else if !old.featurePrint.isEmpty, face.quality.capture + 0.04 < old.quality.capture {
+                    face.featurePrint = old.featurePrint
+                    face.printVec = old.printVec.isEmpty ? FaceEngine.embedding(of: old) : old.printVec
+                } else if !old.featurePrint.isEmpty, !face.featurePrint.isEmpty {
+                    let prev = old.printVec.count >= 32 ? old.printVec : FaceEngine.embedding(of: old)
+                    let next = FaceEngine.embedding(of: face)
+                    face.printVec = FaceEngine.blendEmbeddings(prev, next, alpha: 0.35)
+                } else if face.printVec.isEmpty {
+                    face.printVec = FaceEngine.embedding(of: face)
                 }
-                face.printHistory = hist
+                var spark = old.qualitySpark
+                spark.append(face.quality)
+                if spark.count > 8 { spark.removeFirst(spark.count - 8) }
+                face.qualitySpark = spark
+            } else if let old = pinByPrint(face, pool: previous + reconnectGhosts + liveGhosts.map(\.face), used: used) {
+                used.insert(old.id)
+                face.id = old.id
+                face.trackId = old.trackId ?? old.id
+                // Ghost-Box darf nicht kleben: 1-Euro der UUID verwerfen.
+                boxEuro.removeValue(forKey: old.id)
+                if face.featurePrint.isEmpty, !old.featurePrint.isEmpty {
+                    face.featurePrint = old.featurePrint
+                    face.printVec = old.printVec.isEmpty ? FaceEngine.embedding(of: old) : old.printVec
+                } else if !old.printVec.isEmpty, !face.featurePrint.isEmpty {
+                    face.printVec = FaceEngine.blendEmbeddings(old.printVec, FaceEngine.embedding(of: face), alpha: 0.35)
+                }
             }
             adopted.append(face)
         }
+        liveGhosts.removeAll { $0.until < now }
+        boxEuro = boxEuro.filter { used.contains($0.key) }
+        if found.isEmpty {
+            for old in previous where !enrolled.contains(old.id) {
+                liveGhosts.append((old, now + 1.8))
+            }
+        }
+        var leftoverPinned = previous.filter { enrolled.contains($0.id) && !used.contains($0.id) }
         if found.isEmpty {
             faces.removeAll { $0.mediaId == mediaId }
-            if selectedMediaId == mediaId {
-                selectedFaceId = nil
-            }
-            rematch()
-            return
-        }
-        let leftoverPinned = previous.filter { enrolled.contains($0.id) && !used.contains($0.id) }
-        for old in leftoverPinned {
-            var bestJ = -1
-            var bestD = 0.08
-            for (j, face) in adopted.enumerated() where !used.contains(face.id) {
-                let o = FaceEngine.iou(old.box, face.box)
-                if o > bestD {
-                    bestD = o
-                    bestJ = j
+            faces.append(contentsOf: leftoverPinned + adopted)
+        } else {
+            for old in leftoverPinned {
+                var bestJ = -1
+                var bestD = 0.08
+                for (j, face) in adopted.enumerated() where !used.contains(face.id) {
+                    let o = FaceEngine.iou(old.box, face.box)
+                    if o > bestD {
+                        bestD = o
+                        bestJ = j
+                    }
+                }
+                if bestJ >= 0 {
+                    used.insert(old.id)
+                    adopted[bestJ].id = old.id
+                    adopted[bestJ].trackId = old.trackId ?? old.id
+                    if adopted[bestJ].featurePrint.isEmpty {
+                        adopted[bestJ].featurePrint = old.featurePrint
+                    }
+                    if adopted[bestJ].printVec.isEmpty, !old.printVec.isEmpty {
+                        adopted[bestJ].printVec = old.printVec
+                    }
                 }
             }
-            if bestJ >= 0 {
-                used.insert(old.id)
-                adopted[bestJ].id = old.id
-                adopted[bestJ].trackId = old.trackId ?? old.id
-                var hist = old.printHistory
-                if hist.isEmpty, !old.featurePrint.isEmpty { hist.append(old.featurePrint) }
-                if !adopted[bestJ].featurePrint.isEmpty {
-                    hist.append(adopted[bestJ].featurePrint)
-                    if hist.count > 3 { hist.removeFirst(hist.count - 3) }
-                } else if !old.featurePrint.isEmpty {
-                    adopted[bestJ].featurePrint = old.featurePrint
-                }
-                adopted[bestJ].printHistory = hist
-            }
+            faces.removeAll { $0.mediaId == mediaId }
+            faces.append(contentsOf: adopted)
         }
-        faces.removeAll { $0.mediaId == mediaId }
-        faces.append(contentsOf: adopted)
         if selectedMediaId == mediaId {
-            selectedFaceId = adopted.first?.id
+            selectedFaceId = adopted.first?.id ?? leftoverPinned.first?.id
         }
+        reconnectGhosts.removeAll { used.contains($0.id) }
+        nmsDropped = FaceEngine.lastNMSDropped
         rematch()
     }
 

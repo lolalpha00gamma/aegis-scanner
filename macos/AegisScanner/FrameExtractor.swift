@@ -3,6 +3,7 @@ import CoreGraphics
 import Foundation
 import ImageIO
 import UniformTypeIdentifiers
+import Vision
 
 enum FrameExtractor {
     static func isVideo(_ url: URL) -> Bool {
@@ -24,7 +25,23 @@ enum FrameExtractor {
             kCGImageSourceCreateThumbnailFromImageAlways: true,
             kCGImageSourceCreateThumbnailWithTransform: true,
         ]
-        return CGImageSourceCreateThumbnailAtIndex(src, 0, options as CFDictionary)
+        let count = CGImageSourceGetCount(src)
+        if count <= 1 {
+            return CGImageSourceCreateThumbnailAtIndex(src, 0, options as CFDictionary)
+        }
+        // HEIC Live Photo / Burst: schärfstes der ersten 8 Frames, nicht Index 0.
+        let n = min(8, count)
+        var best: CGImage?
+        var bestScore = -1.0
+        for i in 0 ..< n {
+            guard let img = CGImageSourceCreateThumbnailAtIndex(src, i, options as CFDictionary) else { continue }
+            let s = structure(img)
+            if s > bestScore {
+                bestScore = s
+                best = img
+            }
+        }
+        return best ?? CGImageSourceCreateThumbnailAtIndex(src, 0, options as CFDictionary)
     }
 
     static func extract(from url: URL, interval: Double = 0.33, maxFrames: Int = 20) async throws -> [(time: Double, image: CGImage)] {
@@ -62,8 +79,42 @@ enum FrameExtractor {
             }
         }
         scored.sort { $0.2 > $1.2 }
-        let kept = Array(scored.prefix(maxFrames)).sorted { $0.0 < $1.0 }
+        let kept = pickDiverse(scored, maxFrames: maxFrames)
         return kept.map { ($0.0, $0.1) }
+    }
+
+    /// Schärfe plus Yaw-Diversität: nicht 20× dieselbe Frontal-Pose.
+    private static func pickDiverse(_ scored: [(Double, CGImage, Double)], maxFrames: Int) -> [(Double, CGImage, Double)] {
+        guard scored.count > maxFrames else { return scored.sorted { $0.0 < $1.0 } }
+        var yawOf: [Int: Double] = [:]
+        for (i, item) in scored.enumerated() {
+            yawOf[i] = faceYaw(item.1) ?? 999
+        }
+        var picked: [Int] = []
+        // Schärfstes zuerst, dann Frames deren Yaw sich um ≥ 0,22 unterscheidet.
+        for (i, _) in scored.enumerated() {
+            if picked.count >= maxFrames { break }
+            let y = yawOf[i] ?? 999
+            guard y != 999 else { continue }
+            let far = picked.allSatisfy { abs((yawOf[$0] ?? 0) - y) >= 0.22 }
+            if picked.isEmpty || far { picked.append(i) }
+        }
+        for (i, _) in scored.enumerated() where !picked.contains(i) {
+            if picked.count >= maxFrames { break }
+            picked.append(i)
+        }
+        return picked.map { scored[$0] }.sorted { $0.0 < $1.0 }
+    }
+
+    private static func faceYaw(_ image: CGImage) -> Double? {
+        let req = VNDetectFaceRectanglesRequest()
+        req.revision = VNDetectFaceRectanglesRequestRevision3
+        let handler = VNImageRequestHandler(cgImage: image, orientation: .up, options: [:])
+        guard (try? handler.perform([req])) != nil else { return nil }
+        let best = req.results?.max {
+            $0.boundingBox.width * $0.boundingBox.height < $1.boundingBox.width * $1.boundingBox.height
+        }
+        return best?.yaw?.doubleValue
     }
 
     static func structure(_ image: CGImage) -> Double {
@@ -175,7 +226,15 @@ enum FrameExtractor {
         return score
     }
 
-    static func walk(folder: URL) -> [URL] {
+    static func exifOrientation(url: URL) -> Int {
+        guard let src = CGImageSourceCreateWithURL(url as CFURL, nil),
+              let props = CGImageSourceCopyPropertiesAtIndex(src, 0, nil) as? [CFString: Any],
+              let o = props[kCGImagePropertyOrientation] as? Int
+        else { return 1 }
+        return o
+    }
+
+    static func walk(folder: URL, shouldContinue: () -> Bool = { true }) -> [URL] {
         let keys: [URLResourceKey] = [.isRegularFileKey, .isDirectoryKey]
         guard let enumerator = FileManager.default.enumerator(
             at: folder,
@@ -184,6 +243,7 @@ enum FrameExtractor {
         ) else { return [] }
         var urls: [URL] = []
         for case let url as URL in enumerator {
+            if !shouldContinue() { break }
             if isImage(url) || isVideo(url) { urls.append(url) }
         }
         return urls.sorted { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }

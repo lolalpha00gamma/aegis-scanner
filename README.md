@@ -1,4 +1,4 @@
-# Aegis **2.1.6 alpha**
+# Aegis **2.1.12 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,18 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.12 alpha
+
+PR #3 (`bugfix` 2.1.7–2.1.11) auf `main` gezogen, plus die offenen Kleinfixes:
+
+- Orient-Override pro Kamera, Taste U, Live-Ampel, Schärfe vor Print
+- Teil-Print gegen Teil-Centroid, Maske nicht als erste Referenz
+- Live-Box 1-Euro mit Reset nach Reconnect
+- TAR `floor(far·n)−1` (n=10 und n=101)
+- Ampel über 8 Frames, max. 2 Extra-Tiles, Continuity-Schärfe 0,08
+- Orient-Menü vor Webcam-Start, „doch Name“, Labor Genuine frei vs Maske
+- TER in decide, Print-Cache, Buffer-Kopie, CSV-Quotes
 
 ## Neu in 2.1.6 alpha
 

@@ -50,6 +50,12 @@ struct ContentView: View {
             }
             Button("Erkennen") { Task { await store.scan() } }
                 .disabled(store.busy || store.media.isEmpty)
+            if store.busy {
+                Button("Abbrechen") { store.cancelScan() }
+            }
+            if store.canResumeScan, !store.busy {
+                Button("Fortsetzen") { store.resumeScan() }
+            }
             Button("CSV") { store.exportCSV() }
                 .disabled(store.matches.isEmpty)
             Button("Labor") { store.exportLab() }
@@ -58,13 +64,35 @@ struct ContentView: View {
                 if !editing { store.rematch() }
             }
             .frame(width: 110)
-            .help("Zuordnungsschwelle — Bias um 78. Effektiver Floor hängt von der Galeriegröße ab.")
-            Text(String(format: "%.0f → Floor %.0f", store.threshold, MatchMath.floors(gallery: store.identities.count, slider: store.threshold).match))
+            .help(store.floorHint)
+            Text(store.floorHint)
                 .font(.caption2.monospacedDigit())
                 .foregroundStyle(.secondary)
-                .help("Slider ist Bias um 78. Kleine Galerien heben den Floor.")
+                .help("Effektiver Floor: Galerie-Größe plus Slider-Bias um 78.")
+            if !store.revisionWarning.isEmpty {
+                Text(store.revisionWarning)
+                    .font(.caption2)
+                    .foregroundStyle(.orange)
+                    .help(store.revisionWarning)
+            }
             Toggle("Anatomie", isOn: $store.showAnatomy)
                 .toggleStyle(.button)
+            Toggle("NMS", isOn: $store.showNMSDebug)
+                .toggleStyle(.button)
+                .help("Verworfene Tile-Zwillinge als gestrichelte Quadrate")
+            Picker("Orient", selection: Binding(
+                get: { store.cameraOrient },
+                set: { store.setCameraOrient($0) }
+            )) {
+                Text("Auto").tag("auto")
+                Text("0°").tag("0")
+                Text("90°").tag("90")
+                Text("180°").tag("180")
+                Text("270°").tag("270")
+            }
+            .pickerStyle(.menu)
+            .frame(width: 88)
+            .help("Continuity/Desk-View: videoRotationAngle überschreiben, wenn Yaw kippt. Auch vor Webcam-Start.")
         }
     }
 
@@ -84,6 +112,11 @@ struct ContentView: View {
                     .keyboardShortcut(.defaultAction)
                     .disabled(store.selectedFace == nil || store.newPersonName.isEmpty)
             }
+            if !store.enrollmentHint.isEmpty {
+                Text(store.enrollmentHint)
+                    .font(.caption2)
+                    .foregroundStyle(.orange)
+            }
             Text("Anlegen = neue Person. + nur wenn das Namensfeld leer ist: extra Foto derselben Person.")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
@@ -91,7 +124,7 @@ struct ContentView: View {
                 HStack {
                     VStack(alignment: .leading) {
                         Text(identity.name)
-                        Text("\(identity.faceIds.count) Referenzen")
+                        Text("\(identity.faceIds.count) Referenzen · \(FaceEngine.poseCoverageLabel(identity: identity, faces: store.faces))")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -99,6 +132,9 @@ struct ContentView: View {
                     Button("+") { store.addSelectedTo(identity.id) }
                         .disabled(store.selectedFace == nil || !store.newPersonName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         .help("Weitere Aufnahme dieser Person. Name im Feld → Anlegen, nicht +.")
+                    Button("U") { store.addSelectedAsPartial(identity.id) }
+                        .disabled(store.selectedFace == nil || identity.faceIds.isEmpty)
+                        .help("Als Teil-Print (obere Hälfte / Maske) speichern, auch ohne Auto-Maske.")
                     Button(role: .destructive) { store.removeIdentity(identity.id) } label: {
                         Image(systemName: "trash")
                     }
@@ -199,11 +235,10 @@ struct ContentView: View {
                     HStack(spacing: 8) {
                         ForEach(Array(onImage.enumerated()), id: \.element.id) { index, face in
                             let hit = store.matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == store.strategy }
-                            let aegis = store.matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == .aegis }
                             let owner = store.identities.first { $0.faceIds.contains(face.id) }
-                            let ident = owner ?? store.identities.first { $0.id == aegis?.identityId }
+                            let ident = owner ?? store.identities.first { $0.id == hit?.identityId }
                             let pinned = owner != nil
-                            let near = !pinned && ident != nil
+                            let near = !pinned && ident != nil && (hit?.percent ?? 0) >= store.threshold
                             Button {
                                 store.selectedFaceId = face.id
                             } label: {
@@ -322,10 +357,9 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 10) {
             if let face = store.selectedFace {
                 let hit = store.selectedHits.first { $0.strategy == store.strategy }
-                let aegis = store.selectedHits.first { $0.strategy == .aegis }
                 let owner = store.identities.first { $0.faceIds.contains(face.id) }
-                let assignedIdent = owner ?? store.identities.first { $0.id == aegis?.identityId }
-                let assignedPass = owner != nil || aegis?.identityId != nil
+                let assignedIdent = owner ?? store.identities.first { $0.id == hit?.identityId }
+                let assignedPass = assignedIdent != nil && (owner != nil || ((hit?.measured ?? false) && (hit?.percent ?? 0) >= store.threshold))
                 Text(owner != nil ? "REFERENZ" : (assignedPass ? "NÄHE" : "NICHT ZUGEORDNET"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -349,9 +383,21 @@ struct ContentView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } else if !assignedPass, let guess = store.identities.first(where: { $0.id == hit?.versus.first?.identityId }) {
-                    Text("Nähe \(guess.name) · Prozent bleibt sichtbar")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    HStack {
+                        Text("Nähe \(guess.name) · Prozent bleibt sichtbar")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Button("nicht \(guess.name)") {
+                            store.rejectGuess(guess.id)
+                        }
+                        .help("Hard-Negativ: dieses Gesicht ist nicht diese Person.")
+                        if store.identities.first(where: { $0.id == guess.id })?.rejectedVecs.isEmpty == false {
+                            Button("doch \(guess.name)") {
+                                store.clearReject(guess.id)
+                            }
+                            .help("Hard-Negativ dieser Person löschen.")
+                        }
+                    }
                 }
                 Text(String(format: "Qualität %.0f%%  ·  Schärfe %.0f%%  ·  Frontal %.0f%%",
                             face.quality.capture * 100,
@@ -425,9 +471,8 @@ struct ContentView: View {
                         let on = store.enabled.contains(id)
                         let measured = hit?.measured ?? false
                         let pass = pinnedName != nil
-                        let assignedHere = hit?.identityId != nil
                         let name = pinnedName
-                            ?? (assignedHere ? "Nähe \(matchName ?? "")" : (guess.map { "Nähe \($0) · nicht zugeordnet" } ?? "nicht zugeordnet"))
+                            ?? ((matchName != nil && pct >= store.threshold) ? "Nähe \(matchName!)" : (guess.map { "Nähe \($0) · nicht zugeordnet" } ?? "nicht zugeordnet"))
                         HStack(alignment: .top, spacing: 8) {
                             Toggle("", isOn: Binding(
                                 get: { store.enabled.contains(id) },
@@ -569,15 +614,23 @@ struct FaceOverlay: View {
                     .offset(x: ox, y: oy)
                 ForEach(Array(faces.enumerated()), id: \.element.id) { index, face in
                     let hit = store.matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == store.strategy }
-                    let aegis = store.matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == .aegis }
                     let printHit = store.matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == .featurePrint }
                     let owner = store.identities.first { $0.faceIds.contains(face.id) }
-                    let ident = owner ?? store.identities.first { $0.id == aegis?.identityId }
+                    let ident = owner ?? store.identities.first { $0.id == hit?.identityId }
                     let pct = hit?.percent ?? 0
                     let pinned = owner != nil
-                    let near = !pinned && ident != nil
+                    let near = !pinned && ident != nil && (hit?.measured ?? false) && pct >= store.threshold
                     let selected = store.selectedFaceId == face.id
                     let printDead = face.featurePrint.isEmpty
+                    let gallery: [FaceObservation] = {
+                        guard let ident else { return [] }
+                        return store.faces.filter { ident.faceIds.contains($0.id) && $0.id != face.id }
+                    }()
+                    let hint = FaceEngine.overlayHint(face, gallery: gallery)
+                    let printLabel = printDead
+                        ? "Print tot"
+                        : String(format: "Print %.0f%%", printHit?.percent ?? 0)
+                    let badge = hint.map { "\(printLabel) · \($0)" } ?? printLabel
                     Button {
                         store.selectedFaceId = face.id
                         store.selectedMediaId = item.id
@@ -593,28 +646,24 @@ struct FaceOverlay: View {
                                     .offset(x: -4, y: -10)
                             }
                             .overlay(alignment: .topTrailing) {
-                                Text(printDead ? "Print tot" : String(format: "Print %.0f%%", printHit?.percent ?? 0))
-                                    .font(.caption2.monospacedDigit())
-                                    .padding(.horizontal, 5)
-                                    .padding(.vertical, 1)
-                                    .background(printDead ? Color.red.opacity(0.78) : Color.black.opacity(0.7))
-                                    .offset(x: 4, y: -10)
+                                VStack(alignment: .trailing, spacing: 2) {
+                                    QualityAmpel(qualities: face.qualitySpark.isEmpty ? [face.quality] : face.qualitySpark)
+                                    Text(badge)
+                                        .font(.caption2.monospacedDigit())
+                                        .padding(.horizontal, 5)
+                                        .padding(.vertical, 1)
+                                        .background((hint != nil && printDead) ? Color.red.opacity(0.78) : Color.black.opacity(0.7))
+                                }
+                                .offset(x: 4, y: -10)
                             }
                             .overlay(alignment: .bottomLeading) {
                                 if selected {
-                                    let reject = (!pinned && !near) ? (aegis?.note ?? "") : ""
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(pinned ? "\(owner!.name) \(Int(pct))%" : (near ? "Nähe \(ident!.name) \(Int(pct))%" : ((hit?.measured ?? true) ? "nicht zugeordnet" : "nicht gemessen")))
-                                        if !reject.isEmpty {
-                                            Text(reject)
-                                                .lineLimit(2)
-                                        }
-                                    }
-                                    .font(.caption2.monospaced())
-                                    .padding(.horizontal, 4)
-                                    .padding(.vertical, 1)
-                                    .background(.black.opacity(0.7))
-                                    .offset(y: 16)
+                                    Text(pinned ? "\(owner!.name) \(Int(pct))%" : (near ? "Nähe \(ident!.name) \(Int(pct))%" : ((hit?.measured ?? true) ? "nicht zugeordnet" : "nicht gemessen")))
+                                        .font(.caption2.monospaced())
+                                        .padding(.horizontal, 4)
+                                        .padding(.vertical, 1)
+                                        .background(.black.opacity(0.7))
+                                        .offset(y: 16)
                                 }
                             }
                     }
@@ -633,9 +682,62 @@ struct FaceOverlay: View {
                             .allowsHitTesting(false)
                     }
                 }
+                if store.showNMSDebug {
+                    ForEach(Array(store.nmsDropped.enumerated()), id: \.offset) { _, box in
+                        Rectangle()
+                            .stroke(Color.orange.opacity(0.7), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                            .frame(width: CGFloat(box.width) * scale, height: CGFloat(box.height) * scale)
+                            .offset(x: ox + CGFloat(box.x) * scale, y: oy + CGFloat(box.y) * scale)
+                            .allowsHitTesting(false)
+                    }
+                }
             }
         }
         .padding(12)
+    }
+}
+
+private struct QualityAmpel: View {
+    var qualities: [FaceQuality]
+
+    var body: some View {
+        let caps = qualities.map(\.capture)
+        let sharps = qualities.map(\.sharpness)
+        let yaws = qualities.map(\.yaw)
+        let lamps = MatchMath.sparkLamps(captures: caps, sharps: sharps, yaws: yaws)
+        HStack(spacing: 3) {
+            lamp(lamps.capture, label: "C")
+            lamp(lamps.sharpness, label: "S")
+            lamp(lamps.yaw, label: "Y")
+        }
+        .padding(.horizontal, 4)
+        .padding(.vertical, 2)
+        .background(Color.black.opacity(0.72))
+        .help(String(
+            format: "8-Frame Ampel · Aufnahme %.0f %% · Schärfe %.0f %% · Yaw %.0f°",
+            (caps.min() ?? 0) * 100,
+            (sharps.min() ?? 0) * 100,
+            (yaws.map { abs($0) }.max() ?? 0) * 180 / .pi
+        ))
+    }
+
+    private func lamp(_ value: MatchMath.Lamp, label: String) -> some View {
+        HStack(spacing: 1) {
+            Circle()
+                .fill(color(value))
+                .frame(width: 7, height: 7)
+            Text(label)
+                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                .foregroundStyle(.white.opacity(0.85))
+        }
+    }
+
+    private func color(_ value: MatchMath.Lamp) -> Color {
+        switch value {
+        case .green: return Color.green
+        case .amber: return Color.orange
+        case .red: return Color.red
+        }
     }
 }
 

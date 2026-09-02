@@ -1,9 +1,11 @@
 import AppKit
 import AVFoundation
 import CoreGraphics
+import CoreImage
 import CoreMedia
 import CoreVideo
 import Foundation
+import ImageIO
 import Vision
 
 enum LiveKind: String {
@@ -14,6 +16,7 @@ enum LiveKind: String {
 final class LiveCapture: NSObject {
     private var player: AVPlayer?
     private var output: AVPlayerItemVideoOutput?
+    private var playerTransform = CGAffineTransform.identity
     private var session: AVCaptureSession?
     private var outputQueue = DispatchQueue(label: "aegis.live")
     private var timer: Timer?
@@ -23,6 +26,30 @@ final class LiveCapture: NSObject {
     var onFrame: ((CGImage) -> Void)?
     var onError: ((String) -> Void)?
     var onReady: (() -> Void)?
+    /// Live-Tap: 2 fps ohne Gesicht, 8 fps sobald ein Track sitzt.
+    private(set) var facesPresent = false
+    private(set) var cameraUniqueID: String = ""
+    private(set) var orientOverride: String = "auto"
+    private(set) var isContinuity = false
+
+    static func orientKey(_ uniqueID: String) -> String { "aegis.camOrient.\(uniqueID)" }
+
+    func setOrientOverride(_ value: String) {
+        orientOverride = value
+        tap?.orientOverride = value
+        if !cameraUniqueID.isEmpty {
+            UserDefaults.standard.set(value, forKey: Self.orientKey(cameraUniqueID))
+        }
+    }
+
+    func setFacesPresent(_ on: Bool) {
+        let changed = on != facesPresent
+        facesPresent = on
+        tap?.minInterval = on ? 0.125 : 0.50
+        if changed, timer != nil {
+            startTimer()
+        }
+    }
 
     func start(url: URL, kind: LiveKind) {
         stop()
@@ -50,6 +77,7 @@ final class LiveCapture: NSObject {
         player?.pause()
         player = nil
         output = nil
+        playerTransform = .identity
         session?.stopRunning()
         session = nil
     }
@@ -80,6 +108,16 @@ final class LiveCapture: NSObject {
             onError?("Keine Webcam gefunden.")
             return
         }
+        cameraUniqueID = device.uniqueID
+        if #available(macOS 14.0, *) {
+            isContinuity = device.deviceType == .continuityCamera || device.deviceType == .deskViewCamera
+        } else {
+            isContinuity = device.deviceType == .continuityCamera
+        }
+        if let stored = UserDefaults.standard.string(forKey: Self.orientKey(device.uniqueID)) {
+            orientOverride = stored
+        }
+        UserDefaults.standard.set(orientOverride, forKey: Self.orientKey(device.uniqueID))
         if session.canAddInput(input) { session.addInput(input) }
         let out = AVCaptureVideoDataOutput()
         out.alwaysDiscardsLateVideoFrames = true
@@ -87,42 +125,37 @@ final class LiveCapture: NSObject {
         let delegate = FrameTap { [weak self] image in
             self?.onFrame?(image)
         }
+        delegate.uniqueID = device.uniqueID
+        delegate.orientOverride = orientOverride
         self.tap = delegate
         out.setSampleBufferDelegate(delegate, queue: outputQueue)
         if session.canAddOutput(out) { session.addOutput(out) }
-        if let conn = out.connection(with: .video) {
-            if conn.isVideoOrientationSupported {
-                conn.videoOrientation = .landscapeRight
-            }
-            if conn.isVideoMirroringSupported {
-                conn.isVideoMirrored = device.position == .front || device.position == .unspecified
-            }
-        }
         self.session = session
         outputQueue.async { session.startRunning() }
         onReady?()
     }
 
+    private var tap: FrameTap?
+
     private func preferredCamera() -> AVCaptureDevice? {
-        let types: [AVCaptureDevice.DeviceType] = [
+        var types: [AVCaptureDevice.DeviceType] = [
             .builtInWideAngleCamera,
             .continuityCamera,
             .external
         ]
-        let found = AVCaptureDevice.DiscoverySession(
+        if #available(macOS 14.0, *) {
+            types.append(.deskViewCamera)
+        }
+        let discovered = AVCaptureDevice.DiscoverySession(
             deviceTypes: types,
             mediaType: .video,
             position: .unspecified
         ).devices
-        if let wideFront = found.first(where: { $0.deviceType == .builtInWideAngleCamera && $0.position == .front }) {
-            return wideFront
+        if let builtIn = discovered.first(where: { $0.deviceType == .builtInWideAngleCamera }) {
+            return builtIn
         }
-        if let wide = found.first(where: { $0.deviceType == .builtInWideAngleCamera }) { return wide }
-        if let front = found.first(where: { $0.position == .front }) { return front }
-        return found.first ?? AVCaptureDevice.default(for: .video)
+        return discovered.first ?? AVCaptureDevice.default(for: .video)
     }
-
-    private var tap: FrameTap?
 
     private func startPlayer(url: URL) {
         let item = AVPlayerItem(url: url)
@@ -135,9 +168,18 @@ final class LiveCapture: NSObject {
         player.isMuted = true
         self.output = videoOut
         self.player = player
+        playerTransform = .identity
         player.play()
         onReady?()
         startTimer()
+        Task { [weak self] in
+            guard
+                let tracks = try? await item.asset.loadTracks(withMediaType: .video),
+                let track = tracks.first,
+                let t = try? await track.load(.preferredTransform)
+            else { return }
+            await MainActor.run { self?.playerTransform = t }
+        }
         if let failObserver {
             NotificationCenter.default.removeObserver(failObserver)
         }
@@ -156,7 +198,8 @@ final class LiveCapture: NSObject {
 
     private func startTimer() {
         timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: 0.10, repeats: true) { [weak self] _ in
+        let interval: TimeInterval = facesPresent ? 0.125 : 0.50
+        timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
             let capture = self
             Task { @MainActor in
                 capture?.grab()
@@ -186,7 +229,7 @@ final class LiveCapture: NSObject {
         let t = item.currentTime()
         if output.hasNewPixelBuffer(forItemTime: t),
            let pb = output.copyPixelBuffer(forItemTime: t, itemTimeForDisplay: nil),
-           let image = cgImage(from: pb)
+           let image = cgImage(from: pb, transform: playerTransform)
         {
             onFrame?(image)
         }
@@ -199,6 +242,9 @@ final class LiveCapture: NSObject {
 
 private final class FrameTap: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     private var last: TimeInterval = 0
+    var minInterval: TimeInterval = 0.50
+    var uniqueID: String = ""
+    var orientOverride: String = "auto"
     private let emit: (CGImage) -> Void
     init(emit: @escaping (CGImage) -> Void) { self.emit = emit }
     func captureOutput(
@@ -207,10 +253,40 @@ private final class FrameTap: NSObject, AVCaptureVideoDataOutputSampleBufferDele
         from connection: AVCaptureConnection
     ) {
         let now = Date().timeIntervalSince1970
-        guard now - last >= 0.09 else { return }
+        guard now - last >= minInterval else { return }
         last = now
-        guard let pb = CMSampleBufferGetImageBuffer(sampleBuffer), let image = cgImage(from: pb) else { return }
+        guard let pb = CMSampleBufferGetImageBuffer(sampleBuffer),
+              let image = cgImage(from: pb, orientation: visionOrientation(connection, override: orientOverride))
+        else { return }
         DispatchQueue.main.async { self.emit(image) }
+    }
+}
+
+private func visionOrientation(_ connection: AVCaptureConnection, override: String = "auto") -> CGImagePropertyOrientation {
+    switch override {
+    case "0": return .up
+    case "90": return .right
+    case "180": return .down
+    case "270": return .left
+    default: break
+    }
+    let angle: CGFloat
+    if #available(macOS 14.0, *) {
+        angle = connection.videoRotationAngle
+    } else {
+        switch connection.videoOrientation {
+        case .portrait: angle = 90
+        case .portraitUpsideDown: angle = 270
+        case .landscapeRight: angle = 180
+        default: angle = 0
+        }
+    }
+    let wrapped = Int(((angle.truncatingRemainder(dividingBy: 360)) + 360).truncatingRemainder(dividingBy: 360).rounded())
+    switch wrapped {
+    case 90: return .right
+    case 180: return .down
+    case 270: return .left
+    default: return .up
     }
 }
 
@@ -226,7 +302,9 @@ private func cgImage(from data: Data) -> CGImage? {
     NSImage(data: data)?.cgImage(forProposedRect: nil, context: nil, hints: nil)
 }
 
-private func cgImage(from pb: CVPixelBuffer) -> CGImage? {
+private let liveOrientContext = CIContext(options: [.cacheIntermediates: false])
+
+private func cgImage(from pb: CVPixelBuffer, orientation: CGImagePropertyOrientation = .up, transform: CGAffineTransform = .identity) -> CGImage? {
     let w = CVPixelBufferGetWidth(pb)
     let h = CVPixelBufferGetHeight(pb)
     CVPixelBufferLockBaseAddress(pb, .readOnly)
@@ -243,7 +321,7 @@ private func cgImage(from pb: CVPixelBuffer) -> CGImage? {
         space: cs,
         bitmapInfo: CGBitmapInfo.byteOrder32Little.rawValue | CGImageAlphaInfo.premultipliedFirst.rawValue
     ) else { return nil }
-    guard let wrapped = ctx.makeImage() else { return nil }
+    guard let raw = ctx.makeImage() else { return nil }
     guard let owned = CGContext(
         data: nil,
         width: w,
@@ -252,9 +330,18 @@ private func cgImage(from pb: CVPixelBuffer) -> CGImage? {
         bytesPerRow: w * 4,
         space: cs,
         bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-    ) else { return wrapped }
-    owned.draw(wrapped, in: CGRect(x: 0, y: 0, width: w, height: h))
-    return owned.makeImage()
+    ) else { return raw }
+    owned.draw(raw, in: CGRect(x: 0, y: 0, width: w, height: h))
+    guard let copied = owned.makeImage() else { return raw }
+    if orientation == .up, transform.isIdentity { return copied }
+    var oriented = CIImage(cgImage: copied)
+    if !transform.isIdentity {
+        oriented = oriented.transformed(by: transform)
+    }
+    if orientation != .up {
+        oriented = oriented.oriented(orientation)
+    }
+    return liveOrientContext.createCGImage(oriented, from: oriented.extent)
 }
 
 func sniffLiveKind(_ raw: String) -> (LiveKind, URL)? {

@@ -2,9 +2,9 @@ import CoreGraphics
 import Foundation
 
 enum AppVersion {
-    static let marketing = "2.1.6"
+    static let marketing = "2.1.12"
     static let channel = "alpha"
-    static let display = "2.1.6 alpha"
+    static let display = "2.1.12 alpha"
 }
 
 enum StrategyTrack: String, CaseIterable, Identifiable {
@@ -91,7 +91,7 @@ enum StrategyID: String, CaseIterable, Identifiable, Codable {
         case .graphBio:
             return "KNN-6 über feste Knochenpunkte (ohne Mund). Alterungsstabil, unabhängig von Textur."
         case .geom3d:
-            return "2D-Landmarks nach Yaw/Pitch entzerrt (1/cos). Keine erfundene Tiefe, kein 3DMM."
+            return "2D-Landmarks mit Yaw/Pitch auf die Frontalebene gehoben. Kein neuronales 3DMM."
         case .texture:
             return "Tan–Triggs + LBP auf dem ausgerichteten Crop. Keine Zuordnungsstimme."
         case .qualityGate:
@@ -101,7 +101,7 @@ enum StrategyID: String, CaseIterable, Identifiable, Codable {
         case .featurePrint:
             return "Gesichts-Print (VNGenerateFacePrintRequest) auf dem ganzen Foto. Kein Bild-Print von Jacke/Hintergrund."
         case .terFusion:
-            return "Aktive Spuren → TER. Fließt in die Aegis-Zuordnung, nicht nur Anzeige."
+            return "Aktive Spuren → Total Error Rate, min-max nach Jain, nur eingeschaltete Matcher."
         case .aegis:
             return "Fusion der eingeschalteten Spuren. Print führt, Geometrie stützt und vetoiert. Aus = keine Namensvergabe."
         }
@@ -125,14 +125,14 @@ struct FaceQuality: Codable, Hashable {
     var size: Double
     var frontal: Double
     var capture: Double
-    var yaw: Double?
-    var pitch: Double?
+    var yaw: Double = 0
+    var pitch: Double = 0
 
     enum CodingKeys: String, CodingKey {
         case sharpness, size, frontal, capture, yaw, pitch
     }
 
-    init(sharpness: Double, size: Double, frontal: Double, capture: Double, yaw: Double? = nil, pitch: Double? = nil) {
+    init(sharpness: Double, size: Double, frontal: Double, capture: Double, yaw: Double = 0, pitch: Double = 0) {
         self.sharpness = sharpness
         self.size = size
         self.frontal = frontal
@@ -147,18 +147,8 @@ struct FaceQuality: Codable, Hashable {
         size = try c.decode(Double.self, forKey: .size)
         frontal = try c.decode(Double.self, forKey: .frontal)
         capture = try c.decode(Double.self, forKey: .capture)
-        yaw = try c.decodeIfPresent(Double.self, forKey: .yaw)
-        pitch = try c.decodeIfPresent(Double.self, forKey: .pitch)
-    }
-
-    func encode(to encoder: Encoder) throws {
-        var c = encoder.container(keyedBy: CodingKeys.self)
-        try c.encode(sharpness, forKey: .sharpness)
-        try c.encode(size, forKey: .size)
-        try c.encode(frontal, forKey: .frontal)
-        try c.encode(capture, forKey: .capture)
-        try c.encodeIfPresent(yaw, forKey: .yaw)
-        try c.encodeIfPresent(pitch, forKey: .pitch)
+        yaw = try c.decodeIfPresent(Double.self, forKey: .yaw) ?? 0
+        pitch = try c.decodeIfPresent(Double.self, forKey: .pitch) ?? 0
     }
 }
 
@@ -209,12 +199,105 @@ struct FaceObservation: Identifiable, Hashable, Codable {
     var strokes: [LandmarkStroke] = []
     var namedAligned: [Point2] = []
     var ratioSheet: [NamedRatio] = []
-    /// Letzte Live-Prints derselben Track-ID. Nicht persistiert.
-    var printHistory: [Data] = []
+    /// Live-EMA des Print-Vektors. Nicht persistiert — der archivierte
+    /// `featurePrint` bleibt die Quelle auf Disk.
+    var printVec: [Double] = []
+    /// Stirn/Augen-Print bei okkludierter unterer Hälfte. Persistiert, Vec nicht.
+    var partialPrint: Data = Data()
+    var partialVec: [Double] = []
+    /// Taste „als Teil-Print speichern“ — Slot U auch ohne Auto-Maske.
+    var forcedPartial: Bool = false
+    /// Live-Ampel-History, RAM-only.
+    var qualitySpark: [FaceQuality] = []
 
     enum CodingKeys: String, CodingKey {
         case id, mediaId, box, score, landmarks, aligned, featurePrint
         case appearance, graph, geom3d, quality, trackId, strokes, namedAligned, ratioSheet
+        case partialPrint, forcedPartial
+    }
+
+    init(
+        id: UUID,
+        mediaId: UUID,
+        box: FaceBox,
+        score: Double,
+        landmarks: [Point2],
+        aligned: [Point2],
+        featurePrint: Data,
+        appearance: [Double],
+        graph: [Double],
+        geom3d: [Double],
+        quality: FaceQuality,
+        trackId: UUID?,
+        strokes: [LandmarkStroke] = [],
+        namedAligned: [Point2] = [],
+        ratioSheet: [NamedRatio] = [],
+        printVec: [Double] = [],
+        partialPrint: Data = Data(),
+        partialVec: [Double] = [],
+        forcedPartial: Bool = false
+    ) {
+        self.id = id
+        self.mediaId = mediaId
+        self.box = box
+        self.score = score
+        self.landmarks = landmarks
+        self.aligned = aligned
+        self.featurePrint = featurePrint
+        self.appearance = appearance
+        self.graph = graph
+        self.geom3d = geom3d
+        self.quality = quality
+        self.trackId = trackId
+        self.strokes = strokes
+        self.namedAligned = namedAligned
+        self.ratioSheet = ratioSheet
+        self.printVec = printVec
+        self.partialPrint = partialPrint
+        self.partialVec = partialVec
+        self.forcedPartial = forcedPartial
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        mediaId = try c.decode(UUID.self, forKey: .mediaId)
+        box = try c.decode(FaceBox.self, forKey: .box)
+        score = try c.decode(Double.self, forKey: .score)
+        landmarks = try c.decode([Point2].self, forKey: .landmarks)
+        aligned = try c.decode([Point2].self, forKey: .aligned)
+        featurePrint = try c.decode(Data.self, forKey: .featurePrint)
+        appearance = try c.decode([Double].self, forKey: .appearance)
+        graph = try c.decode([Double].self, forKey: .graph)
+        geom3d = try c.decode([Double].self, forKey: .geom3d)
+        quality = try c.decode(FaceQuality.self, forKey: .quality)
+        trackId = try c.decodeIfPresent(UUID.self, forKey: .trackId)
+        strokes = try c.decodeIfPresent([LandmarkStroke].self, forKey: .strokes) ?? []
+        namedAligned = try c.decodeIfPresent([Point2].self, forKey: .namedAligned) ?? []
+        ratioSheet = try c.decodeIfPresent([NamedRatio].self, forKey: .ratioSheet) ?? []
+        partialPrint = try c.decodeIfPresent(Data.self, forKey: .partialPrint) ?? Data()
+        forcedPartial = try c.decodeIfPresent(Bool.self, forKey: .forcedPartial) ?? false
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(mediaId, forKey: .mediaId)
+        try c.encode(box, forKey: .box)
+        try c.encode(score, forKey: .score)
+        try c.encode(landmarks, forKey: .landmarks)
+        try c.encode(aligned, forKey: .aligned)
+        try c.encode(featurePrint, forKey: .featurePrint)
+        try c.encode(appearance, forKey: .appearance)
+        try c.encode(graph, forKey: .graph)
+        try c.encode(geom3d, forKey: .geom3d)
+        try c.encode(quality, forKey: .quality)
+        try c.encodeIfPresent(trackId, forKey: .trackId)
+        try c.encode(strokes, forKey: .strokes)
+        try c.encode(namedAligned, forKey: .namedAligned)
+        try c.encode(ratioSheet, forKey: .ratioSheet)
+        try c.encode(partialPrint, forKey: .partialPrint)
+        if forcedPartial { try c.encode(forcedPartial, forKey: .forcedPartial) }
     }
 }
 
@@ -222,6 +305,27 @@ struct Identity: Identifiable, Hashable, Codable {
     let id: UUID
     var name: String
     var faceIds: [UUID]
+    /// Hard-Negatives: Prints, die ausdrücklich *nicht* diese Person sind.
+    var rejectedVecs: [[Double]] = []
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, faceIds, rejectedVecs
+    }
+
+    init(id: UUID, name: String, faceIds: [UUID], rejectedVecs: [[Double]] = []) {
+        self.id = id
+        self.name = name
+        self.faceIds = faceIds
+        self.rejectedVecs = rejectedVecs
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        name = try c.decode(String.self, forKey: .name)
+        faceIds = try c.decode([UUID].self, forKey: .faceIds)
+        rejectedVecs = try c.decodeIfPresent([[Double]].self, forKey: .rejectedVecs) ?? []
+    }
 }
 
 struct IdentityScore: Hashable {

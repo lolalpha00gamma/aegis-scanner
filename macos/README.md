@@ -1,7 +1,7 @@
 # Aegis
 
 Lokaler Image- & Video-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**  
-Version **2.1.6 alpha**.
+Version **2.1.12 alpha**.
 
 ## Image-Datei
 
@@ -13,9 +13,29 @@ Version **2.1.6 alpha**.
 
 macOS 14 Sonoma oder neuer. Die Datei ist ad-hoc signiert (kein Apple-Developer-Account) — deshalb der Rechtsklick beim ersten Start.
 
+## Neu in 2.1.12 alpha
+
+2.1.7–2.1.11 von `bugfix` auf `main`. Ampel-Spark 8 Frames, Tile-Budget 2, Continuity-Schärfe 0,08, Orient vor Live, Labor Teil-Print getrennt.
+
+## Neu in 2.1.11 alpha
+
+Per-Kamera Orient-Override, expliziter U-Slot, Live-Ampel C/S/Y, Schärfe-Gate vor dem Print.
+
+## Neu in 2.1.10 alpha
+
+Teil-Print gegen Teil-Centroid, Maske als erste Referenz veto, Portrait-Tiles aus, Schärfe-Floor 0,12, Coverage U.
+
+## Neu in 2.1.7 alpha
+
+0,4 %-Print fällt nicht mehr auf Geometrie. Crop mit Orientierung. Coverage-Slot blockt. Live-Reconnect über Print. Familien-Floor. Hard-Negativ-Taste.
+
 ## Neu in 2.1.6 alpha
 
-CI: TAR-Index floor, Tests nach dem Build. Live-Print Median. Pose optional. 3D nur Entzerrung. TER entscheidet mit. Buffer-Kopie, CSV-Quotes.
+Gewichteter Galerie-Centroid, Walk-Cancel pro Datei, HLS-FPS 2/8, Pose-Coverage F/¾/P, Print-Drift am Overlay, Enrollment-Vorschau vor Commit.
+
+## Neu in 2.1.4 alpha
+
+Live-Frames kommen mit der Capture-Orientierung bei Vision an. Video-Keyframes sind yaw-divers. Overlay nennt Okklusion/Profil, der Slider den effektiven Floor, NMS-Twins sind optional sichtbar.
 
 ## Neu in 2.1.1 alpha
 

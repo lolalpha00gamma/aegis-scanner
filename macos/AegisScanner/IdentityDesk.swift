@@ -11,6 +11,7 @@ enum ProbeState: String {
 struct GalleryPayload: Codable {
     var identities: [Identity]
     var faces: [FaceObservation]
+    var printRevision: String?
 }
 
 enum GalleryFile {
@@ -25,22 +26,23 @@ enum GalleryFile {
         directory.appendingPathComponent("gallery.json")
     }
 
-    static func load() -> (identities: [Identity], faces: [FaceObservation]) {
-        guard let data = try? Data(contentsOf: url) else { return ([], []) }
+    static func load() -> (identities: [Identity], faces: [FaceObservation], printRevision: String?) {
+        guard let data = try? Data(contentsOf: url) else { return ([], [], nil) }
         if let payload = try? JSONDecoder().decode(GalleryPayload.self, from: data) {
-            return (payload.identities, payload.faces)
+            return (payload.identities, payload.faces, payload.printRevision)
         }
         if let identities = try? JSONDecoder().decode([Identity].self, from: data) {
-            return (identities, [])
+            return (identities, [], nil)
         }
-        return ([], [])
+        return ([], [], nil)
     }
 
     static func save(identities: [Identity], faces: [FaceObservation]) {
         let enrolled = Set(identities.flatMap(\.faceIds))
         let payload = GalleryPayload(
             identities: identities,
-            faces: faces.filter { enrolled.contains($0.id) }
+            faces: faces.filter { enrolled.contains($0.id) },
+            printRevision: MatchMath.printRevision
         )
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
@@ -57,15 +59,13 @@ enum IdentityDesk {
         threshold: Double
     ) -> ProbeState {
         guard let face else { return .none }
-        _ = threshold
         if identities.contains(where: { $0.faceIds.contains(face.id) }) {
             return .enrolled
         }
         if FaceEngine.qualityRejects(face.quality) {
             return .unfit
         }
-        let aegis = matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == .aegis }
-        if aegis?.identityId != nil {
+        if let top = topCandidate(faceId: face.id, matches: matches), top.percent >= threshold {
             return .candidate
         }
         return .unknown
