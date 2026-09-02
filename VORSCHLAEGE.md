@@ -2,23 +2,28 @@
 
 Stand: **2.1.2 alpha**. Fixes von 2.1.2 stehen in der README, nicht hier.
 
-## Erledigt in 2.1.2 (nicht erneut vorschlagen)
+## In 2.1.2 wirklich im Code (nicht nur in der Liste)
 
-- Match-Floor abhängig von Galeriegröße.
-- Live-Print: Qualität hält den stabileren Vektor, statt jedes Frame neu zu würfeln.
-- Print-Sigmoid härter (Mitte 0.58 statt 0.42) — Impostoren nicht mehr bei 70 %.
-- TER-min-max erst ab 3 Identitäten.
-- Landmark-Vergleich nur gleich lange Named-Sets.
-- Labor: TAR@0.1 % FAR und TAR@1 % FAR.
+Die 2.1.2-Commits auf main hatten die härtere Kurve und den Galerie-Floor nur in VERSION/VORSCHLÄGE.md. Der FaceEngine-Sigmoid war noch `-11*(c-0.42)`. Jetzt:
+
+- Print-Sigmoid Mitte 0,55 / Steigung 14 (Impostor-Cosine 0,45 ≈ 20 %, nicht 58 %).
+- `bestPrintPercent` ist Mittel der oberen Hälfte, nicht max.
+- `decide` nutzt `geoAgrees` / `geoMix`: Maße unter 42 % bei Widerspruch vetoiert.
+- Galerie-Floor: 1 Person 84, 2–3 80, ≥4 78. Slider bleibt Bias um 78.
+- Ensemble nimmt nicht max() über fünf Kopien desselben Prints.
+- Crop-Fallback speichert keinen Jacken-Print, wenn der Ganzbild-Print die Box verfehlt.
+- Live ~5 fps. Overlay-Badge „Print tot“ / „Print 99 %“.
+- Live-Pin IoU 0,12, Qualität hält den stabileren Print, keine Geister-Kästen.
 
 ## Nächste Fixes (klein)
 
-- **Print-Status im Overlay.** Badge „Print tot“ / „Print 99 %“ direkt auf der Box, nicht nur in der Spur-Liste.
-- **Live-Print mitteln als echter Embedding-Mittelwert**, nicht nur „älteres Print behalten“. Drei Frames derselben ID → Mittel-Vektor.
+- **Live-Print mitteln als echter Embedding-Mittelwert**, nicht nur „schärferes Print behalten“. Drei Frames derselben ID → Mittel-Vektor. Archived `VNFeaturePrintObservation` braucht dazu einen eigenen Float-Buffer.
 - **NMS-Debug.** Optional Quadrate der verworfenen Tile-Treffer — sonst sieht man Twins nicht.
-- **EXIF-Orientierungstest** in den Laborbericht. Ein gedrehtes iPhone-Foto kippt Yaw, obwohl Thumbnails mit Transform geladen werden.
+- **EXIF-Orientierungstest** in den Laborbericht. Ein gedrehtes iPhone-Foto kippt Yaw.
 - **Vision-Handler-Orientierung am Live-Frame.** Webcam-BGRA oft landscape; `.up` verdreht Yaw/Pitch.
 - **matchFloor ohne Static-Globals.** `matchFloor`/`soloFloor` sind process-weit — paralleles Labor + Live überschreibt die Schwelle.
+- **Slider-Tooltip** zeigt den effektiven Floor (Galerie + Bias), nicht nur 70…96.
+- **Labor TAR@0.1 % / 1 % FAR** wirklich rechnen und exportieren — in der Liste schon behauptet, Evaluator prüfen.
 
 ## Erweiterungen
 
@@ -35,6 +40,9 @@ Stand: **2.1.2 alpha**. Fixes von 2.1.2 stehen in der README, nicht hier.
 - **Ablehnungsgrund als Overlay.** „z zu klein“ / „Print leer“ direkt am Gesicht, nicht nur in der Spur.
 - **Zwei-Pass-Scan.** Erst grobe Boxen, dann Face-Print nur auf den besten Crops — spart Vision-Calls bei Gruppenfotos.
 - **Helios-Bridge.** Optional: wenn Helios läuft, Kamera-Session teilen statt zweimal TCC.
+- **Offen-Set.** Explizite „unbekannt“-Klasse mit eigener Schwelle, statt nur `nil`.
+- **Pose-normalisierter Print.** Yaw/Pitch vor dem Crop, damit Profil nicht gegen Frontal verliert.
+- **Referenz-Qualitätssieb.** Anlegen ablehnen wenn capture < 0,40 oder Print tot — verhindert Gift in der Galerie.
 
 ## Nicht tun
 
@@ -43,3 +51,4 @@ Stand: **2.1.2 alpha**. Fixes von 2.1.2 stehen in der README, nicht hier.
 - Cloud-API. Aegis ist lokal, das ist die Produktgrenze.
 - 3DMM-Netze ins Bundle (Größe, Lizenz). Pose-Anhebung reicht, bis ein Drop-in-Modell kommt.
 - Image-Feature-Print als Identität. Jacke ≠ Gesicht.
+- Sigmoid-Mitte wieder unter 0,50. Impostor-Cosine sitzt genau dort.

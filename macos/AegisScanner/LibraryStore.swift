@@ -447,7 +447,7 @@ final class LibraryStore: ObservableObject {
             for old in previous where !used.contains(old.id) {
                 let o = FaceEngine.iou(old.box, face.box)
                 let pin = enrolled.contains(old.id)
-                let enough = pin ? o >= 0.22 : o >= 0.28
+                let enough = pin ? o >= 0.12 : o >= 0.18
                 guard enough else { continue }
                 if pin && !bestEnrolled {
                     best = old
@@ -464,13 +464,39 @@ final class LibraryStore: ObservableObject {
                 face.trackId = old.trackId ?? old.id
                 if face.featurePrint.isEmpty, !old.featurePrint.isEmpty {
                     face.featurePrint = old.featurePrint
+                } else if !old.featurePrint.isEmpty, face.quality.capture + 0.04 < old.quality.capture {
+                    face.featurePrint = old.featurePrint
                 }
             }
             adopted.append(face)
         }
-        let leftoverPinned = previous.filter { enrolled.contains($0.id) && !used.contains($0.id) }
-        faces.removeAll { $0.mediaId == mediaId }
-        faces.append(contentsOf: leftoverPinned + adopted)
+        var leftoverPinned = previous.filter { enrolled.contains($0.id) && !used.contains($0.id) }
+        if found.isEmpty {
+            faces.removeAll { $0.mediaId == mediaId }
+            faces.append(contentsOf: leftoverPinned + adopted)
+        } else {
+            for old in leftoverPinned {
+                var bestJ = -1
+                var bestD = 0.08
+                for (j, face) in adopted.enumerated() where !used.contains(face.id) {
+                    let o = FaceEngine.iou(old.box, face.box)
+                    if o > bestD {
+                        bestD = o
+                        bestJ = j
+                    }
+                }
+                if bestJ >= 0 {
+                    used.insert(old.id)
+                    adopted[bestJ].id = old.id
+                    adopted[bestJ].trackId = old.trackId ?? old.id
+                    if adopted[bestJ].featurePrint.isEmpty {
+                        adopted[bestJ].featurePrint = old.featurePrint
+                    }
+                }
+            }
+            faces.removeAll { $0.mediaId == mediaId }
+            faces.append(contentsOf: adopted)
+        }
         if selectedMediaId == mediaId {
             selectedFaceId = adopted.first?.id ?? leftoverPinned.first?.id
         }

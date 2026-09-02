@@ -562,12 +562,14 @@ struct FaceOverlay: View {
                     .offset(x: ox, y: oy)
                 ForEach(Array(faces.enumerated()), id: \.element.id) { index, face in
                     let hit = store.matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == store.strategy }
+                    let printHit = store.matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == .featurePrint }
                     let owner = store.identities.first { $0.faceIds.contains(face.id) }
                     let ident = owner ?? store.identities.first { $0.id == hit?.identityId }
                     let pct = hit?.percent ?? 0
                     let pinned = owner != nil
                     let near = !pinned && ident != nil && (hit?.measured ?? false) && pct >= store.threshold
                     let selected = store.selectedFaceId == face.id
+                    let printDead = face.featurePrint.isEmpty
                     Button {
                         store.selectedFaceId = face.id
                         store.selectedMediaId = item.id
@@ -581,6 +583,14 @@ struct FaceOverlay: View {
                                     .padding(.vertical, 1)
                                     .background(.black.opacity(0.7))
                                     .offset(x: -4, y: -10)
+                            }
+                            .overlay(alignment: .topTrailing) {
+                                Text(printDead ? "Print tot" : String(format: "Print %.0f%%", printHit?.percent ?? 0))
+                                    .font(.caption2.monospacedDigit())
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 1)
+                                    .background(printDead ? Color.red.opacity(0.78) : Color.black.opacity(0.7))
+                                    .offset(x: 4, y: -10)
                             }
                             .overlay(alignment: .bottomLeading) {
                                 if selected {

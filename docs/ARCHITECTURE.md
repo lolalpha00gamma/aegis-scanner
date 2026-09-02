@@ -1,6 +1,6 @@
-# Aegis 2.1.1 alpha — Architektur
+# Aegis 2.1.2 alpha — Architektur
 
-2.0.8 hat `lookOf` umgedreht. 2.1.0 macht jede Spur abschaltbar und ergänzt Pose-3D, LBP, Mahalanobis, Laborbericht. **2.1.1** schließt die Zuordnung ohne Print, Live-Geister und Tile-NMS.
+2.0.8 hat `lookOf` umgedreht. 2.1.0 macht jede Spur abschaltbar und ergänzt Pose-3D, LBP, Mahalanobis, Laborbericht. **2.1.1** schließt die Zuordnung ohne Print, Live-Geister und Tile-NMS. **2.1.2** macht den Print ehrlich (Sigmoid, kein max, Geo-Veto, Galerie-Floor) und das Live-Overlay lesbar.
 
 ## Spuren
 
@@ -15,6 +15,8 @@ Vier Gruppen, jede Erkennung mit Schalter. **Aus = Gewicht 0 in der Fusion.**
 
 Aegis aus → keine Namensvergabe. `nicht gemessen` ≠ `0 %`.
 KI an + leerer Print → Score gedeckelt auf 49, `decide` weist ab. KI aus → Geometrie darf zuordnen.
+`decide` vetoiert wenn die Maße der Print-Gewinnerin widersprechen (geoMix < 42, percent < 94).
+Galerie-Floor: 1→84, 2–3→80, ≥4→78, plus Slider-Bias um 78.
 
 ## Fusion
 
