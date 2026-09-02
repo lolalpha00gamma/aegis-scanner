@@ -36,7 +36,11 @@ enum FaceEngine {
         let largest = out.map { max($0.box.width, $0.box.height) }.max() ?? 0
         let covered = out.reduce(0.0) { $0 + $1.box.width * $1.box.height }
         let coverage = covered / max(1, w * h)
-        let crowd = out.isEmpty || largest < min(w, h) * 0.22 || (coverage < 0.14 && max(w, h) >= 1000)
+        let minSide = min(w, h)
+        // Portrait mit einem großen Gesicht: Tiles erzeugen NMS-Zwillinge und
+        // falsche Print-IoU. Nur crowd/klein oder leeres Bild kacheln.
+        let hasLargeFace = largest >= minSide * 0.28
+        let crowd = !hasLargeFace && (out.isEmpty || largest < minSide * 0.22 || (coverage < 0.14 && max(w, h) >= 1000))
         if tiles, crowd, max(image.width, image.height) >= 900 {
             let tw = max(280, Int((w * 0.58).rounded()))
             let th = max(280, Int((h * 0.58).rounded()))
@@ -591,10 +595,10 @@ enum FaceEngine {
         if face.quality.capture < 0.35 && face.quality.size < 0.16 { return "z zu klein" }
         if abs(face.quality.yaw) > 0.75 { return "Profil" }
         if face.quality.frontal < 0.22 { return "stark gedreht" }
-        if face.quality.sharpness < 0.08 { return "unscharf" }
+        if face.quality.sharpness < 0.12 { return "unscharf" }
         let eyes = face.strokes.contains { $0.label.hasPrefix("Auge") && $0.points.count >= 4 }
         let mouth = face.strokes.contains { ($0.label == "Mund" || $0.label == "Lippen") && $0.points.count >= 4 }
-        if eyes && !mouth { return face.partialVec.count >= 32 ? "Maske · Teil-Print" : "Maske?" }
+        if eyes && !mouth { return partialEmbedding(of: face).count >= 32 ? "Maske · Teil-Print" : "Maske?" }
         if !eyes && mouth { return "Sonnenbrille / Okklusion?" }
         if gallery.count >= 1 {
             let pv = embedding(of: face)
@@ -608,39 +612,42 @@ enum FaceEngine {
     }
 
     enum PoseSlot: String {
-        case frontal, threeQuarter, profile
+        case frontal, threeQuarter, profile, upper
         var titleDE: String {
             switch self {
             case .frontal: return "Frontal"
             case .threeQuarter: return "¾"
             case .profile: return "Profil"
+            case .upper: return "Teil-Print"
             }
         }
     }
 
     static func poseSlot(_ face: FaceObservation) -> PoseSlot {
+        if lowerFaceOccluded(face) { return .upper }
         let y = abs(face.quality.yaw)
         if y >= 0.70 { return .profile }
         if y >= 0.28 { return .threeQuarter }
         return .frontal
     }
 
-    static func poseCoverage(identity: Identity, faces: [FaceObservation]) -> (frontal: Int, threeQuarter: Int, profile: Int) {
+    static func poseCoverage(identity: Identity, faces: [FaceObservation]) -> (frontal: Int, threeQuarter: Int, profile: Int, upper: Int) {
         let refs = faces.filter { identity.faceIds.contains($0.id) }
-        var f = 0, q = 0, p = 0
+        var f = 0, q = 0, p = 0, u = 0
         for r in refs {
             switch poseSlot(r) {
             case .frontal: f += 1
             case .threeQuarter: q += 1
             case .profile: p += 1
+            case .upper: u += 1
             }
         }
-        return (f, q, p)
+        return (f, q, p, u)
     }
 
     static func poseCoverageLabel(identity: Identity, faces: [FaceObservation]) -> String {
         let c = poseCoverage(identity: identity, faces: faces)
-        return "F\(c.frontal) · ¾\(c.threeQuarter) · P\(c.profile)"
+        return "F\(c.frontal) · ¾\(c.threeQuarter) · P\(c.profile) · U\(c.upper)"
     }
 
     static func poseCoverageWarning(
@@ -655,12 +662,14 @@ enum FaceEngine {
         case .frontal: have = c.frontal
         case .threeQuarter: have = c.threeQuarter
         case .profile: have = c.profile
+        case .upper: have = c.upper
         }
         guard have >= 2 else { return nil }
         var missing: [String] = []
         if c.frontal == 0 { missing.append("Frontal") }
         if c.threeQuarter == 0 { missing.append("¾") }
         if c.profile == 0 { missing.append("Profil") }
+        if c.upper == 0, lowerFaceOccluded(face) { missing.append("Teil-Print") }
         guard !missing.isEmpty else { return nil }
         return "\(slot.titleDE) schon \(have)× — fehlt \(missing.joined(separator: ", "))"
     }
@@ -839,12 +848,15 @@ enum FaceEngine {
 
     private static func bestPrintPercent(_ probe: FaceObservation, _ faces: [FaceObservation]) -> Double {
         let full = fullPrintPercent(probe, faces)
-        if lowerFaceOccluded(probe), probe.partialVec.count >= 32 {
-            let allMean = meanPrintVector(faces)
-            if allMean.count == probe.partialVec.count {
-                let partial = sigmoidCosine(probe.partialVec, allMean)
-                return MatchMath.combinePrint(full: full, partial: partial, occluded: true)
+        if lowerFaceOccluded(probe), probe.partialVec.count >= 32 || !probe.partialPrint.isEmpty {
+            let pv = partialEmbedding(of: probe)
+            let pMean = meanPartialVector(faces)
+            if pv.count >= 32, pMean.count == pv.count {
+                let partial = sigmoidCosine(pv, pMean)
+                return MatchMath.combinePrint(full: full, partial: partial, occluded: true, galleryHasPartial: true)
             }
+            // Kein Teil-Print in der Galerie: Partial nicht gegen Full-Centroid.
+            return MatchMath.combinePrint(full: full, partial: 0, occluded: true, galleryHasPartial: false)
         }
         return full
     }
@@ -884,10 +896,33 @@ enum FaceEngine {
     /// mit `capture * sharpness`, nicht 1/n — eine verwackelte Kopie zieht
     /// den Mittelvektor nicht mehr auf Impostor-Niveau.
     static func meanPrintVector(_ faces: [FaceObservation]) -> [Double] {
+        let clear = faces.filter { !lowerFaceOccluded($0) }
+        let pool = clear.isEmpty ? faces : clear
+        var acc: [Double] = []
+        var wsum = 0.0
+        for f in pool {
+            let v = embedding(of: f)
+            guard v.count >= 32 else { continue }
+            let w = max(0.08, f.quality.capture * (0.35 + 0.65 * max(0, f.quality.sharpness)))
+            if acc.isEmpty {
+                acc = v.map { $0 * w }
+            } else if acc.count == v.count {
+                for i in acc.indices { acc[i] += v[i] * w }
+            } else { continue }
+            wsum += w
+        }
+        guard wsum > 0, !acc.isEmpty else { return [] }
+        let inv = 1.0 / wsum
+        for i in acc.indices { acc[i] *= inv }
+        return l2normalize(acc)
+    }
+
+    /// Teil-Print-Centroid nur aus Masken-Refs. Leeres Array = Galerie hat keinen U-Slot.
+    static func meanPartialVector(_ faces: [FaceObservation]) -> [Double] {
         var acc: [Double] = []
         var wsum = 0.0
         for f in faces {
-            let v = embedding(of: f)
+            let v = partialEmbedding(of: f)
             guard v.count >= 32 else { continue }
             let w = max(0.08, f.quality.capture * (0.35 + 0.65 * max(0, f.quality.sharpness)))
             if acc.isEmpty {
@@ -914,6 +949,11 @@ enum FaceEngine {
     static func embedding(of face: FaceObservation) -> [Double] {
         if face.printVec.count >= 32 { return face.printVec }
         return printVector(face.featurePrint)
+    }
+
+    static func partialEmbedding(of face: FaceObservation) -> [Double] {
+        if face.partialVec.count >= 32 { return face.partialVec }
+        return printVector(face.partialPrint)
     }
 
     static func blendEmbeddings(_ old: [Double], _ new: [Double], alpha: Double) -> [Double] {
@@ -1884,12 +1924,15 @@ enum FaceEngine {
     }
 
     static func qualityRejects(_ q: FaceQuality) -> Bool {
-        q.capture < 0.35 && q.size < 0.16
+        MatchMath.qualityRejects(capture: q.capture, size: q.size, sharpness: q.sharpness)
     }
 
     static func referenceRejected(_ face: FaceObservation, asFirstReference: Bool = false) -> String? {
         if face.featurePrint.isEmpty {
             return "Kein Face-Print — Referenz würde die Galerie vergiften."
+        }
+        if face.quality.sharpness < MatchMath.sharpnessFloor {
+            return String(format: "Unscharf %.0f %% — mindestens %.0f %% für eine Referenz.", face.quality.sharpness * 100, MatchMath.sharpnessFloor * 100)
         }
         if face.quality.capture < 0.40 {
             return String(format: "Aufnahme %.0f %% — mindestens 40 %% für eine Referenz.", face.quality.capture * 100)
@@ -1900,6 +1943,9 @@ enum FaceEngine {
                 format: "Profil (Yaw %.0f°) — erste Referenz muss frontal sein, sonst verdreht der Centroid.",
                 face.quality.yaw * 180 / .pi
             )
+        }
+        if asFirstReference, lowerFaceOccluded(face) {
+            return "Maske — erste Referenz muss frei sein, sonst vergiftet der Stoff den Centroid. Extra-Foto ohne Maske."
         }
         return nil
     }
@@ -1931,7 +1977,7 @@ enum FaceEngine {
     }
 
     private static func tinyUnreliable(_ q: FaceQuality) -> Bool {
-        q.capture < 0.35 && q.size < 0.16
+        MatchMath.qualityRejects(capture: q.capture, size: q.size, sharpness: q.sharpness)
     }
 
     private static func textureIsReliable(_ q: FaceQuality) -> Bool {

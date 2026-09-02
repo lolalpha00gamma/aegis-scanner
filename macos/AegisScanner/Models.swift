@@ -2,9 +2,9 @@ import CoreGraphics
 import Foundation
 
 enum AppVersion {
-    static let marketing = "2.1.9"
+    static let marketing = "2.1.10"
     static let channel = "alpha"
-    static let display = "2.1.9 alpha"
+    static let display = "2.1.10 alpha"
 }
 
 enum StrategyTrack: String, CaseIterable, Identifiable {
@@ -202,13 +202,94 @@ struct FaceObservation: Identifiable, Hashable, Codable {
     /// Live-EMA des Print-Vektors. Nicht persistiert — der archivierte
     /// `featurePrint` bleibt die Quelle auf Disk.
     var printVec: [Double] = []
-    /// Stirn/Augen-Print bei okkludierter unterer Hälfte. Nicht persistiert.
+    /// Stirn/Augen-Print bei okkludierter unterer Hälfte. Persistiert, Vec nicht.
     var partialPrint: Data = Data()
     var partialVec: [Double] = []
 
     enum CodingKeys: String, CodingKey {
         case id, mediaId, box, score, landmarks, aligned, featurePrint
         case appearance, graph, geom3d, quality, trackId, strokes, namedAligned, ratioSheet
+        case partialPrint
+    }
+
+    init(
+        id: UUID,
+        mediaId: UUID,
+        box: FaceBox,
+        score: Double,
+        landmarks: [Point2],
+        aligned: [Point2],
+        featurePrint: Data,
+        appearance: [Double],
+        graph: [Double],
+        geom3d: [Double],
+        quality: FaceQuality,
+        trackId: UUID?,
+        strokes: [LandmarkStroke] = [],
+        namedAligned: [Point2] = [],
+        ratioSheet: [NamedRatio] = [],
+        printVec: [Double] = [],
+        partialPrint: Data = Data(),
+        partialVec: [Double] = []
+    ) {
+        self.id = id
+        self.mediaId = mediaId
+        self.box = box
+        self.score = score
+        self.landmarks = landmarks
+        self.aligned = aligned
+        self.featurePrint = featurePrint
+        self.appearance = appearance
+        self.graph = graph
+        self.geom3d = geom3d
+        self.quality = quality
+        self.trackId = trackId
+        self.strokes = strokes
+        self.namedAligned = namedAligned
+        self.ratioSheet = ratioSheet
+        self.printVec = printVec
+        self.partialPrint = partialPrint
+        self.partialVec = partialVec
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        mediaId = try c.decode(UUID.self, forKey: .mediaId)
+        box = try c.decode(FaceBox.self, forKey: .box)
+        score = try c.decode(Double.self, forKey: .score)
+        landmarks = try c.decode([Point2].self, forKey: .landmarks)
+        aligned = try c.decode([Point2].self, forKey: .aligned)
+        featurePrint = try c.decode(Data.self, forKey: .featurePrint)
+        appearance = try c.decode([Double].self, forKey: .appearance)
+        graph = try c.decode([Double].self, forKey: .graph)
+        geom3d = try c.decode([Double].self, forKey: .geom3d)
+        quality = try c.decode(FaceQuality.self, forKey: .quality)
+        trackId = try c.decodeIfPresent(UUID.self, forKey: .trackId)
+        strokes = try c.decodeIfPresent([LandmarkStroke].self, forKey: .strokes) ?? []
+        namedAligned = try c.decodeIfPresent([Point2].self, forKey: .namedAligned) ?? []
+        ratioSheet = try c.decodeIfPresent([NamedRatio].self, forKey: .ratioSheet) ?? []
+        partialPrint = try c.decodeIfPresent(Data.self, forKey: .partialPrint) ?? Data()
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(mediaId, forKey: .mediaId)
+        try c.encode(box, forKey: .box)
+        try c.encode(score, forKey: .score)
+        try c.encode(landmarks, forKey: .landmarks)
+        try c.encode(aligned, forKey: .aligned)
+        try c.encode(featurePrint, forKey: .featurePrint)
+        try c.encode(appearance, forKey: .appearance)
+        try c.encode(graph, forKey: .graph)
+        try c.encode(geom3d, forKey: .geom3d)
+        try c.encode(quality, forKey: .quality)
+        try c.encodeIfPresent(trackId, forKey: .trackId)
+        try c.encode(strokes, forKey: .strokes)
+        try c.encode(namedAligned, forKey: .namedAligned)
+        try c.encode(ratioSheet, forKey: .ratioSheet)
+        try c.encode(partialPrint, forKey: .partialPrint)
     }
 }
 

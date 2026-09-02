@@ -12,6 +12,7 @@ enum MatchMath {
     static let familyCosineHi = 0.88
     static let familyFloorBump = 4.0
     static let rejectCosine = 0.90
+    static let sharpnessFloor = 0.12
 
     struct Floors: Equatable {
         var match: Double
@@ -170,9 +171,18 @@ enum MatchMath {
         eyes && !mouth
     }
 
+    /// Unscharf < 0,12: harte Ablehnung, nicht nur Score-Dämpfung.
+    static func qualityRejects(capture: Double, size: Double, sharpness: Double) -> Bool {
+        (capture < 0.35 && size < 0.16) || sharpness < sharpnessFloor
+    }
+
     /// Maske: voller Print enthält Stoff. Teil-Print (Stirn/Augen) führt, Deckel 88.
-    static func combinePrint(full: Double, partial: Double, occluded: Bool) -> Double {
+    /// Ohne Galerie-Teil-Print: nur den vollen Score dämpfen — nie Partial vs Full-Centroid.
+    static func combinePrint(full: Double, partial: Double, occluded: Bool, galleryHasPartial: Bool = true) -> Double {
         guard occluded else { return full }
+        if !galleryHasPartial {
+            return full * 0.45
+        }
         return max(full * 0.45, min(88, partial))
     }
 

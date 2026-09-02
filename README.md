@@ -1,4 +1,4 @@
-# Aegis **2.1.9 alpha**
+# Aegis **2.1.10 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main` oder `bugfix`.
+
+## Neu in 2.1.10 alpha
+
+Warum 2.1.9 trotz Teil-Print immer noch Masken und Portraits verzerrte:
+
+- **Teil-Print gegen Teil-Centroid.** Maskierte Probe nicht mehr gegen den vollen Galerie-Mean (Stoff vs. Gesicht). Ohne U-Slot in der Galerie nur Dämpfung, kein Domain-Mix.
+- **Maske als erste Referenz veto.** Stoff vergiftet den Centroid nicht. Extra-Foto ohne Maske, U-Slot nur als Zusatz.
+- **Portrait-Tiles.** Ein großes Gesicht (≥ 28 % der kurzen Kante) wird nicht gekachelt — keine NMS-Zwillinge, keine falsche Print-IoU.
+- **Schärfe < 0,12 hart.** Unscharfe Frames taufen niemanden und gehen nicht als Referenz rein.
+- **Coverage-Slot U.** F / ¾ / P / U (Teil-Print). `partialPrint` überlebt den Galerie-Reload.
 
 ## Neu in 2.1.9 alpha
 

@@ -1,6 +1,16 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.9 alpha**. Branch `bugfix`. Fixes von 2.1.9 stehen auch in der README.
+Stand: **2.1.10 alpha**. Branch `bugfix`. Fixes von 2.1.10 stehen auch in der README.
+
+## In 2.1.10 wirklich im Code
+
+Warum 2.1.9 trotz Teil-Print Masken und Portraits trotzdem falsch taufte: die maskierte Probe (`partialVec`) ging gegen den vollen Galerie-Mean (Stoff vs. Gesicht). Eine Maske als erste Referenz hat den Centroid vergiftet. Portrait-Fotos mit einem großen Gesicht wurden trotzdem gekachelt (NMS-Zwillinge, falsche Print-IoU). Unschärfe < 0,12 hat trotzdem benannt.
+
+1. **Teil-Print vs. Teil-Centroid.** `meanPartialVector` nur aus U-Refs. Ohne U-Slot: Full * 0,45, kein Domain-Mix.
+2. **Masken-Enrollment-Veto** auf der ersten Referenz. Stoff kommt nicht in den Full-Centroid. `meanPrintVector` lässt okkludierte Refs weg.
+3. **Tiles nur bei Crowd.** `largest ≥ 0,28 · min(w,h)` → keine Kacheln.
+4. **Schärfe-Floor 0,12** hart in `qualityRejects` / `tinyUnreliable` / Enrollment.
+5. **Coverage-Slot U** (Teil-Print). `partialPrint` in `gallery.json`.
 
 ## In 2.1.9 wirklich im Code
 
@@ -52,8 +62,8 @@ Warum 2.1.5 trotz Cancel und HLS-Transform Galerien und Live trotzdem schief zog
 ## Nächste Fixes (klein)
 
 - **Per-Kamera Orientierungs-Override**, falls Continuity `videoRotationAngle` falsch meldet.
-- **Enrollment-Veto bei Maske.** Erste Referenz mit unterer Okklusion ablehnen, nicht als Centroid nehmen.
-- **Teil-Print-Slot U** in der Coverage (F / ¾ / P / U), analog Yaw-Bins.
+- **Masken-Enrollment-Slot explizit.** Taste „als Teil-Print speichern“, statt nur Auto-U.
+- **Live-Quality-Ampel.** Capture/sharpness/yaw als drei Punkte am Overlay, bevor der Name kommt.
 
 ## Erweiterungen
 
@@ -87,6 +97,9 @@ Warum 2.1.5 trotz Cancel und HLS-Transform Galerien und Live trotzdem schief zog
 - **Print-Alter 90 Tage.** Referenz älter als N Tage markieren — liegt schon als „Print-Alter“ oben, UI- paler.
 - **Geschwister-Wizard.** Pairwise-Heatmap vorschlagen, Floor +4 bestätigen lassen.
 - **Masken-Enrollment-Slot.** Explizite „obere Hälfte“-Referenz, wenn jemand oft Maske trägt.
+- **PartialPrint-Laborzeile.** Genuine-Paare mit/ohne Maske getrennt, sonst TAR die Masken-Dämpfung.
+- **Tile-Budget.** Max. 2 Extra-Detects statt 5 Origins, wenn Crowd echt ist.
+- **Schärfe vor dem Print.** Laplacian < Floor → Request gar nicht erst, spart Vision.
 
 ## Nicht tun
 
@@ -107,3 +120,7 @@ Warum 2.1.5 trotz Cancel und HLS-Transform Galerien und Live trotzdem schief zog
 - 1-Euro nach Reconnect weiterlaufen lassen (Ghost-Box).
 - Voller Print als Identität, wenn der Mund fehlt.
 - TAR ohne CI bei n_impostor < 200.
+- Teil-Print gegen den vollen Galerie-Centroid (Domain-Mix).
+- Maske als erste Referenz (Stoff im Mean).
+- Tiles über einem großen Portrait-Gesicht.
+- Schärfe < 0,12 trotzdem taufen.

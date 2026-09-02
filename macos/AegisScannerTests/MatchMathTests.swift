@@ -96,6 +96,16 @@ enum MatchMathTests {
         ok(MatchMath.combinePrint(full: 90, partial: 70, occluded: true) <= 88, "Maske deckelt vollen Print")
         near(MatchMath.combinePrint(full: 20, partial: 80, occluded: true), 80, 0.01, "Teil-Print führt bei Maske")
         near(MatchMath.combinePrint(full: 20, partial: 95, occluded: true), 88, 0.01, "Teil-Print Deckel 88")
+        near(
+            MatchMath.combinePrint(full: 90, partial: 80, occluded: true, galleryHasPartial: false),
+            40.5,
+            0.01,
+            "ohne U-Slot: Partial nicht gegen Full-Centroid"
+        )
+        ok(MatchMath.qualityRejects(capture: 0.9, size: 0.5, sharpness: 0.10), "sharpness 0,10 lehnt ab")
+        ok(!MatchMath.qualityRejects(capture: 0.9, size: 0.5, sharpness: 0.20), "scharf reicht")
+        ok(MatchMath.qualityRejects(capture: 0.20, size: 0.10, sharpness: 0.50), "winzig + schwach")
+        near(MatchMath.sharpnessFloor, 0.12, 0.001, "Schärfe-Floor 0,12")
 
         let genuineHi = [90.0, 92, 88, 85, 80, 78, 91, 87]
         let impostorLo = [40.0, 50, 60, 30, 20, 10, 5, 2, 1, 15]
