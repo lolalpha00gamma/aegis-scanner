@@ -34,8 +34,11 @@ enum MatchMathTests {
         let family = MatchMath.floors(gallery: 2, slider: 78, familyBump: 4)
         near(family.match, 84, 0.01, "Familien-Floor +4")
 
-        near(MatchMath.familyBump(pairwiseCosine: [0.83]), 4, 0.01, "Geschwister-Cosine 0,83")
-        near(MatchMath.familyBump(pairwiseCosine: [0.50, 0.92]), 0, 0.01, "kein Familien-Bump")
+        near(MatchMath.familyBump(bestPairCosine: 0.83), 4, 0.01, "Geschwister-Cosine 0,83")
+        near(MatchMath.familyBump(bestPairCosine: 0.91), 4, 0.01, "Zwillinge 0,91 brauchen den Bump")
+        near(MatchMath.familyBump(bestPairCosine: 0.50), 0, 0.01, "fremd kein Bump")
+        near(MatchMath.familyBump(pairwiseCosine: [0.50, 0.92]), 4, 0.01, "max-Paar 0,92")
+        near(MatchMath.familyBump(pairwiseCosine: [0.50, 0.40]), 0, 0.01, "kein Paar ähnlich")
 
         let impostor = MatchMath.printSigmoid(cosine: 0.45)
         ok(impostor > 15 && impostor < 28, "Impostor 0,45 ≈ 20 %, nicht 58 % (ist \(impostor))")

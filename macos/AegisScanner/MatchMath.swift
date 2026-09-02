@@ -9,7 +9,6 @@ enum MatchMath {
     static let printSigmoidSlope = 14.0
     static let printRevision = "VNGenerateFacePrint/1"
     static let familyCosineLo = 0.80
-    static let familyCosineHi = 0.88
     static let familyFloorBump = 4.0
     static let rejectCosine = 0.90
     static let sharpnessFloor = 0.12
@@ -160,12 +159,15 @@ enum MatchMath {
         return min(100, embed + 4.0 * agree)
     }
 
-    /// Geschwister / ähnliche Knochen: Centroid-Cosine 0,80–0,88 → +4 Floor.
+    /// Geschwister: Centroid-Cosine ≥ 0,80 → +4 Floor **für dieses Paar**.
+    /// Keine obere Grenze — Zwillinge bei 0,91 brauchen den Bump am meisten.
+    /// Nicht global: ein Geschwisterpaar darf den Rest der Galerie nicht anheben.
+    static func familyBump(bestPairCosine: Double) -> Double {
+        bestPairCosine >= familyCosineLo ? familyFloorBump : 0
+    }
+
     static func familyBump(pairwiseCosine: [Double]) -> Double {
-        for c in pairwiseCosine where c >= familyCosineLo && c <= familyCosineHi {
-            return familyFloorBump
-        }
-        return 0
+        familyBump(bestPairCosine: pairwiseCosine.max() ?? 0)
     }
 
     static func cosine(_ a: [Double], _ b: [Double]) -> Double {
@@ -309,6 +311,12 @@ enum MatchMath {
         private var xHat: Double?
         private var dxHat: Double = 0
         private var tPrev: Double = 0
+
+        init(minCutoff: Double = 1.2, beta: Double = 0.007, dCutoff: Double = 1.0) {
+            self.minCutoff = minCutoff
+            self.beta = beta
+            self.dCutoff = dCutoff
+        }
 
         mutating func filter(_ value: Double, now: Double) -> Double {
             guard let prev = xHat else {

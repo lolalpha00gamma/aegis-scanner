@@ -362,22 +362,18 @@ enum FaceEngine {
                 geom3ds: owned.map(\.geom3d).filter { !$0.isEmpty }
             )
         }
-        var pairCos: [Double] = []
-        for i in models.indices {
-            for j in (i + 1)..<models.count {
-                let a = models[i].meanVec
-                let b = models[j].meanVec
-                if a.count >= 32, b.count == a.count {
-                    pairCos.append(MatchMath.cosine(a, b))
-                }
-            }
-        }
-        let f = MatchMath.floors(
-            gallery: identities.count,
-            slider: threshold,
-            familyBump: MatchMath.familyBump(pairwiseCosine: pairCos)
-        )
+        let f = MatchMath.floors(gallery: identities.count, slider: threshold)
         let floors = Floors(match: f.match, solo: f.solo)
+        func pairFloors(_ a: UUID?, _ b: UUID?) -> Floors {
+            guard let a, let b,
+                  let va = models.first(where: { $0.identity.id == a })?.meanVec,
+                  let vb = models.first(where: { $0.identity.id == b })?.meanVec,
+                  va.count >= 32, va.count == vb.count
+            else { return floors }
+            let bump = MatchMath.familyBump(bestPairCosine: MatchMath.cosine(va, vb))
+            guard bump > 0 else { return floors }
+            return Floors(match: min(96, floors.match + bump), solo: min(96, floors.solo + bump))
+        }
 
         return tracked.map { face in
             var hits: [StrategyHit] = []
@@ -534,6 +530,10 @@ enum FaceEngine {
             }
             let fusedBest = fusedVersus.first?.percent ?? 0
             let fusedSecond = fusedVersus.dropFirst().first?.percent ?? 0
+            let aegisFloors = pairFloors(
+                ensemble.versus.first?.identityId,
+                ensemble.versus.dropFirst().first?.identityId
+            )
             let decided = decide(
                 percent: fusedBest,
                 margin: fusedBest - fusedSecond,
@@ -548,7 +548,7 @@ enum FaceEngine {
                 galleryZ: galleryZScore(fusedBest, Array(others)),
                 textureReliable: false,
                 evidence: fusedBest,
-                floors: floors
+                floors: aegisFloors
             )
             var aegis = ensemble
             aegis.identityId = enabled.contains(.aegis) ? decided.id : nil
@@ -558,7 +558,7 @@ enum FaceEngine {
             let aegisNote = enabled.contains(.aegis)
                 ? decided.note
                 : "Spur ausgeschaltet — keine Namensvergabe."
-            hits.append(toHit(.aegis, aegis, floors: floors, note: aegisNote, measured: kiOn || shapeOn || enabled.contains(.geom3d)))
+            hits.append(toHit(.aegis, aegis, floors: aegisFloors, note: aegisNote, measured: kiOn || shapeOn || enabled.contains(.geom3d)))
             if let owner = identities.first(where: { $0.faceIds.contains(face.id) }) {
                 hits = hits.map { h in
                     let selfP = h.versus.first { $0.identityId == owner.id }?.percent ?? h.percent

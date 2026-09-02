@@ -1,4 +1,4 @@
-# Aegis **2.1.15 alpha**
+# Aegis **2.1.16 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,11 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.16 alpha
+
+- **OneEuro-Init öffentlich.** CI-Test kompiliert; erstes grünes DMG seit 2.0.3.
+- **familyBump pro Paar.** Ein Geschwisterpaar hebt nicht mehr den Floor der ganzen Galerie. Obere Grenze 0,88 ist weg — Zwillinge bei 0,91 bekommen den +4-Bump.
 
 ## Neu in 2.1.15 alpha
 
