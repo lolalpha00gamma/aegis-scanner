@@ -26,15 +26,15 @@ enum GalleryFile {
         directory.appendingPathComponent("gallery.json")
     }
 
-    static func load() -> (identities: [Identity], faces: [FaceObservation]) {
-        guard let data = try? Data(contentsOf: url) else { return ([], []) }
+    static func load() -> (identities: [Identity], faces: [FaceObservation], printRevision: String?) {
+        guard let data = try? Data(contentsOf: url) else { return ([], [], nil) }
         if let payload = try? JSONDecoder().decode(GalleryPayload.self, from: data) {
-            return (payload.identities, payload.faces)
+            return (payload.identities, payload.faces, payload.printRevision)
         }
         if let identities = try? JSONDecoder().decode([Identity].self, from: data) {
-            return (identities, [])
+            return (identities, [], nil)
         }
-        return ([], [])
+        return ([], [], nil)
     }
 
     static func save(identities: [Identity], faces: [FaceObservation]) {

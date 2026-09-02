@@ -54,10 +54,32 @@ enum LabReport {
             out.append(String(format: "Rang-1 (genuine ≥ Schwelle)  %.1f%%", 100 * frac(genuine, threshold)))
             out.append(String(format: "FAR bei Schwelle            %.1f%%", 100 * frac(impostor, threshold)))
             out.append(eerLine(genuine, impostor))
-            out.append(tarAtFar(genuine, impostor, far: 0.001, label: "TAR @ 0,1 % FAR"))
-            out.append(tarAtFar(genuine, impostor, far: 0.01, label: "TAR @ 1 % FAR"))
+            if let t = MatchMath.tar(atFar: 0.001, genuine: genuine, impostor: impostor) {
+                out.append(String(format: "TAR @ 0,1 %% FAR  %.1f%%  (Schwelle %.1f, MatchMath ceil-1)", 100 * t.tar, t.threshold))
+            }
+            if let t = MatchMath.tar(atFar: 0.01, genuine: genuine, impostor: impostor) {
+                out.append(String(format: "TAR @ 1 %% FAR    %.1f%%  (Schwelle %.1f, MatchMath ceil-1)", 100 * t.tar, t.threshold))
+            }
         } else {
             out.append("Zu wenig Referenzen: jede Person braucht mindestens zwei Fotos.")
+        }
+        var weightLines: [String] = ["person,face,slot,capture,sharpness,weight"]
+        for identity in identities {
+            let owned = faces.filter { identity.faceIds.contains($0.id) }
+            for row in FaceEngine.printWeights(owned) {
+                let face = owned.first { $0.id == row.id }
+                let cap = face?.quality.capture ?? 0
+                let sh = face?.quality.sharpness ?? 0
+                weightLines.append(String(
+                    format: "%@,%@,%@,%.3f,%.3f,%.3f",
+                    identity.name, row.id.uuidString, row.slot, cap, sh, row.weight
+                ))
+            }
+        }
+        if weightLines.count > 1 {
+            out.append("")
+            out.append("Centroid-Gewichte (capture · (0,35 + 0,65·sharpness), Floor 0,08)")
+            out.append(contentsOf: weightLines)
         }
         let photos = media.filter { $0.kind == .photo }
         if !photos.isEmpty {
@@ -117,26 +139,5 @@ enum LabReport {
         let frr = 1 - frac(g, at)
         let far = frac(i, at)
         return String(format: "EER ≈ %.1f%% bei Schwelle %.0f (FRR %.1f%% / FAR %.1f%%)", 100 * (frr + far) / 2, at, 100 * frr, 100 * far)
-    }
-
-    /// Niedrigste Schwelle mit FAR ≤ Ziel, also höchstes TAR an diesem Betriebspunkt.
-    private static func tarAtFar(_ g: [Double], _ i: [Double], far: Double, label: String) -> String {
-        var op = 99.0
-        var tar = 0.0
-        var farNow = 0.0
-        for t in stride(from: 99.0, through: 0.0, by: -0.5) {
-            let f = frac(i, t)
-            if f <= far {
-                op = t
-                tar = frac(g, t)
-                farNow = f
-            } else {
-                break
-            }
-        }
-        return String(
-            format: "%@  %.1f%%  (Schwelle %.1f, FAR %.3f%%)",
-            label, 100 * tar, op, 100 * farNow
-        )
     }
 }

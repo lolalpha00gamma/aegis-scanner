@@ -107,10 +107,46 @@ enum MatchMath {
     static func tar(atFar far: Double, genuine: [Double], impostor: [Double]) -> (tar: Double, threshold: Double)? {
         guard !genuine.isEmpty, !impostor.isEmpty, far > 0, far < 1 else { return nil }
         let desc = impostor.sorted(by: >)
-        let idx = min(desc.count - 1, max(0, Int((far * Double(desc.count)).rounded(.down))))
+        // NIST-Style: k = max(0, ceil(far·n) − 1). Floor würde bei n=10 FAR=0,1
+        // Index 1 nehmen (20 % FAR) statt Index 0 (10 % FAR).
+        let k = max(0, Int((far * Double(desc.count)).rounded(.up)) - 1)
+        let idx = min(desc.count - 1, k)
         let t = desc[idx]
         let hits = genuine.filter { $0 >= t }.count
         return (Double(hits) / Double(genuine.count), t)
+    }
+
+    /// 1-Euro auf einem Skalar. Live-Box, nicht der Print.
+    struct OneEuro {
+        var minCutoff: Double = 1.2
+        var beta: Double = 0.007
+        var dCutoff: Double = 1.0
+        private var xHat: Double?
+        private var dxHat: Double = 0
+        private var tPrev: Double = 0
+
+        mutating func filter(_ value: Double, now: Double) -> Double {
+            guard let prev = xHat else {
+                xHat = value
+                tPrev = now
+                return value
+            }
+            let dt = max(1e-3, now - tPrev)
+            tPrev = now
+            let dx = (value - prev) / dt
+            let ad = alpha(dCutoff, dt: dt)
+            dxHat = ad * dx + (1 - ad) * dxHat
+            let cutoff = minCutoff + beta * abs(dxHat)
+            let a = alpha(cutoff, dt: dt)
+            let hat = a * value + (1 - a) * prev
+            xHat = hat
+            return hat
+        }
+
+        private func alpha(_ cutoff: Double, dt: Double) -> Double {
+            let tau = 1.0 / (2.0 * Double.pi * max(1e-4, cutoff))
+            return 1.0 / (1.0 + tau / dt)
+        }
     }
 
     private static func clamp01(_ n: Double) -> Double { min(1, max(0, n)) }

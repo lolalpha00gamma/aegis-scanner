@@ -1,4 +1,4 @@
-# Aegis **2.1.7 alpha**
+# Aegis **2.1.8 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,17 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main` oder `bugfix`.
+
+## Neu in 2.1.8 alpha
+
+Warum 2.1.7 trotz ehrlichem Score Labor und Live trotzdem verzerrte:
+
+- **TAR@FAR ceil-1.** n=10 / FAR 10 % nimmt den höchsten Impostor, nicht den zweithöchsten. Labor ruft `MatchMath.tar`.
+- **Live-Box 1-Euro** statt EMA 0,62/0,38 — die Kiste zittert nicht mit jedem Frame.
+- **Print-Revision sichtbar.** Galerie unter anderem Vision-Modell → Warnung, nicht stilles Drift.
+- **Scan-Resume.** Letzter Ordner als Bookmark, restliche Pfade nach Abbruch, Taste Fortsetzen.
+- **Yaw-Slot-Print.** ¾-Probe gegen ¾-Refs, gemischt mit dem Gesamt-Centroid.
+- **Labor listet Centroid-Gewichte** (capture · sharpness) pro Referenz.
 
 ## Neu in 2.1.7 alpha
 

@@ -68,10 +68,24 @@ enum MatchMathTests {
         ok(!MatchMath.rejected([1] + [Double](repeating: 0, count: 31), by: [[0, 1] + [Double](repeating: 0, count: 30)]), "orthogonales Print kein Negativ")
 
         if let tar = MatchMath.tar(atFar: 0.1, genuine: [90, 92, 88, 70], impostor: [40, 50, 60, 95, 30, 20, 10, 5, 2, 1]) {
-            ok(tar.tar >= 0 && tar.tar <= 1, "TAR im [0,1]")
+            near(tar.threshold, 95, 0.01, "FAR 10 % n=10 → höchster Impostor (ceil-1), nicht Index 1")
+            near(tar.tar, 0, 0.01, "kein Genuine ≥ 95")
         } else {
             ok(false, "TAR@FAR berechenbar")
         }
+
+        if let tar01 = MatchMath.tar(atFar: 0.2, genuine: [90, 92, 88, 70], impostor: [40, 50, 60, 95, 30, 20, 10, 5, 2, 1]) {
+            near(tar01.threshold, 60, 0.01, "FAR 20 % n=10 → zweithöchster Impostor")
+            near(tar01.tar, 1, 0.01, "alle Genuine ≥ 60")
+        } else {
+            ok(false, "TAR@FAR 0,2")
+        }
+
+        var euro = MatchMath.OneEuro(minCutoff: 1.0, beta: 0.0, dCutoff: 1.0)
+        let first = euro.filter(10, now: 0)
+        near(first, 10, 0.01, "1-Euro erster Sample")
+        let second = euro.filter(20, now: 0.1)
+        ok(second > 10 && second < 20, "1-Euro folgt, ohne den Sprung voll zu nehmen (ist \(second))")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

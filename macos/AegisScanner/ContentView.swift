@@ -53,6 +53,9 @@ struct ContentView: View {
             if store.busy {
                 Button("Abbrechen") { store.cancelScan() }
             }
+            if store.canResumeScan, !store.busy {
+                Button("Fortsetzen") { store.resumeScan() }
+            }
             Button("CSV") { store.exportCSV() }
                 .disabled(store.matches.isEmpty)
             Button("Labor") { store.exportLab() }
@@ -66,6 +69,12 @@ struct ContentView: View {
                 .font(.caption2.monospacedDigit())
                 .foregroundStyle(.secondary)
                 .help("Effektiver Floor: Galerie-Größe plus Slider-Bias um 78.")
+            if !store.revisionWarning.isEmpty {
+                Text(store.revisionWarning)
+                    .font(.caption2)
+                    .foregroundStyle(.orange)
+                    .help(store.revisionWarning)
+            }
             Toggle("Anatomie", isOn: $store.showAnatomy)
                 .toggleStyle(.button)
             Toggle("NMS", isOn: $store.showNMSDebug)

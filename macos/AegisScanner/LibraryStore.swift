@@ -31,6 +31,8 @@ final class LibraryStore: ObservableObject {
     @Published var liveActive = false
     @Published var enabled: Set<StrategyID> = Set(StrategyID.allCases)
     @Published var pendingDuplicateName: String?
+    @Published var revisionWarning: String = ""
+    @Published var canResumeScan = false
 
     private let liveCapture = LiveCapture()
     private var liveMediaId: UUID?
@@ -39,19 +41,28 @@ final class LibraryStore: ObservableObject {
     private var scanGeneration = 0
     private let scanFlag = AegisScanFlag()
     private let enabledKey = "aegis.enabledStrategies"
+    private let resumeBookmarkKey = "aegis.scanResume.bookmark"
+    private let resumeRemainingKey = "aegis.scanResume.remaining"
     private var liveGhosts: [(face: FaceObservation, until: TimeInterval)] = []
     private var reconnectGhosts: [FaceObservation] = []
+    private var boxEuro: [UUID: (x: MatchMath.OneEuro, y: MatchMath.OneEuro, w: MatchMath.OneEuro, h: MatchMath.OneEuro)] = [:]
 
     init() {
         let packed = GalleryFile.load()
         identities = packed.identities
         faces = packed.faces
+        if let stored = packed.printRevision, stored != MatchMath.printRevision {
+            revisionWarning = "Galerie-Print \(stored), App \(MatchMath.printRevision) — Scores können springen. Neu scannen."
+        }
         if let raw = UserDefaults.standard.array(forKey: enabledKey) as? [String] {
             let set = Set(raw.compactMap(StrategyID.init(rawValue:)))
             if !set.isEmpty { enabled = set }
         }
+        canResumeScan = !(UserDefaults.standard.stringArray(forKey: resumeRemainingKey) ?? []).isEmpty
         if !identities.isEmpty {
-            status = "Galerie · \(identities.count) Personen"
+            status = revisionWarning.isEmpty
+                ? "Galerie · \(identities.count) Personen"
+                : revisionWarning
         }
     }
 
@@ -147,6 +158,17 @@ final class LibraryStore: ObservableObject {
         panel.allowedContentTypes = [.folder, .image, .movie, .jpeg, .png, .heic, .mpeg4Movie, .quickTimeMovie]
         panel.prompt = "Scannen"
         panel.message = "Ordner oder mehrere Fotos wählen — danach mit ← → blättern."
+        if let data = UserDefaults.standard.data(forKey: resumeBookmarkKey) {
+            var stale = false
+            if let url = try? URL(
+                resolvingBookmarkData: data,
+                options: [.withSecurityScope],
+                relativeTo: nil,
+                bookmarkDataIsStale: &stale
+            ) {
+                panel.directoryURL = url
+            }
+        }
         guard panel.runModal() == .OK else { return }
         var roots: [URL] = []
         var files: [URL] = []
@@ -162,6 +184,7 @@ final class LibraryStore: ObservableObject {
             }
         }
         retainAccess(roots)
+        rememberFolder(roots.first)
         scanGeneration += 1
         scanFlag.reset()
         let gen = scanGeneration
@@ -175,19 +198,80 @@ final class LibraryStore: ObservableObject {
                 let found = await Task.detached {
                     FrameExtractor.walk(folder: folder) { flag.alive }
                 }.value
-                if gen != self.scanGeneration { return }
+                if gen != self.scanGeneration {
+                    self.rememberRemaining(urls)
+                    self.status = "Scan abgebrochen — Fortsetzen möglich"
+                    self.busy = false
+                    return
+                }
                 urls.append(contentsOf: found)
             }
-            if gen != self.scanGeneration { return }
-            let before = self.media.count
-            self.ingest(urls: urls)
-            if let firstNew = self.media.dropFirst(before).first(where: { $0.kind == .photo })
-                ?? self.media.dropFirst(before).first
-            {
-                self.selectedMediaId = firstNew.id
+            if gen != self.scanGeneration {
+                self.rememberRemaining(urls)
+                self.status = "Scan abgebrochen — Fortsetzen möglich"
+                self.busy = false
+                return
             }
-            await self.scan(generation: gen)
+            await self.ingestAndScan(urls: urls, generation: gen)
         }
+    }
+
+    func resumeScan() {
+        let paths = UserDefaults.standard.stringArray(forKey: resumeRemainingKey) ?? []
+        let urls = paths.map { URL(fileURLWithPath: $0) }.filter { FileManager.default.fileExists(atPath: $0.path) }
+        guard !urls.isEmpty else {
+            canResumeScan = false
+            status = "Nichts zum Fortsetzen"
+            return
+        }
+        scanGeneration += 1
+        scanFlag.reset()
+        let gen = scanGeneration
+        busy = true
+        status = "Scan fortsetzen · \(urls.count) Dateien"
+        Task {
+            await self.ingestAndScan(urls: urls, generation: gen)
+        }
+    }
+
+    private func ingestAndScan(urls: [URL], generation: Int) async {
+        var remaining = urls
+        let before = media.count
+        for url in urls {
+            if generation != scanGeneration {
+                rememberRemaining(remaining)
+                status = "Scan abgebrochen — Fortsetzen möglich"
+                busy = false
+                canResumeScan = true
+                return
+            }
+            ingest(urls: [url])
+            remaining.removeAll { $0 == url }
+        }
+        rememberRemaining([])
+        canResumeScan = false
+        if let firstNew = media.dropFirst(before).first(where: { $0.kind == .photo })
+            ?? media.dropFirst(before).first
+        {
+            selectedMediaId = firstNew.id
+        }
+        if generation != scanGeneration {
+            busy = false
+            return
+        }
+        await scan(generation: generation)
+    }
+
+    private func rememberFolder(_ url: URL?) {
+        guard let url else { return }
+        if let data = try? url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil) {
+            UserDefaults.standard.set(data, forKey: resumeBookmarkKey)
+        }
+    }
+
+    private func rememberRemaining(_ urls: [URL]) {
+        UserDefaults.standard.set(urls.map(\.path), forKey: resumeRemainingKey)
+        canResumeScan = !urls.isEmpty
     }
 
     private func retainAccess(_ urls: [URL]) {
@@ -251,7 +335,8 @@ final class LibraryStore: ObservableObject {
         scanFlag.stop()
         scanGeneration += 1
         busy = false
-        status = "Scan abgebrochen"
+        canResumeScan = !(UserDefaults.standard.stringArray(forKey: resumeRemainingKey) ?? []).isEmpty
+        status = canResumeScan ? "Scan abgebrochen — Fortsetzen möglich" : "Scan abgebrochen"
     }
 
     func scan() async {
@@ -599,6 +684,7 @@ final class LibraryStore: ObservableObject {
         media[idx].width = image.width
         media[idx].height = image.height
         media[idx].preview = image
+        let now = Date().timeIntervalSince1970
         let enrolled = Set(identities.flatMap(\.faceIds))
         let previous = faces.filter { $0.mediaId == mediaId }
         var used = Set<UUID>()
@@ -626,12 +712,17 @@ final class LibraryStore: ObservableObject {
                 used.insert(old.id)
                 face.id = old.id
                 face.trackId = old.trackId ?? old.id
-                face.box = FaceBox(
-                    x: 0.62 * old.box.x + 0.38 * face.box.x,
-                    y: 0.62 * old.box.y + 0.38 * face.box.y,
-                    width: 0.62 * old.box.width + 0.38 * face.box.width,
-                    height: 0.62 * old.box.height + 0.38 * face.box.height
+                let t = now
+                var euro = boxEuro[old.id] ?? (
+                    MatchMath.OneEuro(), MatchMath.OneEuro(), MatchMath.OneEuro(), MatchMath.OneEuro()
                 )
+                face.box = FaceBox(
+                    x: euro.x.filter(face.box.x, now: t),
+                    y: euro.y.filter(face.box.y, now: t),
+                    width: euro.w.filter(face.box.width, now: t),
+                    height: euro.h.filter(face.box.height, now: t)
+                )
+                boxEuro[old.id] = euro
                 if face.featurePrint.isEmpty, !old.featurePrint.isEmpty {
                     face.featurePrint = old.featurePrint
                     face.printVec = old.printVec
@@ -658,8 +749,8 @@ final class LibraryStore: ObservableObject {
             }
             adopted.append(face)
         }
-        let now = Date().timeIntervalSince1970
         liveGhosts.removeAll { $0.until < now }
+        boxEuro = boxEuro.filter { used.contains($0.key) }
         if found.isEmpty {
             for old in previous where !enrolled.contains(old.id) {
                 liveGhosts.append((old, now + 1.8))

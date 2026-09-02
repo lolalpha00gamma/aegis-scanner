@@ -839,13 +839,24 @@ enum FaceEngine {
 
     private static func bestPrintPercent(_ probe: FaceObservation, _ faces: [FaceObservation]) -> Double {
         let pv = embedding(of: probe)
-        let mean = meanPrintVector(faces)
-        if pv.count >= 32, mean.count == pv.count {
-            return sigmoidCosine(pv, mean)
+        let slot = poseSlot(probe)
+        let same = faces.filter { poseSlot($0) == slot }
+        let slotMean = meanPrintVector(same)
+        let allMean = meanPrintVector(faces)
+        if pv.count >= 32, slotMean.count == pv.count, same.count >= 1 {
+            let a = sigmoidCosine(pv, slotMean)
+            if allMean.count == pv.count, same.count < faces.count {
+                return 0.72 * a + 0.28 * sigmoidCosine(pv, allMean)
+            }
+            return a
+        }
+        if pv.count >= 32, allMean.count == pv.count {
+            return sigmoidCosine(pv, allMean)
         }
         guard !probe.featurePrint.isEmpty else { return 0 }
         var scores: [Double] = []
-        for f in faces where !f.featurePrint.isEmpty {
+        let pool = same.isEmpty ? faces : same
+        for f in pool where !f.featurePrint.isEmpty {
             scores.append(printPercent(probe.featurePrint, f.featurePrint))
         }
         guard !scores.isEmpty else { return 0 }
@@ -878,6 +889,14 @@ enum FaceEngine {
         let inv = 1.0 / wsum
         for i in acc.indices { acc[i] *= inv }
         return l2normalize(acc)
+    }
+
+    static func printWeights(_ faces: [FaceObservation]) -> [(id: UUID, weight: Double, slot: String)] {
+        faces.map { f in
+            let has = f.printVec.count >= 32 || !f.featurePrint.isEmpty
+            let w = has ? max(0.08, f.quality.capture * (0.35 + 0.65 * max(0, f.quality.sharpness))) : 0
+            return (f.id, w, poseSlot(f).titleDE)
+        }
     }
 
     static func embedding(of face: FaceObservation) -> [Double] {
