@@ -114,8 +114,11 @@ final class LiveCapture: NSObject {
             mediaType: .video,
             position: .unspecified
         ).devices
-        if let front = found.first(where: { $0.position == .front }) { return front }
+        if let wideFront = found.first(where: { $0.deviceType == .builtInWideAngleCamera && $0.position == .front }) {
+            return wideFront
+        }
         if let wide = found.first(where: { $0.deviceType == .builtInWideAngleCamera }) { return wide }
+        if let front = found.first(where: { $0.position == .front }) { return front }
         return found.first ?? AVCaptureDevice.default(for: .video)
     }
 
@@ -153,7 +156,7 @@ final class LiveCapture: NSObject {
 
     private func startTimer() {
         timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: 0.22, repeats: true) { [weak self] _ in
+        timer = Timer.scheduledTimer(withTimeInterval: 0.10, repeats: true) { [weak self] _ in
             let capture = self
             Task { @MainActor in
                 capture?.grab()
@@ -204,7 +207,7 @@ private final class FrameTap: NSObject, AVCaptureVideoDataOutputSampleBufferDele
         from connection: AVCaptureConnection
     ) {
         let now = Date().timeIntervalSince1970
-        guard now - last >= 0.18 else { return }
+        guard now - last >= 0.09 else { return }
         last = now
         guard let pb = CMSampleBufferGetImageBuffer(sampleBuffer), let image = cgImage(from: pb) else { return }
         DispatchQueue.main.async { self.emit(image) }

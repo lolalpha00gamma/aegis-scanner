@@ -59,6 +59,10 @@ struct ContentView: View {
             }
             .frame(width: 110)
             .help("Zuordnungsschwelle — Bias um 78. Effektiver Floor hängt von der Galeriegröße ab.")
+            Text(String(format: "%.0f → Floor %.0f", store.threshold, MatchMath.floors(gallery: store.identities.count, slider: store.threshold).match))
+                .font(.caption2.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .help("Slider ist Bias um 78. Kleine Galerien heben den Floor.")
             Toggle("Anatomie", isOn: $store.showAnatomy)
                 .toggleStyle(.button)
         }
@@ -598,12 +602,19 @@ struct FaceOverlay: View {
                             }
                             .overlay(alignment: .bottomLeading) {
                                 if selected {
-                                    Text(pinned ? "\(owner!.name) \(Int(pct))%" : (near ? "Nähe \(ident!.name) \(Int(pct))%" : ((hit?.measured ?? true) ? "nicht zugeordnet" : "nicht gemessen")))
-                                        .font(.caption2.monospaced())
-                                        .padding(.horizontal, 4)
-                                        .padding(.vertical, 1)
-                                        .background(.black.opacity(0.7))
-                                        .offset(y: 16)
+                                    let reject = (!pinned && !near) ? (aegis?.note ?? "") : ""
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(pinned ? "\(owner!.name) \(Int(pct))%" : (near ? "Nähe \(ident!.name) \(Int(pct))%" : ((hit?.measured ?? true) ? "nicht zugeordnet" : "nicht gemessen")))
+                                        if !reject.isEmpty {
+                                            Text(reject)
+                                                .lineLimit(2)
+                                        }
+                                    }
+                                    .font(.caption2.monospaced())
+                                    .padding(.horizontal, 4)
+                                    .padding(.vertical, 1)
+                                    .background(.black.opacity(0.7))
+                                    .offset(y: 16)
                                 }
                             }
                     }

@@ -50,8 +50,13 @@ enum MatchMathTests {
 
         if let tar = MatchMath.tar(atFar: 0.1, genuine: [90, 92, 88, 70], impostor: [40, 50, 60, 95, 30, 20, 10, 5, 2, 1]) {
             ok(tar.tar >= 0 && tar.tar <= 1, "TAR im [0,1]")
+            near(tar.threshold, 95, 0.01, "FAR 10% / 10 Impostoren → höchster Impostor, nicht der Zweite")
         } else {
             ok(false, "TAR@FAR berechenbar")
+        }
+
+        if let tar01 = MatchMath.tar(atFar: 0.01, genuine: [90], impostor: Array(repeating: 10.0, count: 100) + [80]) {
+            near(tar01.threshold, 80, 0.01, "FAR 1% / 101 Impostoren → ceil-Index")
         }
 
         if fails > 0 {

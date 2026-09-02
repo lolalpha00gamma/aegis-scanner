@@ -1,4 +1,4 @@
-# Aegis **2.1.3 alpha**
+# Aegis **2.1.4 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,18 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.4 alpha
+
+- **Live-Print als 3-Frame-Mittel**, nicht „schärferes Frame behalten“. Ein Glücks-Frame tauft nicht mehr.
+- **Box-EMA** auf dem Live-Track. Der Kasten zittert nicht mit jedem Detektor-Frame.
+- **~11 fps** statt ~5,5 (0,09 s Throttle).
+- **TAR@FAR-Index** `ceil(far·n)−1`. 10 % von 10 Impostoren ist der höchste, nicht der zweite.
+- **toHit liest `floors.match`**, nicht hart 78.
+- **Slider zeigt den effektiven Floor** (`78 → Floor 84` bei einer Person).
+- **Ablehnungsgrund am Overlay**, wenn kein Name gesetzt ist.
+- **Webcam: Built-in Wide** vor Continuity/Front-Treffer.
+- **printHistory** bleibt RAM-only, nicht in `gallery.json`.
 
 ## Neu in 2.1.3 alpha
 

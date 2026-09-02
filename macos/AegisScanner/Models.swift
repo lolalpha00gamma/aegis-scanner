@@ -2,9 +2,9 @@ import CoreGraphics
 import Foundation
 
 enum AppVersion {
-    static let marketing = "2.1.3"
+    static let marketing = "2.1.4"
     static let channel = "alpha"
-    static let display = "2.1.3 alpha"
+    static let display = "2.1.4 alpha"
 }
 
 enum StrategyTrack: String, CaseIterable, Identifiable {
@@ -199,6 +199,13 @@ struct FaceObservation: Identifiable, Hashable, Codable {
     var strokes: [LandmarkStroke] = []
     var namedAligned: [Point2] = []
     var ratioSheet: [NamedRatio] = []
+    /// Letzte Live-Prints derselben Track-ID. Nicht persistiert.
+    var printHistory: [Data] = []
+
+    enum CodingKeys: String, CodingKey {
+        case id, mediaId, box, score, landmarks, aligned, featurePrint
+        case appearance, graph, geom3d, quality, trackId, strokes, namedAligned, ratioSheet
+    }
 }
 
 struct Identity: Identifiable, Hashable, Codable {

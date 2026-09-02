@@ -472,11 +472,22 @@ final class LibraryStore: ObservableObject {
                 used.insert(old.id)
                 face.id = old.id
                 face.trackId = old.trackId ?? old.id
-                if face.featurePrint.isEmpty, !old.featurePrint.isEmpty {
-                    face.featurePrint = old.featurePrint
-                } else if !old.featurePrint.isEmpty, face.quality.capture + 0.04 < old.quality.capture {
+                let a = 0.55
+                face.box = FaceBox(
+                    x: a * face.box.x + (1 - a) * old.box.x,
+                    y: a * face.box.y + (1 - a) * old.box.y,
+                    width: a * face.box.width + (1 - a) * old.box.width,
+                    height: a * face.box.height + (1 - a) * old.box.height
+                )
+                var hist = old.printHistory
+                if hist.isEmpty, !old.featurePrint.isEmpty { hist.append(old.featurePrint) }
+                if !face.featurePrint.isEmpty {
+                    hist.append(face.featurePrint)
+                    if hist.count > 3 { hist.removeFirst(hist.count - 3) }
+                } else if !old.featurePrint.isEmpty {
                     face.featurePrint = old.featurePrint
                 }
+                face.printHistory = hist
             }
             adopted.append(face)
         }
@@ -503,9 +514,15 @@ final class LibraryStore: ObservableObject {
                 used.insert(old.id)
                 adopted[bestJ].id = old.id
                 adopted[bestJ].trackId = old.trackId ?? old.id
-                if adopted[bestJ].featurePrint.isEmpty {
+                var hist = old.printHistory
+                if hist.isEmpty, !old.featurePrint.isEmpty { hist.append(old.featurePrint) }
+                if !adopted[bestJ].featurePrint.isEmpty {
+                    hist.append(adopted[bestJ].featurePrint)
+                    if hist.count > 3 { hist.removeFirst(hist.count - 3) }
+                } else if !old.featurePrint.isEmpty {
                     adopted[bestJ].featurePrint = old.featurePrint
                 }
+                adopted[bestJ].printHistory = hist
             }
         }
         faces.removeAll { $0.mediaId == mediaId }

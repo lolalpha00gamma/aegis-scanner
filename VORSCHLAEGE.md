@@ -1,13 +1,25 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.3 alpha**. 2.1.2 hatte ehrliche Kurve und Galerie-Floor. 2.1.3 schließt, warum es trotzdem falsch taufte.
+Stand: **2.1.4 alpha**. 2.1.3 hat ehrliche `lookOf` und Geister-Kästen. 2.1.4 schließt Live-Jitter, TAR-Index und Floor-Text.
+
+## In 2.1.4 wirklich im Code
+
+- Live-Print: Ring der letzten 3 Prints, Score = Mittel, nicht schärfstes Frame.
+- Box-EMA (α=0,55) auf demselben Track.
+- Webcam-Throttle 0,09 s (~11 fps).
+- TAR@FAR: `k = max(0, ceil(far·n)−1)`.
+- `toHit` nutzt `floors.match` statt hart 78.
+- Slider-Label `78 → Floor 84`.
+- Overlay zeigt `decide`-Note wenn abgelehnt.
+- Built-in Wide vor Continuity-Front.
+- `printHistory` nicht Codable.
 
 ## In 2.1.3 wirklich im Code
 
 - **`lookOf` behandelt 0,4 % Print nicht als „KI aus“.** `if embed < 1 { return geo }` hat Impostor-Prints auf Geometrie fallen lassen und Fremde getauft.
 - **Keine Static-Floors.** `matchFloor`/`soloFloor` waren process-weit — Labor und Live überschrieben sich.
 - **Name nur wenn `decide` eine ID setzt**, nicht wenn Prozent ≥ Slider. Overlay, Strip, IdentityDesk.
-- **Live-Geister weg.** Leeres Detektionsframe hat eingeschriebene Boxen stehen gelassen.
+- **Live-Geister weg.** Leeres Detektionsframe hat eingeschriebene Boxen stehen lassen.
 - **Anlegen ohne Print/Qualität blockt**, solange die KI-Spur an ist.
 - **Labor TAR @ 0,1 % / 1 % FAR.**
 - **Webcam landscapeRight + Frontkamera**, analog Helios.
@@ -15,12 +27,11 @@ Stand: **2.1.3 alpha**. 2.1.2 hatte ehrliche Kurve und Galerie-Floor. 2.1.3 schl
 
 ## Nächste Fixes (klein)
 
-- **Live-Print als Mittel-Vektor** über drei Frames derselben ID, nicht nur „schärferes Print behalten“.
 - **EXIF-Orientierungstest** in den Laborbericht. Ein gedrehtes iPhone-Foto kippt Yaw — Ingest nutzt Thumbnail-Transform, Live nicht.
-- **Slider-Label** mit effektivem Floor (Galerie + Bias), nicht nur 70…96.
 - **NMS-Debug.** Optional Quadrate der verworfenen Tile-Treffer.
-- **Temporal-Smoothing der Box.** 1-Euro auf der Live-Box, unabhängig vom Print.
-- **Ablehnungsgrund am Overlay.** „z zu klein“ / „Print leer“ direkt am Gesicht.
+- **Quality-gewichtetes Print-Mittel** in der Galerie (scharfe Frontal-Refs zählen mehr).
+- **Print tot als eigene Overlay-Farbe**, auch wenn die Box nicht selektiert ist (jetzt nur Badge).
+- **Live-Yaw-Bin.** Profil-Frames nicht mit Frontal-Refs mitteln.
 
 ## Erweiterungen
 
@@ -35,6 +46,10 @@ Stand: **2.1.3 alpha**. 2.1.2 hatte ehrliche Kurve und Galerie-Floor. 2.1.3 schl
 - **Pose-normalisierter Print.** Yaw/Pitch vor dem Crop.
 - **Helios-Bridge.** Eine Kamera-Session, eine TCC-Freigabe.
 - **Offen-Set.** Explizite „unbekannt“-Klasse mit eigener Schwelle.
+- **Doppelgänger-Warnung.** Zwei Identitäten mit Print-Cosine > 0,70 beim Anlegen.
+- **Kalman auf der Live-Box**, sobald EMA nicht reicht (schnelle Bewegung).
+- **Galerie nach Yaw-Bins.** Match nur gegen ähnliche Pose, sonst Geometrie-Veto härter.
+- **Labor als Panel**, nicht nur Textexport — Kurve TAR@FAR live.
 
 ## Nicht tun
 
@@ -44,3 +59,4 @@ Stand: **2.1.3 alpha**. 2.1.2 hatte ehrliche Kurve und Galerie-Floor. 2.1.3 schl
 - 3DMM-Netze ins Bundle.
 - Image-Feature-Print als Identität. Jacke ≠ Gesicht.
 - Sigmoid-Mitte wieder unter 0,50.
+- Helios-Gesten-Code hierher kopieren.
