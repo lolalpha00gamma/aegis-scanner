@@ -3,6 +3,14 @@ import Combine
 import Foundation
 import UniformTypeIdentifiers
 
+private final class AegisScanFlag: @unchecked Sendable {
+    private let lock = NSLock()
+    private var _alive = true
+    func reset() { lock.lock(); _alive = true; lock.unlock() }
+    func stop() { lock.lock(); _alive = false; lock.unlock() }
+    var alive: Bool { lock.lock(); defer { lock.unlock() }; return _alive }
+}
+
 @MainActor
 final class LibraryStore: ObservableObject {
     @Published var media: [MediaItem] = []
@@ -28,6 +36,7 @@ final class LibraryStore: ObservableObject {
     private var scopedRoots: [URL] = []
     private var liveBusy = false
     private var scanGeneration = 0
+    private let scanFlag = AegisScanFlag()
     private let enabledKey = "aegis.enabledStrategies"
 
     init() {
@@ -88,6 +97,15 @@ final class LibraryStore: ObservableObject {
         return "Galerie \(identities.count): Floor \(Int(f.match)) · Solo \(Int(f.solo))"
     }
 
+    var enrollmentHint: String {
+        guard let face = selectedFace else { return "" }
+        return FaceEngine.enrollmentPreview(
+            face: face,
+            identities: identities,
+            faces: faces
+        )
+    }
+
     var selectedHits: [StrategyHit] {
         guard let id = selectedFace?.id else { return [] }
         return matches.first { $0.faceId == id }?.hits ?? []
@@ -142,7 +160,9 @@ final class LibraryStore: ObservableObject {
         }
         retainAccess(roots)
         scanGeneration += 1
+        scanFlag.reset()
         let gen = scanGeneration
+        let flag = scanFlag
         busy = true
         status = "Ordner lesen …"
         Task {
@@ -150,7 +170,7 @@ final class LibraryStore: ObservableObject {
             for folder in folders {
                 if gen != self.scanGeneration { return }
                 let found = await Task.detached {
-                    FrameExtractor.walk(folder: folder)
+                    FrameExtractor.walk(folder: folder) { flag.alive }
                 }.value
                 if gen != self.scanGeneration { return }
                 urls.append(contentsOf: found)
@@ -225,6 +245,7 @@ final class LibraryStore: ObservableObject {
 
     func cancelScan() {
         guard busy else { return }
+        scanFlag.stop()
         scanGeneration += 1
         busy = false
         status = "Scan abgebrochen"
@@ -232,6 +253,7 @@ final class LibraryStore: ObservableObject {
 
     func scan() async {
         scanGeneration += 1
+        scanFlag.reset()
         await scan(generation: scanGeneration)
     }
 
@@ -378,10 +400,8 @@ final class LibraryStore: ObservableObject {
             status = why
             return
         }
-        var note = ""
-        if let dup = FaceEngine.duplicateOf(face: face, identities: identities, faces: faces) {
-            note = String(format: " · Achtung: ähnlich \(dup.0.name) (%.0f %%)", dup.1 * 100)
-        }
+        let preview = FaceEngine.enrollmentPreview(face: face, identities: identities, faces: faces)
+        let note = preview.isEmpty ? "" : " · \(preview)"
         identities.append(Identity(id: UUID(), name: name, faceIds: [face.id]))
         newPersonName = ""
         selectedFaceId = face.id
@@ -415,12 +435,22 @@ final class LibraryStore: ObservableObject {
             status = why
             return
         }
+        let preview = FaceEngine.enrollmentPreview(
+            face: face,
+            identities: identities,
+            faces: faces,
+            addingTo: identities[idx]
+        )
         if !identities[idx].faceIds.contains(face.id) {
             identities[idx].faceIds.append(face.id)
         }
         rematch()
         persist()
-        status = "Referenz zu \(identities[idx].name) hinzugefügt"
+        if preview.isEmpty {
+            status = "Referenz zu \(identities[idx].name) hinzugefügt"
+        } else {
+            status = "Referenz zu \(identities[idx].name) · \(preview)"
+        }
     }
 
     func removeIdentity(_ id: UUID) {

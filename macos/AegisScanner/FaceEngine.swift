@@ -569,7 +569,7 @@ enum FaceEngine {
         return (match, min(96, match + 2))
     }
 
-    static func overlayHint(_ face: FaceObservation) -> String? {
+    static func overlayHint(_ face: FaceObservation, gallery: [FaceObservation] = []) -> String? {
         if face.featurePrint.isEmpty {
             if face.quality.capture >= 0.40 { return "Print tot · Okklusion?" }
             return "Print tot"
@@ -578,7 +578,103 @@ enum FaceEngine {
         if abs(face.quality.yaw) > 0.75 { return "Profil" }
         if face.quality.frontal < 0.22 { return "stark gedreht" }
         if face.quality.sharpness < 0.08 { return "unscharf" }
+        if gallery.count >= 1 {
+            let pv = embedding(of: face)
+            let mean = meanPrintVector(gallery)
+            if pv.count >= 32, mean.count == pv.count {
+                let c = cosine(pv, mean)
+                if 1 - c > 0.12 { return "andere Person oder Brille?" }
+            }
+        }
         return nil
+    }
+
+    enum PoseSlot: String {
+        case frontal, threeQuarter, profile
+        var titleDE: String {
+            switch self {
+            case .frontal: return "Frontal"
+            case .threeQuarter: return "¾"
+            case .profile: return "Profil"
+            }
+        }
+    }
+
+    static func poseSlot(_ face: FaceObservation) -> PoseSlot {
+        let y = abs(face.quality.yaw)
+        if y >= 0.70 { return .profile }
+        if y >= 0.28 { return .threeQuarter }
+        return .frontal
+    }
+
+    static func poseCoverage(identity: Identity, faces: [FaceObservation]) -> (frontal: Int, threeQuarter: Int, profile: Int) {
+        let refs = faces.filter { identity.faceIds.contains($0.id) }
+        var f = 0, q = 0, p = 0
+        for r in refs {
+            switch poseSlot(r) {
+            case .frontal: f += 1
+            case .threeQuarter: q += 1
+            case .profile: p += 1
+            }
+        }
+        return (f, q, p)
+    }
+
+    static func poseCoverageLabel(identity: Identity, faces: [FaceObservation]) -> String {
+        let c = poseCoverage(identity: identity, faces: faces)
+        return "F\(c.frontal) · ¾\(c.threeQuarter) · P\(c.profile)"
+    }
+
+    static func poseCoverageWarning(
+        adding face: FaceObservation,
+        to identity: Identity,
+        faces: [FaceObservation]
+    ) -> String? {
+        let slot = poseSlot(face)
+        let c = poseCoverage(identity: identity, faces: faces)
+        let have: Int
+        switch slot {
+        case .frontal: have = c.frontal
+        case .threeQuarter: have = c.threeQuarter
+        case .profile: have = c.profile
+        }
+        guard have >= 2 else { return nil }
+        var missing: [String] = []
+        if c.frontal == 0 { missing.append("Frontal") }
+        if c.threeQuarter == 0 { missing.append("¾") }
+        if c.profile == 0 { missing.append("Profil") }
+        guard !missing.isEmpty else { return nil }
+        return "\(slot.titleDE) schon \(have)× — fehlt \(missing.joined(separator: ", "))"
+    }
+
+    static func enrollmentPreview(
+        face: FaceObservation,
+        identities: [Identity],
+        faces: [FaceObservation],
+        addingTo: Identity? = nil
+    ) -> String {
+        var parts: [String] = []
+        if let dest = addingTo {
+            let refs = faces.filter { dest.faceIds.contains($0.id) }
+            let mean = meanPrintVector(refs)
+            let v = embedding(of: face)
+            if mean.count >= 32, v.count == mean.count {
+                let p = 100.0 / (1.0 + exp(-14.0 * (cosine(v, mean) - 0.55)))
+                parts.append(String(format: "zu \(dest.name) %.0f %%", p))
+            }
+            if let w = poseCoverageWarning(adding: face, to: dest, faces: faces) {
+                parts.append(w)
+            }
+        }
+        if let dup = duplicateOf(face: face, identities: identities, faces: faces),
+           dup.0.id != addingTo?.id
+        {
+            parts.append(String(format: "ähnlich \(dup.0.name) %.0f %%", dup.1 * 100))
+        }
+        if addingTo == nil, !face.featurePrint.isEmpty {
+            parts.append(poseSlot(face).titleDE)
+        }
+        return parts.joined(separator: " · ")
     }
 
     private static func adaptiveFloor(_ n: Int, slider: Double) -> Double {
@@ -743,21 +839,25 @@ enum FaceEngine {
         return top.reduce(0, +) / Double(top.count)
     }
 
-    /// L2-normierter Mittel-Vektor der Galerie-Prints. Besser als Score-Mittel:
-    /// ein schiefer Winkel in einer Referenz zieht den Cosine nicht auf 99 %.
+    /// L2-normierter Mittel-Vektor der Galerie-Prints. Unscharfe Refs zählen
+    /// mit `capture * sharpness`, nicht 1/n — eine verwackelte Kopie zieht
+    /// den Mittelvektor nicht mehr auf Impostor-Niveau.
     static func meanPrintVector(_ faces: [FaceObservation]) -> [Double] {
         var acc: [Double] = []
-        var n = 0
+        var wsum = 0.0
         for f in faces {
             let v = embedding(of: f)
             guard v.count >= 32 else { continue }
-            if acc.isEmpty { acc = v } else if acc.count == v.count {
-                for i in acc.indices { acc[i] += v[i] }
+            let w = max(0.08, f.quality.capture * (0.35 + 0.65 * max(0, f.quality.sharpness)))
+            if acc.isEmpty {
+                acc = v.map { $0 * w }
+            } else if acc.count == v.count {
+                for i in acc.indices { acc[i] += v[i] * w }
             } else { continue }
-            n += 1
+            wsum += w
         }
-        guard n > 0, !acc.isEmpty else { return [] }
-        let inv = 1.0 / Double(n)
+        guard wsum > 0, !acc.isEmpty else { return [] }
+        let inv = 1.0 / wsum
         for i in acc.indices { acc[i] *= inv }
         return l2normalize(acc)
     }
@@ -1008,6 +1108,7 @@ enum FaceEngine {
             if bestI >= 0 {
                 used.insert(bestI)
                 next.featurePrint = found[bestI].data
+                next.printVec = printVector(found[bestI].data)
                 return next
             }
             // Kein IoU-Treffer. Crop-Fallback nur wenn Vision auf dem ganzen
@@ -1018,8 +1119,10 @@ enum FaceEngine {
                let data = identityPrint(of: crop)
             {
                 next.featurePrint = data
+                next.printVec = printVector(data)
             } else {
                 next.featurePrint = Data()
+                next.printVec = []
             }
             return next
         }

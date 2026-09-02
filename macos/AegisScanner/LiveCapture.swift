@@ -30,8 +30,12 @@ final class LiveCapture: NSObject {
     private(set) var facesPresent = false
 
     func setFacesPresent(_ on: Bool) {
+        let changed = on != facesPresent
         facesPresent = on
         tap?.minInterval = on ? 0.125 : 0.50
+        if changed, timer != nil {
+            startTimer()
+        }
     }
 
     func start(url: URL, kind: LiveKind) {
@@ -149,7 +153,8 @@ final class LiveCapture: NSObject {
 
     private func startTimer() {
         timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: 0.22, repeats: true) { [weak self] _ in
+        let interval: TimeInterval = facesPresent ? 0.125 : 0.50
+        timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
             let capture = self
             Task { @MainActor in
                 capture?.grab()

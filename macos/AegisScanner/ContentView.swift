@@ -90,6 +90,11 @@ struct ContentView: View {
                     .keyboardShortcut(.defaultAction)
                     .disabled(store.selectedFace == nil || store.newPersonName.isEmpty)
             }
+            if !store.enrollmentHint.isEmpty {
+                Text(store.enrollmentHint)
+                    .font(.caption2)
+                    .foregroundStyle(.orange)
+            }
             Text("Anlegen = neue Person. + nur wenn das Namensfeld leer ist: extra Foto derselben Person.")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
@@ -97,7 +102,7 @@ struct ContentView: View {
                 HStack {
                     VStack(alignment: .leading) {
                         Text(identity.name)
-                        Text("\(identity.faceIds.count) Referenzen")
+                        Text("\(identity.faceIds.count) Referenzen · \(FaceEngine.poseCoverageLabel(identity: identity, faces: store.faces))")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -580,7 +585,11 @@ struct FaceOverlay: View {
                     let near = !pinned && ident != nil && (hit?.measured ?? false) && pct >= store.threshold
                     let selected = store.selectedFaceId == face.id
                     let printDead = face.featurePrint.isEmpty
-                    let hint = FaceEngine.overlayHint(face)
+                    let gallery: [FaceObservation] = {
+                        guard let ident else { return [] }
+                        return store.faces.filter { ident.faceIds.contains($0.id) && $0.id != face.id }
+                    }()
+                    let hint = FaceEngine.overlayHint(face, gallery: gallery)
                     let printLabel = printDead
                         ? "Print tot"
                         : String(format: "Print %.0f%%", printHit?.percent ?? 0)

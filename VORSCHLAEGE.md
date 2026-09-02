@@ -1,6 +1,18 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.5 alpha**. Fixes von 2.1.5 stehen auch in der README.
+Stand: **2.1.6 alpha**. Fixes von 2.1.6 stehen auch in der README.
+
+## In 2.1.6 wirklich im Code
+
+Warum 2.1.5 trotz Cancel und HLS-Transform Galerien und Live trotzdem schief zog: unscharfe Kopien hatten gleiches Gewicht im Centroid, der Ordner-Walk ignorierte Cancel, HLS blieb fest 0,22 s, fünf Frontals füllten keinen ¾-Slot, und `stampPrints` ließ `printVec` leer.
+
+1. **Gewichteter Centroid.** `capture * (0,35 + 0,65·sharpness)`, Floor 0,08. Eine verwackelte Kopie zieht den Mittelvektor nicht mehr.
+2. **Walk-Cancel pro Datei.** `AegisScanFlag` (Sendable + NSLock) in `FrameExtractor.walk`.
+3. **HLS-Timer adaptiv.** 0,50 s leer / 0,125 s bei Track, Timer wird neu gesetzt.
+4. **Pose-Coverage-Meter.** F / ¾ / P an der Identitätszeile. Warnung wenn derselbe Slot ≥2 und ein anderer 0.
+5. **Print-Drift.** Overlay „andere Person oder Brille?“ bei Cosine-Abstand > 0,12 zum Galerie-Centroid.
+6. **Enrollment-Vorschau** unter Anlegen, bevor Commit.
+7. **`printVec` in `stampPrints`.** Scan-Fotos haben den Vektor, nicht nur Live.
 
 ## In 2.1.5 wirklich im Code
 
@@ -53,12 +65,11 @@ Die 2.1.2-Commits auf main hatten die härtere Kurve und den Galerie-Floor nur i
 
 ## Nächste Fixes (klein)
 
-- **Pose-Coverage-Meter.** Pro Identität: Frontal / ¾ / Profil als drei Slots. Anlegen, wenn ein Slot leer ist, statt noch ein Frontal dazu.
-- **Qualitätsgewichteter Centroid.** Unscharfe Refs zählen mit `capture * sharpness`, nicht 1/n — eine verwackelte Kopie zieht den Mittelvektor nicht mehr.
-- **Print-Drift-Alarm.** Live-EMA weicht >0,12 Cosine vom Galerie-Centroid ab → Overlay „andere Person oder Brille?“.
-- **Walk-Cancel feiner.** `FileManager.enumerator` prüft `scanGeneration` pro Datei, nicht nur pro Ordner.
-- **HLS-FPS an Last.** Player-Timer ist noch 0,22 s fest; Webcam ist schon adaptiv.
-- **Referenz-Vorschau vor Commit.** Anlegen zeigt Print-% gegen den eigenen Centroid (nach der 2. Referenz) und gegen Rivalen, bevor die UUID geschrieben wird.
+- **Negativ-Bestätigung vor Anlegen.** Ein Klick „nicht \(Name)“ schreibt ein Hard-Negative, ohne die Galerie zu löschen.
+- **Live-Reconnect hält UUID.** Kamera-Drop darf den Track nicht auf eine neue Person taufen, wenn der Print noch passt.
+- **Coverage-Slot erzwingen.** + auf einen vollen Frontal-Slot ohne leeren ¾ blockt, nicht nur warnt.
+- **Crop-Print mit Orientierung.** Fallback-Crop in `stampPrints` läuft noch als `.up`.
+- **Labor auf gewichtetem Centroid.** TAR@FAR nutzt denselben Weight wie `meanPrintVector`.
 
 ## Erweiterungen
 
@@ -87,6 +98,9 @@ Die 2.1.2-Commits auf main hatten die härtere Kurve und den Galerie-Floor nur i
 - **On-device Eval-Clip.** Die letzten 50 Live-Frames als Mini-Labor, TAR/FAR ohne Ordner wählen.
 - **Auto-Enrollment-Halt.** Dieselbe UUID 8 s mit Print ≥ 94 % und Yaw < 0,3 → Vorschlag „als Referenz übernehmen?“, nie still schreiben.
 - **Per-Kamera Orientierungs-Override.** Eine Continuity-Cam, die `videoRotationAngle` falsch meldet, bekommt einen manuellen 90°-Hebel.
+- **Familien-Floor.** Zwei Personen mit Cosine 0,80–0,88 (Geschwister) bekommen lokal +4 Floor, ohne die globale Sigmoid zu härten.
+- **HEIC-Depth.** Wenn die Datei einen Depth-Channel hat, Yaw aus der Tiefenkarte statt nur Vision-Pose.
+- **Scan-Resume.** Abgebrochener Ordner merkt den letzten URL, „Weiter“ statt von vorn.
 
 ## Nicht tun
 
@@ -98,3 +112,5 @@ Die 2.1.2-Commits auf main hatten die härtere Kurve und den Galerie-Floor nur i
 - Sigmoid-Mitte wieder unter 0,50. Impostor-Cosine sitzt genau dort.
 - `lookOf` wieder als 0,75/0,25-Mix. Der Mix ist warum 1-Personen-Galerien stumm blieben.
 - Static `matchFloor` wieder process-weit. Labor und Live dürfen sich die Schwelle nicht teilen.
+- Ungewichteter 1/n-Centroid. Eine unscharfe Kopie darf den Mittelvektor nicht ziehen.
+- `printVec` wieder leer lassen nach `stampPrints`.

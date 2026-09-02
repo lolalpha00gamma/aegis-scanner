@@ -1,4 +1,4 @@
-# Aegis **2.1.5 alpha**
+# Aegis **2.1.6 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,18 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.6 alpha
+
+2.1.5 hat HLS gedreht und Scans abbrechbar gemacht — unscharfe Refs haben den Centroid trotzdem gezogen, große Ordner liefen nach Cancel weiter, HLS blieb bei 4,5 fps, und fünf Frontals haben keinen ¾-Slot gefüllt.
+
+- **Qualitätsgewichteter Centroid.** Refs zählen mit `capture * sharpness`, nicht 1/n.
+- **Walk-Cancel pro Datei.** `FileManager.enumerator` prüft ein Sendable-Flag, nicht nur zwischen Ordnern.
+- **HLS-FPS an Last.** Player-Timer 2 fps leer / 8 fps bei Track, wie die Webcam.
+- **Pose-Coverage.** Pro Identität F / ¾ / P. Warnung, wenn derselbe Slot schon 2× voll ist und ein anderer leer.
+- **Print-Drift-Alarm.** Live-EMA weicht >0,12 Cosine vom Galerie-Centroid ab → Overlay „andere Person oder Brille?“.
+- **Referenz-Vorschau** unter Anlegen: Print-% gegen Rivalen und Slot, bevor die UUID geschrieben wird.
+- **`printVec` beim Stamp.** Face-Print füllt den Vektor sofort, nicht erst im Live-EMA.
 
 ## Neu in 2.1.5 alpha
 

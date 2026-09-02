@@ -1,6 +1,6 @@
-# Aegis 2.1.4 alpha — Architektur
+# Aegis 2.1.6 alpha — Architektur
 
-2.0.8 hat `lookOf` umgedreht. 2.1.0 macht jede Spur abschaltbar und ergänzt Pose-3D, LBP, Mahalanobis, Laborbericht. **2.1.1** schließt die Zuordnung ohne Print, Live-Geister und Tile-NMS. **2.1.2** macht den Print ehrlich (Sigmoid, kein max, Geo-Veto, Galerie-Floor) und das Live-Overlay lesbar. **2.1.3** lässt den Print den Score führen (kein 0,25-Mix mehr), hält Floors lokal, mittelt den Galerie-Vektor und blendet Live-Prints. **2.1.4** richtet Live-Frames an `videoRotationAngle` aus, wählt Video-Keyframes nach Yaw, zeigt Floor/NMS/Okklusion und schreibt Konfusion + EXIF ins Labor.
+2.0.8 hat `lookOf` umgedreht. 2.1.0 macht jede Spur abschaltbar und ergänzt Pose-3D, LBP, Mahalanobis, Laborbericht. **2.1.1** schließt die Zuordnung ohne Print, Live-Geister und Tile-NMS. **2.1.2** macht den Print ehrlich (Sigmoid, kein max, Geo-Veto, Galerie-Floor) und das Live-Overlay lesbar. **2.1.3** lässt den Print den Score führen (kein 0,25-Mix mehr), hält Floors lokal, mittelt den Galerie-Vektor und blendet Live-Prints. **2.1.4** richtet Live-Frames an `videoRotationAngle` aus, wählt Video-Keyframes nach Yaw, zeigt Floor/NMS/Okklusion und schreibt Konfusion + EXIF ins Labor. **2.1.5** dreht HLS per `preferredTransform`, vetoet Enrollment-Yaw, bricht Scans ab. **2.1.6** gewichtet den Centroid nach Schärfe, cancel't den Ordner-Walk pro Datei, passt HLS-FPS an, zeigt Pose-Coverage und Print-Drift.
 
 ## Spuren
 

@@ -208,7 +208,7 @@
 				CODE_SIGN_ENTITLEMENTS = AegisScanner.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 34;
+				CURRENT_PROJECT_VERSION = 35;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = AegisScanner/Info.plist;
@@ -220,7 +220,7 @@
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 2.1.5;
+				MARKETING_VERSION = 2.1.6;
 				PRODUCT_BUNDLE_IDENTIFIER = app.aegis.scanner;
 				PRODUCT_NAME = Aegis;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -235,7 +235,7 @@
 				CODE_SIGN_ENTITLEMENTS = AegisScanner.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 34;
+				CURRENT_PROJECT_VERSION = 35;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = AegisScanner/Info.plist;
@@ -247,7 +247,7 @@
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 2.1.5;
+				MARKETING_VERSION = 2.1.6;
 				PRODUCT_BUNDLE_IDENTIFIER = app.aegis.scanner;
 				PRODUCT_NAME = Aegis;
 				SWIFT_EMIT_LOC_STRINGS = YES;
