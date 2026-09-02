@@ -238,6 +238,7 @@ enum FaceEngine {
 
     /// High-IoU / nested twin of the same detection. Two people standing
     /// together overlap a bit — that is not a duplicate.
+    /// Tile-twins share a center even when IoU is modest (Vision + tile).
     private static func duplicateDetection(_ a: FaceBox, _ b: FaceBox) -> Bool {
         if iou(a, b) >= 0.42 { return true }
         let x1 = max(a.x, b.x)
@@ -246,7 +247,13 @@ enum FaceEngine {
         let y2 = min(a.y + a.height, b.y + b.height)
         let inter = max(0, x2 - x1) * max(0, y2 - y1)
         let smaller = min(a.width * a.height, b.width * b.height)
-        return smaller > 1 && inter / smaller >= 0.7
+        if smaller > 1 && inter / smaller >= 0.7 { return true }
+        let acx = a.x + a.width / 2
+        let acy = a.y + a.height / 2
+        let bcx = b.x + b.width / 2
+        let bcy = b.y + b.height / 2
+        let minDiag = min(hypot(a.width, a.height), hypot(b.width, b.height))
+        return minDiag > 1 && hypot(acx - bcx, acy - bcy) < 0.18 * minDiag
     }
 
     static func boxesOverlap(_ a: FaceBox, _ b: FaceBox) -> Bool {
@@ -436,7 +443,15 @@ enum FaceEngine {
                 return active.map { pctVs($0, id) }.max() ?? 0
             }
             func lookOfId(_ id: UUID) -> Double {
-                lookOf(geo: geoMixOf(id), embed: embedOf(id), pose: poseWeight(face.quality))
+                let geo = geoMixOf(id)
+                let embed = embedOf(id)
+                // KI an, aber kein Face-Print auf diesem Gesicht:
+                // Geometrie allein darf niemanden benennen (Fremde mit ähnlichen Maßen).
+                // KI aus (Nutzer) bleibt reines Geometrie-Matching.
+                if kiOn && !printOn {
+                    return min(geo, 49)
+                }
+                return lookOf(geo: geo, embed: embed, pose: poseWeight(face.quality))
             }
             let ids = models.map(\.identity.id)
             let embedRow = ids.map { embedOf($0) }
@@ -873,7 +888,7 @@ enum FaceEngine {
         return faces.map { face in
             var next = face
             var bestI = -1
-            var bestIoU = 0.20
+            var bestIoU = 0.32
             for (i, item) in found.enumerated() where !used.contains(i) {
                 let o = iou(item.box, face.box)
                 if o > bestIoU {
@@ -1570,7 +1585,7 @@ enum FaceEngine {
         }
     }
 
-    private static func iou(_ a: FaceBox, _ b: FaceBox) -> Double {
+    static func iou(_ a: FaceBox, _ b: FaceBox) -> Double {
         let x1 = max(a.x, b.x)
         let y1 = max(a.y, b.y)
         let x2 = min(a.x + a.width, b.x + b.width)
@@ -1601,6 +1616,8 @@ enum FaceEngine {
     /// Embedding leads. Geometry supports and vetoes. Raster never votes.
     /// Pose (Vision yaw/pitch) shrinks the geometry weight off-frontal, so IOD
     /// ratios cannot block a 99% print on a profile, and cannot assign a stranger.
+    /// `embed < 1` is the user-disabled-KI path (geo-only). Empty prints on a
+    /// live KI face are capped in `lookOfId`, not here.
     private static func lookOf(geo: Double, embed: Double = 0, pose: Double = 1) -> Double {
         if embed < 1 { return geo }
         if geo < 1 { return embed }

@@ -18,8 +18,9 @@ enum FrameExtractor {
     static func loadCGImage(url: URL) -> CGImage? {
         guard let src = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
         let options: [CFString: Any] = [
-            kCGImageSourceShouldCache: true,
-            kCGImageSourceThumbnailMaxPixelSize: 2048,
+            kCGImageSourceShouldCache: false,
+            kCGImageSourceShouldCacheImmediately: false,
+            kCGImageSourceThumbnailMaxPixelSize: 1280,
             kCGImageSourceCreateThumbnailFromImageAlways: true,
             kCGImageSourceCreateThumbnailWithTransform: true,
         ]

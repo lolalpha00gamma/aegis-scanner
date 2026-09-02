@@ -2,9 +2,9 @@ import CoreGraphics
 import Foundation
 
 enum AppVersion {
-    static let marketing = "2.1.0"
+    static let marketing = "2.1.1"
     static let channel = "alpha"
-    static let display = "2.1.0 alpha"
+    static let display = "2.1.1 alpha"
 }
 
 enum StrategyTrack: String, CaseIterable, Identifiable {
@@ -184,7 +184,7 @@ struct NamedRatio: Hashable, Codable {
 }
 
 struct FaceObservation: Identifiable, Hashable, Codable {
-    let id: UUID
+    var id: UUID
     var mediaId: UUID
     var box: FaceBox
     var score: Double

@@ -436,11 +436,43 @@ final class LibraryStore: ObservableObject {
         media[idx].height = image.height
         media[idx].preview = image
         let enrolled = Set(identities.flatMap(\.faceIds))
-        let pinned = faces.filter { $0.mediaId == mediaId && enrolled.contains($0.id) }
+        let previous = faces.filter { $0.mediaId == mediaId }
+        var used = Set<UUID>()
+        var adopted: [FaceObservation] = []
+        adopted.reserveCapacity(found.count)
+        for var face in found {
+            var best: FaceObservation?
+            var bestIoU = 0.0
+            var bestEnrolled = false
+            for old in previous where !used.contains(old.id) {
+                let o = FaceEngine.iou(old.box, face.box)
+                let pin = enrolled.contains(old.id)
+                let enough = pin ? o >= 0.22 : o >= 0.28
+                guard enough else { continue }
+                if pin && !bestEnrolled {
+                    best = old
+                    bestIoU = o
+                    bestEnrolled = true
+                } else if pin == bestEnrolled, o > bestIoU {
+                    best = old
+                    bestIoU = o
+                }
+            }
+            if let old = best {
+                used.insert(old.id)
+                face.id = old.id
+                face.trackId = old.trackId ?? old.id
+                if face.featurePrint.isEmpty, !old.featurePrint.isEmpty {
+                    face.featurePrint = old.featurePrint
+                }
+            }
+            adopted.append(face)
+        }
+        let leftoverPinned = previous.filter { enrolled.contains($0.id) && !used.contains($0.id) }
         faces.removeAll { $0.mediaId == mediaId }
-        faces.append(contentsOf: pinned + found)
+        faces.append(contentsOf: leftoverPinned + adopted)
         if selectedMediaId == mediaId {
-            selectedFaceId = found.first?.id ?? pinned.first?.id
+            selectedFaceId = adopted.first?.id ?? leftoverPinned.first?.id
         }
         rematch()
     }
