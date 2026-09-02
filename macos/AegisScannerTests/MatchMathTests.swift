@@ -166,6 +166,31 @@ enum MatchMathTests {
         near(MatchMath.pinPrintCosine, 0.80, 0.001, "Pin-Print 0,80")
         ok(MatchMath.pinByPrint(cosine: 0.85), "0,85 klebt den Track")
         ok(!MatchMath.pinByPrint(cosine: 0.72), "0,72 erbt nicht mehr — Geschwister")
+        near(MatchMath.leftoverIoU, 0.18, 0.001, "Leftover-IoU 0,18")
+        ok(MatchMath.leftoverPin(iou: 0.22), "IoU 0,22 leftover pin")
+        ok(!MatchMath.leftoverPin(iou: 0.08), "IoU 0,08 leftover kein Pin")
+        ok(MatchMath.visionYawMissing(0), "Yaw 0 = Vision fehlend")
+        ok(MatchMath.visionYawMissing(0.01), "Yaw 0,01 = fehlend")
+        ok(!MatchMath.visionYawMissing(0.30), "Yaw 0,30 = ¾")
+        let yawQ = MatchMath.yawFromLandmarks(
+            leftEye: (10, 20),
+            rightEye: (50, 20),
+            nose: (18, 40)
+        )
+        ok(yawQ < -0.2, "Nase links vom Augenmittel → Yaw negativ (ist \(yawQ))")
+        let yawF = MatchMath.yawFromLandmarks(
+            leftEye: (10, 20),
+            rightEye: (50, 20),
+            nose: (30, 40)
+        )
+        ok(abs(yawF) < 0.08, "Nase in der Mitte → frontal (ist \(yawF))")
+        let med = MatchMath.medianBlend([
+            [1] + [Double](repeating: 0, count: 31),
+            [0.2] + [Double](repeating: 0, count: 31),
+            [0.9] + [Double](repeating: 0, count: 31)
+        ])
+        ok(med.count == 32, "Median-Blend dim")
+        ok(med[0] > 0.8, "Median zieht nicht zum Ausreißer 0,2")
         ok(MatchMath.laborQualityRejects(capture: 0.9, size: 0.5, sharpness: 0.06), "Labor 0,06 raus")
         ok(!MatchMath.laborQualityRejects(capture: 0.9, size: 0.5, sharpness: 0.10), "Labor Continuity 0,10 bleibt (eingeschriebene Refs)")
         near(MatchMath.liveBlendAlpha(continuity: false), 0.35, 0.001, "Built-in Blend 0,35")

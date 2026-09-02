@@ -133,6 +133,28 @@ enum LabReport {
             out.append("Centroid-Gewichte (capture · (0,35 + 0,65·sharpness), Floor 0,08)")
             out.append(contentsOf: weightLines)
         }
+        if identities.count >= 2 {
+            out.append("")
+            out.append("Centroid-Cosine (Identität ↔ Identität)")
+            let cents: [(String, [Double])] = identities.map { ident in
+                let owned = faces.filter { ident.faceIds.contains($0.id) }
+                return (ident.name, FaceEngine.meanPrintVector(owned))
+            }
+            out.append("\t" + cents.map(\.0).joined(separator: "\t"))
+            for (i, a) in cents.enumerated() {
+                var row = [a.0]
+                for (j, b) in cents.enumerated() {
+                    if i == j {
+                        row.append("1.00")
+                    } else if a.1.count >= 32, a.1.count == b.1.count {
+                        row.append(String(format: "%.2f", MatchMath.cosine(a.1, b.1)))
+                    } else {
+                        row.append("—")
+                    }
+                }
+                out.append(row.joined(separator: "\t"))
+            }
+        }
         let photos = media.filter { $0.kind == .photo }
         if !photos.isEmpty {
             var rotated = 0

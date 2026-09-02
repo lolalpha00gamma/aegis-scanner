@@ -1,7 +1,7 @@
 # Aegis
 
 Lokaler Image- & Video-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**  
-Version **2.1.18 alpha**.
+Version **2.1.20 alpha**.
 
 ## Image-Datei
 
@@ -12,6 +12,14 @@ Version **2.1.18 alpha**.
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Die Datei ist ad-hoc signiert (kein Apple-Developer-Account) — deshalb der Rechtsklick beim ersten Start.
+
+## Neu in 2.1.20 alpha
+
+Live-Match nur Centroids. Median der letzten 5 Prints. Yaw aus Landmarks wenn Vision 0. Crop-Print `.up`. Coverage blockt 3. Slot ohne Frontal/¾. boxEuro-Reset bei uniqueID. Leftover-IoU benannt. Anlegen-Confirm 0,82. Labor Centroid-Matrix.
+
+## Neu in 2.1.19 alpha
+
+3-Tick-Namensmehrheit + Score-EMA. `.aegis` print-led (lookOf). Geo-Veto weich. Cheap-Graph Live. Backup-Taste. Burst-Prune beim +.
 
 ## Neu in 2.1.18 alpha
 

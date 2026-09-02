@@ -121,7 +121,7 @@ struct ContentView: View {
                     .font(.caption2)
                     .foregroundStyle(.orange)
             }
-            Text("Anlegen = neue Person. + = extra Foto derselben Person, auch wenn das Namensfeld voll ist. Live speichert eine Kopie.")
+            Text("Anlegen = neue Person (zweites Mal bestätigt, wenn Cosine ≥ 0,82). + = extra Foto derselben Person. Dritter gleicher Slot blockt, solange Frontal oder ¾ fehlt. Live speichert eine Kopie.")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
             List(store.identities) { identity in

@@ -1,4 +1,4 @@
-# Aegis **2.1.19 alpha**
+# Aegis **2.1.20 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,19 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.20 alpha
+
+Live hat jedes Galerie-Foto jedes Frame neu gescoort, Profile ohne Vision-Yaw landeten im Frontal-Slot, Crop-Prints wurden ein zweites Mal rotiert, `boxEuro` überlebte den Kamerwechsel, und der dritte Frontal hat den fehlenden ¾-Slot weiter zugemüllt.
+
+- **Live-Match nur Centroids.** `matchLive`: eine Sonde × ein Mittelvektor pro Identität, nicht das volle Ensemble. Danach 3-Tick-Namensmehrheit aus 2.1.19.
+- **Median-Blend** der letzten 5 Live-Prints statt reinem One-Euro-alpha.
+- **Yaw aus Landmarks**, wenn `face.yaw` ≈ 0. Profile werden nicht mehr als Frontal eingeschrieben.
+- **Crop-Print immer `.up`** auf schon aufrechten Pixeln.
+- **Coverage blockt** den 3. gleichen Slot, solange Frontal oder ¾ fehlt. Warnung bleibt für den Rest.
+- **`boxEuro` / Print-Trail hart leer** beim `cameraUniqueID`-Wechsel.
+- **Leftover-IoU** heißt `MatchMath.leftoverIoU` (0,18). Anlegen bestätigt ab Centroid 0,82.
+- Labor: Centroid-Cosine-Matrix zwischen Identitäten.
 
 ## Neu in 2.1.19 alpha
 

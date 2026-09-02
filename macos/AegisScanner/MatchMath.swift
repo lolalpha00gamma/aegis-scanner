@@ -20,6 +20,8 @@ enum MatchMath {
     static let ingestDuplicateCosine = 0.95
     /// Live-Track nach Verlust: unter 0,80 erben Geschwister die UUID.
     static let pinPrintCosine = 0.80
+    /// Leftover-Pin: enrolled Track ohne IoU-Treffer darf die ID nicht unter diesem Wert stehlen.
+    static let leftoverIoU = 0.18
     static let liveBlendBuiltIn = 0.35
     static let liveBlendContinuity = 0.20
     /// Burst derselben Pose in der Galerie, nicht zweite Aufnahme.
@@ -112,6 +114,10 @@ enum MatchMath {
 
     static func pinByPrint(cosine: Double, floor: Double = pinPrintCosine) -> Bool {
         cosine > floor
+    }
+
+    static func leftoverPin(iou: Double, floor: Double = leftoverIoU) -> Bool {
+        iou > floor
     }
 
     /// Labor auf schon eingeschriebenen Refs: Continuity-Floor 0,08, nicht 0,12.
@@ -254,6 +260,40 @@ enum MatchMath {
         let n = sqrt(s)
         guard n > 1e-12 else { return v }
         return v.map { $0 / n }
+    }
+
+    /// Komponenten-Median der letzten Live-Prints, dann L2. Weniger Glücks-Frame als One-Euro-alpha.
+    static func medianBlend(_ vectors: [[Double]]) -> [Double] {
+        let pool = vectors.filter { $0.count >= 32 }
+        guard let dim = pool.first?.count else { return [] }
+        let aligned = pool.filter { $0.count == dim }
+        guard !aligned.isEmpty else { return [] }
+        if aligned.count == 1 { return l2normalize(aligned[0]) }
+        var out = [Double](repeating: 0, count: dim)
+        var col = [Double](repeating: 0, count: aligned.count)
+        for i in 0 ..< dim {
+            for (j, v) in aligned.enumerated() { col[j] = v[i] }
+            col.sort()
+            if col.count % 2 == 1 {
+                out[i] = col[col.count / 2]
+            } else {
+                out[i] = (col[col.count / 2 - 1] + col[col.count / 2]) / 2
+            }
+        }
+        return l2normalize(out)
+    }
+
+    /// Landmark-Yaw in Radiant, wenn Vision 0/nil liefert. Nase links vom Augenmittel = negativ.
+    static func yawFromLandmarks(leftEye: (x: Double, y: Double), rightEye: (x: Double, y: Double), nose: (x: Double, y: Double)?) -> Double {
+        let midX = (leftEye.x + rightEye.x) / 2
+        let span = max(1e-6, abs(rightEye.x - leftEye.x))
+        let nx = nose?.x ?? midX
+        let offset = (nx - midX) / span
+        return max(-1.2, min(1.2, offset * 1.15))
+    }
+
+    static func visionYawMissing(_ yaw: Double) -> Bool {
+        abs(yaw) < 0.02
     }
 
     /// Gewichteter Mittelvektor. `weights` parallel zu `vectors`.

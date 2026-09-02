@@ -55,6 +55,8 @@ final class LibraryStore: ObservableObject {
     private var boxJumpPending: [UUID: FaceBox] = [:]
     private var liveNameHist: [UUID: [String]] = [:]
     private var liveScoreEma: [UUID: Double] = [:]
+    private var livePrintTrail: [UUID: [[Double]]] = [:]
+    private var lastCameraUniqueID: String = ""
 
     init() {
         let packed = GalleryFile.load()
@@ -517,7 +519,7 @@ final class LibraryStore: ObservableObject {
         )
     }
 
-    /// Live-Frame: nur Live-Sonden + Galerie-Refs, nicht die Scan-History.
+    /// Live-Frame: Sonden gegen Identitäts-Centroids, nicht jedes Galerie-Foto.
     func rematchLive() {
         guard liveActive, let liveId = liveMediaId else {
             rematch()
@@ -526,17 +528,14 @@ final class LibraryStore: ObservableObject {
         let enrolled = Set(identities.flatMap(\.faceIds))
         let live = faces.filter { $0.mediaId == liveId }
         let gallery = faces.filter { enrolled.contains($0.id) && $0.mediaId != liveId }
-        let subset = gallery + live
-        let next = FaceEngine.match(
-            faces: subset,
+        let next = FaceEngine.matchLive(
+            probes: live,
             identities: identities,
-            media: media,
-            threshold: threshold,
-            enabled: enabled,
-            continuity: liveContinuity
+            gallery: gallery,
+            threshold: threshold
         )
         let probeIds = Set(live.map(\.id))
-        matches = matches.filter { !probeIds.contains($0.faceId) } + next.filter { probeIds.contains($0.faceId) }
+        matches = matches.filter { !probeIds.contains($0.faceId) } + next
         stabilizeLiveMatches()
     }
 
@@ -621,7 +620,7 @@ final class LibraryStore: ObservableObject {
         if let dup = FaceEngine.duplicateOf(face: face, identities: identities, faces: faces) {
             if pendingDuplicateName != name {
                 pendingDuplicateName = name
-                status = "Ähnlich \(dup.0.name) (\(Int(dup.1 * 100)) %). Nochmal Anlegen bestätigt, sonst anderen Namen."
+                status = "Ähnlich \(dup.0.name) (\(Int(dup.1 * 100)) %). Nochmal Anlegen bestätigt (Centroid ≥ 82 %), sonst anderen Namen."
                 dropOrphanSnapshot(face, original: raw)
                 return
             }
@@ -699,6 +698,11 @@ final class LibraryStore: ObservableObject {
             }
         }
         var note = ""
+        if let blocked = FaceEngine.poseCoverageBlocks(adding: face, to: identities[idx], faces: faces) {
+            status = blocked
+            dropOrphanSnapshot(face, original: raw)
+            return
+        }
         if let warn = FaceEngine.poseCoverageWarning(adding: face, to: identities[idx], faces: faces) {
             note = " · \(warn)"
         }
@@ -841,6 +845,7 @@ final class LibraryStore: ObservableObject {
         boxJumpPending.removeAll()
         liveNameHist = [:]
         liveScoreEma = [:]
+        livePrintTrail.removeAll()
         liveCapture.stop()
         liveActive = false
         if let id = liveMediaId {
@@ -883,7 +888,14 @@ final class LibraryStore: ObservableObject {
         liveCapture.onReady = { [weak self] in
             guard let self else { return }
             self.status = "Live"
-            self.cameraUniqueID = self.liveCapture.cameraUniqueID
+            let uid = self.liveCapture.cameraUniqueID
+            if !self.lastCameraUniqueID.isEmpty, uid != self.lastCameraUniqueID {
+                self.boxEuro.removeAll()
+                self.boxJumpPending.removeAll()
+                self.livePrintTrail.removeAll()
+            }
+            self.lastCameraUniqueID = uid
+            self.cameraUniqueID = uid
             self.cameraOrient = self.liveCapture.orientOverride
         }
         liveCapture.onError = { [weak self] msg in
@@ -969,7 +981,7 @@ final class LibraryStore: ObservableObject {
             for old in previous where !used.contains(old.id) {
                 let o = FaceEngine.iou(old.box, face.box)
                 let pin = enrolled.contains(old.id)
-                let enough = pin ? o >= 0.12 : o >= 0.18
+                let enough = pin ? o >= 0.12 : o >= MatchMath.leftoverIoU
                 guard enough else { continue }
                 if pin && !bestEnrolled {
                     best = old
@@ -1029,7 +1041,13 @@ final class LibraryStore: ObservableObject {
                 } else if !old.featurePrint.isEmpty, !face.featurePrint.isEmpty {
                     let prev = old.printVec.count >= 32 ? old.printVec : FaceEngine.embedding(of: old)
                     let next = FaceEngine.embedding(of: face)
-                    face.printVec = FaceEngine.blendEmbeddings(prev, next, alpha: blend)
+                    var trail = livePrintTrail[old.id] ?? []
+                    if prev.count >= 32 { trail.append(prev) }
+                    if next.count >= 32 { trail.append(next) }
+                    if trail.count > 5 { trail.removeFirst(trail.count - 5) }
+                    livePrintTrail[old.id] = trail
+                    let median = MatchMath.medianBlend(trail)
+                    face.printVec = median.isEmpty ? FaceEngine.blendEmbeddings(prev, next, alpha: blend) : median
                 } else if face.printVec.isEmpty {
                     face.printVec = FaceEngine.embedding(of: face)
                 }
@@ -1045,6 +1063,7 @@ final class LibraryStore: ObservableObject {
                 // Ghost-Box darf nicht kleben: 1-Euro und Ampel der UUID verwerfen.
                 boxEuro.removeValue(forKey: old.id)
                 boxJumpPending.removeValue(forKey: old.id)
+                livePrintTrail.removeValue(forKey: old.id)
                 face.qualitySpark = []
                 let blend = MatchMath.liveBlendAlpha(continuity: liveCapture.isContinuity)
                 if face.featurePrint.isEmpty, !old.featurePrint.isEmpty {
@@ -1059,6 +1078,7 @@ final class LibraryStore: ObservableObject {
         liveGhosts.removeAll { $0.until < now }
         boxEuro = boxEuro.filter { used.contains($0.key) }
         boxJumpPending = boxJumpPending.filter { used.contains($0.key) }
+        livePrintTrail = livePrintTrail.filter { used.contains($0.key) }
         if found.isEmpty {
             for old in previous where !enrolled.contains(old.id) {
                 liveGhosts.append((old, now + 1.8))
@@ -1068,7 +1088,7 @@ final class LibraryStore: ObservableObject {
             let leftoverPinned = previous.filter { enrolled.contains($0.id) && !used.contains($0.id) }
             for old in leftoverPinned {
                 var bestJ = -1
-                var bestD = 0.18
+                var bestD = MatchMath.leftoverIoU
                 for (j, face) in adopted.enumerated() where !used.contains(face.id) {
                     let o = FaceEngine.iou(old.box, face.box)
                     if o > bestD {
@@ -1076,7 +1096,7 @@ final class LibraryStore: ObservableObject {
                         bestJ = j
                     }
                 }
-                if bestJ >= 0 {
+                if bestJ >= 0, MatchMath.leftoverPin(iou: bestD) {
                     used.insert(old.id)
                     adopted[bestJ].id = old.id
                     adopted[bestJ].trackId = old.trackId ?? old.id

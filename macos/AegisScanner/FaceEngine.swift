@@ -189,8 +189,15 @@ enum FaceEngine {
             }
             let printData = Data()
             let bone = boneKeypoints(namedAligned)
-            let yaw = face.yaw?.doubleValue ?? 0
+            var yaw = face.yaw?.doubleValue ?? 0
             let pitch = face.pitch?.doubleValue ?? 0
+            if MatchMath.visionYawMissing(yaw), let leftEyeFull, let rightEyeFull {
+                yaw = MatchMath.yawFromLandmarks(
+                    leftEye: (leftEyeFull.x, leftEyeFull.y),
+                    rightEye: (rightEyeFull.x, rightEyeFull.y),
+                    nose: frame.map { ($0.noseTip.x, $0.noseTip.y) }
+                )
+            }
 
             out.append(
                 FaceObservation(
@@ -587,6 +594,83 @@ enum FaceEngine {
         }
     }
 
+    /// Live-Pfad: Sonden gegen Identitäts-Centroids, nicht jedes Galerie-Foto.
+    static func matchLive(
+        probes: [FaceObservation],
+        identities: [Identity],
+        gallery: [FaceObservation],
+        threshold: Double = 78
+    ) -> [MatchResult] {
+        let f = MatchMath.floors(gallery: identities.count, slider: threshold)
+        let floors = Floors(match: f.match, solo: f.solo)
+        let models: [(id: UUID, name: String, vec: [Double])] = identities.map { ident in
+            let owned = gallery.filter { ident.faceIds.contains($0.id) }
+            return (ident.id, ident.name, meanPrintVector(owned))
+        }
+        return probes.map { face in
+            let pv = embedding(of: face)
+            var versus: [IdentityScore] = []
+            versus.reserveCapacity(models.count)
+            for m in models {
+                let pct: Double
+                if pv.count >= 32, m.vec.count == pv.count {
+                    pct = MatchMath.printSigmoid(cosine: cosine(pv, m.vec))
+                } else {
+                    pct = 0
+                }
+                versus.append(IdentityScore(identityId: m.id, percent: pct))
+            }
+            versus.sort { $0.percent > $1.percent }
+            let best = versus.first
+            let second = versus.dropFirst().first
+            let margin = (best?.percent ?? 0) - (second?.percent ?? 0)
+            let bump: Double = {
+                guard let a = best?.identityId, let b = second?.identityId,
+                      let va = models.first(where: { $0.id == a })?.vec,
+                      let vb = models.first(where: { $0.id == b })?.vec,
+                      va.count >= 32, va.count == vb.count
+                else { return 0 }
+                return MatchMath.familyBump(bestPairCosine: cosine(va, vb))
+            }()
+            let liveFloors = Floors(match: min(96, floors.match + bump), solo: min(96, floors.solo + bump))
+            let decided = decide(
+                percent: best?.percent ?? 0,
+                margin: margin,
+                bestId: best?.identityId,
+                bestName: models.first { $0.id == best?.identityId }?.name,
+                secondName: models.first { $0.id == second?.identityId }?.name,
+                geoAgrees: true,
+                geoMargin: margin,
+                lowCapture: tinyUnreliable(face.quality, continuity: false),
+                appearance: nil,
+                geoMix: best?.percent ?? 0,
+                galleryZ: galleryZScore(best?.percent ?? 0, versus.dropFirst().map(\.percent)),
+                textureReliable: false,
+                evidence: best?.percent ?? 0,
+                floors: liveFloors
+            )
+            let printHit = StrategyHit(
+                strategy: .featurePrint,
+                identityId: decided.id,
+                percent: best?.percent ?? 0,
+                margin: margin,
+                versus: versus,
+                note: decided.note,
+                measured: pv.count >= 32
+            )
+            let aegisHit = StrategyHit(
+                strategy: .aegis,
+                identityId: decided.id,
+                percent: best?.percent ?? 0,
+                margin: margin,
+                versus: versus,
+                note: decided.note,
+                measured: pv.count >= 32
+            )
+            return MatchResult(faceId: face.id, hits: [printHit, aegisHit])
+        }
+    }
+
     // MARK: - geometry / prints
 
     private struct Floors {
@@ -698,9 +782,22 @@ enum FaceEngine {
         to identity: Identity,
         faces: [FaceObservation]
     ) -> String? {
-        // Warnung ja, Block nein — dritter Frontal darf rein.
-        _ = (face, identity, faces)
-        return nil
+        let slot = poseSlot(face)
+        if slot == .upper { return nil }
+        let c = poseCoverage(identity: identity, faces: faces)
+        let have: Int
+        switch slot {
+        case .frontal: have = c.frontal
+        case .threeQuarter: have = c.threeQuarter
+        case .profile: have = c.profile
+        case .upper: have = c.upper
+        }
+        guard have >= 2 else { return nil }
+        var missing: [String] = []
+        if c.frontal == 0 { missing.append("Frontal") }
+        if c.threeQuarter == 0 { missing.append("¾") }
+        guard !missing.isEmpty else { return nil }
+        return "\(slot.titleDE) schon \(have)× — erst \(missing.joined(separator: " oder ")) aufnehmen"
     }
 
     static func enrollmentPreview(
@@ -1237,12 +1334,12 @@ enum FaceEngine {
                 next.featurePrint = found[bestI].data
                 next.printVec = printVector(found[bestI].data)
             } else if found.isEmpty,
+               orientation == .up,
                let crop = self.crop(image, box: face.box, pad: 0.55),
-               let data = facePrintOnly(of: crop, orientation: orientation)
+               let data = facePrintOnly(of: crop, orientation: .up)
             {
-                // Kein IoU-Treffer. Crop-Fallback nur wenn Vision auf dem ganzen
-                // Foto gar keinen Face-Print gefunden hat — sonst landet die Jacke
-                // als Identität.
+                // Crop ist aufrecht. Orientierung nicht nochmal drauf — sonst
+                // wird ein schon gedrehtes Patch nochmal rotiert.
                 next.featurePrint = data
                 next.printVec = printVector(data)
             } else if bestI < 0 {
@@ -2033,7 +2130,7 @@ enum FaceEngine {
             let mean = meanPrintVector(refs)
             guard mean.count >= 32 else { continue }
             let c = cosine(v, mean)
-            if c > 0.88, c > (best?.1 ?? 0) {
+            if c > 0.82, c > (best?.1 ?? 0) {
                 best = (ident, c)
             }
         }

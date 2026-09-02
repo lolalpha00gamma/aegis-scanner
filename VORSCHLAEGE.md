@@ -1,6 +1,21 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.19 alpha**. Nur `main`. `bugfix` ist Altlast — fehlende Helfer (Namensmehrheit, Score-EMA, Prune) sind nachgezogen, der Branch nicht fortgesetzt.
+Stand: **2.1.20 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.20 wirklich im Code
+
+Warum Live falsch taufte, auch nach 2.1.19: `rematchLive` hat das volle Ensemble über jedes Galerie-Foto, Profile ohne Vision-Yaw = Frontal, Crop-Print mit zweiter Orientierung, 1-Euro überlebte den Kamerawechsel, dritter Frontal blockte nicht.
+
+1. **`matchLive` Centroids.** Eine Sonde, ein Mittelvektor pro Identität. Danach 3-Tick aus 2.1.19.
+2. **Median-Blend** letzte 5 Live-Prints (`MatchMath.medianBlend`).
+3. **Yaw aus Landmarks** wenn `|yaw| < 0,02`.
+4. **Crop-Print `.up`**, nur wenn der Handler schon aufrecht ist.
+5. **`poseCoverageBlocks`** — 3. gleicher Slot, solange Frontal oder ¾ fehlt.
+6. **`boxEuro` + Print-Trail leer** bei `cameraUniqueID`-Wechsel.
+7. **`leftoverIoU` 0,18** benannt. Leftover-Pin nur darüber.
+8. Anlegen-Confirm Centroid **0,82** (war 0,88).
+9. Labor: Centroid-Cosine zwischen Identitäten.
+10. MARKETING_VERSION 2.1.20 (Build 48), `Models.swift` + `VERSION` gleich.
 
 ## In 2.1.19 wirklich im Code
 
@@ -45,8 +60,8 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - `enrolledAt` paler in der UI, wenn `printAgeDays ≥ 90`.
 - Gallery.json Schema-Version neben printRevision.
 - Labor: Genuine-vs-U ohne Full-Paare extra Zeile (ForcedPartial).
-- `boxEuro` hart leeren wenn `cameraUniqueID` wechselt (Reconnect in derselben Session).
 - Snapshot-Live-Kopie `mediaId` in einer unsichtbaren Gallery-Media-Row, sonst Browse zählt sie nicht.
+- **Box-1-Euro minCutoff** nach mittlerem Frame-dt (8 fps vs 24 fps).
 - TER-Fusion in der Strategie-Liste als Diagnose, Default aus — `.aegis` braucht sie nicht mehr zum Taufen.
 - Jacobi nur noch im Labor / Still, nie Live. Cheap-Graph auch bei Scan-Tiles.
 - Restore bestätigt, wenn Backup älter als 7 Tage oder andere printRevision.
@@ -64,7 +79,7 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - **Pose-normalisierter Print.** Yaw/Pitch vor dem Crop, nicht nur Slot-Mix.
 - **Helios-Bridge.** Eine Kamera-Session, eine TCC-Freigabe — kein Code kopieren.
 - **Offen-Set.** Explizite „unbekannt“-Klasse mit eigener Schwelle.
-- **Identitäten mergen.** Bestätigung wenn Centroid-Cosine > 0,82.
+- **Identitäten mergen.** UI-Button, nicht nur Anlegen-Confirm bei Centroid > 0,82.
 - **Watch-Folder.** Neue Fotos automatisch ingestieren.
 - **Print quantisieren** (int8) für kleinere Library-Files.
 - **Aktives Lernen.** „Ist das dieselbe Person?“ an unsicheren Rändern.
@@ -78,18 +93,15 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - **Live-Quality-Ampel persistieren.** C/S/Y der letzten Session im Labor.
 - **Partial-vs-Full Confusion-Matrix** extra Block.
 - **Continuity uniqueID-Liste.** Manuell markieren, falls Desk-View nicht als Continuity erkannt wird.
-- **Yaw aus Landmarks**, wenn `face.yaw` 0 und Vision keine Pose lieferte.
-- **Box-1-Euro minCutoff** nach mittlerem Frame-dt (8 fps vs 24 fps) — Filter hat dt, Cutoff ist fest.
 - **Print-Drift-Spark.** Overlay-Linie Cosine zum Centroid über 8 Frames.
 - **Leave-one-identity-out Labor.** Neben Leave-one-photo, damit 2-Personen-Galerien nicht sich selbst messen.
-- **Live-Match nur Centroids.** `rematchLive` soll nicht jedes Ref-Foto neu scoren — ein Dot pro Identität.
-- **Median-Blend** der letzten 5 Live-Prints statt One-Euro-alpha, weniger Glücks-Frame.
 - **Hard-Negativ im Overlay.** Taste N wie U, ohne Umweg über Ablehnen-Menü.
 - **Scan-Queue priorisiert große Gesichter** (Portrait zuerst, Crowd später).
 - **HEIC-Gain-Map** als Capture-Qualität, nicht nur Laplacian.
 - **Identität umbenennen** in der Liste (jetzt nur löschen + neu).
 - **Export Labor als CSV-Datei**, nicht nur Textfeld.
-- **Live-Centroid-Cache.** Ein Print-Vektor pro Identität im RAM, nicht `bestPrintPercent` gegen jedes Ref-Foto.
+- **Live-Quality an Frame-dt.** 8 fps vs 24 fps: Spark-Fenster in Sekunden, nicht Frames.
+- **Centroid-Slot-Mix in matchLive** (72/28 Frontal vs alle), analog `fullPrintPercent`.
 - **Score-Kalibrierung live.** Platt auf den letzten 200 Live-Ticks, Slider nur Bias.
 - **Geschwister-Hold.** Wenn familyBump greift, Mehrheit 5 Ticks statt 3.
 - **Cheap-Graph auch Still**, wenn graphBio aus ist — Detect soll die Spur nicht trotzdem rechnen.
@@ -109,7 +121,7 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - Static `matchFloor` wieder process-weit.
 - Ungewichteter 1/n-Centroid.
 - `printVec` wieder leer lassen nach `stampPrints`.
-- Coverage nur warnen.
+- Coverage nur warnen, wenn Frontal und ¾ fehlen.
 - TAR@FAR mit `ceil(far·n)−1` (bricht n=101 → Schwelle 10).
 - Live-Box wieder EMA 0,62/0,38.
 - 1-Euro nach Reconnect weiterlaufen lassen (Ghost-Box).
