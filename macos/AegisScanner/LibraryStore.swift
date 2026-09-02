@@ -29,12 +29,13 @@ final class LibraryStore: ObservableObject {
     @Published var newPersonName = ""
     @Published var liveURLText = ""
     @Published var liveActive = false
-    @Published var enabled: Set<StrategyID> = Set(StrategyID.allCases)
+    @Published var enabled: Set<StrategyID> = StrategyID.defaultEnabled
     @Published var pendingDuplicateName: String?
     @Published var revisionWarning: String = ""
     @Published var canResumeScan = false
     @Published var cameraOrient: String = "auto"
     @Published var cameraUniqueID: String = ""
+    @Published var liveHeldIds: Set<UUID> = []
 
     private let liveCapture = LiveCapture()
     private var liveMediaId: UUID?
@@ -69,6 +70,11 @@ final class LibraryStore: ObservableObject {
             let set = Set(raw.compactMap(StrategyID.init(rawValue:)))
             if !set.isEmpty { enabled = set }
         }
+        if !UserDefaults.standard.bool(forKey: "aegis.terFusionDefaultOff") {
+            enabled.remove(.terFusion)
+            UserDefaults.standard.set(true, forKey: "aegis.terFusionDefaultOff")
+            UserDefaults.standard.set(enabled.map(\.rawValue), forKey: enabledKey)
+        }
         canResumeScan = hasResumeWork()
         if !identities.isEmpty {
             status = revisionWarning.isEmpty
@@ -94,7 +100,18 @@ final class LibraryStore: ObservableObject {
         liveScoreEma = [:]
         rematch()
         persist()
-        status = "Galerie aus Backup · \(identities.count) Personen · \(faces.count) Gesichter"
+        let schema = packed.schemaVersion.map { "Schema \($0)" } ?? "Schema <2"
+        status = "Galerie aus Backup · \(identities.count) Personen · \(faces.count) Gesichter · \(schema)"
+    }
+
+    func restoreWarning() -> String {
+        let age = GalleryFile.backupAgeDays() ?? 0
+        let packed = GalleryFile.loadBackup()
+        return MatchMath.restoreNote(
+            ageDays: age,
+            schemaVersion: packed?.schemaVersion,
+            printRevision: packed?.printRevision
+        )
     }
 
     var selectedMedia: MediaItem? {
@@ -102,7 +119,7 @@ final class LibraryStore: ObservableObject {
     }
 
     var browseItems: [MediaItem] {
-        media.filter { $0.kind != .frame }
+        media.filter { $0.kind != .frame && $0.kind != .snapshot }
     }
 
     var browseIndex: Int {
@@ -459,7 +476,7 @@ final class LibraryStore: ObservableObject {
             let mediaId = item.id
             do {
                 let found = try await Task.detached(priority: .userInitiated) {
-                    try FaceEngine.detect(in: image, mediaId: mediaId)
+                    try FaceEngine.detect(in: image, mediaId: mediaId, cheapGraph: true)
                 }.value
                 if generation != scanGeneration {
                     rememberDetectRemaining(Array(pending.dropFirst(i).map(\.id)))
@@ -752,6 +769,21 @@ final class LibraryStore: ObservableObject {
         if !faces.contains(where: { $0.id == copy.id }) {
             faces.append(copy)
         }
+        if !media.contains(where: { $0.id == copy.mediaId }) {
+            let live = selectedMedia
+            media.append(MediaItem(
+                id: copy.mediaId,
+                url: live?.url ?? URL(fileURLWithPath: "/tmp/aegis-snapshot-\(copy.mediaId.uuidString)"),
+                name: "Live-Kopie",
+                kind: .snapshot,
+                width: live?.width ?? 0,
+                height: live?.height ?? 0,
+                duration: nil,
+                parentId: live?.id,
+                timeSec: nil,
+                preview: live?.preview
+            ))
+        }
         return copy
     }
 
@@ -1027,7 +1059,16 @@ final class LibraryStore: ObservableObject {
                 face.trackId = old.trackId ?? old.id
                 face.enrolledAt = old.enrolledAt ?? face.enrolledAt
                 if MatchMath.boxHysteresisHold(iou: bestIoU) {
-                    if let pending = boxJumpPending[old.id],
+                    if MatchMath.boxEuroResetOnHysteresis(iou: bestIoU, cosine: {
+                        if probeVec.count >= 32 {
+                            let ov = old.printVec.count >= 32 ? old.printVec : FaceEngine.embedding(of: old)
+                            if ov.count == probeVec.count { return MatchMath.cosine(probeVec, ov) }
+                        }
+                        return nil
+                    }()) {
+                        boxEuro.removeValue(forKey: old.id)
+                        boxJumpPending.removeValue(forKey: old.id)
+                    } else if let pending = boxJumpPending[old.id],
                        MatchMath.boxHysteresisConfirm(iouToPending: FaceEngine.iou(pending, face.box))
                     {
                         boxJumpPending.removeValue(forKey: old.id)
@@ -1117,6 +1158,7 @@ final class LibraryStore: ObservableObject {
             for old in previous where !enrolled.contains(old.id) {
                 liveGhosts.append((old, now + 1.8))
             }
+            liveHeldIds = []
             faces.removeAll { $0.mediaId == mediaId }
         } else {
             let leftoverPinned = previous.filter {
@@ -1173,6 +1215,7 @@ final class LibraryStore: ObservableObject {
             } else if status.hasPrefix("Live · Leftover") {
                 status = "Live"
             }
+            liveHeldIds = Set(adopted.compactMap { namedTracks.contains($0.id) ? $0.id : nil })
             faces.removeAll { $0.mediaId == mediaId }
             faces.append(contentsOf: adopted)
         }

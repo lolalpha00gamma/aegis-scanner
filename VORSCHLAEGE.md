@@ -1,6 +1,18 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.25 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.26 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.26 wirklich im Code
+
+2.1.25 hat Slot-Centroid und leftover nächster Print — Live zeigte trotzdem die Box der Vorperson (Hysterese + 1-Euro), Mimik-Zeilen liefen jeden Webcam-Frame, Restore war ein Klick ohne Warnung, TER-Fusion blieb default an.
+
+1. **`boxEuroResetOnHysteresis`.** Print-Pin ≥ 0,80 + IoU-Hysterese → Euro leer, neue Box.
+2. **Live-`ratioSheet` identity-only.** Mimik wird im cheapGraph-Pfad nicht mehr gelegt. Scan-Tiles `cheapGraph: true`.
+3. **TER-Fusion `defaultEnabled` ohne `.terFusion`.** Diagnose, Toggle bleibt. Einmal-Migration räumt alte allCases-Prefs.
+4. **Restore-Dialog.** ≥ 7 Tage / Schema < 2 / andere printRevision.
+5. **Ampel Continuity-Floor (S·), Geo-Spark, Track gehalten/neu.** `enrolledAt` paler ≥ 90 d.
+6. **Snapshot-Media-Row** für Live-Kopien. Labor Genuine-vs-U extra Zeile.
+7. MARKETING_VERSION 2.1.26 (Build 54), `Models.swift` + `VERSION` gleich.
 
 ## In 2.1.25 wirklich im Code
 
@@ -114,18 +126,18 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 
 ## Nächste Fixes (klein)
 
-- Ampel-Spark Continuity-Floor in gespeicherten `qualitySpark` markieren (jetzt über `item.kind == .live`).
-- `enrolledAt` paler in der UI, wenn `printAgeDays ≥ 90`.
-- Labor: Genuine-vs-U ohne Full-Paare extra Zeile (ForcedPartial).
-- Snapshot-Live-Kopie `mediaId` in einer unsichtbaren Gallery-Media-Row, sonst Browse zählt sie nicht.
-- TER-Fusion in der Strategie-Liste als Diagnose, Default aus — `.aegis` braucht sie nicht mehr zum Taufen.
-- Jacobi nur noch im Labor / Still, nie Live. Cheap-Graph auch bei Scan-Tiles.
-- Restore bestätigt, wenn Backup älter als 7 Tage oder andere printRevision.
-- Live-Geo-Spark neben C/S/Y (eine Zahl, Median-Maße vs. gewählter Centroid).
-- `ratioSheet` im Live-Pfad nur Identitätszeilen, Mimik gar nicht erst rechnen.
-- boxEuro Reset auch wenn IoU hält aber Hysterese die Box der Vorperson zeigt — Print-Pin gewinnt in dem Frame.
-- schemaVersion < 2 beim Restore erwähnen.
-- namedTracks als „gehalten“ vs. „neu“ im Overlay, eine Silbe.
+- **Identität umbenennen** in der Liste (jetzt nur löschen + neu).
+- **Export Labor als CSV-Datei**, nicht nur Textfeld.
+- **Hold-Still-Ring** im Overlay 0,8 s, analog Peace.
+- **Pose-Meter als Balken** (F/¾/P) neben dem Namen.
+- **liveCentroid Cache** am Identity-Modell, nicht jedes Live-Frame neu mischen.
+- **ratioSheet Cache** am Identity-Modell.
+- **Print-Drift-Spark.** Overlay-Linie Cosine zum Centroid über 8 Frames.
+- **Restore-Diff.** Backup vs. aktuell: welche IDs kämen zurück, bevor überschrieben wird.
+- **Track-ID `T…` in der UI.** intern `trackId` gibt es, die Kiste zeigt die Snapshot-UUID.
+- **Jacobi nur Still-Labor**, Scan-Tiles sind cheap — Still-Foto-Detect ohne Tiles noch voller Graph wenn `tiles: false` und nicht live.
+- **Slot-Count in der Namensliste** (F 2 · ¾ 1 · P 0), nicht nur Statuszeile.
+- **Reject-Liste persistieren** — Hard-Negatives über Restarts, nicht nur RAM.
 
 ## Erweiterungen
 
@@ -244,3 +256,6 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - `liveCentroid` wieder 72/28 über alle Posen gegen eine ¾-Sonde.
 - Neuen Print bei Box-Sprung (Motion-Blur) übernehmen.
 - Yaw-Skip ohne Notiz.
+- TER-Fusion wieder default an.
+- Hysterese-Box der Vorperson trotz Print-Pin halten.
+- Restore ohne Dialog bei Schema < 2.

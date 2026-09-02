@@ -3,6 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @EnvironmentObject private var store: LibraryStore
     @FocusState private var stageFocused: Bool
+    @State private var restoreAlert = false
 
     var body: some View {
         NavigationSplitView {
@@ -17,6 +18,12 @@ struct ContentView: View {
         }
         .toolbar { toolbar }
         .navigationTitle("Aegis \(AppVersion.display)")
+        .alert("Backup laden?", isPresented: $restoreAlert) {
+            Button("Laden", role: .destructive) { store.restoreFromBackup() }
+            Button("Abbrechen", role: .cancel) {}
+        } message: {
+            Text(store.restoreWarning())
+        }
     }
 
     @ToolbarContentBuilder
@@ -57,7 +64,7 @@ struct ContentView: View {
                 Button("Fortsetzen") { store.resumeScan() }
             }
             if store.canRestoreBackup, !store.busy {
-                Button("Backup") { store.restoreFromBackup() }
+                Button("Backup") { restoreAlert = true }
                     .help("Letzte gallery.json.bak laden — nach kaputtem Save.")
             }
             Button("CSV") { store.exportCSV() }
@@ -128,6 +135,7 @@ struct ContentView: View {
                 HStack {
                     VStack(alignment: .leading) {
                         Text(identity.name)
+                            .opacity(MatchMath.printAgePaler(enrolledAt: store.faces.first { identity.faceIds.contains($0.id) }?.enrolledAt) ? 0.55 : 1)
                         Text("\(identity.faceIds.count) Referenzen · \(FaceEngine.poseCoverageLabel(identity: identity, faces: store.faces))")
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -652,7 +660,11 @@ struct FaceOverlay: View {
                             }
                             .overlay(alignment: .topTrailing) {
                                 VStack(alignment: .trailing, spacing: 2) {
-                                    QualityAmpel(qualities: face.qualitySpark.isEmpty ? [face.quality] : face.qualitySpark, continuity: liveCont)
+                                    QualityAmpel(
+                                        qualities: face.qualitySpark.isEmpty ? [face.quality] : face.qualitySpark,
+                                        continuity: liveCont,
+                                        geoMix: hit?.geoMix
+                                    )
                                     Text(badge)
                                         .font(.caption2.monospacedDigit())
                                         .padding(.horizontal, 5)
@@ -663,7 +675,7 @@ struct FaceOverlay: View {
                             }
                             .overlay(alignment: .bottomLeading) {
                                 if selected {
-                                    Text(overlayName(pinned: pinned, owner: owner, near: near, ident: ident, pct: pct, hit: hit))
+                                    Text(overlayName(faceId: face.id, pinned: pinned, owner: owner, near: near, ident: ident, pct: pct, hit: hit))
                                         .font(.caption2.monospaced())
                                         .lineLimit(2)
                                         .padding(.horizontal, 4)
@@ -703,6 +715,7 @@ struct FaceOverlay: View {
     }
 
     private func overlayName(
+        faceId: UUID,
         pinned: Bool,
         owner: Identity?,
         near: Bool,
@@ -711,7 +724,8 @@ struct FaceOverlay: View {
         hit: StrategyHit?
     ) -> String {
         if pinned, let owner {
-            return "\(owner.name) \(Int(pct))%"
+            let held = store.liveHeldIds.contains(faceId)
+            return "\(owner.name) \(Int(pct))% · \(MatchMath.trackHoldLabel(held: held))"
         }
         if near, let ident {
             return "Nähe \(ident.name) \(Int(pct))%"
@@ -729,16 +743,23 @@ struct FaceOverlay: View {
 private struct QualityAmpel: View {
     var qualities: [FaceQuality]
     var continuity: Bool = false
+    var geoMix: Double? = nil
 
     var body: some View {
         let caps = qualities.map(\.capture)
         let sharps = qualities.map(\.sharpness)
         let yaws = qualities.map(\.yaw)
         let lamps = MatchMath.sparkLamps(captures: caps, sharps: sharps, yaws: yaws, continuity: continuity)
+        let floorMark = MatchMath.sparkContinuityFloor(sharpness: sharps.min() ?? 0, continuity: continuity)
         HStack(spacing: 3) {
             lamp(lamps.capture, label: "C")
-            lamp(lamps.sharpness, label: "S")
+            lamp(lamps.sharpness, label: floorMark ? "S·" : "S")
             lamp(lamps.yaw, label: "Y")
+            if let geoMix {
+                Text(MatchMath.liveGeoSpark(geoMix))
+                    .font(.system(size: 8, weight: .bold, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.9))
+            }
         }
         .padding(.horizontal, 4)
         .padding(.vertical, 2)

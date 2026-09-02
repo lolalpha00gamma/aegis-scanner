@@ -221,6 +221,75 @@ enum MatchMath {
         return "Pose fehlt \(miss.joined(separator: "+")) · F\(frontal) · ¾\(threeQuarter) · P\(profile) · U\(upper)"
     }
 
+    static let printAgePaleDays = 90.0
+    static let restoreAgeDays = 7.0
+
+    static func printAgeDays(enrolledAt: Date?, now: Date = Date()) -> Double? {
+        guard let enrolledAt else { return nil }
+        return now.timeIntervalSince(enrolledAt) / 86_400
+    }
+
+    static func printAgePaler(enrolledAt: Date?, now: Date = Date(), days: Double = printAgePaleDays) -> Bool {
+        guard let age = printAgeDays(enrolledAt: enrolledAt, now: now) else { return false }
+        return age >= days
+    }
+
+    /// Continuity-Floor: Schärfe würde Built-in ablehnen, Continuity nicht.
+    static func sparkContinuityFloor(sharpness: Double, continuity: Bool) -> Bool {
+        continuity && sharpness >= continuitySharpnessFloor && sharpness < sharpnessFloor
+    }
+
+    static func liveGeoSpark(_ geoMix: Double) -> String {
+        String(format: "G%.0f", geoMix)
+    }
+
+    static func trackHoldLabel(held: Bool) -> String {
+        held ? "gehalten" : "neu"
+    }
+
+    static func restoreNeedsConfirm(
+        ageDays: Double,
+        schemaVersion: Int?,
+        printRevision: String?,
+        currentRevision: String = MatchMath.printRevision
+    ) -> Bool {
+        if ageDays >= restoreAgeDays { return true }
+        if (schemaVersion ?? 0) < gallerySchema { return true }
+        if let printRevision, printRevision != currentRevision { return true }
+        return false
+    }
+
+    static func restoreNote(ageDays: Double, schemaVersion: Int?, printRevision: String?) -> String {
+        var bits: [String] = []
+        if ageDays >= restoreAgeDays {
+            bits.append(String(format: "Backup %.0f Tage alt", ageDays))
+        }
+        if (schemaVersion ?? 0) < gallerySchema {
+            bits.append("Schema \(schemaVersion.map(String.init) ?? "<2")")
+        }
+        if let printRevision, printRevision != MatchMath.printRevision {
+            bits.append("Print \(printRevision)")
+        }
+        if bits.isEmpty {
+            return "Backup laden — aktuelle Galerie wird ersetzt."
+        }
+        return bits.joined(separator: " · ") + " — aktuelle Galerie wird ersetzt."
+    }
+
+    /// Hysterese hält die Vorperson-Box, Print-Pin sagt dieselbe Person → Euro reset, neue Box.
+    static func boxEuroResetOnHysteresis(iou: Double, cosine: Double?) -> Bool {
+        guard boxHysteresisHold(iou: iou) else { return false }
+        guard let cosine else { return false }
+        return pinByPrint(cosine: cosine)
+    }
+
+    static func identityRatios(_ identity: [Bool], _ values: [Double]) -> [Double] {
+        zip(identity, values).compactMap { $0 ? $1 : nil }
+    }
+
+    /// TER-Fusion ist Diagnose, nicht Taufe.
+    static var diagnoseOnly: Set<String> { ["terFusion"] }
+
     /// Slot-Centroid wenn der Slot Refs hat, sonst 72/28-Fallback.
     static func preferSlotCentroid(slotCount: Int) -> Bool {
         slotCount >= 1

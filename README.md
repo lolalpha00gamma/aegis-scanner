@@ -1,4 +1,4 @@
-# Aegis **2.1.25 alpha**
+# Aegis **2.1.26 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,18 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.26 alpha
+
+Live-Kisten der Vorperson hingen ein Frame, Mimik-Maße liefen im Webcam-Pfad, Restore überschrieb ohne Warnung, TER-Fusion war default an obwohl `.aegis` sie nicht braucht.
+
+- **Print-Pin gewinnt gegen Hysterese-Box.** `boxEuro` reset, neue Kiste im selben Frame.
+- **Live-Maße nur Identität** (keine Mimik). Scan-Tiles cheap-graph, Jacobi bleibt Labor.
+- **TER-Fusion Diagnose, default aus.** Restore bestätigt bei Backup ≥ 7 Tage / Schema < 2 / anderer Print.
+- **Ampel:** Continuity-Floor als S·, Live-Geo-Spark G72 neben C/S/Y, Track „gehalten“/„neu“.
+- **`enrolledAt` paler** ab 90 Tagen. Live-Kopie bekommt unsichtbare Snapshot-Media-Row (Browse zählt sie nicht).
+- Labor: extra Zeile Genuine vs U-Slot.
+- MARKETING_VERSION 2.1.26 (Build 54), `Models.swift` + `VERSION` gleich.
 
 ## Neu in 2.1.25 alpha
 

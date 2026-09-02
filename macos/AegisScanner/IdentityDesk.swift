@@ -31,25 +31,32 @@ enum GalleryFile {
         directory.appendingPathComponent("gallery.json.bak")
     }
 
-    static func load() -> (identities: [Identity], faces: [FaceObservation], printRevision: String?) {
-        decode(url) ?? ([], [], nil)
+    static func load() -> (identities: [Identity], faces: [FaceObservation], printRevision: String?, schemaVersion: Int?) {
+        decode(url) ?? ([], [], nil, nil)
     }
 
     static var backupExists: Bool {
         FileManager.default.fileExists(atPath: backupURL.path)
     }
 
-    static func loadBackup() -> (identities: [Identity], faces: [FaceObservation], printRevision: String?)? {
+    static func loadBackup() -> (identities: [Identity], faces: [FaceObservation], printRevision: String?, schemaVersion: Int?)? {
         decode(backupURL)
     }
 
-    private static func decode(_ file: URL) -> (identities: [Identity], faces: [FaceObservation], printRevision: String?)? {
+    static func backupAgeDays(now: Date = Date()) -> Double? {
+        guard let attrs = try? FileManager.default.attributesOfItem(atPath: backupURL.path),
+              let date = attrs[.modificationDate] as? Date
+        else { return nil }
+        return now.timeIntervalSince(date) / 86_400
+    }
+
+    private static func decode(_ file: URL) -> (identities: [Identity], faces: [FaceObservation], printRevision: String?, schemaVersion: Int?)? {
         guard let data = try? Data(contentsOf: file) else { return nil }
         if let payload = try? JSONDecoder().decode(GalleryPayload.self, from: data) {
-            return (payload.identities, payload.faces, payload.printRevision)
+            return (payload.identities, payload.faces, payload.printRevision, payload.schemaVersion)
         }
         if let identities = try? JSONDecoder().decode([Identity].self, from: data) {
-            return (identities, [], nil)
+            return (identities, [], nil, nil)
         }
         return nil
     }

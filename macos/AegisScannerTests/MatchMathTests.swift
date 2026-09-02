@@ -156,6 +156,23 @@ enum MatchMathTests {
         ok(MatchMath.preferSlotCentroid(slotCount: 1), "Slot mit Refs bevorzugt")
         ok(!MatchMath.preferSlotCentroid(slotCount: 0), "leerer Slot → 72/28")
 
+        let old = Date().addingTimeInterval(-100 * 86_400)
+        ok(MatchMath.printAgePaler(enrolledAt: old), "Print ≥ 90 Tage paler")
+        ok(!MatchMath.printAgePaler(enrolledAt: Date()), "frischer Print nicht paler")
+        ok(MatchMath.sparkContinuityFloor(sharpness: 0.10, continuity: true), "Continuity 0,10 markiert Floor")
+        ok(!MatchMath.sparkContinuityFloor(sharpness: 0.10, continuity: false), "Built-in 0,10 kein Continuity-Mark")
+        ok(MatchMath.liveGeoSpark(72.4) == "G72", "Live-Geo-Spark")
+        ok(MatchMath.trackHoldLabel(held: true) == "gehalten", "Track gehalten")
+        ok(MatchMath.trackHoldLabel(held: false) == "neu", "Track neu")
+        ok(MatchMath.restoreNeedsConfirm(ageDays: 8, schemaVersion: 2, printRevision: MatchMath.printRevision), "Backup 8 Tage")
+        ok(MatchMath.restoreNeedsConfirm(ageDays: 1, schemaVersion: 1, printRevision: MatchMath.printRevision), "Schema <2")
+        ok(MatchMath.restoreNote(ageDays: 1, schemaVersion: nil, printRevision: nil).contains("<2"), "Schema <2 erwähnt")
+        ok(MatchMath.boxEuroResetOnHysteresis(iou: 0.50, cosine: 0.90), "Print-Pin gewinnt gegen Hysterese-Box")
+        ok(!MatchMath.boxEuroResetOnHysteresis(iou: 0.90, cosine: 0.90), "kein Hysterese-Hold kein Euro-Reset")
+        ok(!MatchMath.boxEuroResetOnHysteresis(iou: 0.50, cosine: 0.40), "schwacher Print kein Euro-Reset")
+        ok(MatchMath.identityRatios([true, false, true], [1, 2, 3]) == [1, 3], "Live nur Identitäts-Maße")
+        ok(MatchMath.diagnoseOnly.contains("terFusion"), "TER-Fusion Diagnose")
+
         let unit = MatchMath.l2normalize([3, 4])
         near(hypot(unit[0], unit[1]), 1, 0.001, "L2")
 

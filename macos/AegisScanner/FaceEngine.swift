@@ -162,7 +162,7 @@ enum FaceEngine {
             let aligned = procrustes(points, left: frame?.leftEye, right: frame?.rightEye)
             let namedImg = frame.map(namedList) ?? []
             let namedAligned = procrustes(namedImg, left: frame?.leftEye, right: frame?.rightEye)
-            let sheet = frame.map(ratioSheet) ?? []
+            let sheet = frame.map { ratioSheet($0, identityOnly: cheapGraph) } ?? []
             let captureApple = Double(
                 qualities.first { $0.uuid == face.uuid }?.faceCaptureQuality ?? 0.5
             )
@@ -690,7 +690,8 @@ enum FaceEngine {
                 margin: margin,
                 versus: versus,
                 note: decided.note,
-                measured: pv.count >= 32
+                measured: pv.count >= 32,
+                geoMix: geoAvailable ? geoMix : nil
             )
             return MatchResult(faceId: face.id, hits: [printHit, aegisHit])
         }
@@ -1885,7 +1886,7 @@ enum FaceEngine {
         hypot(b.x - a.x, b.y - a.y)
     }
 
-    private static func ratioSheet(_ n: NamedFace) -> [NamedRatio] {
+    private static func ratioSheet(_ n: NamedFace, identityOnly: Bool = false) -> [NamedRatio] {
         let iod = max(d(n.leftEye, n.rightEye), 1e-6)
         let noseW = d(n.noseLeft, n.noseRight)
         let noseL = d(n.nasion, n.noseTip)
@@ -1907,7 +1908,7 @@ enum FaceEngine {
         func row(_ id: String, _ label: String, _ value: Double, _ group: String, _ identity: Bool = true) -> NamedRatio {
             NamedRatio(id: id, label: label, value: value.isFinite ? value : 0, group: group, identity: identity)
         }
-        return [
+        let rows = [
             row("noseW_iod", "Nasenbreite / Augenabstand", noseW / iod, "mid"),
             row("noseL_iod", "Nasenlänge / Augenabstand", noseL / iod, "mid"),
             row("nasalIndex", "Nasenindex (Breite/Länge)", noseW / max(noseL, 1e-6), "mid"),
@@ -1932,6 +1933,7 @@ enum FaceEngine {
             row("mouthH_iod", "Mundöffnung / IOD (Mimik)", mouthH / iod, "mimik", false),
             row("eyeOpen_iod", "Lidöffnung / IOD (Mimik)", eyeOpen / iod, "mimik", false),
         ]
+        return identityOnly ? rows.filter(\.identity) : rows
     }
 
     private static func measures(_ face: FaceObservation) -> (ratios: [Double], shape: [Double], eyes: [Double], midface: [Double], jaw: [Double]) {

@@ -11,6 +11,7 @@ enum LabReport {
     ) -> String {
         var genuine: [Double] = []
         var genuinePartial: [Double] = []
+        var genuineVsU: [Double] = []
         var genuineFull: [Double] = []
         var impostor: [Double] = []
         var impostorPartial: [Double] = []
@@ -61,6 +62,12 @@ enum LabReport {
                     genuineFull.append(selfP)
                     lines.append("\(identity.name),\(probe.id.uuidString),genuine,\(fmt(selfP))")
                 }
+                let refsLeft = owned.filter { $0.id != probe.id }
+                let refsFull = refsLeft.filter { !($0.forcedPartial || FaceEngine.lowerFaceOccluded($0)) }
+                let refsU = refsLeft.filter { $0.forcedPartial || FaceEngine.lowerFaceOccluded($0) }
+                if refsFull.isEmpty, !refsU.isEmpty {
+                    genuineVsU.append(selfP)
+                }
                 pairScores[identity.name, default: [:]][identity.name, default: []].append(selfP)
                 for v in versus where v.identityId != identity.id {
                     impostor.append(v.percent)
@@ -94,6 +101,7 @@ enum LabReport {
         out.append(stats("Genuine", genuine))
         if !genuineFull.isEmpty { out.append(stats("Genuine frei", genuineFull)) }
         if !genuinePartial.isEmpty { out.append(stats("Genuine Teil-Print/Maske", genuinePartial)) }
+        if !genuineVsU.isEmpty { out.append(stats("Genuine vs U-Slot (keine Full-Refs)", genuineVsU)) }
         out.append(stats("Impostor", impostor))
         if !impostorFull.isEmpty { out.append(stats("Impostor frei", impostorFull)) }
         if !impostorPartial.isEmpty { out.append(stats("Impostor Teil-Print/Maske", impostorPartial)) }

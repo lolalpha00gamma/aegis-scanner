@@ -2,9 +2,9 @@ import CoreGraphics
 import Foundation
 
 enum AppVersion {
-    static let marketing = "2.1.25"
+    static let marketing = "2.1.26"
     static let channel = "alpha"
-    static let display = "2.1.25 alpha"
+    static let display = "2.1.26 alpha"
 }
 
 enum StrategyTrack: String, CaseIterable, Identifiable {
@@ -47,6 +47,12 @@ enum StrategyID: String, CaseIterable, Identifiable, Codable {
         case .geom3d: return .geo3d
         case .terFusion, .aegis: return .fusion
         }
+    }
+
+    static var diagnoseOnly: Set<StrategyID> { [.terFusion] }
+
+    static var defaultEnabled: Set<StrategyID> {
+        Set(allCases.filter { !diagnoseOnly.contains($0) })
     }
 
     var label: String {
@@ -101,7 +107,7 @@ enum StrategyID: String, CaseIterable, Identifiable, Codable {
         case .featurePrint:
             return "Gesichts-Print (VNGenerateFacePrintRequest) auf dem ganzen Foto. Kein Bild-Print von Jacke/Hintergrund."
         case .terFusion:
-            return "Aktive Spuren → Total Error Rate, min-max nach Jain, nur eingeschaltete Matcher."
+            return "Diagnose: aktive Spuren → Total Error Rate. Default aus — `.aegis` tauft über lookOf."
         case .aegis:
             return "Fusion der eingeschalteten Spuren. Print führt, Geometrie stützt und vetoiert. Aus = keine Namensvergabe."
         }
@@ -165,7 +171,7 @@ struct MediaItem: Identifiable, Hashable {
     var preview: CGImage?
 
     enum Kind: String, Hashable {
-        case photo, video, frame, live
+        case photo, video, frame, live, snapshot
     }
 }
 
@@ -349,6 +355,7 @@ struct StrategyHit: Hashable {
     var versus: [IdentityScore] = []
     var note: String = ""
     var measured: Bool = true
+    var geoMix: Double? = nil
 }
 
 struct MatchResult: Hashable {
