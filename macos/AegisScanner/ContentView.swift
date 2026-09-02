@@ -52,6 +52,8 @@ struct ContentView: View {
                 .disabled(store.busy || store.media.isEmpty)
             Button("CSV") { store.exportCSV() }
                 .disabled(store.matches.isEmpty)
+            Button("Labor") { store.exportLab() }
+                .disabled(store.identities.count < 1)
             Slider(value: $store.threshold, in: 70 ... 96) { editing in
                 if !editing { store.rematch() }
             }
@@ -311,20 +313,27 @@ struct ContentView: View {
     }
 
     private var strategyList: some View {
+        ScrollView {
         VStack(alignment: .leading, spacing: 10) {
             if let face = store.selectedFace {
                 let hit = store.selectedHits.first { $0.strategy == store.strategy }
                 let owner = store.identities.first { $0.faceIds.contains(face.id) }
                 let assignedIdent = owner ?? store.identities.first { $0.id == hit?.identityId }
-                let assignedPass = assignedIdent != nil && (owner != nil || (hit?.percent ?? 0) >= store.threshold)
+                let assignedPass = assignedIdent != nil && (owner != nil || ((hit?.measured ?? false) && (hit?.percent ?? 0) >= store.threshold))
                 Text(owner != nil ? "REFERENZ" : (assignedPass ? "NÄHE" : "NICHT ZUGEORDNET"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .tracking(1.4)
                 Text(owner != nil ? (assignedIdent?.name ?? "") : (assignedPass ? "Nähe \(assignedIdent?.name ?? "")" : "kein Match"))
                     .font(.title3)
-                Text(String(format: "%.0f%%", hit?.percent ?? 0))
-                    .font(.body.monospacedDigit())
+                if hit?.measured == false {
+                    Text("nicht gemessen")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text(String(format: "%.0f%%", hit?.percent ?? 0))
+                        .font(.body.monospacedDigit())
+                }
                 if owner == nil, assignedPass {
                     Text("Noch keine Referenz. Anlegen für eine neue Person, + nur für ein extra Foto von \(assignedIdent?.name ?? "dieser Person").")
                         .font(.caption)
@@ -383,39 +392,80 @@ struct ContentView: View {
                     .foregroundStyle(.secondary)
                     .tracking(1.4)
                     .padding(.top, 4)
-                ForEach(StrategyID.allCases) { id in
-                    let hit = store.selectedHits.first { $0.strategy == id }
-                    let pinnedName = store.identities.first { $0.faceIds.contains(face.id) }?.name
-                    let matchName = store.identities.first { $0.id == hit?.identityId }?.name
-                    let guess = store.identities.first { $0.id == hit?.versus.first?.identityId }?.name
-                    let pct = hit?.percent ?? 0
-                    let pass = pinnedName != nil
-                    let name = pinnedName
-                        ?? ((matchName != nil && pct >= store.threshold) ? "Nähe \(matchName!)" : (guess.map { "Nähe \($0) · nicht zugeordnet" } ?? "nicht zugeordnet"))
-                    Button {
-                        store.strategy = id
-                    } label: {
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack {
-                                Text(id.label)
-                                Spacer()
-                                Text(String(format: "%.0f%%", pct))
-                                    .font(.body.monospacedDigit())
-                                    .foregroundStyle(pass ? Color.primary : Color.secondary)
-                            }
-                            ProgressView(value: min(100, pct), total: 100)
-                            Text(name)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                Text("Jede Spur einzeln. Aus = keine Stimme in der Fusion.")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                ForEach(StrategyTrack.allCases) { track in
+                    let members = StrategyID.allCases.filter { $0.track == track }
+                    let allOn = members.allSatisfy { store.enabled.contains($0) }
+                    HStack {
+                        Text(track.label)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .tracking(1.1)
+                        Spacer()
+                        Button(allOn ? "aus" : "an") {
+                            store.setTrack(track, on: !allOn)
                         }
-                        .padding(8)
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(store.strategy == id ? Color.primary : Color.secondary.opacity(0.25))
-                        )
+                        .font(.caption2)
                     }
-                    .buttonStyle(.plain)
-                    .help(id.blurb)
+                    .padding(.top, 6)
+                    ForEach(members) { id in
+                        let hit = store.selectedHits.first { $0.strategy == id }
+                        let pinnedName = store.identities.first { $0.faceIds.contains(face.id) }?.name
+                        let matchName = store.identities.first { $0.id == hit?.identityId }?.name
+                        let guess = store.identities.first { $0.id == hit?.versus.first?.identityId }?.name
+                        let pct = hit?.percent ?? 0
+                        let on = store.enabled.contains(id)
+                        let measured = hit?.measured ?? false
+                        let pass = pinnedName != nil
+                        let name = pinnedName
+                            ?? ((matchName != nil && pct >= store.threshold) ? "Nähe \(matchName!)" : (guess.map { "Nähe \($0) · nicht zugeordnet" } ?? "nicht zugeordnet"))
+                        HStack(alignment: .top, spacing: 8) {
+                            Toggle("", isOn: Binding(
+                                get: { store.enabled.contains(id) },
+                                set: { store.setEnabled(id, $0) }
+                            ))
+                            .toggleStyle(.switch)
+                            .controlSize(.mini)
+                            .labelsHidden()
+                            Button {
+                                store.strategy = id
+                            } label: {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    HStack {
+                                        Text(id.label)
+                                            .foregroundStyle(on ? Color.primary : Color.secondary)
+                                        Spacer()
+                                        if measured {
+                                            Text(String(format: "%.0f%%", pct))
+                                                .font(.body.monospacedDigit())
+                                                .foregroundStyle(pass ? Color.primary : Color.secondary)
+                                        } else {
+                                            Text("nicht gemessen")
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                    }
+                                    if measured {
+                                        ProgressView(value: min(100, pct), total: 100)
+                                            .opacity(on ? 1 : 0.35)
+                                    }
+                                    Text(name)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                .padding(8)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .stroke(store.strategy == id ? Color.primary : Color.secondary.opacity(0.25))
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .help(id.blurb)
+                            .opacity(on ? 1 : 0.45)
+                        }
+                    }
                 }
                 let aegis = store.selectedHits.first { $0.strategy == .aegis }?.percent ?? 0
                 let photos = store.selectedHits.first { $0.strategy == .photosStyle }?.percent ?? 0
@@ -464,6 +514,7 @@ struct ContentView: View {
             Spacer()
         }
         .padding(16)
+        }
     }
 
     private func referenceSheet(for face: FaceObservation) -> [String: Double] {
@@ -515,7 +566,7 @@ struct FaceOverlay: View {
                     let ident = owner ?? store.identities.first { $0.id == hit?.identityId }
                     let pct = hit?.percent ?? 0
                     let pinned = owner != nil
-                    let near = !pinned && ident != nil && pct >= store.threshold
+                    let near = !pinned && ident != nil && (hit?.measured ?? false) && pct >= store.threshold
                     let selected = store.selectedFaceId == face.id
                     Button {
                         store.selectedFaceId = face.id
@@ -533,7 +584,7 @@ struct FaceOverlay: View {
                             }
                             .overlay(alignment: .bottomLeading) {
                                 if selected {
-                                    Text(pinned ? "\(owner!.name) \(Int(pct))%" : (near ? "Nähe \(ident!.name) \(Int(pct))%" : "nicht zugeordnet"))
+                                    Text(pinned ? "\(owner!.name) \(Int(pct))%" : (near ? "Nähe \(ident!.name) \(Int(pct))%" : ((hit?.measured ?? true) ? "nicht zugeordnet" : "nicht gemessen")))
                                         .font(.caption2.monospaced())
                                         .padding(.horizontal, 4)
                                         .padding(.vertical, 1)

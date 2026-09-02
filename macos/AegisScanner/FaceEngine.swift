@@ -190,7 +190,7 @@ enum FaceEngine {
                     featurePrint: printData,
                     appearance: appearance,
                     graph: graphBiomarkers(bone.isEmpty ? points : bone),
-                    geom3d: geom3dFromNamed(namedAligned),
+                    geom3d: FaceShape3D.descriptor(named: namedAligned, yaw: yaw, pitch: pitch),
                     quality: FaceQuality(
                         sharpness: sharpness,
                         size: size,
@@ -304,7 +304,8 @@ enum FaceEngine {
         faces: [FaceObservation],
         identities: [Identity],
         media: [MediaItem],
-        threshold: Double = 78
+        threshold: Double = 78,
+        enabled: Set<StrategyID> = Set(StrategyID.allCases)
     ) -> [MatchResult] {
         matchFloor = min(96, max(70, threshold))
         soloFloor = min(96, matchFloor + 4)
@@ -341,46 +342,56 @@ enum FaceEngine {
                 guard face.quality.capture >= 0.35 else { return 0 }
                 return bestPrintPercent(face.featurePrint, m.meanPrint)
             }
+            let printOn = !face.featurePrint.isEmpty
+            let geoOn = !(face.namedAligned.isEmpty && face.aligned.isEmpty)
+            let texOn = !face.appearance.isEmpty
+            let kiOn = enabled.contains(where: { $0.track == .ki })
+            let shapeOn = enabled.contains(where: {
+                $0 == .ratios || $0 == .faceShape || $0 == .eyeRegion || $0 == .midface
+                    || $0 == .jawline || $0 == .landmarkGeo || $0 == .graphBio
+            })
+
             hits.append(toHit(.photosStyle, face.quality.capture < 0.35
                 ? Ranked(identityId: nil, percent: 0, margin: photos.margin, versus: photos.versus)
-                : photos))
+                : photos, measured: printOn))
 
             let box = rank(models, minMargin: embedMargin) { m in
                 bestPrintPercent(face.featurePrint, m.meanPrint)
             }
-            hits.append(toHit(.visionBox, box))
+            hits.append(toHit(.visionBox, box, measured: printOn))
 
             let geoPts = face.namedAligned.isEmpty ? face.aligned : face.namedAligned
             let geo = rank(models, minMargin: landmarkMargin) { m in
                 bestLandmarkPercent(geoPts, m.landmarkSets)
             }
-            hits.append(hint(.landmarkGeo, geo))
+            hits.append(hint(.landmarkGeo, geo, measured: geoOn))
 
             let probeM = measures(face)
+            let ratioInv = pooledInverse(models.flatMap(\.ratios))
             hits.append(hint(.ratios, rank(models, minMargin: landmarkMargin) { m in
-                bestRatioPercent(probeM.ratios, m.ratios)
-            }))
+                mahalanobisPercent(probeM.ratios, m.ratios, pooledInv: ratioInv)
+            }, measured: !probeM.ratios.isEmpty))
             hits.append(hint(.faceShape, rank(models, minMargin: landmarkMargin) { m in
                 bestRatioPercent(probeM.shape, m.shape)
-            }))
+            }, measured: !probeM.shape.isEmpty))
             hits.append(hint(.eyeRegion, rank(models, minMargin: landmarkMargin) { m in
                 bestRatioPercent(probeM.eyes, m.eyes)
-            }))
+            }, measured: !probeM.eyes.isEmpty))
             hits.append(hint(.midface, rank(models, minMargin: landmarkMargin) { m in
                 bestRatioPercent(probeM.midface, m.midface)
-            }))
+            }, measured: !probeM.midface.isEmpty))
             hits.append(hint(.jawline, rank(models, minMargin: landmarkMargin) { m in
                 bestRatioPercent(probeM.jaw, m.jaw)
-            }))
+            }, measured: !probeM.jaw.isEmpty))
             hits.append(hint(.graphBio, rank(models, minMargin: landmarkMargin) { m in
                 bestVecPercent(face.graph, m.graphs)
-            }))
+            }, measured: !face.graph.isEmpty))
             hits.append(hint(.geom3d, rank(models, minMargin: landmarkMargin) { m in
                 bestRatioPercent(face.geom3d, m.geom3ds)
-            }))
+            }, measured: !face.geom3d.isEmpty))
             hits.append(hint(.texture, rank(models, minMargin: landmarkMargin) { m in
                 bestAppearance(face.appearance, m.appearances)
-            }))
+            }, measured: texOn))
 
             let gated = rank(models, minMargin: embedMargin) { m in
                 let raw = bestPrintPercent(face.featurePrint, m.meanPrint)
@@ -389,66 +400,62 @@ enum FaceEngine {
                 }
                 return raw
             }
-            hits.append(toHit(.qualityGate, gated))
+            hits.append(toHit(.qualityGate, gated, measured: printOn))
 
             let temporal = rank(models, minMargin: embedMargin) { m in
                 let gallery = m.temporal.isEmpty ? m.meanPrint : m.temporal
                 return bestPrintPercent(face.featurePrint, gallery)
             }
-            hits.append(toHit(.temporal, temporal))
+            hits.append(toHit(.temporal, temporal, measured: printOn))
 
             let fp = rank(models, minMargin: embedMargin) { m in
                 bestPrintPercent(face.featurePrint, m.meanPrint)
             }
-            hits.append(toHit(.featurePrint, fp))
+            hits.append(toHit(.featurePrint, fp, measured: printOn))
 
             func pctVs(_ s: StrategyID, _ id: UUID) -> Double {
-                hits.first { $0.strategy == s }?.versus.first { $0.identityId == id }?.percent ?? 0
+                guard enabled.contains(s) else { return 0 }
+                return hits.first { $0.strategy == s }?.versus.first { $0.identityId == id }?.percent ?? 0
             }
             let lowCapture = tinyUnreliable(face.quality)
             func geoMixOf(_ id: UUID) -> Double {
-                0.20 * pctVs(.ratios, id)
-                    + 0.16 * pctVs(.faceShape, id)
-                    + 0.14 * pctVs(.midface, id)
-                    + 0.14 * pctVs(.eyeRegion, id)
-                    + 0.12 * pctVs(.landmarkGeo, id)
-                    + 0.12 * pctVs(.jawline, id)
-                    + 0.08 * pctVs(.graphBio, id)
-                    + 0.04 * pctVs(.geom3d, id)
+                let parts: [(StrategyID, Double)] = [
+                    (.ratios, 0.20), (.faceShape, 0.16), (.midface, 0.14), (.eyeRegion, 0.14),
+                    (.landmarkGeo, 0.12), (.jawline, 0.12), (.graphBio, 0.08), (.geom3d, 0.04),
+                ].filter { enabled.contains($0.0) }
+                let w = parts.reduce(0.0) { $0 + $1.1 }
+                guard w > 0 else { return 0 }
+                return parts.reduce(0.0) { $0 + ($1.1 / w) * pctVs($1.0, id) }
+            }
+            func embedOf(_ id: UUID) -> Double {
+                let ki: [StrategyID] = lowCapture
+                    ? [.qualityGate, .featurePrint]
+                    : [.featurePrint, .visionBox, .temporal, .photosStyle, .qualityGate]
+                let active = ki.filter { enabled.contains($0) }
+                guard !active.isEmpty else { return 0 }
+                return active.map { pctVs($0, id) }.max() ?? 0
             }
             func lookOfId(_ id: UUID) -> Double {
-                let embed: Double = {
-                    if lowCapture { return max(pctVs(.qualityGate, id), pctVs(.featurePrint, id)) }
-                    return max(
-                        pctVs(.featurePrint, id),
-                        pctVs(.visionBox, id),
-                        pctVs(.temporal, id),
-                        pctVs(.photosStyle, id),
-                        pctVs(.qualityGate, id)
-                    )
-                }()
-                return lookOf(geo: geoMixOf(id), embed: embed, pose: poseWeight(face.quality))
+                lookOf(geo: geoMixOf(id), embed: embedOf(id), pose: poseWeight(face.quality))
             }
             let ids = models.map(\.identity.id)
-            let embedRow = ids.map { id -> Double in
-                if lowCapture { return max(pctVs(.qualityGate, id), pctVs(.featurePrint, id)) }
-                return max(
-                    pctVs(.featurePrint, id),
-                    pctVs(.visionBox, id),
-                    pctVs(.temporal, id),
-                    pctVs(.photosStyle, id),
-                    pctVs(.qualityGate, id)
-                )
-            }
+            let embedRow = ids.map { embedOf($0) }
             let textureRow = ids.map { pctVs(.texture, $0) }
             let graphRow = ids.map { pctVs(.graphBio, $0) }
             let geoRow = ids.map { geoMixOf($0) }
             let geom3dRow = ids.map { pctVs(.geom3d, $0) }
             let lookRow = ids.map { lookOfId($0) }
-            let terFused = terFusion(
-                [lookRow, geoRow, graphRow, embedRow, geom3dRow, textureRow],
-                [0.40, 0.26, 0.14, 0.12, 0.05, 0.03]
-            )
+            var matchers: [[Double]] = []
+            var weights: [Double] = []
+            if kiOn || shapeOn || enabled.contains(.geom3d) {
+                matchers.append(lookRow); weights.append(0.40)
+            }
+            if shapeOn { matchers.append(geoRow); weights.append(0.26) }
+            if enabled.contains(.graphBio) { matchers.append(graphRow); weights.append(0.14) }
+            if kiOn { matchers.append(embedRow); weights.append(0.12) }
+            if enabled.contains(.geom3d) { matchers.append(geom3dRow); weights.append(0.05) }
+            if enabled.contains(.texture) { matchers.append(textureRow); weights.append(0.03) }
+            let terFused = terFusion(matchers, weights)
             hits.append(hint(.terFusion, rank(models, minMargin: embedMargin) { m in
                 let i = ids.firstIndex(of: m.identity.id) ?? 0
                 return i < terFused.count ? terFused[i] : 0
@@ -485,11 +492,14 @@ enum FaceEngine {
                 evidence: fusedBest
             )
             var aegis = ensemble
-            aegis.identityId = decided.id
+            aegis.identityId = enabled.contains(.aegis) ? decided.id : nil
             aegis.percent = fusedBest
             aegis.margin = fusedBest - fusedSecond
             aegis.versus = fusedVersus
-            hits.append(toHit(.aegis, aegis, note: decided.note))
+            let aegisNote = enabled.contains(.aegis)
+                ? decided.note
+                : "Spur ausgeschaltet — keine Namensvergabe."
+            hits.append(toHit(.aegis, aegis, note: aegisNote, measured: kiOn || shapeOn || enabled.contains(.geom3d)))
             if let owner = identities.first(where: { $0.faceIds.contains(face.id) }) {
                 hits = hits.map { h in
                     let selfP = h.versus.first { $0.identityId == owner.id }?.percent ?? h.percent
@@ -501,7 +511,8 @@ enum FaceEngine {
                         distance: h.distance,
                         margin: selfP - second,
                         versus: h.versus,
-                        note: "Referenz dieser Person — gemessene Werte, nicht hochgesetzt."
+                        note: "Referenz dieser Person — gemessene Werte, nicht hochgesetzt.",
+                        measured: h.measured
                     )
                 }
             }
@@ -566,15 +577,17 @@ enum FaceEngine {
         )
     }
 
-    private static func hint(_ strategy: StrategyID, _ ranked: Ranked) -> StrategyHit {
+    private static func hint(_ strategy: StrategyID, _ ranked: Ranked, measured: Bool = true) -> StrategyHit {
         var copy = ranked
         copy.identityId = nil
-        return toHit(strategy, copy)
+        return toHit(strategy, copy, measured: measured)
     }
 
-    private static func toHit(_ strategy: StrategyID, _ ranked: Ranked, note: String = "") -> StrategyHit {
+    private static func toHit(_ strategy: StrategyID, _ ranked: Ranked, note: String = "", measured: Bool = true) -> StrategyHit {
         let text: String
-        if !note.isEmpty {
+        if !measured {
+            text = "nicht gemessen"
+        } else if !note.isEmpty {
             text = note
         } else if ranked.identityId != nil {
             text = String(format: "Abstand %.1f Pkt.", ranked.margin)
@@ -591,7 +604,8 @@ enum FaceEngine {
             percent: ranked.percent,
             margin: ranked.margin,
             versus: ranked.versus,
-            note: text
+            note: text,
+            measured: measured
         )
     }
 
@@ -1018,39 +1032,144 @@ enum FaceEngine {
     private static func appearanceVector(of image: CGImage?) -> [Double] {
         guard let image else { return [] }
         let size = 64
-        let cells = 16
+        let cells = 8
+        let bins = 10
         guard let ctx = CGContext(
             data: nil,
             width: size,
             height: size,
             bitsPerComponent: 8,
-            bytesPerRow: size * 4,
-            space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            bytesPerRow: size,
+            space: CGColorSpaceCreateDeviceGray(),
+            bitmapInfo: CGImageAlphaInfo.none.rawValue
         ) else { return [] }
         ctx.interpolationQuality = .medium
         ctx.draw(image, in: CGRect(x: 0, y: 0, width: size, height: size))
         guard let data = ctx.data else { return [] }
-        let ptr = data.bindMemory(to: UInt8.self, capacity: size * size * 4)
-        var sum = [Double](repeating: 0, count: cells * cells)
-        var counts = [Double](repeating: 0, count: cells * cells)
-        for y in 0..<size {
-            let cy = min(cells - 1, y * cells / size)
-            for x in 0..<size {
-                let cx = min(cells - 1, x * cells / size)
-                let i = (y * size + x) * 4
-                let g = 0.299 * Double(ptr[i]) + 0.587 * Double(ptr[i + 1]) + 0.114 * Double(ptr[i + 2])
-                let c = cy * cells + cx
-                sum[c] += g
-                counts[c] += 1
+        let ptr = data.bindMemory(to: UInt8.self, capacity: size * size)
+        var pix = [Double](repeating: 0, count: size * size)
+        for i in 0 ..< size * size {
+            pix[i] = pow(Double(ptr[i]) / 255, 0.2)
+        }
+        var dog = pix
+        for y in 1 ..< size - 1 {
+            for x in 1 ..< size - 1 {
+                var s = 0.0
+                for dy in -1 ... 1 {
+                    for dx in -1 ... 1 { s += pix[(y + dy) * size + x + dx] }
+                }
+                dog[y * size + x] = pix[y * size + x] - s / 9
             }
         }
-        var out = (0..<(cells * cells)).map { sum[$0] / max(1, counts[$0]) }
-        let mean = out.reduce(0, +) / Double(max(out.count, 1))
-        out = out.map { $0 - mean }
-        let norm = sqrt(out.reduce(0) { $0 + $1 * $1 })
+        let absMean = max(dog.reduce(0) { $0 + abs($1) } / Double(dog.count), 1e-6)
+        dog = dog.map { tanh($0 / absMean) }
+        var hist = [Double](repeating: 0, count: cells * cells * bins)
+        for y in 1 ..< size - 1 {
+            for x in 1 ..< size - 1 {
+                let c = dog[y * size + x]
+                var code = 0
+                let nbs = [
+                    dog[y * size + x + 1],
+                    dog[(y + 1) * size + x + 1],
+                    dog[(y + 1) * size + x],
+                    dog[(y + 1) * size + x - 1],
+                    dog[y * size + x - 1],
+                    dog[(y - 1) * size + x - 1],
+                    dog[(y - 1) * size + x],
+                    dog[(y - 1) * size + x + 1],
+                ]
+                for (i, n) in nbs.enumerated() where n >= c { code |= 1 << i }
+                var bits = 0
+                var v = code
+                var trans = 0
+                var prev = v & 1
+                for _ in 0 ..< 8 {
+                    let b = v & 1
+                    bits += b
+                    if b != prev { trans += 1 }
+                    prev = b
+                    v >>= 1
+                }
+                let bin = trans <= 2 ? bits : 9
+                let cy = min(cells - 1, y * cells / size)
+                let cx = min(cells - 1, x * cells / size)
+                hist[(cy * cells + cx) * bins + bin] += 1
+            }
+        }
+        let norm = sqrt(hist.reduce(0) { $0 + $1 * $1 })
         let n = max(norm, 1e-9)
-        return out.map { $0 / n }
+        return hist.map { $0 / n }
+    }
+
+    private static func mahalanobisPercent(_ probe: [Double], _ gallery: [[Double]], pooledInv: [[Double]]?) -> Double {
+        guard !probe.isEmpty, !gallery.isEmpty else { return 0 }
+        if let inv = pooledInv, inv.count == probe.count {
+            let mean = averageRaw(gallery)
+            guard mean.count == probe.count else { return bestRatioPercent(probe, gallery) }
+            var delta = [Double](repeating: 0, count: probe.count)
+            for i in 0 ..< probe.count { delta[i] = probe[i] - mean[i] }
+            var tmp = [Double](repeating: 0, count: probe.count)
+            for i in 0 ..< probe.count {
+                for j in 0 ..< probe.count { tmp[i] += inv[i][j] * delta[j] }
+            }
+            var d2 = 0.0
+            for i in 0 ..< probe.count { d2 += delta[i] * tmp[i] }
+            return 100.0 / (1.0 + exp(0.85 * (sqrt(max(0, d2)) - 2.2)))
+        }
+        return bestRatioPercent(probe, gallery)
+    }
+
+    private static func pooledInverse(_ samples: [[Double]]) -> [[Double]]? {
+        guard let d = samples.first?.count, d > 0, d <= 40, samples.count >= 3 else { return nil }
+        let usable = samples.filter { $0.count == d }
+        guard usable.count >= 3 else { return nil }
+        let mean = averageRaw(usable)
+        var cov = Array(repeating: Array(repeating: 0.0, count: d), count: d)
+        for s in usable {
+            for i in 0 ..< d {
+                for j in 0 ..< d {
+                    cov[i][j] += (s[i] - mean[i]) * (s[j] - mean[j])
+                }
+            }
+        }
+        let n = Double(usable.count)
+        for i in 0 ..< d {
+            for j in 0 ..< d { cov[i][j] /= n }
+            cov[i][i] += 0.05
+        }
+        return invertMatrix(cov)
+    }
+
+    private static func invertMatrix(_ a0: [[Double]]) -> [[Double]]? {
+        let n = a0.count
+        var a = a0
+        var inv = (0 ..< n).map { i in (0 ..< n).map { j in i == j ? 1.0 : 0.0 } }
+        for i in 0 ..< n {
+            var piv = i
+            var best = abs(a[i][i])
+            for r in (i + 1) ..< n where abs(a[r][i]) > best {
+                best = abs(a[r][i])
+                piv = r
+            }
+            if best < 1e-12 { return nil }
+            if piv != i {
+                a.swapAt(i, piv)
+                inv.swapAt(i, piv)
+            }
+            let diag = a[i][i]
+            for j in 0 ..< n {
+                a[i][j] /= diag
+                inv[i][j] /= diag
+            }
+            for r in 0 ..< n where r != i {
+                let f = a[r][i]
+                for j in 0 ..< n {
+                    a[r][j] -= f * a[i][j]
+                    inv[r][j] -= f * inv[i][j]
+                }
+            }
+        }
+        return inv
     }
 
     private static func galleryZScore(_ best: Double, _ others: [Double]) -> Double {
@@ -1484,7 +1603,8 @@ enum FaceEngine {
     /// ratios cannot block a 99% print on a profile, and cannot assign a stranger.
     private static func lookOf(geo: Double, embed: Double = 0, pose: Double = 1) -> Double {
         if embed < 1 { return geo }
-        if geo >= 1 && geo < 35 { return min(embed, 60) }
+        if geo < 1 { return embed }
+        if geo < 35 { return min(embed, 60) }
         let geoW = 0.25 * clamp01(pose)
         return (1 - geoW) * embed + geoW * geo
     }

@@ -19,16 +19,22 @@ final class LibraryStore: ObservableObject {
     @Published var newPersonName = ""
     @Published var liveURLText = ""
     @Published var liveActive = false
+    @Published var enabled: Set<StrategyID> = Set(StrategyID.allCases)
 
     private let liveCapture = LiveCapture()
     private var liveMediaId: UUID?
     private var scopedRoots: [URL] = []
     private var liveBusy = false
+    private let enabledKey = "aegis.enabledStrategies"
 
     init() {
         let packed = GalleryFile.load()
         identities = packed.identities
         faces = packed.faces
+        if let raw = UserDefaults.standard.array(forKey: enabledKey) as? [String] {
+            let set = Set(raw.compactMap(StrategyID.init(rawValue:)))
+            if !set.isEmpty { enabled = set }
+        }
         if !identities.isEmpty {
             status = "Galerie · \(identities.count) Personen"
         }
@@ -263,7 +269,27 @@ final class LibraryStore: ObservableObject {
     }
 
     func rematch() {
-        matches = FaceEngine.match(faces: faces, identities: identities, media: media, threshold: threshold)
+        matches = FaceEngine.match(
+            faces: faces,
+            identities: identities,
+            media: media,
+            threshold: threshold,
+            enabled: enabled
+        )
+    }
+
+    func setEnabled(_ id: StrategyID, _ on: Bool) {
+        if on { enabled.insert(id) } else { enabled.remove(id) }
+        UserDefaults.standard.set(enabled.map(\.rawValue), forKey: enabledKey)
+        rematch()
+    }
+
+    func setTrack(_ track: StrategyTrack, on: Bool) {
+        for id in StrategyID.allCases where id.track == track {
+            if on { enabled.insert(id) } else { enabled.remove(id) }
+        }
+        UserDefaults.standard.set(enabled.map(\.rawValue), forKey: enabledKey)
+        rematch()
     }
 
     func createIdentity() {
@@ -433,5 +459,33 @@ final class LibraryStore: ObservableObject {
             }
         }
         try? lines.joined(separator: "\n").write(to: url, atomically: true, encoding: .utf8)
+    }
+
+    func exportLab() {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.plainText]
+        panel.nameFieldStringValue = "aegis-labor.txt"
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        let faces = self.faces
+        let identities = self.identities
+        let media = self.media
+        let enabled = self.enabled
+        let threshold = self.threshold
+        busy = true
+        status = "Laborbericht"
+        Task.detached {
+            let text = LabReport.text(
+                faces: faces,
+                identities: identities,
+                media: media,
+                enabled: enabled,
+                threshold: threshold
+            )
+            await MainActor.run {
+                try? text.write(to: url, atomically: true, encoding: .utf8)
+                self.busy = false
+                self.status = "Laborbericht gespeichert"
+            }
+        }
     }
 }

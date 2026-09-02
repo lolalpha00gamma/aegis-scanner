@@ -2,9 +2,22 @@ import CoreGraphics
 import Foundation
 
 enum AppVersion {
-    static let marketing = "2.0.8"
+    static let marketing = "2.1.0"
     static let channel = "alpha"
-    static let display = "2.0.8 alpha"
+    static let display = "2.1.0 alpha"
+}
+
+enum StrategyTrack: String, CaseIterable, Identifiable {
+    case ki, geo2d, geo3d, fusion
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .ki: return "KI / Face-Print"
+        case .geo2d: return "2D-Geometrie"
+        case .geo3d: return "3D (Pose-Anhebung)"
+        case .fusion: return "Fusion"
+        }
+    }
 }
 
 enum StrategyID: String, CaseIterable, Identifiable, Codable {
@@ -27,6 +40,15 @@ enum StrategyID: String, CaseIterable, Identifiable, Codable {
 
     var id: String { rawValue }
 
+    var track: StrategyTrack {
+        switch self {
+        case .photosStyle, .visionBox, .qualityGate, .temporal, .featurePrint: return .ki
+        case .landmarkGeo, .ratios, .faceShape, .eyeRegion, .midface, .jawline, .graphBio, .texture: return .geo2d
+        case .geom3d: return .geo3d
+        case .terFusion, .aegis: return .fusion
+        }
+    }
+
     var label: String {
         switch self {
         case .photosStyle: return "Fotos-Stil"
@@ -39,7 +61,7 @@ enum StrategyID: String, CaseIterable, Identifiable, Codable {
         case .jawline: return "Kieferlinie"
         case .graphBio: return "Graph-Biomarker"
         case .geom3d: return "3D-Geometrie"
-        case .texture: return "Aussehen"
+        case .texture: return "Aussehen (LBP)"
         case .qualityGate: return "Quality-Gate"
         case .temporal: return "Temporal"
         case .featurePrint: return "Feature Print"
@@ -67,21 +89,21 @@ enum StrategyID: String, CaseIterable, Identifiable, Codable {
         case .jawline:
             return "Kieferbreite/IOD, Untergesicht/Höhe, Kinn. Unabhängig vom Lächeln."
         case .graphBio:
-            return "KNN-6 über feste anatomische Punkte (ohne Mund). Alterungsstabil, unabhängig von Textur."
+            return "KNN-6 über feste Knochenpunkte (ohne Mund). Alterungsstabil, unabhängig von Textur."
         case .geom3d:
-            return "IOD-Verhältnisse, Kieferwinkel, Nasenfläche — keine Punktzählung, keine Box."
+            return "2D-Landmarks mit Yaw/Pitch auf die Frontalebene gehoben. Kein neuronales 3DMM."
         case .texture:
-            return "Anzeigewert: 8×8-Raster nach Augenausrichtung. Keine Zuordnungsstimme — Pixel und Kleidung ändern sich mit Licht, Pose und Ausschnitt."
+            return "Tan–Triggs + LBP auf dem ausgerichteten Crop. Keine Zuordnungsstimme."
         case .qualityGate:
             return "Nächstes Feature-Print-Exemplar. Dunkelheit ist keine Unschärfe; nur winzige Crowd-Gesichter werden gedämpft."
         case .temporal:
             return "Nächstes Video-Feature-Print über Tracks, ohne Kreuzer zu tauschen."
         case .featurePrint:
-            return "Gesichts-Print (VNGenerateFacePrintRequest) auf dem ganzen Foto. Kein Bild-Print von Jacke/Hintergrund, kein Warp."
+            return "Gesichts-Print (VNGenerateFacePrintRequest) auf dem ganzen Foto. Kein Bild-Print von Jacke/Hintergrund."
         case .terFusion:
-            return "Wu/Wan: Scores → Total Error Rate, min-max nach Jain, probabilistisch gewichtet."
+            return "Aktive Spuren → Total Error Rate, min-max nach Jain, nur eingeschaltete Matcher."
         case .aegis:
-            return "Zuordnung: Face-Print führt, Geometrie stützt und vetoiert. Raster entscheidet nicht. Pose (Yaw/Pitch) dämpft die Maße."
+            return "Fusion der eingeschalteten Spuren. Print führt, Geometrie stützt und vetoiert. Aus = keine Namensvergabe."
         }
     }
 }
@@ -199,6 +221,7 @@ struct StrategyHit: Hashable {
     var margin: Double = 0
     var versus: [IdentityScore] = []
     var note: String = ""
+    var measured: Bool = true
 }
 
 struct MatchResult: Hashable {

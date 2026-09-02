@@ -16,6 +16,8 @@
 		AA0000000000000000000036 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000026 /* Assets.xcassets */; };
 		AA0000000000000000000037 /* LiveCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000028 /* LiveCapture.swift */; };
 		AA0000000000000000000038 /* IdentityDesk.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000002A /* IdentityDesk.swift */; };
+		AA0000000000000000000039 /* FaceShape3D.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000002B /* FaceShape3D.swift */; };
+		AA000000000000000000003A /* Evaluator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000002C /* Evaluator.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -31,6 +33,8 @@
 		AA0000000000000000000028 /* LiveCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveCapture.swift; sourceTree = "<group>"; };
 		AA0000000000000000000029 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		AA000000000000000000002A /* IdentityDesk.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdentityDesk.swift; sourceTree = "<group>"; };
+		AA000000000000000000002B /* FaceShape3D.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceShape3D.swift; sourceTree = "<group>"; };
+		AA000000000000000000002C /* Evaluator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Evaluator.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -72,6 +76,8 @@
 				AA0000000000000000000025 /* LibraryStore.swift */,
 				AA0000000000000000000028 /* LiveCapture.swift */,
 				AA000000000000000000002A /* IdentityDesk.swift */,
+				AA000000000000000000002B /* FaceShape3D.swift */,
+				AA000000000000000000002C /* Evaluator.swift */,
 				AA0000000000000000000026 /* Assets.xcassets */,
 				AA0000000000000000000029 /* Info.plist */,
 			);
@@ -156,6 +162,8 @@
 				AA0000000000000000000035 /* LibraryStore.swift in Sources */,
 				AA0000000000000000000037 /* LiveCapture.swift in Sources */,
 				AA0000000000000000000038 /* IdentityDesk.swift in Sources */,
+				AA0000000000000000000039 /* FaceShape3D.swift in Sources */,
+				AA000000000000000000003A /* Evaluator.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -200,7 +208,7 @@
 				CODE_SIGN_ENTITLEMENTS = AegisScanner.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 28;
+				CURRENT_PROJECT_VERSION = 29;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = AegisScanner/Info.plist;
@@ -212,7 +220,7 @@
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 2.0.8;
+				MARKETING_VERSION = 2.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = app.aegis.scanner;
 				PRODUCT_NAME = Aegis;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -227,7 +235,7 @@
 				CODE_SIGN_ENTITLEMENTS = AegisScanner.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 28;
+				CURRENT_PROJECT_VERSION = 29;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = AegisScanner/Info.plist;
@@ -239,7 +247,7 @@
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 2.0.8;
+				MARKETING_VERSION = 2.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = app.aegis.scanner;
 				PRODUCT_NAME = Aegis;
 				SWIFT_EMIT_LOC_STRINGS = YES;
