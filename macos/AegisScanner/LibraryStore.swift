@@ -43,6 +43,7 @@ final class LibraryStore: ObservableObject {
     private let enabledKey = "aegis.enabledStrategies"
     private let resumeBookmarkKey = "aegis.scanResume.bookmark"
     private let resumeRemainingKey = "aegis.scanResume.remaining"
+    private let resumeDetectKey = "aegis.scanResume.detect"
     private var liveGhosts: [(face: FaceObservation, until: TimeInterval)] = []
     private var reconnectGhosts: [FaceObservation] = []
     private var boxEuro: [UUID: (x: MatchMath.OneEuro, y: MatchMath.OneEuro, w: MatchMath.OneEuro, h: MatchMath.OneEuro)] = [:]
@@ -58,7 +59,7 @@ final class LibraryStore: ObservableObject {
             let set = Set(raw.compactMap(StrategyID.init(rawValue:)))
             if !set.isEmpty { enabled = set }
         }
-        canResumeScan = !(UserDefaults.standard.stringArray(forKey: resumeRemainingKey) ?? []).isEmpty
+        canResumeScan = hasResumeWork()
         if !identities.isEmpty {
             status = revisionWarning.isEmpty
                 ? "Galerie · \(identities.count) Personen"
@@ -219,7 +220,9 @@ final class LibraryStore: ObservableObject {
     func resumeScan() {
         let paths = UserDefaults.standard.stringArray(forKey: resumeRemainingKey) ?? []
         let urls = paths.map { URL(fileURLWithPath: $0) }.filter { FileManager.default.fileExists(atPath: $0.path) }
-        guard !urls.isEmpty else {
+        let detectIds = (UserDefaults.standard.stringArray(forKey: resumeDetectKey) ?? [])
+            .compactMap(UUID.init(uuidString:))
+        guard !urls.isEmpty || !detectIds.isEmpty else {
             canResumeScan = false
             status = "Nichts zum Fortsetzen"
             return
@@ -228,9 +231,16 @@ final class LibraryStore: ObservableObject {
         scanFlag.reset()
         let gen = scanGeneration
         busy = true
-        status = "Scan fortsetzen · \(urls.count) Dateien"
-        Task {
-            await self.ingestAndScan(urls: urls, generation: gen)
+        if !urls.isEmpty {
+            status = "Scan fortsetzen · \(urls.count) Dateien"
+            Task {
+                await self.ingestAndScan(urls: urls, generation: gen)
+            }
+        } else {
+            status = "Erkennung fortsetzen · \(detectIds.count) Medien"
+            Task {
+                await self.scan(generation: gen, onlyMedia: detectIds)
+            }
         }
     }
 
@@ -271,7 +281,18 @@ final class LibraryStore: ObservableObject {
 
     private func rememberRemaining(_ urls: [URL]) {
         UserDefaults.standard.set(urls.map(\.path), forKey: resumeRemainingKey)
-        canResumeScan = !urls.isEmpty
+        canResumeScan = hasResumeWork()
+    }
+
+    private func rememberDetectRemaining(_ ids: [UUID]) {
+        UserDefaults.standard.set(ids.map(\.uuidString), forKey: resumeDetectKey)
+        canResumeScan = hasResumeWork()
+    }
+
+    private func hasResumeWork() -> Bool {
+        let files = UserDefaults.standard.stringArray(forKey: resumeRemainingKey) ?? []
+        let detect = UserDefaults.standard.stringArray(forKey: resumeDetectKey) ?? []
+        return !files.isEmpty || !detect.isEmpty
     }
 
     private func retainAccess(_ urls: [URL]) {
@@ -335,7 +356,7 @@ final class LibraryStore: ObservableObject {
         scanFlag.stop()
         scanGeneration += 1
         busy = false
-        canResumeScan = !(UserDefaults.standard.stringArray(forKey: resumeRemainingKey) ?? []).isEmpty
+        canResumeScan = hasResumeWork()
         status = canResumeScan ? "Scan abgebrochen — Fortsetzen möglich" : "Scan abgebrochen"
     }
 
@@ -345,7 +366,7 @@ final class LibraryStore: ObservableObject {
         await scan(generation: scanGeneration)
     }
 
-    private func scan(generation: Int) async {
+    private func scan(generation: Int, onlyMedia: [UUID]? = nil) async {
         busy = true
         status = "Frames extrahieren"
         let videos = media.filter { $0.kind == .video }
@@ -388,13 +409,19 @@ final class LibraryStore: ObservableObject {
                 continue
             }
         }
-        let pending = media.filter { item in
+        var pending = media.filter { item in
             (item.kind == .photo || item.kind == .frame) && !faces.contains { $0.mediaId == item.id }
+        }
+        if let only = onlyMedia, !only.isEmpty {
+            let set = Set(only)
+            pending = pending.filter { set.contains($0.id) }
         }
         for (i, item) in pending.enumerated() {
             if generation != scanGeneration {
-                status = "Scan abgebrochen"
+                rememberDetectRemaining(Array(pending.dropFirst(i).map(\.id)))
+                status = "Scan abgebrochen — Fortsetzen möglich"
                 busy = false
+                canResumeScan = true
                 return
             }
             status = "Gesicht · \(i + 1)/\(pending.count)"
@@ -406,8 +433,10 @@ final class LibraryStore: ObservableObject {
                     try FaceEngine.detect(in: image, mediaId: mediaId)
                 }.value
                 if generation != scanGeneration {
-                    status = "Scan abgebrochen"
+                    rememberDetectRemaining(Array(pending.dropFirst(i).map(\.id)))
+                    status = "Scan abgebrochen — Fortsetzen möglich"
                     busy = false
+                    canResumeScan = true
                     return
                 }
                 faces.append(contentsOf: found)
@@ -415,9 +444,11 @@ final class LibraryStore: ObservableObject {
                 continue
             }
         }
+        rememberDetectRemaining([])
         if generation != scanGeneration {
-            status = "Scan abgebrochen"
+            status = "Scan abgebrochen — Fortsetzen möglich"
             busy = false
+            canResumeScan = hasResumeWork()
             return
         }
         status = "Abgleich"
@@ -740,6 +771,8 @@ final class LibraryStore: ObservableObject {
                 used.insert(old.id)
                 face.id = old.id
                 face.trackId = old.trackId ?? old.id
+                // Ghost-Box darf nicht kleben: 1-Euro der UUID verwerfen.
+                boxEuro.removeValue(forKey: old.id)
                 if face.featurePrint.isEmpty, !old.featurePrint.isEmpty {
                     face.featurePrint = old.featurePrint
                     face.printVec = old.printVec.isEmpty ? FaceEngine.embedding(of: old) : old.printVec

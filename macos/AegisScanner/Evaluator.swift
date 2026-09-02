@@ -54,10 +54,20 @@ enum LabReport {
             out.append(String(format: "Rang-1 (genuine ≥ Schwelle)  %.1f%%", 100 * frac(genuine, threshold)))
             out.append(String(format: "FAR bei Schwelle            %.1f%%", 100 * frac(impostor, threshold)))
             out.append(eerLine(genuine, impostor))
-            if let t = MatchMath.tar(atFar: 0.001, genuine: genuine, impostor: impostor) {
+            if impostor.count < 200, let t = MatchMath.tarBootstrap(atFar: 0.001, genuine: genuine, impostor: impostor) {
+                out.append(String(
+                    format: "TAR @ 0,1 %% FAR  %.1f%%  [%.1f–%.1f]  (n_imp=%d, Bootstrap 95%%)",
+                    100 * t.tar, 100 * t.lo, 100 * t.hi, impostor.count
+                ))
+            } else if let t = MatchMath.tar(atFar: 0.001, genuine: genuine, impostor: impostor) {
                 out.append(String(format: "TAR @ 0,1 %% FAR  %.1f%%  (Schwelle %.1f, MatchMath ceil-1)", 100 * t.tar, t.threshold))
             }
-            if let t = MatchMath.tar(atFar: 0.01, genuine: genuine, impostor: impostor) {
+            if impostor.count < 200, let t = MatchMath.tarBootstrap(atFar: 0.01, genuine: genuine, impostor: impostor) {
+                out.append(String(
+                    format: "TAR @ 1 %% FAR    %.1f%%  [%.1f–%.1f]  (n_imp=%d, Bootstrap 95%%)",
+                    100 * t.tar, 100 * t.lo, 100 * t.hi, impostor.count
+                ))
+            } else if let t = MatchMath.tar(atFar: 0.01, genuine: genuine, impostor: impostor) {
                 out.append(String(format: "TAR @ 1 %% FAR    %.1f%%  (Schwelle %.1f, MatchMath ceil-1)", 100 * t.tar, t.threshold))
             }
         } else {

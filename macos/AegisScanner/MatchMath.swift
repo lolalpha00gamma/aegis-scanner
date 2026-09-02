@@ -116,6 +116,66 @@ enum MatchMath {
         return (Double(hits) / Double(genuine.count), t)
     }
 
+    struct TarCI: Equatable {
+        var tar: Double
+        var threshold: Double
+        var lo: Double
+        var hi: Double
+        var draws: Int
+    }
+
+    /// Bootstrap-95 %-CI, wenn n_impostor < 200. Sonst Punkt = Intervall.
+    /// Eine Schwelle bei n=10 lügt — der CI macht das sichtbar.
+    static func tarBootstrap(
+        atFar far: Double,
+        genuine: [Double],
+        impostor: [Double],
+        draws: Int = 200,
+        seed: UInt64 = 0xAE615C4A
+    ) -> TarCI? {
+        guard let point = tar(atFar: far, genuine: genuine, impostor: impostor) else { return nil }
+        if impostor.count >= 200 {
+            return TarCI(tar: point.tar, threshold: point.threshold, lo: point.tar, hi: point.tar, draws: 0)
+        }
+        var state = seed == 0 ? 0x9E3779B97F4A7C15 : seed
+        func nextU() -> UInt64 {
+            state &+= 0x9E3779B97F4A7C15
+            var z = state
+            z = (z ^ (z >> 30)) &* 0xBF58476D1CE4E5B9
+            z = (z ^ (z >> 27)) &* 0x94D049BB133111EB
+            return z ^ (z >> 31)
+        }
+        func pick(_ xs: [Double]) -> Double {
+            xs[Int(nextU() % UInt64(xs.count))]
+        }
+        var rates: [Double] = []
+        rates.reserveCapacity(draws)
+        for _ in 0 ..< draws {
+            let g = (0 ..< genuine.count).map { _ in pick(genuine) }
+            let i = (0 ..< impostor.count).map { _ in pick(impostor) }
+            if let t = tar(atFar: far, genuine: g, impostor: i) {
+                rates.append(t.tar)
+            }
+        }
+        guard !rates.isEmpty else {
+            return TarCI(tar: point.tar, threshold: point.threshold, lo: point.tar, hi: point.tar, draws: 0)
+        }
+        rates.sort()
+        let loI = max(0, Int((0.025 * Double(rates.count - 1)).rounded()))
+        let hiI = min(rates.count - 1, Int((0.975 * Double(rates.count - 1)).rounded()))
+        return TarCI(tar: point.tar, threshold: point.threshold, lo: rates[loI], hi: rates[hiI], draws: rates.count)
+    }
+
+    static func lowerFaceOccluded(eyes: Bool, mouth: Bool) -> Bool {
+        eyes && !mouth
+    }
+
+    /// Maske: voller Print enthält Stoff. Teil-Print (Stirn/Augen) führt, Deckel 88.
+    static func combinePrint(full: Double, partial: Double, occluded: Bool) -> Double {
+        guard occluded else { return full }
+        return max(full * 0.45, min(88, partial))
+    }
+
     /// 1-Euro auf einem Skalar. Live-Box, nicht der Print.
     struct OneEuro {
         var minCutoff: Double = 1.2
@@ -141,6 +201,12 @@ enum MatchMath {
             let hat = a * value + (1 - a) * prev
             xHat = hat
             return hat
+        }
+
+        mutating func reset() {
+            xHat = nil
+            dxHat = 0
+            tPrev = 0
         }
 
         private func alpha(_ cutoff: Double, dt: Double) -> Double {

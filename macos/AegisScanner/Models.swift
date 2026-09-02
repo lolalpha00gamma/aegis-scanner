@@ -2,9 +2,9 @@ import CoreGraphics
 import Foundation
 
 enum AppVersion {
-    static let marketing = "2.1.8"
+    static let marketing = "2.1.9"
     static let channel = "alpha"
-    static let display = "2.1.8 alpha"
+    static let display = "2.1.9 alpha"
 }
 
 enum StrategyTrack: String, CaseIterable, Identifiable {
@@ -202,6 +202,9 @@ struct FaceObservation: Identifiable, Hashable, Codable {
     /// Live-EMA des Print-Vektors. Nicht persistiert — der archivierte
     /// `featurePrint` bleibt die Quelle auf Disk.
     var printVec: [Double] = []
+    /// Stirn/Augen-Print bei okkludierter unterer Hälfte. Nicht persistiert.
+    var partialPrint: Data = Data()
+    var partialVec: [Double] = []
 
     enum CodingKeys: String, CodingKey {
         case id, mediaId, box, score, landmarks, aligned, featurePrint

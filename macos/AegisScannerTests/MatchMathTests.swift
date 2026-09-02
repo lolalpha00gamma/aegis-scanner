@@ -86,6 +86,33 @@ enum MatchMathTests {
         near(first, 10, 0.01, "1-Euro erster Sample")
         let second = euro.filter(20, now: 0.1)
         ok(second > 10 && second < 20, "1-Euro folgt, ohne den Sprung voll zu nehmen (ist \(second))")
+        euro.reset()
+        near(euro.filter(99, now: 5), 99, 0.01, "1-Euro reset ist Pass-through")
+
+        ok(MatchMath.lowerFaceOccluded(eyes: true, mouth: false), "Augen ohne Mund = Maske")
+        ok(!MatchMath.lowerFaceOccluded(eyes: true, mouth: true), "Mund da = keine Maske")
+        ok(!MatchMath.lowerFaceOccluded(eyes: false, mouth: false), "nichts = keine Maske")
+        near(MatchMath.combinePrint(full: 90, partial: 70, occluded: false), 90, 0.01, "ohne Okklusion bleibt voller Print")
+        ok(MatchMath.combinePrint(full: 90, partial: 70, occluded: true) <= 88, "Maske deckelt vollen Print")
+        near(MatchMath.combinePrint(full: 20, partial: 80, occluded: true), 80, 0.01, "Teil-Print führt bei Maske")
+        near(MatchMath.combinePrint(full: 20, partial: 95, occluded: true), 88, 0.01, "Teil-Print Deckel 88")
+
+        let genuineHi = [90.0, 92, 88, 85, 80, 78, 91, 87]
+        let impostorLo = [40.0, 50, 60, 30, 20, 10, 5, 2, 1, 15]
+        if let ci = MatchMath.tarBootstrap(atFar: 0.1, genuine: genuineHi, impostor: impostorLo, draws: 80, seed: 42) {
+            ok(ci.lo <= ci.tar + 1e-9 && ci.tar <= ci.hi + 1e-9, "Bootstrap CI enthält den Punkt (\(ci.lo)–\(ci.hi), tar=\(ci.tar))")
+            ok(ci.draws == 80, "80 Draws")
+        } else {
+            ok(false, "tarBootstrap n=10")
+        }
+        let manyImp = (0..<200).map { Double($0) * 0.2 }
+        if let wide = MatchMath.tarBootstrap(atFar: 0.01, genuine: genuineHi, impostor: manyImp) {
+            near(wide.lo, wide.tar, 0.01, "n_imp≥200: CI = Punkt (lo)")
+            near(wide.hi, wide.tar, 0.01, "n_imp≥200: CI = Punkt (hi)")
+            ok(wide.draws == 0, "kein Bootstrap bei n≥200")
+        } else {
+            ok(false, "tarBootstrap n=200")
+        }
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

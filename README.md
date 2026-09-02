@@ -1,4 +1,4 @@
-# Aegis **2.1.8 alpha**
+# Aegis **2.1.9 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main` oder `bugfix`.
+
+## Neu in 2.1.9 alpha
+
+Warum 2.1.8 trotz 1-Euro und ceil-1 Labor und Live trotzdem verzerrte:
+
+- **Live-Box nach Reconnect reset.** `pinByPrint` verwirft den 1-Euro der UUID — die Kiste klebt nicht am Ghost.
+- **Teil-Print bei Maske.** Okkludierte untere Hälfte matcht Stirn/Augen, voller Print wird gedämpft (Deckel 88). Overlay „Maske · Teil-Print“.
+- **TAR@FAR Bootstrap-CI**, wenn n_impostor < 200. Eine Schwelle bei n=10 lügt nicht mehr still.
+- **Detect-Resume.** Abbruch nach Ingest merkt restliche Media-IDs, nicht nur Dateipfade.
 
 ## Neu in 2.1.8 alpha
 

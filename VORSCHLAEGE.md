@@ -1,6 +1,15 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.8 alpha**. Branch `bugfix`. Fixes von 2.1.8 stehen auch in der README.
+Stand: **2.1.9 alpha**. Branch `bugfix`. Fixes von 2.1.9 stehen auch in der README.
+
+## In 2.1.9 wirklich im Code
+
+Warum 2.1.8 trotz 1-Euro und ceil-1 Live-Box und Labor trotzdem verzerrte: Reconnect behielt den 1-Euro-Zustand der UUID (Ghost-Kiste), Masken matchten den vollen Print (Stoff als Identität), TAR@0,1 % bei n=10 hatte keine CI, und Detect-Abbruch nach Ingest vergaß die restlichen Media-IDs.
+
+1. **1-Euro-Reset nach `pinByPrint`.** UUID-Reconnect verwirft den Filter — Box springt auf die neue Position.
+2. **Teil-Print.** Augen ohne Mund → oberes Crop, `combinePrint` dämpft den vollen Print (Deckel 88). Overlay „Maske · Teil-Print“.
+3. **TAR Bootstrap-CI** bei n_impostor < 200. Labor schreibt `[lo–hi]`.
+4. **Detect-Resume.** Restliche Media-IDs in UserDefaults, Taste Fortsetzen nach Ingest-Abbruch.
 
 ## In 2.1.8 wirklich im Code
 
@@ -42,11 +51,9 @@ Warum 2.1.5 trotz Cancel und HLS-Transform Galerien und Live trotzdem schief zog
 
 ## Nächste Fixes (klein)
 
-- **Teil-Print.** Okkludierte untere Hälfte matcht gegen Stirn/Augen, mit niedrigerem Floor.
 - **Per-Kamera Orientierungs-Override**, falls Continuity `videoRotationAngle` falsch meldet.
-- **Resume auch in der Detect-Schleife.** Abbruch nach Ingest merkt die restlichen Media-IDs, nicht nur Dateipfade.
-- **Labor TAR@FAR 0,1 % mit Bootstrap-CI**, wenn n_impostor < 200 (sonst lügt die eine Schwelle).
-- **Live-Box nach Reconnect zurücksetzen.** 1-Euro-Zustand der UUID verwerfen, sonst klebt die Box am Ghost.
+- **Enrollment-Veto bei Maske.** Erste Referenz mit unterer Okklusion ablehnen, nicht als Centroid nehmen.
+- **Teil-Print-Slot U** in der Coverage (F / ¾ / P / U), analog Yaw-Bins.
 
 ## Erweiterungen
 
@@ -75,6 +82,11 @@ Warum 2.1.5 trotz Cancel und HLS-Transform Galerien und Live trotzdem schief zog
 - **Quality-Gate als harte Ablehnung** unter 0,12 sharpness, nicht nur Score-Dämpfung.
 - **Gallery.json Schema-Version** neben printRevision, damit 2.x Leser 3.x Felder überspringen.
 - **Hard-Negativ vergessen.** Taste „doch Name“ entfernt den Deckel.
+- **Score-Histogramm im Labor.** Genuine vs Impostor als ASCII/Spark, nicht nur mean/median.
+- **Live-Quality-Ampel.** Capture/sharpness/yaw als drei Punkte am Overlay, bevor der Name kommt.
+- **Print-Alter 90 Tage.** Referenz älter als N Tage markieren — liegt schon als „Print-Alter“ oben, UI- paler.
+- **Geschwister-Wizard.** Pairwise-Heatmap vorschlagen, Floor +4 bestätigen lassen.
+- **Masken-Enrollment-Slot.** Explizite „obere Hälfte“-Referenz, wenn jemand oft Maske trägt.
 
 ## Nicht tun
 
@@ -92,3 +104,6 @@ Warum 2.1.5 trotz Cancel und HLS-Transform Galerien und Live trotzdem schief zog
 - Coverage nur warnen. Volle Frontals ohne ¾ verdrehen den Centroid.
 - TAR@FAR wieder mit `floor(far·n)` (misst 2× den Ziel-FAR).
 - Live-Box wieder EMA 0,62/0,38.
+- 1-Euro nach Reconnect weiterlaufen lassen (Ghost-Box).
+- Voller Print als Identität, wenn der Mund fehlt.
+- TAR ohne CI bei n_impostor < 200.

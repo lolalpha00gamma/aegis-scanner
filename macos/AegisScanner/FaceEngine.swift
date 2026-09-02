@@ -594,7 +594,7 @@ enum FaceEngine {
         if face.quality.sharpness < 0.08 { return "unscharf" }
         let eyes = face.strokes.contains { $0.label.hasPrefix("Auge") && $0.points.count >= 4 }
         let mouth = face.strokes.contains { ($0.label == "Mund" || $0.label == "Lippen") && $0.points.count >= 4 }
-        if eyes && !mouth { return "Maske?" }
+        if eyes && !mouth { return face.partialVec.count >= 32 ? "Maske · Teil-Print" : "Maske?" }
         if !eyes && mouth { return "Sonnenbrille / Okklusion?" }
         if gallery.count >= 1 {
             let pv = embedding(of: face)
@@ -838,6 +838,18 @@ enum FaceEngine {
     }
 
     private static func bestPrintPercent(_ probe: FaceObservation, _ faces: [FaceObservation]) -> Double {
+        let full = fullPrintPercent(probe, faces)
+        if lowerFaceOccluded(probe), probe.partialVec.count >= 32 {
+            let allMean = meanPrintVector(faces)
+            if allMean.count == probe.partialVec.count {
+                let partial = sigmoidCosine(probe.partialVec, allMean)
+                return MatchMath.combinePrint(full: full, partial: partial, occluded: true)
+            }
+        }
+        return full
+    }
+
+    private static func fullPrintPercent(_ probe: FaceObservation, _ faces: [FaceObservation]) -> Double {
         let pv = embedding(of: probe)
         let slot = poseSlot(probe)
         let same = faces.filter { poseSlot($0) == slot }
@@ -1077,6 +1089,18 @@ enum FaceEngine {
         return image.cropping(to: CGRect(x: x, y: y, width: max(1, w), height: max(1, h)))
     }
 
+    static func lowerFaceOccluded(_ face: FaceObservation) -> Bool {
+        let eyes = face.strokes.contains { $0.label.hasPrefix("Auge") && $0.points.count >= 4 }
+        let mouth = face.strokes.contains { ($0.label == "Mund" || $0.label == "Lippen") && $0.points.count >= 4 }
+        return MatchMath.lowerFaceOccluded(eyes: eyes, mouth: mouth)
+    }
+
+    private static func upperFaceCrop(_ image: CGImage, box: FaceBox) -> CGImage? {
+        var u = box
+        u.height = max(8, box.height * 0.56)
+        return crop(image, box: u, pad: 0.10)
+    }
+
     /// Apple face-identity print on a natural crop. Never image-print, never warp —
     /// Vision aligns internally. Image-print was matching jackets, not faces (4% same person).
     private static func identityPrint(of image: CGImage?) -> Data? {
@@ -1145,20 +1169,25 @@ enum FaceEngine {
                 used.insert(bestI)
                 next.featurePrint = found[bestI].data
                 next.printVec = printVector(found[bestI].data)
-                return next
-            }
-            // Kein IoU-Treffer. Crop-Fallback nur wenn Vision auf dem ganzen
-            // Foto gar keinen Face-Print gefunden hat — sonst landet die Jacke
-            // als Identität.
-            if found.isEmpty,
+            } else if found.isEmpty,
                let crop = self.crop(image, box: face.box, pad: 0.55),
                let data = facePrintOnly(of: crop, orientation: orientation)
             {
+                // Kein IoU-Treffer. Crop-Fallback nur wenn Vision auf dem ganzen
+                // Foto gar keinen Face-Print gefunden hat — sonst landet die Jacke
+                // als Identität.
                 next.featurePrint = data
                 next.printVec = printVector(data)
-            } else {
+            } else if bestI < 0 {
                 next.featurePrint = Data()
                 next.printVec = []
+            }
+            if lowerFaceOccluded(next),
+               let crop = upperFaceCrop(image, box: face.box),
+               let data = facePrintOnly(of: crop, orientation: orientation)
+            {
+                next.partialPrint = data
+                next.partialVec = printVector(data)
             }
             return next
         }
