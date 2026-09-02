@@ -69,6 +69,9 @@ Die 2.1.2-Commits auf main hatten die härtere Kurve und den Galerie-Floor nur i
 - **Live-Reconnect hält UUID.** Kamera-Drop darf den Track nicht auf eine neue Person taufen, wenn der Print noch passt.
 - **Coverage-Slot erzwingen.** + auf einen vollen Frontal-Slot ohne leeren ¾ blockt, nicht nur warnt.
 - **Crop-Print mit Orientierung.** Fallback-Crop in `stampPrints` läuft noch als `.up`.
+- **Face-Print-Revision merken.** Wenn Apple `VNGenerateFacePrint` ändert, alte Embeddings nicht still mit neuen mischen.
+- **Teil-Print.** Okkludierte untere Hälfte matcht gegen Stirn/Augen, mit niedrigerem Floor.
+- **Maske/Sonnenbrille als Overlay-Grund**, nicht als Identität.
 - **Labor auf gewichtetem Centroid.** TAR@FAR nutzt denselben Weight wie `meanPrintVector`.
 
 ## Erweiterungen
