@@ -26,6 +26,10 @@ enum GalleryFile {
         directory.appendingPathComponent("gallery.json")
     }
 
+    static var backupURL: URL {
+        directory.appendingPathComponent("gallery.json.bak")
+    }
+
     static func load() -> (identities: [Identity], faces: [FaceObservation], printRevision: String?) {
         guard let data = try? Data(contentsOf: url) else { return ([], [], nil) }
         if let payload = try? JSONDecoder().decode(GalleryPayload.self, from: data) {
@@ -47,6 +51,11 @@ enum GalleryFile {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         guard let data = try? encoder.encode(payload) else { return }
+        let fm = FileManager.default
+        if fm.fileExists(atPath: url.path) {
+            try? fm.removeItem(at: backupURL)
+            try? fm.copyItem(at: url, to: backupURL)
+        }
         try? data.write(to: url, options: .atomic)
     }
 }

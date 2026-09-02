@@ -36,6 +36,8 @@ final class LibraryStore: ObservableObject {
     @Published var cameraOrient: String = "auto"
     @Published var cameraUniqueID: String = ""
     @Published var sparkLamps: [UUID: (capture: MatchMath.Lamp, sharpness: MatchMath.Lamp, yaw: MatchMath.Lamp)] = [:]
+    @Published var pendingUSlotId: UUID?
+    private var pendingUSlotFace: FaceObservation?
 
     private let liveCapture = LiveCapture()
     private var liveMediaId: UUID?
@@ -52,6 +54,7 @@ final class LibraryStore: ObservableObject {
     private var reconnectGhosts: [FaceObservation] = []
     private var boxEuro: [UUID: (x: MatchMath.OneEuro, y: MatchMath.OneEuro, w: MatchMath.OneEuro, h: MatchMath.OneEuro)] = [:]
     private var lampHist: [UUID: (c: [MatchMath.Lamp], s: [MatchMath.Lamp], y: [MatchMath.Lamp])] = [:]
+    private var maskHoldSince: [UUID: TimeInterval] = [:]
 
     init() {
         let packed = GalleryFile.load()
@@ -78,6 +81,13 @@ final class LibraryStore: ObservableObject {
 
     private func persist() {
         GalleryFile.save(identities: identities, faces: faces)
+    }
+
+    private func markEnrolled(_ id: UUID) {
+        guard let i = faces.firstIndex(where: { $0.id == id }) else { return }
+        if faces[i].enrolledAt == nil {
+            faces[i].enrolledAt = Date()
+        }
     }
 
     var selectedMedia: MediaItem? {
@@ -539,6 +549,7 @@ final class LibraryStore: ObservableObject {
         let preview = FaceEngine.enrollmentPreview(face: face, identities: identities, faces: faces)
         let note = preview.isEmpty ? "" : " · \(preview)"
         identities.append(Identity(id: UUID(), name: name, faceIds: [face.id]))
+        markEnrolled(face.id)
         newPersonName = ""
         selectedFaceId = face.id
         rematch()
@@ -584,6 +595,7 @@ final class LibraryStore: ObservableObject {
         if !identities[idx].faceIds.contains(face.id) {
             identities[idx].faceIds.append(face.id)
         }
+        markEnrolled(face.id)
         rematch()
         persist()
         if preview.isEmpty {
@@ -597,6 +609,9 @@ final class LibraryStore: ObservableObject {
         guard var face = selectedFace else {
             status = "Zuerst ein Gesicht anklicken"
             return
+        }
+        if let snap = pendingUSlotFace, snap.id == face.id {
+            face = snap
         }
         guard let idx = identities.firstIndex(where: { $0.id == identityId }) else { return }
         guard let item = selectedMedia, let image = item.preview else {
@@ -613,9 +628,17 @@ final class LibraryStore: ObservableObject {
             status = "Dieses Gesicht gehört zu \(owner.name)"
             return
         }
-        guard let stamped = FaceEngine.stampForcedPartial(face, from: image) else {
-            status = "Teil-Print fehlgeschlagen — Crop ohne Face-Print"
-            return
+        let stamped: FaceObservation
+        if !face.partialPrint.isEmpty {
+            var f = face
+            f.forcedPartial = true
+            stamped = f
+        } else {
+            guard let s = FaceEngine.stampForcedPartial(face, from: image) else {
+                status = "Teil-Print fehlgeschlagen — Crop ohne Face-Print"
+                return
+            }
+            stamped = s
         }
         if let i = faces.firstIndex(where: { $0.id == stamped.id }) {
             faces[i] = stamped
@@ -624,8 +647,12 @@ final class LibraryStore: ObservableObject {
         if !identities[idx].faceIds.contains(face.id) {
             identities[idx].faceIds.append(face.id)
         }
+        markEnrolled(face.id)
         rematch()
         persist()
+        pendingUSlotId = nil
+        pendingUSlotFace = nil
+        maskHoldSince[face.id] = nil
         status = "Teil-Print (U) zu \(identities[idx].name)"
     }
 
@@ -708,6 +735,9 @@ final class LibraryStore: ObservableObject {
         liveActive = false
         sparkLamps = [:]
         lampHist = [:]
+        maskHoldSince = [:]
+        pendingUSlotId = nil
+        pendingUSlotFace = nil
         if let id = liveMediaId {
             let gone = Set(faces.filter { $0.mediaId == id }.map(\.id))
             faces.removeAll { $0.mediaId == id }
@@ -838,6 +868,7 @@ final class LibraryStore: ObservableObject {
                 used.insert(old.id)
                 face.id = old.id
                 face.trackId = old.trackId ?? old.id
+                face.enrolledAt = old.enrolledAt ?? face.enrolledAt
                 let t = now
                 var euro = boxEuro[old.id] ?? (
                     MatchMath.OneEuro(), MatchMath.OneEuro(), MatchMath.OneEuro(), MatchMath.OneEuro()
@@ -866,8 +897,11 @@ final class LibraryStore: ObservableObject {
                 used.insert(old.id)
                 face.id = old.id
                 face.trackId = old.trackId ?? old.id
+                face.enrolledAt = old.enrolledAt ?? face.enrolledAt
                 // Ghost-Box darf nicht kleben: 1-Euro der UUID verwerfen.
                 boxEuro.removeValue(forKey: old.id)
+                lampHist.removeValue(forKey: old.id)
+                sparkLamps.removeValue(forKey: old.id)
                 if face.featurePrint.isEmpty, !old.featurePrint.isEmpty {
                     face.featurePrint = old.featurePrint
                     face.printVec = old.printVec.isEmpty ? FaceEngine.embedding(of: old) : old.printVec
@@ -903,6 +937,7 @@ final class LibraryStore: ObservableObject {
                     used.insert(old.id)
                     adopted[bestJ].id = old.id
                     adopted[bestJ].trackId = old.trackId ?? old.id
+                    adopted[bestJ].enrolledAt = old.enrolledAt ?? adopted[bestJ].enrolledAt
                     if adopted[bestJ].featurePrint.isEmpty {
                         adopted[bestJ].featurePrint = old.featurePrint
                     }
@@ -920,7 +955,33 @@ final class LibraryStore: ObservableObject {
         reconnectGhosts.removeAll { used.contains($0.id) }
         nmsDropped = FaceEngine.lastNMSDropped
         refreshSparkLamps(adopted)
+        refreshMaskHold(adopted, now: now)
         rematch()
+    }
+
+    private func refreshMaskHold(_ live: [FaceObservation], now: TimeInterval) {
+        let ids = Set(live.map(\.id))
+        maskHoldSince = maskHoldSince.filter { ids.contains($0.key) }
+        var ready: UUID?
+        for face in live {
+            if FaceEngine.lowerFaceOccluded(face) || face.forcedPartial {
+                if maskHoldSince[face.id] == nil { maskHoldSince[face.id] = now }
+                if MatchMath.maskHoldReady(elapsed: now - (maskHoldSince[face.id] ?? now)) {
+                    ready = face.id
+                }
+            } else {
+                maskHoldSince[face.id] = nil
+            }
+        }
+        if pendingUSlotId != ready {
+            pendingUSlotId = ready
+            pendingUSlotFace = live.first { $0.id == ready }
+            if let ready {
+                status = "Maske 1,2 s — Taste U für Teil-Print, nicht still schreiben"
+                selectedFaceId = ready
+            }
+        }
+        if ready == nil { pendingUSlotFace = nil }
     }
 
     private func refreshSparkLamps(_ live: [FaceObservation]) {

@@ -16,6 +16,8 @@ enum MatchMath {
     static let continuitySharpnessFloor = 0.08
     static let tileBudget = 2
     static let lampSparkFrames = 8
+    static let printStaleDays = 90
+    static let maskHoldSeconds = 1.2
 
     enum Lamp: String, Equatable {
         case green, amber, red
@@ -106,6 +108,26 @@ enum MatchMath {
         if r >= g && r >= a { return .red }
         if a >= g { return .amber }
         return .green
+    }
+
+    /// Referenz älter als 90 Tage — Frisur/Bart driftet. UI macht sie paler.
+    static func printAgeDays(modified: Date?, now: Date = Date()) -> Int? {
+        guard let modified else { return nil }
+        return Int(now.timeIntervalSince(modified) / 86_400)
+    }
+
+    static func printStale(days: Int?, limit: Int = printStaleDays) -> Bool {
+        (days ?? 0) >= limit
+    }
+
+    /// Unscharfe Leave-one-out-Paare sind keine Identitätsfrage.
+    static func laborIncludesProbe(qualityRejected: Bool) -> Bool {
+        !qualityRejected
+    }
+
+    /// Live-Maske so lange halten, bevor „Taste U“ vorgeschlagen wird — nie still schreiben.
+    static func maskHoldReady(elapsed: Double, need: Double = maskHoldSeconds) -> Bool {
+        elapsed >= need
     }
 
     static func laborPairKind(probeMasked: Bool) -> String {

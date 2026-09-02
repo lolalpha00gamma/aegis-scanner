@@ -135,6 +135,7 @@ struct ContentView: View {
                     Button("U") { store.addSelectedAsPartial(identity.id) }
                         .disabled(store.selectedFace == nil || identity.faceIds.isEmpty)
                         .help("Als Teil-Print (obere Hälfte / Maske) speichern, auch ohne Auto-Maske.")
+                        .tint(store.pendingUSlotId != nil ? Color.orange : Color.accentColor)
                     Button(role: .destructive) { store.removeIdentity(identity.id) } label: {
                         Image(systemName: "trash")
                     }
@@ -631,10 +632,16 @@ struct FaceOverlay: View {
                         return store.faces.filter { ident.faceIds.contains($0.id) && $0.id != face.id }
                     }()
                     let hint = FaceEngine.overlayHint(face, gallery: gallery)
+                    let stale = pinned && MatchMath.printStale(days: MatchMath.printAgeDays(modified: face.enrolledAt))
                     let printLabel = printDead
                         ? "Print tot"
                         : String(format: "Print %.0f%%", printHit?.percent ?? 0)
-                    let badge = hint.map { "\(printLabel) · \($0)" } ?? printLabel
+                    let badge: String = {
+                        var s = hint.map { "\(printLabel) · \($0)" } ?? printLabel
+                        if store.pendingUSlotId == face.id { s += " · U?" }
+                        if stale { s += " · 90d" }
+                        return s
+                    }()
                     Button {
                         store.selectedFaceId = face.id
                         store.selectedMediaId = item.id
@@ -657,6 +664,7 @@ struct FaceOverlay: View {
                                         .padding(.horizontal, 5)
                                         .padding(.vertical, 1)
                                         .background((hint != nil && printDead) ? Color.red.opacity(0.78) : Color.black.opacity(0.7))
+                                        .opacity(stale ? 0.45 : 1)
                                 }
                                 .offset(x: 4, y: -10)
                             }

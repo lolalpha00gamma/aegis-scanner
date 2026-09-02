@@ -1,4 +1,4 @@
-# Aegis **2.1.12 alpha**
+# Aegis **2.1.13 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main` oder `bugfix`.
+
+## Neu in 2.1.13 alpha
+
+Warum 2.1.12 trotz Spark und U-Taste Live-Masken und alte Refs trotzdem falsch anfühlte: `pinByPrint` resetete 1-Euro, nicht die Ampel-History. Maske im Track schrieb nichts und schlug auch nichts vor. 90-Tage-Refs sahen aus wie frische.
+
+- **Spark-Reset nach Reconnect.** `lampHist` stirbt mit der Ghost-Box.
+- **U-Slot-Vorschlag nach 1,2 s Maske.** Overlay `U?`, Taste U, nie still schreiben. Snapshot beim Hold, nicht der wackelige Tick.
+- **Print-Alter 90 Tage.** `enrolledAt`, nicht Foto-mtime. Paler + Badge `90d`.
+- **Labor ohne qualityRejects.** Unscharfe Leave-one-out-Paare zählen nicht in TAR.
+- **gallery.json.bak** vor jedem persist.
 
 ## Neu in 2.1.12 alpha
 

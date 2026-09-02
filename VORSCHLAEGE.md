@@ -1,6 +1,16 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.12 alpha**. Branch `bugfix`. Fixes von 2.1.12 stehen auch in der README.
+Stand: **2.1.13 alpha**. Branch `bugfix`. Fixes von 2.1.13 stehen auch in der README.
+
+## In 2.1.13 wirklich im Code
+
+Warum 2.1.12 trotz Spark und U Live-Masken und Drift trotzdem falsch anfühlte: `pinByPrint` ließ `lampHist` am Ghost kleben. 1,2 s Maske im Track blieb stumm. Alte Refs ohne UI-Hinweis. Foto-mtime als Alter. Unscharfe Paare in TAR. Persist ohne Backup.
+
+1. **Spark-Reset** nach `pinByPrint`, analog 1-Euro.
+2. **U-Slot-Hold 1,2 s** → Vorschlag, nie silent write. Snapshot beim Ready, nicht der wackelige Tick.
+3. **Print-Alter 90 Tage** über `enrolledAt`, nicht Foto-mtime.
+4. **Labor lässt qualityRejects aus TAR.**
+5. **gallery.json.bak** vor jedem persist.
 
 ## In 2.1.12 wirklich im Code
 
@@ -84,9 +94,9 @@ Warum 2.1.5 trotz Cancel und HLS-Transform Galerien und Live trotzdem schief zog
 
 ## Nächste Fixes (klein)
 
-- **U-Slot vom Live-Hold.** 1,2 s Maske im Track → Vorschlag „als Teil-Print“, nie still schreiben.
-- **Print-Alter UI.** Referenz älter als 90 Tage paler, nicht nur Laborzeile.
-- **Spark reset nach pinByPrint**, analog 1-Euro — sonst klebt die Ampel am Ghost.
+- **Face-Box 2-Frame-Hysterese** unabhängig von der Ampel, wenn IoU < 0,35.
+- **Duplicate-skip beim Ingest.** Cosine > 0,95 zur gleichen Datei.
+- **Labor qualityRejects auch auf der Gallery-Seite.** Scharfe Probe gegen unscharfe Referenz verzerrt TAR weiter.
 
 ## Erweiterungen
 
@@ -110,7 +120,6 @@ Warum 2.1.5 trotz Cancel und HLS-Transform Galerien und Live trotzdem schief zog
 - **HEIC-Depth.** Yaw aus der Tiefenkarte.
 - **Negativ-IDs in der Laborliste** exportieren, nicht nur intern deckeln.
 - **Familien-Cluster UI.** Pairwise-Heatmap im Labor, nicht nur +4 Floor.
-- **Print-Alter.** Referenz älter als N Tage markieren — Frisur/Bart driftet.
 - **Zwei-Kamera-Live.** Built-in + Continuity parallel, derselbe Track über Print, nicht IoU.
 - **Gallery.json Schema-Version** neben printRevision, damit 2.x Leser 3.x Felder überspringen.
 - **Geschwister-Wizard.** Pairwise-Heatmap vorschlagen, Floor +4 bestätigen lassen.
@@ -153,3 +162,8 @@ Warum 2.1.5 trotz Cancel und HLS-Transform Galerien und Live trotzdem schief zog
 - Continuity-Laplacian 0,12 (Desk-View bleibt tot).
 - Hard-Negativ ohne „doch Name“.
 - Orient-Picker nur während Live.
+- Ampel-History nach `pinByPrint` weiterlaufen lassen (Ghost-Ampel).
+- Maske 1,2 s im Track still als U-Slot schreiben.
+- 90-Tage-Refs über Foto-mtime statt `enrolledAt`.
+- Unscharfe Leave-one-out-Paare in TAR.
+- gallery.json ohne `.bak` überschreiben.

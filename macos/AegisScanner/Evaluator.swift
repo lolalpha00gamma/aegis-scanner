@@ -19,6 +19,9 @@ enum LabReport {
             let owned = faces.filter { identity.faceIds.contains($0.id) }
             guard owned.count >= 2 else { continue }
             for (i, probe) in owned.enumerated() {
+                if !MatchMath.laborIncludesProbe(qualityRejected: FaceEngine.qualityRejects(probe.quality)) {
+                    continue
+                }
                 var held = identities
                 if let idx = held.firstIndex(where: { $0.id == identity.id }) {
                     var ids = owned.enumerated().compactMap { $0.offset == i ? nil : $0.element.id }
