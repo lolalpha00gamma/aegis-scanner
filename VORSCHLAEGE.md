@@ -1,6 +1,18 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.32 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.33 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.33 wirklich im Code
+
+2.1.32 PTS und Slot-Count — ein Look=Print-Tick taufte. Look≠Print zählte. Rename klebte. `.bak` ohne fsync. Kleine Box rauscht. Overlay ohne Slot/Namen.
+
+1. **`nameMajorityAgreeing` 2 Ticks.** Leere Tokens zählen nicht. Sonst keine Taufe.
+2. **`renameConfirmExpired` 8 s.**
+3. **`.bak` fsync** nach Copy.
+4. **`oneEuroCutoff` + Box-Fläche.** < 0,04 → ×1,45.
+5. **`slotLetter` + `liveNameDisagreeLabel`** im Overlay.
+6. Tests: agreeing, expired, slotLetter, kleine Box.
+7. MARKETING_VERSION 2.1.33 (Build 61), `Models.swift` + `VERSION` gleich.
 
 ## In 2.1.32 wirklich im Code
 
@@ -202,18 +214,16 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - **Enrollment AE-Lock.** `+` wartet 200 ms nach Belichtungssprung.
 - **Leftover-Print im Overlay** Cosine 0,64 als „gehalten 0,64“.
 - **Ampel G-Lampe** neben C/S/Y wenn lookOfCapped (rot) vs skip (grün).
-- **Uneinigkeit im Overlay.** Look-Name und Print-Name nebeneinander, nicht nur die Notiz.
-- **Taufe 2 Ticks.** Ein einzelner look=print Frame reicht nicht — `liveNameAgree` muss zwei Frames halten.
-- **1-Euro Cutoff aus Box-Fläche.** Kleines Gesicht rauscht mehr, Cutoff höher.
-- **pendingRename Timeout** 8 s, sonst klebt die Confirm an der nächsten Person.
-- **fsync auch für `.bak`** nach dem Copy, nicht nur die neue Datei.
-- **nameMajority nur agreeing Ticks.** look≠print zählt nicht als Stimme.
-- **Overlay Slot-Buchstabe** F/¾/P auf der Kiste, damit Trail-Reset sichtbar ist.
 - **gallery.json SHA-256** neben schemaVersion, Restore warnt bei Drift.
 - **Enrollment-Coach.** „Kopf nach links“ wenn ¾ fehlt, nicht nur Statuszeile.
 - **Crop-Align Augen** vor `VNGenerateFacePrint`.
 - **Live-FAR** aus den letzten 200 Impostor-Ticks im Labor.
 - **Galerie kompakt:** unscharfe same-Slot-Refs droppen, sobald eine scharfe da ist.
+- **3-Tick-Taufe bei familyBump** — Geschwister brauchen länger als Fremde (2.1.33 ist 2 für alle).
+- **pendingRename nur dieselbe UUID** — Confirm einer anderen Zeile ist tot (Timeout deckt 8 s).
+- **1-Euro minCutoff Slider** für Continuity vs Built-in, Fläche bleibt Bias.
+- **Uneinig-Namen nur Live**, Still-Fotos nicht mit Look/Print-Ghosts.
+- **Slot-Letter Farbe** (F grün, ¾ amber, P rot) analog Quality-Ampel.
 
 ## Erweiterungen
 
@@ -364,3 +374,9 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - Rename ohne Duplikat-Confirm.
 - gallery.json ohne fsync.
 - Overlay nur „Print 82%“ ohne Look.
+- Ein Look=Print-Tick tauft.
+- Look≠Print als Namensstimme.
+- Rename-Confirm ohne Timeout.
+- `.bak` ohne fsync.
+- 1-Euro Cutoff unabhängig von Box-Fläche.
+- Overlay ohne Slot-Buchstaben.

@@ -76,6 +76,10 @@ enum GalleryFile {
         if fm.fileExists(atPath: url.path) {
             try? fm.removeItem(at: backupURL)
             try? fm.copyItem(at: url, to: backupURL)
+            if let fh = FileHandle(forUpdatingAtPath: backupURL.path) {
+                try? fh.synchronize()
+                try? fh.close()
+            }
         }
         let tmp = url.appendingPathExtension("tmp")
         do {

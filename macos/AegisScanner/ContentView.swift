@@ -645,8 +645,15 @@ struct FaceOverlay: View {
                         if printDead { return "Print tot" }
                         let printPct = printHit?.percent ?? 0
                         let lookPct = aegisHit?.percent ?? printPct
-                        let base = MatchMath.lookPrintLabel(printPercent: printPct, look: lookPct)
-                        let capped = (aegisHit?.note ?? "").contains(MatchMath.lookOfCapNote())
+                        let slot = MatchMath.slotLetter(FaceEngine.poseSlot(face).rawValue)
+                        let base = "\(slot) · \(MatchMath.lookPrintLabel(printPercent: printPct, look: lookPct))"
+                        let note = aegisHit?.note ?? ""
+                        if note.contains(MatchMath.liveNameDisagreeNote()) {
+                            let lookName = store.identities.first { $0.id == aegisHit?.versus.first?.identityId }?.name
+                            let printName = store.identities.first { $0.id == printHit?.versus.first?.identityId }?.name
+                            return "\(base) · \(MatchMath.liveNameDisagreeLabel(lookName: lookName, printName: printName))"
+                        }
+                        let capped = note.contains(MatchMath.lookOfCapNote())
                         return capped ? "\(base) · \(MatchMath.lookOfCapNote())" : base
                     }()
                     let badge = hint.map { "\(printLabel) · \($0)" } ?? printLabel

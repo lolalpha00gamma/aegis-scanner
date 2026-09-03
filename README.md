@@ -1,4 +1,4 @@
-# Aegis **2.1.32 alpha**
+# Aegis **2.1.33 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.33 alpha
+
+2.1.32 hat PTS und Slot-Count — ein einzelner Look=Print-Tick taufte trotzdem. Look≠Print zählte als Stimme. Rename-Confirm klebte. `.bak` ohne fsync. Kleine Boxen rauschten. Overlay ohne Slot und ohne Uneinig-Namen.
+
+- **Taufe 2 Ticks.** `nameMajorityAgreeing` — leere Tokens zählen nicht.
+- **Rename-Confirm 8 s tot.**
+- **`.bak` fsync** nach dem Copy.
+- **1-Euro Cutoff aus Box-Fläche.** Kleines Gesicht rauscht mehr.
+- **Overlay Slot + Uneinig-Namen** `F · P 82 · L 82` / `L Anna · P Ben`.
 
 ## Neu in 2.1.32 alpha
 

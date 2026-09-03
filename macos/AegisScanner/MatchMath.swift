@@ -39,6 +39,10 @@ enum MatchMath {
     static let pruneCosine = 0.98
     static let nameVoteFrames = 5
     static let liveScoreAlpha = 0.35
+    /// Ein Look=Print-Tick tauft nicht. Zwei agreeing Stimmen.
+    static let nameAgreeNeed = 2
+    /// Rename-Confirm klebt sonst an der nächsten Person.
+    static let renameConfirmHold: TimeInterval = 8
     /// Starker Print ist Identität. Geo unter 35 darf ihn nicht auf 60 kappen.
     static let strongPrintFloor = 84.0
     /// Ab diesem Print-Wert vetoiert Kleidung/Haar nicht mehr. lookOf kappt ≥ 80 nie — Veto muss dasselbe tun.
@@ -117,6 +121,29 @@ enum MatchMath {
             return i < j
         }
         return ranked.first?.key
+    }
+
+    /// Leere Tokens (Look≠Print) zählen nicht. Sieger braucht `need` Stimmen.
+    static func nameMajorityAgreeing(
+        _ history: [String],
+        window: Int = nameVoteFrames,
+        need: Int = nameAgreeNeed
+    ) -> String? {
+        let agreeing = history.filter { !$0.isEmpty }
+        let slice = Array(agreeing.suffix(max(1, window)))
+        guard slice.count >= need else { return nil }
+        guard let winner = nameMajority(slice, window: window) else { return nil }
+        return slice.filter { $0 == winner }.count >= need ? winner : nil
+    }
+
+    /// Confirm nach 8 s tot — sonst gilt Return der nächsten Person.
+    static func renameConfirmExpired(
+        since: TimeInterval?,
+        now: TimeInterval,
+        hold: TimeInterval = renameConfirmHold
+    ) -> Bool {
+        guard let since else { return true }
+        return now - since >= hold
     }
 
     /// Live-Percent: erster Tick roh, danach EMA. Sonst flackert der Badge.
@@ -407,8 +434,10 @@ enum MatchMath {
     }
 
     /// 8 fps vs 24 fps: höherer Cutoff bei großem dt, sonst hängt die Box einen Frame hinterher.
-    static func oneEuroCutoff(base: Double, dt: Double) -> Double {
-        dt >= 0.10 ? base * 1.7 : base
+    static func oneEuroCutoff(base: Double, dt: Double, boxArea: Double = 1) -> Double {
+        let dtMul = dt >= 0.10 ? 1.7 : 1.0
+        let areaMul = boxArea > 0 && boxArea < 0.04 ? 1.45 : 1.0
+        return base * dtMul * areaMul
     }
 
     /// Labor auf schon eingeschriebenen Refs: Continuity-Floor 0,08, nicht 0,12.
@@ -568,6 +597,20 @@ enum MatchMath {
 
     static func slotCountLabel(frontal: Int, threeQuarter: Int, profile: Int, upper: Int) -> String {
         "F \(frontal) · ¾ \(threeQuarter) · P \(profile) · U \(upper)"
+    }
+
+    static func slotLetter(_ slot: String) -> String {
+        switch slot {
+        case "frontal": return "F"
+        case "threeQuarter": return "¾"
+        case "profile": return "P"
+        case "upper": return "U"
+        default: return "?"
+        }
+    }
+
+    static func liveNameDisagreeLabel(lookName: String?, printName: String?) -> String {
+        "L \(lookName ?? "—") · P \(printName ?? "—")"
     }
 
     /// Rename: gleicher Name einer *anderen* Identität → Confirm.
@@ -773,7 +816,7 @@ enum MatchMath {
             self.dCutoff = dCutoff
         }
 
-        mutating func filter(_ value: Double, now: Double) -> Double {
+        mutating func filter(_ value: Double, now: Double, boxArea: Double = 1) -> Double {
             guard let prev = xHat else {
                 xHat = value
                 tPrev = now
@@ -784,7 +827,7 @@ enum MatchMath {
             let dx = (value - prev) / dt
             let ad = alpha(dCutoff, dt: dt)
             dxHat = ad * dx + (1 - ad) * dxHat
-            let cutoff = MatchMath.oneEuroCutoff(base: minCutoff, dt: dt) + beta * abs(dxHat)
+            let cutoff = MatchMath.oneEuroCutoff(base: minCutoff, dt: dt, boxArea: boxArea) + beta * abs(dxHat)
             let a = alpha(cutoff, dt: dt)
             let hat = a * value + (1 - a) * prev
             xHat = hat

@@ -61,6 +61,7 @@ final class LibraryStore: ObservableObject {
     private var lastCameraUniqueID: String = ""
     private var pendingRenameId: UUID?
     private var pendingRenameName: String?
+    private var pendingRenameAt: TimeInterval?
 
     init() {
         let packed = GalleryFile.load()
@@ -582,7 +583,7 @@ final class LibraryStore: ObservableObject {
                 hist.removeFirst(hist.count - MatchMath.nameVoteFrames)
             }
             liveNameHist[fid] = hist
-            if let voted = MatchMath.nameMajority(hist) {
+            if let voted = MatchMath.nameMajorityAgreeing(hist) {
                 if voted.isEmpty {
                     hit.identityId = nil
                 } else if let ident = identities.first(where: { $0.id.uuidString == voted }) {
@@ -595,6 +596,8 @@ final class LibraryStore: ObservableObject {
                 } else {
                     hit.identityId = nil
                 }
+            } else {
+                hit.identityId = nil
             }
             let ema = MatchMath.liveScoreEMA(prev: liveScoreEma[fid], next: hit.percent)
             liveScoreEma[fid] = ema
@@ -858,15 +861,20 @@ final class LibraryStore: ObservableObject {
         guard let idx = identities.firstIndex(where: { $0.id == id }) else { return }
         guard identities[idx].name != name else { return }
         if MatchMath.renameConflict(newName: name, existing: identities.map(\.name), selfName: identities[idx].name) {
-            if pendingRenameName != name || pendingRenameId != id {
+            let now = Date().timeIntervalSince1970
+            if pendingRenameName != name || pendingRenameId != id
+                || MatchMath.renameConfirmExpired(since: pendingRenameAt, now: now)
+            {
                 pendingRenameName = name
                 pendingRenameId = id
+                pendingRenameAt = now
                 status = "Name \(name) existiert. Nochmal Return bestätigt den Konflikt."
                 return
             }
         }
         pendingRenameName = nil
         pendingRenameId = nil
+        pendingRenameAt = nil
         identities[idx].name = name
         persist()
         status = "\(name) umbenannt"
@@ -1125,14 +1133,15 @@ final class LibraryStore: ObservableObject {
                     boxJumpPending.removeValue(forKey: old.id)
                 }
                 let t = now
+                let area = face.box.width * face.box.height
                 var euro = boxEuro[old.id] ?? (
                     MatchMath.OneEuro(), MatchMath.OneEuro(), MatchMath.OneEuro(), MatchMath.OneEuro()
                 )
                 face.box = FaceBox(
-                    x: euro.x.filter(face.box.x, now: t),
-                    y: euro.y.filter(face.box.y, now: t),
-                    width: euro.w.filter(face.box.width, now: t),
-                    height: euro.h.filter(face.box.height, now: t)
+                    x: euro.x.filter(face.box.x, now: t, boxArea: area),
+                    y: euro.y.filter(face.box.y, now: t, boxArea: area),
+                    width: euro.w.filter(face.box.width, now: t, boxArea: area),
+                    height: euro.h.filter(face.box.height, now: t, boxArea: area)
                 )
                 boxEuro[old.id] = euro
                 let blend = MatchMath.liveBlendAlpha(continuity: liveCapture.isContinuity)
