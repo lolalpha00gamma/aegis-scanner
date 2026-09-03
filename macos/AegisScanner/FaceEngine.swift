@@ -661,6 +661,22 @@ enum FaceEngine {
             versus.sort { $0.percent > $1.percent }
             printVersus.sort { $0.percent > $1.percent }
             geoVersus.sort { $0.percent > $1.percent }
+            let printWinnerEarly = printVersus.first
+            let printMarginEarly = (printWinnerEarly?.percent ?? 0) - (printVersus.dropFirst().first?.percent ?? 0)
+            var printLed = false
+            if MatchMath.liveNamePrintLeads(
+                lookId: versus.first?.identityId,
+                printId: printWinnerEarly?.identityId,
+                printMeasured: pv.count >= 32,
+                printMargin: printMarginEarly
+            ), let pWin = printWinnerEarly,
+               let idx = versus.firstIndex(where: { $0.identityId == pWin.identityId })
+            {
+                var row = versus.remove(at: idx)
+                row.percent = pWin.percent
+                versus.insert(row, at: 0)
+                printLed = true
+            }
             let best = versus.first
             let second = versus.dropFirst().first
             let margin = (best?.percent ?? 0) - (second?.percent ?? 0)
@@ -724,6 +740,9 @@ enum FaceEngine {
                 decidedId = nil
                 let disagree = MatchMath.liveNameDisagreeNote()
                 note = note.isEmpty ? disagree : disagree + ". " + note
+            } else if printLed {
+                let lead = MatchMath.liveNamePrintLeadsNote()
+                note = note.isEmpty ? lead : lead + ". " + note
             }
             let printHit = StrategyHit(
                 strategy: .featurePrint,

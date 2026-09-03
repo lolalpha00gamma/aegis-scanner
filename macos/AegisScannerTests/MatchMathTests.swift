@@ -111,9 +111,27 @@ enum MatchMathTests {
         let idLook = UUID(uuidString: "00000000-0000-0000-0000-0000000000AA")!
         let idPrint = UUID(uuidString: "00000000-0000-0000-0000-0000000000BB")!
         ok(MatchMath.liveNameAgree(lookId: idLook, printId: idLook, printMeasured: true), "Look=Print tauft")
-        ok(!MatchMath.liveNameAgree(lookId: idLook, printId: idPrint, printMeasured: true), "Look≠Print keine Taufe")
+        ok(!MatchMath.liveNameAgree(lookId: idLook, printId: idPrint, printMeasured: true), "Look≠Print 3-arg keine Taufe")
         ok(MatchMath.liveNameAgree(lookId: idLook, printId: idPrint, printMeasured: false), "ohne Print Look nicht blocken")
         ok(!MatchMath.liveNameAgree(lookId: nil, printId: idPrint, printMeasured: true), "Look fehlt keine Taufe")
+        ok(
+            MatchMath.liveNamePrintLeads(lookId: idLook, printId: idPrint, printMeasured: true, printMargin: 12),
+            "Print-Abstand 12 → Print führt"
+        )
+        ok(
+            !MatchMath.liveNamePrintLeads(lookId: idLook, printId: idPrint, printMeasured: true, printMargin: 2),
+            "Print-Abstand 2 Geschwister, nicht führen"
+        )
+        ok(
+            !MatchMath.liveNamePrintLeads(lookId: idLook, printId: idLook, printMeasured: true, printMargin: 12),
+            "Look=Print braucht kein Führen"
+        )
+        ok(
+            !MatchMath.liveNamePrintLeads(lookId: idLook, printId: idPrint, printMeasured: false, printMargin: 12),
+            "ohne Print nicht führen"
+        )
+        ok(MatchMath.liveNamePrintLeadsNote() == "Print führt", "Print-führt-Notiz")
+        ok(!MatchMath.leftoverStarvesVote(), "leftover hungert Votes nicht jeden Tick")
         ok(MatchMath.liveNameDisagreeNote() == "Look und Print uneinig", "Uneinig-Notiz")
         ok(MatchMath.printTrailAccepts(prevSlot: nil, nextSlot: "frontal"), "erster Slot darf in den Trail")
         ok(MatchMath.printTrailAccepts(prevSlot: "frontal", nextSlot: "frontal"), "gleicher Slot bleibt")

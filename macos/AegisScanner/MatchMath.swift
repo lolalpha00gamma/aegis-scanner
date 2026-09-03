@@ -656,6 +656,27 @@ enum MatchMath {
         return lookId != nil && lookId == printId
     }
 
+    /// Look≠Print: Print führt, wenn der Abstand zum Zweit-Print klar ist.
+    /// Geo-Rauschen (Jacke/Haar) hebt oft den Look-Geschwister über den echten Print-Sieger —
+    /// dann war Live tot, weil `liveNameAgree` jeden Tick blockte.
+    static let liveNamePrintMargin = 8.0
+
+    static func liveNamePrintLeads(
+        lookId: UUID?,
+        printId: UUID?,
+        printMeasured: Bool,
+        printMargin: Double
+    ) -> Bool {
+        guard printMeasured, let lookId, let printId, lookId != printId else { return false }
+        return printMargin >= liveNamePrintMargin
+    }
+
+    static func liveNamePrintLeadsNote() -> String { "Print führt" }
+
+    /// leftover wischt die Hist der Vorperson **einmal am Pin**.
+    /// Jeden Tick leere Tokens zu füttern hungert Genuine 0,64–0,79 aus — nie Taufe.
+    static func leftoverStarvesVote() -> Bool { false }
+
     static func liveNameDisagreeNote() -> String { "Look und Print uneinig" }
 
     /// IoU-Hysterese und Print-Pin uneinig → Print gewinnt im selben Pass (kein 2-Frame-Flackern).

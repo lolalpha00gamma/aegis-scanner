@@ -1,6 +1,15 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.38 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.39 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.39 wirklich im Code
+
+2.1.38 leftover orange / Coach — Live taufte trotzdem nicht: `lookOf` hebt den Geo-Geschwister (Jacke/Haar +4) über den Print-Sieger, `liveNameAgree` setzt **jeden** Tick `identityId = nil`. Leftover 0,64–0,79 wischte die Namens-Hist **jeden Frame** (`leftoverWipeHist` in `stabilizeLiveMatches`) — Genuine sitzt orange „gehalten 0,64“ und die Mehrheit kommt nie.
+
+1. **`liveNamePrintLeads`.** Look≠Print und Print-Abstand ≥ 8 → versus auf den Print-Sieger, `decide` sieht denselben. Geo-Rauschen tauft nicht den Nachbarn, blockt aber auch nicht mehr.
+2. **`leftoverStarvesVote = false`.** Wipe nur am Pin (`applyLiveFaces`). Votes laufen. Sobald Mehrheit sitzt, `leftoverHold` weg — Kiste grün, nicht ewig orange.
+3. Tests: Print-führt 12 vs 2, leftoverStarvesVote.
+4. MARKETING_VERSION 2.1.39 (Build 66), `Models.swift` + `VERSION` gleich.
 
 ## In 2.1.38 wirklich im Code
 
@@ -358,6 +367,15 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - **liveCentroid Cache** am Identity-Modell, nicht jedes Live-Frame neu mischen.
 - **Yaw-bedingtes leftover:** ¾-Sonde gegen leftover ¾-Print, nicht Frontal-Ghost.
 - **Quality-Spark der leftover-UUID** im Overlay, damit man sieht warum 0,64 hielt.
+- **Coach-Pfeil** auf der Kiste (‹ ›) statt nur Text — Richtung beim Live-Anlegen.
+- **Live-Name in unselektierter Kiste** sobald Mehrheit sitzt (jetzt nur selected overlayName).
+- **Identitäten-Merge-Wizard** bei Centroid 0,89–0,94 statt still zwei Personen.
+- **Pairwise-Heatmap klickbar** im Labor (Genuine vs Impostor).
+- **Print-Drift-Spark** Overlay-Linie Cosine zum Centroid über 8 Frames.
+- **AE-Lock 200 ms** nach Belichtungssprung beim `+`.
+- **Crop-Align Augen** vor `VNGenerateFacePrint` (Roll-Korrektur).
+- **Pose-Balken F/¾/P** neben dem Namen, Coach sagt wohin, Balken sagt wie viel.
+- **Hold-Still-Ring** 0,8 s im Overlay bevor Print-Request.
 - **decide-Notiz „Print gekappt“** nur unter 70 — 2.1.27 kappt ≥80 nicht mehr, Log fehlte.
 - **Pairwise leftover vs. enrolled** eine Zeile im Labor (war der Pin zu Recht 0,64?).
 - **lookOf-Delta im Overlay** (Print 82 → look 82, Geo 18) wenn Veto skippt — sonst wirkt 80 % „tot“.
@@ -459,4 +477,7 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - Close-Pair ohne Badge.
 - leftover ≥ 0,80 weiter orange nach Taufe.
 - Anlegen ohne Coach („Pose fehlt ¾“ ohne Richtung).
+- Look≠Print bei Print-Abstand ≥ 8 totlegen (Geo-Rauschen = nie Taufe).
+- leftover jeden Tick leere Namens-Tokens füttern (Genuine 0,64–0,79 hungert).
+- leftoverHold nach erfolgreicher Mehrheit stehen lassen (ewig orange).
 - `bugfix`-Branch anlegen oder fortsetzen. Nur `main`.

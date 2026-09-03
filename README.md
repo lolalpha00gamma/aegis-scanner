@@ -1,4 +1,30 @@
-# Aegis **2.1.38 alpha**
+# Aegis **2.1.39 alpha**
+
+**Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
+
+Direkt laden:
+- [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
+- [Releases](https://github.com/lolalpha00gamma/aegis-scanner/releases)
+
+Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
+
+## Installieren
+
+1. [`Aegis.dmg`](./Aegis.dmg) öffnen
+2. **Aegis** in den Ordner Programme ziehen
+3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
+
+macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.39 alpha
+
+2.1.38 Coach / leftover-Farbe — Live taufte trotzdem nicht. `lookOf` hebt den Geo-Geschwister (Jacke/Haar) über den Print-Sieger, `liveNameAgree` blockt **jeden** Tick. Leftover 0,64–0,79 wischte die Namens-Hist jedes Frame — Genuine blieb orange „gehalten 0,64“.
+
+- **Print führt.** Look≠Print und Print-Abstand ≥ 8 → der Print-Sieger, nicht tot.
+- **Leftover hungert nicht.** Wipe nur am Pin. Mehrheit darf taufen, Kiste wird grün.
+- **VERSION = Models = MARKETING_VERSION 2.1.39** (Build 66).
+
+## Neu in 2.1.38 alpha
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 

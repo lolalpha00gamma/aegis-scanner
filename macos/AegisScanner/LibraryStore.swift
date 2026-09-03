@@ -591,13 +591,11 @@ final class LibraryStore: ObservableObject {
             if !hit.measured {
                 continue
             }
-            let token: String
-            if leftoverHold[fid] != nil, MatchMath.leftoverWipeHist(cosine: leftoverHold[fid]) {
-                token = ""
-                hit.identityId = nil
-            } else {
-                token = hit.identityId?.uuidString ?? ""
-            }
+            // leftover wischt Hist einmal am Pin (applyLiveFaces). Hier nicht jeden Tick
+            // leere Tokens füttern — sonst tauft Genuine 0,64–0,79 nie.
+            let token = MatchMath.leftoverStarvesVote() && leftoverHold[fid] != nil
+                ? ""
+                : (hit.identityId?.uuidString ?? "")
             var hist = liveNameHist[fid] ?? []
             hist.append(token)
             let vs = hit.versus
@@ -613,6 +611,7 @@ final class LibraryStore: ObservableObject {
             }
             liveNameHist[fid] = hist
             if let voted = MatchMath.nameMajorityAgreeing(hist, need: need) {
+                leftoverHold.removeValue(forKey: fid)
                 if voted.isEmpty {
                     hit.identityId = nil
                 } else if let ident = identities.first(where: { $0.id.uuidString == voted }) {
