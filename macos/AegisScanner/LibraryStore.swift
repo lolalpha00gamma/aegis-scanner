@@ -610,7 +610,11 @@ final class LibraryStore: ObservableObject {
             let hist = MatchMath.nameHistAppend(liveNameHist[fid] ?? [], token: token, cap: cap)
             liveNameHist[fid] = hist
             let voted = MatchMath.nameMajorityAgreeing(hist, window: cap, need: need)
-            let keep = MatchMath.nameLockHolds(voted: voted, locked: liveNameLock[fid]?.uuidString)
+            let holding = leftoverHold[fid] != nil
+            let keep = MatchMath.nameLockHolds(
+                voted: voted,
+                locked: MatchMath.leftoverLocked(locked: liveNameLock[fid]?.uuidString, holding: holding)
+            )
             if let keep, let ident = identities.first(where: { $0.id.uuidString == keep }) {
                 leftoverHold.removeValue(forKey: fid)
                 liveNameLock[fid] = ident.id
@@ -1296,7 +1300,6 @@ final class LibraryStore: ObservableObject {
             }
             let order = MatchMath.leftoverRank(leftoverItems.map { ($0.old.id, $0.bestCos) })
             var leftoverPins = 0
-            leftoverHold = [:]
             for id in order {
                 guard let item = leftoverItems.first(where: { $0.old.id == id }) else { continue }
                 let remaining = item.cands.filter { cand in
@@ -1333,9 +1336,13 @@ final class LibraryStore: ObservableObject {
                         liveNameHist.removeValue(forKey: old.id)
                         liveNameLock.removeValue(forKey: old.id)
                         liveScoreEma.removeValue(forKey: old.id)
+                    } else {
+                        leftoverHold.removeValue(forKey: adopted[bestJ].id)
                     }
                 }
             }
+            let liveIds = Set(adopted.map(\.id))
+            leftoverHold = leftoverHold.filter { liveIds.contains($0.key) }
             if leftoverPins > 0, let line = MatchMath.leftoverPinStatus(
                 count: leftoverPins,
                 cosine: leftoverHold.values.max()

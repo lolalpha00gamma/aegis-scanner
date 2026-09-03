@@ -1,4 +1,4 @@
-# Aegis **2.1.41 alpha**
+# Aegis **2.1.42 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,14 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.42 alpha
+
+2.1.41 hat Namens-Lock — leftover 0,64 taufte trotzdem. Nach Dropout bleibt dieselbe Live-UUID, `leftoverHold` **und** `liveNameLock` auf Anna. `nameLockHolds(voted:nil, locked:Anna)` schreibt den Namen ohne Vote, `leftoverHold.removeValue` macht die Kiste grün. Hold wurde dazu jeden Frame geleert — orange „gehalten 0,64“ nur ein Tick.
+
+- **Leftover überspringt Lock.** `leftoverLocked` gibt nil solange Hold sitzt. Mehrheit tauft weiterhin.
+- **Hold bleibt** bis Mehrheit oder Track weg. Pin ≥ 0,80 nimmt Hold weg.
+- **VERSION = Models = MARKETING_VERSION 2.1.42** (Build 69).
 
 ## Neu in 2.1.41 alpha
 

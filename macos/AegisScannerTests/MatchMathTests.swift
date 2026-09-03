@@ -161,6 +161,18 @@ enum MatchMathTests {
         ok(MatchMath.nameLockHolds(voted: nil, locked: "A") == "A", "ohne Mehrheit hält Lock")
         ok(MatchMath.nameLockHolds(voted: "", locked: "A") == "A", "leere Vote hält Lock")
         ok(MatchMath.nameLockHolds(voted: nil, locked: nil) == nil, "ohne Lock tot")
+        ok(MatchMath.leftoverSkipsLock(holding: true), "leftover überspringt Lock")
+        ok(!MatchMath.leftoverSkipsLock(holding: false), "ohne leftover Lock gilt")
+        ok(MatchMath.leftoverLocked(locked: "A", holding: true) == nil, "Hold 0,64 kein Lock-Anna")
+        ok(MatchMath.leftoverLocked(locked: "A", holding: false) == "A", "ohne Hold Lock bleibt")
+        ok(
+            MatchMath.nameLockHolds(voted: nil, locked: MatchMath.leftoverLocked(locked: "A", holding: true)) == nil,
+            "0,64 leftover tauft nicht über Lock"
+        )
+        ok(
+            MatchMath.nameLockHolds(voted: "A", locked: MatchMath.leftoverLocked(locked: "A", holding: true)) == "A",
+            "Mehrheit tauft leftover"
+        )
         ok(MatchMath.liveNameDisagreeNote() == "Look und Print uneinig", "Uneinig-Notiz")
         ok(MatchMath.printTrailAccepts(prevSlot: nil, nextSlot: "frontal"), "erster Slot darf in den Trail")
         ok(MatchMath.printTrailAccepts(prevSlot: "frontal", nextSlot: "frontal"), "gleicher Slot bleibt")

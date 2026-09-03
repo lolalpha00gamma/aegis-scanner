@@ -1,6 +1,15 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.41 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.42 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.42 wirklich im Code
+
+2.1.41 Namens-Lock — leftover 0,64 taufte trotzdem: `leftoverHold[fid]` gesetzt **und** `liveNameLock` noch Anna (gleiche Live-UUID nach Dropout). `nameLockHolds(voted:nil, locked:Anna)=Anna`, dann `leftoverHold.removeValue` — Overlay grün bei Cosine 0,64. Hold wurde jeden Frame mit `leftoverHold = [:]` gelöscht, orange „gehalten“ nur ein Tick.
+
+1. **`leftoverSkipsLock` / `leftoverLocked`.** Lock nur wenn `leftoverHold[fid] == nil`. Mehrheit (voted) tauft weiterhin.
+2. **Hold bleibt.** `leftoverHold` nicht mehr jeden Frame leeren — orange bis Mehrheit oder Track weg. Pin ≥ 0,80 nimmt Hold weg.
+3. Tests: Hold 0,64 kein Lock-Anna; Mehrheit tauft leftover.
+4. MARKETING_VERSION 2.1.42 (Build 69), `Models.swift` + `VERSION` gleich.
 
 ## In 2.1.41 wirklich im Code
 
@@ -276,6 +285,7 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 
 ## Nächste Fixes (klein)
 
+- **Leftover überspringt Lock.** 0,64 tauft nicht über `nameLockHolds`. **→ 2.1.42 leftoverLocked**
 - **Leere Tokens nicht im Cap.** **→ 2.1.41 nameHistAppend**
 - **Namens-Lock nach Taufe.** **→ 2.1.41 nameLockHolds**
 - **Vote-Fenster ≥ Need.** Familie 7 bei Window 5. **→ 2.1.40 nameMajorityAgreeing**
@@ -365,7 +375,10 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 
 ## Erweiterungen
 
-- **Taufe-Hysterese / Namens-Lock.** **→ 2.1.41** Ein Look≠Print-Tick nach Mehrheit darf nicht nil setzen.
+- **Taufe-Hysterese / Namens-Lock.** **→ 2.1.41** Ein Look≠Print-Tick nach Mehrheit darf nicht nil setzen. Leftover-Hold **→ 2.1.42 leftoverLocked**
+- **Lock-HUD halten.** Overlay `hält` statt `2/3` sobald Lock sitzt — Uneinig-Ticks wirken sonst tot.
+- **IVF ab 50 IDs.** Brute-Force Cosine wird bei Familien-Galerien langsam; Inverted-File / ANN nur als Lookup, decide bleibt.
+- **Continuity-Print jeden 2. Frame.** `VNGenerateFacePrint` bei 24 fps verdoppelt die Last; 8 fps bleibt jeder Frame. Trail/Median fängt den Skip.
 - **Yaw-Velocity Freeze** vor neuer Stimme, wenn der Kopf sich dreht.
 - **Print-Qualität vor Vote** (unscharfer Tick keine Stimme).
 - **Open-Set Unknown.** Explizite Klasse mit eigener Schwelle, nicht nur Floor.

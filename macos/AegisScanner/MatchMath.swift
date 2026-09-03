@@ -704,6 +704,15 @@ enum MatchMath {
         return nil
     }
 
+    /// leftover 0,64–0,79: Lock der Vorperson nicht anwenden.
+    /// Sonst nameLockHolds(voted:nil, locked:Anna) tauft ohne Vote.
+    static func leftoverSkipsLock(holding: Bool) -> Bool { holding }
+
+    /// Lock nur ohne leftover-Hold. Mehrheit (voted) bleibt der Tauf-Pfad.
+    static func leftoverLocked(locked: String?, holding: Bool) -> String? {
+        leftoverSkipsLock(holding: holding) ? nil : locked
+    }
+
     static func liveNameDisagreeNote() -> String { "Look und Print uneinig" }
 
     /// IoU-Hysterese und Print-Pin uneinig → Print gewinnt im selben Pass (kein 2-Frame-Flackern).
