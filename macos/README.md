@@ -1,7 +1,7 @@
 # Aegis
 
 Lokaler Image- & Video-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**  
-Version **2.1.50 alpha**.
+Version **2.1.51 alpha**.
 
 ## Image-Datei
 
@@ -12,6 +12,10 @@ Version **2.1.50 alpha**.
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Die Datei ist ad-hoc signiert (kein Apple-Developer-Account) — deshalb der Rechtsklick beim ersten Start.
+
+## Neu in 2.1.51 alpha
+
+Dropout IoU tot auch ohne Print, Ghost-Print braucht Baptize 0,80, leftoverAssign Twin-Spread, Enrollment-Burst auf `+`. VERSION = Models = MARKETING 2.1.51 (Build 78).
 
 ## Neu in 2.1.50 alpha
 

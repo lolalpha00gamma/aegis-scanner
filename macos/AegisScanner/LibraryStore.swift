@@ -847,12 +847,23 @@ final class LibraryStore: ObservableObject {
             return
         }
         let incoming = FaceEngine.embedding(of: face)
+        let incomingSlot = FaceEngine.poseSlot(face).rawValue
         if incoming.count >= 32 {
             for existingId in identities[idx].faceIds {
                 guard let old = faces.first(where: { $0.id == existingId }) else { continue }
                 let ov = FaceEngine.embedding(of: old)
                 guard ov.count == incoming.count else { continue }
                 let c = MatchMath.cosine(incoming, ov)
+                let age = Date().timeIntervalSince(old.enrolledAt ?? .distantPast)
+                if MatchMath.enrollmentBurstDup(
+                    sameSlot: FaceEngine.poseSlot(old).rawValue == incomingSlot,
+                    cosine: c,
+                    within: age
+                ) {
+                    dropOrphanSnapshot(face, original: raw)
+                    status = "Burst-Duplikat — gleiche Pose in 400 ms, Referenz von \(identities[idx].name) bleibt"
+                    return
+                }
                 if let keepNew = MatchMath.pruneKeepIncoming(
                     cosine: c,
                     incomingSharp: face.quality.sharpness,
@@ -1348,10 +1359,19 @@ final class LibraryStore: ObservableObject {
                 reconnectGhosts.contains { $0.id == pin.id }
                     || liveGhosts.contains { $0.face.id == pin.id }
             } ?? false
-            if printPin != nil, MatchMath.reconnectPrefersPrint(gap: liveDt, fromGhost: pinGhost) {
-                takePrint = true
+            let dropPrint = MatchMath.reconnectPrefersPrint(gap: liveDt, fromGhost: pinGhost)
+            if let pin = printPin, dropPrint {
+                let pinVec = pin.printVec.count >= 32 ? pin.printVec : FaceEngine.embedding(of: pin)
+                let pinCos: Double? = {
+                    if probeVec.count >= 32, pinVec.count == probeVec.count { return MatchMath.cosine(probeVec, pinVec) }
+                    return nil
+                }()
+                if !MatchMath.reconnectGhostNeedsBaptize(fromGhost: pinGhost, cosine: pinCos) {
+                    takePrint = true
+                }
             }
-            if let old = best, !takePrint {
+            // Dropout / Ghost: IoU tot — auch ohne Print keine Box-Taufe.
+            if let old = best, !takePrint, !dropPrint {
                 used.insert(old.id)
                 face.id = old.id
                 face.trackId = old.trackId ?? old.id
@@ -1571,7 +1591,10 @@ final class LibraryStore: ObservableObject {
                     }
                     scores.append(row)
                 }
-                let assigned = MatchMath.leftoverAssign(scores: scores)
+                let assigned = MatchMath.leftoverAssignDropAmbiguous(
+                    scores: scores,
+                    assigned: MatchMath.leftoverAssign(scores: scores)
+                )
                 for (r, col) in assigned.enumerated() {
                     guard let col, r < unusedLeft.count, col < unnamedLeft.count else { continue }
                     let old = unusedLeft[r]

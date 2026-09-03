@@ -1,6 +1,17 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.50 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.51 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.51 wirklich im Code
+
+2.1.50 leftover Spread/Twin — Dropout ohne Print fiel auf IoU. Ghost 0,64 stahl UUID. 2-opt taufte Twin-Zeilen. Burst-Refs in 200 ms.
+
+1. **`reconnectSkipsIoU`.** Dropout/Ghost: IoU-Pfad aus, auch ohne Print.
+2. **`reconnectGhostNeedsBaptize`.** Ghost-Print < 0,80 kein Pin.
+3. **`leftoverAssignDropAmbiguous`.** Spread < 0,08 droppt die 2-opt-Zeile.
+4. **`enrollmentBurstDup`.** `+` Slot + 0,95 in 400 ms.
+5. Tests: Assign-Drop, Skip-IoU, Ghost-Baptize, Burst.
+6. MARKETING_VERSION 2.1.51 (Build 78), `Models.swift` + `VERSION` gleich.
 
 ## In 2.1.50 wirklich im Code
 
@@ -88,11 +99,8 @@ Die Punkte leftover Ambiguity, Twin-Veto, Mouth-open, Reconnect-Ghost, Slot-Hyst
 - **Glasses as Slot.** Brille an/aus nicht neue Identität.
 - **Track-ID in Labor-CSV.**
 - **CLAHE vor Print** bei Continuity, sonst Nacht-Print driftet.
-- **Enrollment-Burst Dedup nach Pose.** gleicher Slot + Cosine 0,95 in 400 ms = ein Ref.
-- **leftoverAssign Spalte** mit Top-2 Spread < 0,08 nicht zuweisen (2-opt Kreuz bleibt, Twin-Spalte nicht).
 - **leftover-Streak in Sekunden** wenn dt springt, nicht nur Frames.
 - **Ghost-TTL = leftoverAdoptSec** (1,8 vs 1,2 — Ghost überlebt Walk).
-- **Print-Pin aus Ghost braucht leftoverBaptize.** Sonst Walker-Print 0,64 stiehlt UUID.
 - **Name-Lock nach Wipe nur wenn Hist < 4.** Starke Locks nicht 800 ms stumm.
 - **Unknown-Reject** wenn alle Gallery-Scores < 0,50, Overlay statt Taufe.
 - **Partial-Print bei Maske.** `meanPartialVector` statt Vote-Skip wenn U-Slot-Refs da sind.
@@ -101,6 +109,19 @@ Die Punkte leftover Ambiguity, Twin-Veto, Mouth-open, Reconnect-Ghost, Slot-Hyst
 - **Name-Farbe sticky** nach Lock, nicht jedes Tick neu.
 - **Nacht-ISO Banner** wenn Capture < 0,30 drei Frames — CLAHE vorschlagen.
 - **Twin-Wizard.** pairCosine 0,89–0,94 → „dieselbe Person?“ statt still taufen.
+- **Ransac-1 Print.** Outlier-Frame nicht in den Median-Trail.
+- **Identity-Graph.** Wer mit wem im Bild — Soft-Prior, nie Taufe.
+- **Liveness-Blink.** 1 Lid-Toggle in 2 s sonst Poster.
+- **Cross-Cam ReID.** Built-in → Continuity gleiche UUID über Print, nicht IoU.
+- **Hard-Negatives aus leftover-Miss.** Labor-CSV automatisch.
+- **PnP-Pose.** 6DoF statt nur Yaw, Slot-Hysterese folgt der Nase.
+- **Enrollment-Retake.** Unschärfe 3× hintereinander → Overlay „nochmal halten“.
+- **Track birth/death Log.** Overlay `+Anna` / `−Ben` 0,45 s.
+- **Voice-Print optional.** Zweite Stimme nur Confirm, nie Live-Taufe.
+
+## Nächste (offen, 2.1.50 — erledigt in 2.1.51)
+
+Die Punkte leftoverAssign-Ambiguity, Ghost-Baptize, Dropout-IoU-Skip, Enrollment-Burst sitzen in 2.1.51.
 
 ## In 2.1.45 wirklich im Code
 

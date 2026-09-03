@@ -1,4 +1,4 @@
-# Aegis **2.1.50 alpha**
+# Aegis **2.1.51 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,17 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.51 alpha
+
+2.1.50 leftover Spread/Twin — Dropout ohne Print fiel auf IoU zurück. Ghost-Print 0,64 stahl die UUID. 2-opt leftoverAssign taufte Zwillinge (Spread in leftoverPick, nicht in der Matrix). Burst-Refs derselben Pose in 200 ms.
+
+- **Dropout IoU tot.** Auch ohne Print-Pin keine Box-Taufe.
+- **Ghost braucht Baptize.** Print < 0,80 aus Ghost kein Pin.
+- **leftoverAssign Ambiguity.** Spread < 0,08 droppt die 2-opt-Zeile.
+- **Enrollment-Burst Dedup.** `+` gleicher Slot + 0,95 in 400 ms.
+- Tests: Assign-Drop, Skip-IoU, Ghost-Baptize, Burst.
+- VERSION = Models = MARKETING_VERSION 2.1.51 (Build 78).
 
 ## Neu in 2.1.50 alpha
 

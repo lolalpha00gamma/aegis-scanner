@@ -1206,6 +1206,22 @@ enum MatchMath {
         return result
     }
 
+    /// 2-opt-Zeile: Top-2 Spread < 0,08 nicht zuweisen (Twin-Spalte).
+    static func leftoverAssignDropAmbiguous(
+        scores: [[Double?]],
+        assigned: [Int?]
+    ) -> [Int?] {
+        var out = assigned
+        let n = min(out.count, scores.count)
+        for r in 0..<n {
+            let vals = scores[r].compactMap { $0 }
+            if leftoverAmbiguous(scores: vals) {
+                out[r] = nil
+            }
+        }
+        return out
+    }
+
     /// Nach leftover-Wipe 800 ms stumm — Genuine 0,64 tauft den Nachbarn sonst sofort.
     static let leftoverWipeMuteSec: TimeInterval = 0.80
 
@@ -1235,6 +1251,29 @@ enum MatchMath {
 
     static func reconnectPrefersPrint(gap: TimeInterval, fromGhost: Bool = false, need: TimeInterval = reconnectGapSec) -> Bool {
         fromGhost || gap >= need
+    }
+
+    /// Ghost-Print < 0,80 stiehlt die UUID (Walker 0,64). Dropout ohne Print: IoU tot.
+    static func reconnectGhostNeedsBaptize(fromGhost: Bool, cosine: Double?) -> Bool {
+        fromGhost && !leftoverBaptize(cosine: cosine)
+    }
+
+    static func reconnectSkipsIoU(gap: TimeInterval, fromGhost: Bool = false) -> Bool {
+        reconnectPrefersPrint(gap: gap, fromGhost: fromGhost)
+    }
+
+    /// Enrollment: gleicher Slot + Cosine 0,95 in 400 ms = Burst, nicht zweite Pose.
+    static let enrollmentBurstWindow: TimeInterval = 0.40
+    static let enrollmentBurstCosine = 0.95
+
+    static func enrollmentBurstDup(
+        sameSlot: Bool,
+        cosine: Double?,
+        within: TimeInterval,
+        window: TimeInterval = enrollmentBurstWindow,
+        floor: Double = enrollmentBurstCosine
+    ) -> Bool {
+        sameSlot && within >= 0 && within < window && (cosine ?? 0) >= floor
     }
 
     /// Nach Deskew: Laplacian < 0,10 = Motion-Blur, Print verwerfen.

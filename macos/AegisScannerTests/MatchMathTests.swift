@@ -837,6 +837,21 @@ enum MatchMathTests {
             !MatchMath.leftoverAmbiguousBlocks(raw: [0.82, 0.64], scored: [0.82, 0.64]),
             "klarer Spread kein Block"
         )
+        let ambigAssign = MatchMath.leftoverAssignDropAmbiguous(
+            scores: [[0.70, 0.69], [0.88, 0.40]],
+            assigned: [0, 1]
+        )
+        ok(ambigAssign[0] == nil, "2-opt Twin-Zeile drop")
+        ok(ambigAssign[1] == 1, "klare Zeile bleibt")
+        ok(MatchMath.reconnectSkipsIoU(gap: 0.45), "Dropout IoU tot")
+        ok(!MatchMath.reconnectSkipsIoU(gap: 0.12), "stetig IoU bleibt")
+        ok(MatchMath.reconnectGhostNeedsBaptize(fromGhost: true, cosine: 0.64), "Ghost 0,64 kein Pin")
+        ok(!MatchMath.reconnectGhostNeedsBaptize(fromGhost: true, cosine: 0.82), "Ghost 0,82 darf")
+        ok(!MatchMath.reconnectGhostNeedsBaptize(fromGhost: false, cosine: 0.64), "kein Ghost kein Baptize-Zwang")
+        ok(MatchMath.enrollmentBurstDup(sameSlot: true, cosine: 0.97, within: 0.20), "Burst Dedup")
+        ok(!MatchMath.enrollmentBurstDup(sameSlot: true, cosine: 0.97, within: 0.80), "Burst Fenster vorbei")
+        ok(!MatchMath.enrollmentBurstDup(sameSlot: false, cosine: 0.97, within: 0.20), "anderer Slot kein Dedup")
+        ok(!MatchMath.enrollmentBurstDup(sameSlot: true, cosine: 0.80, within: 0.20), "Cosine 0,80 kein Dedup")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)
