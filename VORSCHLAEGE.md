@@ -1,6 +1,15 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.37 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.38 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.38 wirklich im Code
+
+2.1.37 leftover orange / Taufe-Hold — leftover ≥ 0,80 blieb orange, obwohl leftoverBaptize den Namen schreiben durfte. Anlegen nur Statuszeile „Pose fehlt ¾“, Live wirkte ratlos.
+
+1. **`enrollmentCoach`.** yaw + Coverage → „Kopf nach links drehen (¾)“ / „Blick zur Kamera“ / „halten“. Overlay ausgewählte Kiste + `enrollmentHint`.
+2. **leftoverHold nur `leftoverWipeHist`.** Cosine ≥ 0,80 keine orange Kiste, Hist bleibt, Taufe sichtbar.
+3. Tests: Coach-Fälle, leftoverWipeHist 0,64 vs 0,81.
+4. MARKETING_VERSION 2.1.38 (Build 65), `Models.swift` + `VERSION` gleich.
 
 ## In 2.1.37 wirklich im Code
 
@@ -249,7 +258,7 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - **Enrollment AE-Lock.** `+` wartet 200 ms nach Belichtungssprung.
 - **Ampel G-Lampe** neben C/S/Y wenn lookOfCapped (rot) vs skip (grün).
 - **gallery.json SHA-256** neben schemaVersion, Restore warnt bei Drift.
-- **Enrollment-Coach.** „Kopf nach links“ wenn ¾ fehlt, nicht nur Statuszeile.
+- **Enrollment-Coach.** „Kopf nach links“ wenn ¾ fehlt, nicht nur Statuszeile. **→ 2.1.38 enrollmentCoach**
 - **Crop-Align Augen** vor `VNGenerateFacePrint`.
 - **Live-FAR** aus den letzten 200 Impostor-Ticks im Labor.
 - **Galerie kompakt:** unscharfe same-Slot-Refs droppen, sobald eine scharfe da ist.
@@ -264,6 +273,14 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - **Kamera-Picker** Built-in / Continuity analog Helios 1.5.19. **→ 2.1.37 CameraChoice**
 - **Taufe-Hold sichtbar:** Overlay `2/3` bzw. `5/7` bis Mehrheit sitzt — sonst wirkt Live „tot“. **→ 2.1.37 nameVoteProgress**
 - **Zwei-Personen-FAR im Overlay.** Wenn pairCosine ≥ 0,80, Badge „Geschwister?“ statt Name. **→ 2.1.37 siblingBadge**
+- **leftover ≥ 0,80 keine Hold-Kiste.** Taufe sichtbar, nicht orange wie 0,64. **→ 2.1.38 leftoverWipeHist**
+- **Coach-Pfeil** auf der Kiste (‹ ›) statt nur Text — Richtung beim Live-Anlegen.
+- **Pose-Balken F/¾/P** neben dem Namen, Coach sagt wohin, Balken sagt wie viel.
+- **Hold-Still-Ring** 0,8 s im Overlay bevor Print-Request (Skip ist 2.1.25).
+- **Live-Name in unselektierter Kiste** sobald Mehrheit sitzt (jetzt nur selected overlayName).
+- **AE-Lock 200 ms** nach Belichtungssprung beim `+`.
+- **Crop-Align Augen** vor `VNGenerateFacePrint`.
+- **gallery.json SHA-256** neben schemaVersion.
 
 ## Erweiterungen
 
@@ -303,7 +320,7 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - **Score-Kalibrierung live.** Platt auf den letzten 200 Live-Ticks, Slider nur Bias.
 - **Cheap-Graph auch Still**, wenn graphBio aus ist — Detect soll die Spur nicht trotzdem rechnen.
 - **Restore-Diff.** Backup vs. aktuell: welche IDs kämen zurück, bevor überschrieben wird.
-- **Enrollment-Wizard.** Pose-Coverage-Meter vor „fertig“ bleibt UI-Ring, Statuszeile ist 2.1.25.
+- **Enrollment-Wizard.** Pose-Coverage-Meter vor „fertig“ bleibt UI-Ring, Statuszeile ist 2.1.25, Coach 2.1.38.
 - **Live Hold-Still-Ring** 0,8 s vor Print-Request — spart unscharfe Embeds visuell (Skip ist 2.1.25).
 - **Burst-Median** der letzten 5 Live-Prints beim `+`, nicht nur im Track.
 - **Licht-Eimer.** Tags Tag/Kunstlicht/Nacht am Face, Match bevorzugt denselben Eimer.
@@ -319,7 +336,7 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - **Continuity 8 fps:** Spark-Fenster in Sekunden (schon als Idee), analog Helios sampleDt.
 - **Drop-in `.mlmodel` bleibt der große Sprung** — Apple-Print ist die Decke.
 - **Live-FAR-Spark** letzte 200 Impostor-Ticks im Overlay, nicht nur Labor.
-- **Enrollment-Coach.** „Kopf nach links“ wenn ¾ fehlt, Pose-Balken F/¾/P.
+- **Enrollment-Coach.** „Kopf nach links“ wenn ¾ fehlt, Pose-Balken F/¾/P. **→ 2.1.38 Text; Balken bleibt**
 - **Crop-Align Augen** vor `VNGenerateFacePrint`.
 - **Restore-Diff.** Backup vs. aktuell: welche IDs kämen zurück.
 - **gallery.json SHA-256** neben schemaVersion.
@@ -440,3 +457,6 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - Taufe still, ohne `n/need` im Overlay.
 - Continuity still Fallback ohne Picker.
 - Close-Pair ohne Badge.
+- leftover ≥ 0,80 weiter orange nach Taufe.
+- Anlegen ohne Coach („Pose fehlt ¾“ ohne Richtung).
+- `bugfix`-Branch anlegen oder fortsetzen. Nur `main`.

@@ -831,6 +831,21 @@ enum FaceEngine {
         return "F\(c.frontal) · ¾\(c.threeQuarter) · P\(c.profile) · U\(c.upper)"
     }
 
+    static func enrollmentCoach(
+        face: FaceObservation,
+        identity: Identity?,
+        faces: [FaceObservation]
+    ) -> String? {
+        var haveF = false
+        var haveQ = false
+        if let identity {
+            let c = poseCoverage(identity: identity, faces: faces)
+            haveF = c.frontal >= 1
+            haveQ = c.threeQuarter >= 1
+        }
+        return MatchMath.enrollmentCoach(haveFrontal: haveF, haveThreeQuarter: haveQ, yaw: face.quality.yaw)
+    }
+
     static func poseCoverageWarning(
         adding face: FaceObservation,
         to identity: Identity,
@@ -898,6 +913,9 @@ enum FaceEngine {
             }
             let c = poseCoverage(identity: dest, faces: faces)
             parts.append(MatchMath.poseMeterLabel(frontal: c.frontal, threeQuarter: c.threeQuarter, profile: c.profile, upper: c.upper))
+        }
+        if let coach = enrollmentCoach(face: face, identity: addingTo, faces: faces) {
+            parts.insert(coach, at: 0)
         }
         if let dup = duplicateOf(face: face, identities: identities, faces: faces),
            dup.0.id != addingTo?.id

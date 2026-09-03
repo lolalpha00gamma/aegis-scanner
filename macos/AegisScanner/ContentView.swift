@@ -654,6 +654,8 @@ struct FaceOverlay: View {
                     let hint = FaceEngine.overlayHint(face, gallery: gallery, continuity: liveCont)
                     let leftover = store.leftoverHold[face.id] != nil
                     let kind = MatchMath.overlayBoxKind(selected: selected, pinned: pinned, leftover: leftover)
+                    let coachDest = owner ?? (store.identities.count == 1 ? store.identities.first : ident)
+                    let coach = selected ? FaceEngine.enrollmentCoach(face: face, identity: coachDest, faces: store.faces) : nil
                     let boxColor: Color = {
                         switch kind {
                         case .selected: return .white
@@ -733,13 +735,21 @@ struct FaceOverlay: View {
                             }
                             .overlay(alignment: .bottomLeading) {
                                 if selected {
-                                    Text(overlayName(faceId: face.id, pinned: pinned, owner: owner, near: near, ident: ident, pct: pct, hit: hit))
-                                        .font(.caption2.monospaced())
-                                        .lineLimit(2)
-                                        .padding(.horizontal, 4)
-                                        .padding(.vertical, 1)
-                                        .background(.black.opacity(0.7))
-                                        .offset(y: 16)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(overlayName(faceId: face.id, pinned: pinned, owner: owner, near: near, ident: ident, pct: pct, hit: hit))
+                                            .font(.caption2.monospaced())
+                                            .lineLimit(2)
+                                        if let coach {
+                                            Text(coach)
+                                                .font(.caption2.monospaced())
+                                                .foregroundStyle(.orange)
+                                                .lineLimit(1)
+                                        }
+                                    }
+                                    .padding(.horizontal, 4)
+                                    .padding(.vertical, 1)
+                                    .background(.black.opacity(0.7))
+                                    .offset(y: 16)
                                 }
                             }
                     }

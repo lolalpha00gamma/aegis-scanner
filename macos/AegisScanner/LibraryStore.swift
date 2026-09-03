@@ -175,10 +175,13 @@ final class LibraryStore: ObservableObject {
 
     var enrollmentHint: String {
         guard let face = selectedFace else { return "" }
+        let dest = FaceEngine.identityOwning(face: face, identities: identities, faces: faces)
+            ?? (identities.count == 1 ? identities[0] : nil)
         return FaceEngine.enrollmentPreview(
             face: face,
             identities: identities,
-            faces: faces
+            faces: faces,
+            addingTo: dest
         )
     }
 
@@ -1328,8 +1331,8 @@ final class LibraryStore: ObservableObject {
                 }
                 leftoverPins += 1
                 if let cos = remaining.first(where: { $0.index == bestJ })?.cosine ?? item.bestCos {
-                    leftoverHold[adopted[bestJ].id] = cos
                     if MatchMath.leftoverWipeHist(cosine: cos) {
+                        leftoverHold[adopted[bestJ].id] = cos
                         liveNameHist.removeValue(forKey: old.id)
                         liveScoreEma.removeValue(forKey: old.id)
                     }

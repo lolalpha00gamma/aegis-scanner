@@ -350,6 +350,21 @@ enum MatchMath {
         return "Pose fehlt \(miss.joined(separator: "+")) · F\(frontal) · ¾\(threeQuarter) · P\(profile) · U\(upper)"
     }
 
+    /// Wohin den Kopf. Statuszeile „Pose fehlt ¾“ sagt nicht, was tun.
+    /// yaw in Radiant (Vision: 0 = Kamera, |yaw| ≥ 0,28 = ¾, ≥ 0,70 = Profil).
+    static func enrollmentCoach(haveFrontal: Bool, haveThreeQuarter: Bool, yaw: Double) -> String? {
+        if haveFrontal && haveThreeQuarter { return nil }
+        let absY = abs(yaw)
+        if !haveFrontal {
+            if absY < 0.28 { return "halten — Frontal sitzt" }
+            if absY >= 0.70 { return "Blick zur Kamera — erste Referenz frontal" }
+            return "Blick zur Kamera"
+        }
+        if absY >= 0.28 && absY < 0.70 { return "halten — ¾ sitzt" }
+        if absY >= 0.70 { return "etwas zurück — ¾, nicht Profil" }
+        return "Kopf nach links drehen (¾)"
+    }
+
     static let printAgePaleDays = 90.0
     static let restoreAgeDays = 7.0
 
