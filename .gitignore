@@ -1,0 +1,6 @@
+bench/data/
+bench/lfw/
+bench/smoke/
+*.tgz
+.derived/
+dmgroot/

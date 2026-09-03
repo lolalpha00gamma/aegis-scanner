@@ -1863,4 +1863,156 @@ final class LibraryStore: ObservableObject {
             status = "Laborbericht gespeichert"
         }
     }
+
+    func pickBenchmark() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.prompt = "Testmodus"
+        panel.message = "Personen-Ordner (Name/foto.jpg) oder LFW-Wurzel. pairs.txt daneben = Verifikation."
+        let home = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("AegisBench")
+        if FileManager.default.fileExists(atPath: home.path) {
+            panel.directoryURL = home
+        }
+        guard panel.runModal() == .OK, let root = panel.url else { return }
+        retainAccess([root])
+        runBenchmark(root: root)
+    }
+
+    private func runBenchmark(root: URL) {
+        scanGeneration += 1
+        scanFlag.reset()
+        let gen = scanGeneration
+        let flag = scanFlag
+        let threshold = self.threshold
+        let enabled = self.enabled
+        let cameraOrient = self.cameraOrient
+        let savedMedia = media
+        let savedFaces = faces
+        let savedIdentities = identities
+        let savedMatches = matches
+        let savedSelectedMedia = selectedMediaId
+        let savedSelectedFace = selectedFaceId
+        busy = true
+        status = "Testmodus · Ordner lesen"
+        Task {
+            var parts: [String] = [Benchmark.header(root: root, mode: "Verifikation + Identifikation")]
+            let pairsURL = BenchProtocol.findPairsFile(root: root)
+                ?? Bundle.main.url(forResource: "pairs", withExtension: "txt")
+            let pairsText = pairsURL.flatMap { try? String(contentsOf: $0, encoding: .utf8) } ?? ""
+            let pairs = BenchProtocol.parsePairs(pairsText)
+            let people = BenchProtocol.personFolders(root: root)
+            let large = people.count > Benchmark.identifyPeopleCap
+
+            if !pairs.isEmpty {
+                self.status = "Testmodus · Verifikation 0/\(pairs.count)"
+                let verifyRoot = root
+                let tick = BenchProgress()
+                let verifyTask = Task.detached {
+                    defer { tick.finish() }
+                    return Benchmark.verify(
+                        root: verifyRoot,
+                        pairs: pairs,
+                        threshold: threshold,
+                        shouldContinue: { flag.alive },
+                        progress: { n, total in tick.set(n, total) }
+                    )
+                }
+                while !tick.isFinished {
+                    if gen != self.scanGeneration {
+                        flag.stop()
+                        break
+                    }
+                    self.status = tick.label
+                    try? await Task.sleep(nanoseconds: 200_000_000)
+                }
+                let report = await verifyTask.value
+                parts.append("")
+                parts.append(report)
+            } else {
+                parts.append("")
+                parts.append("Kein pairs.txt — nur Identifikation. bench/fetch.sh legt die LFW-Paare nach ~/AegisBench.")
+            }
+
+            if gen != self.scanGeneration || !flag.alive {
+                self.restoreGallery(savedMedia, savedFaces, savedIdentities, savedMatches, savedSelectedMedia, savedSelectedFace)
+                self.busy = false
+                self.status = "Testmodus abgebrochen"
+                return
+            }
+
+            let subset = Array(people.prefix(Benchmark.identifyPeopleCap))
+            var urls: [URL] = []
+            for person in subset {
+                urls.append(contentsOf: BenchProtocol.images(in: person, limit: Benchmark.photosPerPerson))
+            }
+            if !urls.isEmpty {
+                self.media = []
+                self.faces = []
+                self.identities = []
+                self.matches = []
+                self.status = "Testmodus · Identifikation \(urls.count) Fotos, \(subset.count) Personen"
+                await self.ingestAndScan(urls: urls, generation: gen)
+                self.busy = true
+                if gen != self.scanGeneration {
+                    self.restoreGallery(savedMedia, savedFaces, savedIdentities, savedMatches, savedSelectedMedia, savedSelectedFace)
+                    self.busy = false
+                    self.status = "Testmodus abgebrochen"
+                    return
+                }
+                self.identities = Benchmark.identitiesFromFolders(media: self.media, faces: self.faces)
+                self.rematch()
+                let idFaces = self.faces
+                let idIdentities = self.identities
+                let idMedia = self.media
+                let lab = await Task.detached {
+                    LabReport.text(
+                        faces: idFaces,
+                        identities: idIdentities,
+                        media: idMedia,
+                        enabled: enabled,
+                        threshold: threshold,
+                        cameraOrient: cameraOrient
+                    )
+                }.value
+                parts.append("")
+                parts.append("Identifikation (Leave-one-out, max \(Benchmark.identifyPeopleCap) Personen × \(Benchmark.photosPerPerson) Fotos)")
+                if large {
+                    parts.append("Galerie gekappt — volle LFW-Identifikation wäre \(people.count) Personen. Smoke-Ordner für den schnellen Satz.")
+                }
+                parts.append(lab)
+            }
+
+            self.restoreGallery(savedMedia, savedFaces, savedIdentities, savedMatches, savedSelectedMedia, savedSelectedFace)
+            let text = parts.joined(separator: "\n")
+            let save = NSSavePanel()
+            save.allowedContentTypes = [.plainText]
+            save.nameFieldStringValue = "aegis-testmodus.txt"
+            save.directoryURL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("AegisBench")
+            self.busy = false
+            if save.runModal() == .OK, let url = save.url {
+                try? text.write(to: url, atomically: true, encoding: .utf8)
+                self.status = "Testmodus gespeichert · \(url.lastPathComponent)"
+            } else {
+                self.status = "Testmodus fertig — Speichern verworfen"
+            }
+        }
+    }
+
+    private func restoreGallery(
+        _ media: [MediaItem],
+        _ faces: [FaceObservation],
+        _ identities: [Identity],
+        _ matches: [MatchResult],
+        _ selectedMediaId: UUID?,
+        _ selectedFaceId: UUID?
+    ) {
+        self.media = media
+        self.faces = faces
+        self.identities = identities
+        self.matches = matches
+        self.selectedMediaId = selectedMediaId
+        self.selectedFaceId = selectedFaceId
+    }
 }

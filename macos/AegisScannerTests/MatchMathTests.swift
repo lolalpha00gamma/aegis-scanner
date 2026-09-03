@@ -853,6 +853,26 @@ enum MatchMathTests {
         ok(!MatchMath.enrollmentBurstDup(sameSlot: false, cosine: 0.97, within: 0.20), "anderer Slot kein Dedup")
         ok(!MatchMath.enrollmentBurstDup(sameSlot: true, cosine: 0.80, within: 0.20), "Cosine 0,80 kein Dedup")
 
+        let fixture = "1\t2\nAlice\t1\t2\nBob\t1\t3\nAlice\t1\tBob\t1\nAlice\t2\tCarol\t1\n"
+        let parsed = BenchProtocol.parsePairs(fixture)
+        ok(parsed.count == 4, "Fixture 4 Paare (ist \(parsed.count))")
+        ok(parsed.filter(\.same).count == 2, "2 Genuine")
+        ok(!parsed[2].same && parsed[2].aName == "Alice" && parsed[2].bName == "Bob", "Impostor Alice/Bob")
+        ok(parsed[0].relativePath("a") == "Alice/Alice_0001.jpg", "LFW-Pfad")
+        near(BenchProtocol.accuracy(scores: [90, 40], same: [true, false], threshold: 78), 1, 0.01, "Accuracy 2/2")
+        near(BenchProtocol.accuracy(scores: [90, 80], same: [true, false], threshold: 78), 0.5, 0.01, "Accuracy 1/2")
+        if FileManager.default.fileExists(atPath: "bench/pairs.txt"),
+           let txt = try? String(contentsOfFile: "bench/pairs.txt", encoding: .utf8)
+        {
+            let lfw = BenchProtocol.parsePairs(txt)
+            ok(lfw.count == 6000, "LFW View-2 hat 6000 Paare (ist \(lfw.count))")
+            ok(lfw.filter(\.same).count == 3000, "3000 Genuine")
+            ok(lfw.filter { !$0.same }.count == 3000, "3000 Impostor")
+            ok(Set(lfw.map(\.fold)).count == 10, "10 Folds")
+        } else {
+            ok(false, "bench/pairs.txt fehlt")
+        }
+
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)
             exit(1)

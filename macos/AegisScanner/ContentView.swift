@@ -82,6 +82,9 @@ struct ContentView: View {
                 .disabled(store.matches.isEmpty)
             Button("Labor") { store.exportLab() }
                 .disabled(store.identities.count < 1)
+            Button("Testmodus") { store.pickBenchmark() }
+                .disabled(store.busy)
+                .help("LFW oder Personen-Ordner. Galerie bleibt unberührt.")
             Slider(value: $store.threshold, in: 70 ... 96) { editing in
                 if !editing { store.rematch() }
             }

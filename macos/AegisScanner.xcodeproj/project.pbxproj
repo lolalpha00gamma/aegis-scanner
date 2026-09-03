@@ -19,6 +19,8 @@
 		AA0000000000000000000039 /* FaceShape3D.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000002B /* FaceShape3D.swift */; };
 		AA000000000000000000003A /* Evaluator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000002C /* Evaluator.swift */; };
 		AA000000000000000000003B /* MatchMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000002D /* MatchMath.swift */; };
+		AA000000000000000000003C /* BenchProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000002E /* BenchProtocol.swift */; };
+		AA000000000000000000003D /* Benchmark.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000002F /* Benchmark.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -37,6 +39,8 @@
 		AA000000000000000000002B /* FaceShape3D.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceShape3D.swift; sourceTree = "<group>"; };
 		AA000000000000000000002C /* Evaluator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Evaluator.swift; sourceTree = "<group>"; };
 		AA000000000000000000002D /* MatchMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchMath.swift; sourceTree = "<group>"; };
+		AA000000000000000000002E /* BenchProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BenchProtocol.swift; sourceTree = "<group>"; };
+		AA000000000000000000002F /* Benchmark.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Benchmark.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -81,6 +85,8 @@
 				AA000000000000000000002B /* FaceShape3D.swift */,
 				AA000000000000000000002C /* Evaluator.swift */,
 				AA000000000000000000002D /* MatchMath.swift */,
+				AA000000000000000000002E /* BenchProtocol.swift */,
+				AA000000000000000000002F /* Benchmark.swift */,
 				AA0000000000000000000026 /* Assets.xcassets */,
 				AA0000000000000000000029 /* Info.plist */,
 			);
@@ -168,6 +174,8 @@
 				AA0000000000000000000039 /* FaceShape3D.swift in Sources */,
 				AA000000000000000000003A /* Evaluator.swift in Sources */,
 				AA000000000000000000003B /* MatchMath.swift in Sources */,
+				AA000000000000000000003C /* BenchProtocol.swift in Sources */,
+				AA000000000000000000003D /* Benchmark.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -212,7 +220,7 @@
 				CODE_SIGN_ENTITLEMENTS = AegisScanner.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 78;
+				CURRENT_PROJECT_VERSION = 79;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = AegisScanner/Info.plist;
@@ -224,7 +232,7 @@
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 2.1.51;
+				MARKETING_VERSION = 2.1.52;
 				PRODUCT_BUNDLE_IDENTIFIER = app.aegis.scanner;
 				PRODUCT_NAME = Aegis;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -239,7 +247,7 @@
 				CODE_SIGN_ENTITLEMENTS = AegisScanner.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 78;
+				CURRENT_PROJECT_VERSION = 79;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = AegisScanner/Info.plist;
@@ -251,7 +259,7 @@
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 2.1.51;
+				MARKETING_VERSION = 2.1.52;
 				PRODUCT_BUNDLE_IDENTIFIER = app.aegis.scanner;
 				PRODUCT_NAME = Aegis;
 				SWIFT_EMIT_LOC_STRINGS = YES;
