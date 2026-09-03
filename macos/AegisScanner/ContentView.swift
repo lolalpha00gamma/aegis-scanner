@@ -734,12 +734,12 @@ struct FaceOverlay: View {
                                 .offset(x: 4, y: -10)
                             }
                             .overlay(alignment: .bottomLeading) {
-                                if selected {
+                                if selected || ident != nil || leftover {
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(overlayName(faceId: face.id, pinned: pinned, owner: owner, near: near, ident: ident, pct: pct, hit: hit))
                                             .font(.caption2.monospaced())
                                             .lineLimit(2)
-                                        if let coach {
+                                        if selected, let coach {
                                             Text(coach)
                                                 .font(.caption2.monospaced())
                                                 .foregroundStyle(.orange)

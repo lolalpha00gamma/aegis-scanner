@@ -774,6 +774,51 @@ enum MatchMath {
         return "\(n)/\(need)"
     }
 
+    /// Overlay `hält` sobald Lock sitzt — Uneinig-Ticks wirken sonst tot.
+    /// leftover hat eigenes Hold-Label, nicht den alten Namen halten.
+    static func nameLockLabel(locked: Bool, leftover: Bool, progress: String?) -> String? {
+        if leftover { return progress }
+        if locked { return "hält" }
+        return progress
+    }
+
+    /// Kopf dreht: keine neue Stimme. |Δyaw| > 0,15 / Frame tauft sonst den Nachbarn.
+    static let yawFreezePerFrame = 0.15
+
+    static func yawVelocityFreeze(delta: Double, perFrame: Double = yawFreezePerFrame) -> Bool {
+        abs(delta) > perFrame
+    }
+
+    /// Unscharfer Tick zählt nicht als Namensstimme. Trail skippt schon, Vote bisher nicht.
+    static func nameVoteAccepts(sharpness: Double?, continuity: Bool) -> Bool {
+        guard let sharpness else { return true }
+        return sharpness >= activeSharpnessFloor(continuity: continuity)
+    }
+
+    static func boxIoU(
+        ax: Double, ay: Double, aw: Double, ah: Double,
+        bx: Double, by: Double, bw: Double, bh: Double
+    ) -> Double {
+        let x1 = max(ax, bx)
+        let y1 = max(ay, by)
+        let x2 = min(ax + aw, bx + bw)
+        let y2 = min(ay + ah, by + bh)
+        let inter = max(0, x2 - x1) * max(0, y2 - y1)
+        let union = aw * ah + bw * bh - inter
+        return union <= 0 ? 0 : inter / union
+    }
+
+    /// IoU-Kreuz: A und B tauschen die Box — UUIDs tauschen, nicht leftover-Adopt.
+    static func boxesCrossed(
+        iouSameA: Double,
+        iouSameB: Double,
+        iouCrossAB: Double,
+        iouCrossBA: Double,
+        pin: Double = trackPinIoU
+    ) -> Bool {
+        iouCrossAB >= pin && iouCrossBA >= pin && iouSameA < pin && iouSameB < pin
+    }
+
     /// Pairwise ≥ 0,80: Badge statt still taufen.
     static func siblingBadge(pairCosine: Double?) -> String? {
         guard let pairCosine, pairCosine >= familyCosineLo else { return nil }

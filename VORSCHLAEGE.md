@@ -1,6 +1,18 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.42 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.43 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.43 wirklich im Code
+
+2.1.42 leftover-Lock — Live taufte trotzdem den Nachbarn, sobald der Kopf sich drehte: jeder ¾-Frame eine neue Stimme, Lock kippte. Unscharfe Continuity-Ticks (Laplacian 0,09) zählten als Namensstimme, obwohl der Print-Trail sie schon skippte. Overlay zeigte nach Taufe nichts (`nameVoteProgress` nil) — Uneinig wirkte tot. Zwei Köpfe tauschten die Box, leftover adoptierte die UUID des Nachbarn. Name nur in der selektierten Kiste.
+
+1. **`yawVelocityFreeze`.** |Δyaw| > 0,15 / Frame → Token leer, Lock hält.
+2. **`nameVoteAccepts`.** Schärfe unter Floor keine Stimme (Built-in 0,12 / Continuity 0,08).
+3. **`nameLockLabel` „hält“.** Overlay nach Taufe nicht leer. leftover bleibt bei Progress.
+4. **`boxesCrossed`.** IoU-Kreuz tauscht UUIDs, leftover-Adopt nicht. `applyLiveFaces` bei 2×2.
+5. **Name in jeder getauften Kiste**, nicht nur selected.
+6. Tests: Freeze, Vote-Qualität, Lock-HUD, IoU 1/0, Kreuz vs. einseitig.
+7. MARKETING_VERSION 2.1.43 (Build 70), `Models.swift` + `VERSION` gleich.
 
 ## In 2.1.42 wirklich im Code
 
@@ -288,11 +300,43 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - **Leftover überspringt Lock.** 0,64 tauft nicht über `nameLockHolds`. **→ 2.1.42 leftoverLocked**
 - **Leere Tokens nicht im Cap.** **→ 2.1.41 nameHistAppend**
 - **Namens-Lock nach Taufe.** **→ 2.1.41 nameLockHolds**
-- **Vote-Fenster ≥ Need.** Familie 7 bei Window 5. **→ 2.1.40 nameMajorityAgreeing**
-- **Print-führt LookOf behalten**, nicht Print-Prozent über decide. **→ 2.1.40**
-- **Fremde Print-Margin 4**, Familie 8. **→ 2.1.40 liveNamePrintClear**
-- **Yaw-Velocity Freeze.** `|Δyaw| > 0,15 / Frame` → keine neue Stimme, Lock hält. Sonst tauft ¾-Drehung den Nachbarn.
-- **Print-Qualität vor Vote.** Laplacian unter Floor zählt nicht als Namensstimme (Trail skippt schon, Vote nicht).
+- **Yaw-Velocity Freeze.** **→ 2.1.43 yawVelocityFreeze**
+- **Print-Qualität vor Vote.** **→ 2.1.43 nameVoteAccepts**
+- **Lock-HUD halten.** Overlay `hält` statt `2/3` sobald Lock sitzt. **→ 2.1.43 nameLockLabel**
+- **Zwei-Gesichter-Swap-Guard.** **→ 2.1.43 boxesCrossed**
+- **Live-Name in unselektierter Kiste.** **→ 2.1.43 overlay**
+- **Export Labor als CSV-Datei**, nicht nur Textfeld.
+- **Hold-Still-Ring** im Overlay 0,8 s, analog Peace.
+- **Pose-Meter als Balken** (F/¾/P) neben dem Namen.
+- **liveCentroid Cache am Identity-Modell** (2.1.29 cacht nur den Tick; 2.1.32 leert den Trail bei `+`).
+- **Print-Drift-Spark.** Overlay-Linie Cosine zum Centroid über 8 Frames.
+- **Restore-Diff.** Backup vs. aktuell: welche IDs kämen zurück, bevor überschrieben wird.
+- **Track-ID `T…` in der UI.** intern `trackId` gibt es, die Kiste zeigt die Snapshot-UUID.
+- **Crop-Align Augen** vor `VNGenerateFacePrint`.
+- **Live-FAR** aus den letzten 200 Impostor-Ticks im Labor.
+- **Open-Set Unknown.** Explizite „unbekannt“-Klasse, Slider für Reject, nicht nur Floor.
+- **Platt-Skalierung** der Sigmoid auf Leave-one-out der Galerie, globaler Mid 0,55 nur Fallback.
+- **Print-Revision-Banner** wenn `VNGenerateFacePrint` nach OS-Update andere Dim liefert.
+- **Coach-Pfeil** auf der Kiste (‹ ›) statt nur Text.
+- **gallery.json SHA-256** neben schemaVersion.
+- **Enrollment AE-Lock.** `+` wartet 200 ms nach Belichtungssprung.
+- **Ampel G-Lampe** neben C/S/Y wenn lookOfCapped (rot) vs skip (grün).
+- **Galerie kompakt:** unscharfe same-Slot-Refs droppen, sobald eine scharfe da ist.
+- **1-Euro minCutoff Slider** für Continuity vs Built-in.
+- **Continuity-Print jeden 2. Frame** bei ≥ 20 fps. Trail/Median fängt den Skip.
+- **IVF / ANN ab 50 IDs.** Brute-Force Cosine wird bei Familien-Galerien langsam.
+- **Identitäten mergen** UI-Button, nicht nur Anlegen-Confirm bei Centroid > 0,82.
+- **Helios-Bridge.** Eine Kamera-Session, eine TCC-Freigabe.
+- **Match-Log JSONL** (Tick, UUID, lookOf, geoMix, decide-Notiz).
+- **Zwei-Kamera-Live.** Built-in + Continuity parallel, Track über Print.
+- **PhotoKit-Scan** nur mit expliziter Foto-Berechtigung.
+- **Drop-in `.mlmodel`.** FaceEmbedder-Protokoll, Apple-Print default.
+- **Per-Identität leftover-Log** in der Overlay-Kiste.
+- **Identitäten-Merge-Wizard** bei Centroid 0,89–0,94 statt still zwei Personen.
+- **Pairwise-Heatmap klickbar** im Labor.
+- **Watch-Folder.** Neue Fotos automatisch ingestieren.
+- **Print quantisieren** (int8) für kleinere Library-Files.
+- **Aktives Lernen.** „Ist das dieselbe Person?“ an unsicheren Rändern.
 - **Export Labor als CSV-Datei**, nicht nur Textfeld.
 - **Hold-Still-Ring** im Overlay 0,8 s, analog Peace.
 - **Pose-Meter als Balken** (F/¾/P) neben dem Namen.
@@ -376,14 +420,12 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 ## Erweiterungen
 
 - **Taufe-Hysterese / Namens-Lock.** **→ 2.1.41** Ein Look≠Print-Tick nach Mehrheit darf nicht nil setzen. Leftover-Hold **→ 2.1.42 leftoverLocked**
-- **Lock-HUD halten.** Overlay `hält` statt `2/3` sobald Lock sitzt — Uneinig-Ticks wirken sonst tot.
+- **Lock-HUD halten.** Overlay `hält` statt `2/3` sobald Lock sitzt. **→ 2.1.43 nameLockLabel**
+- **Yaw-Velocity Freeze** vor neuer Stimme, wenn der Kopf sich dreht. **→ 2.1.43**
+- **Print-Qualität vor Vote** (unscharfer Tick keine Stimme). **→ 2.1.43**
+- **Zwei-Gesichter-Swap-Guard.** Box-Tausch = UUID-Tausch, nicht leftover. **→ 2.1.43**
 - **IVF ab 50 IDs.** Brute-Force Cosine wird bei Familien-Galerien langsam; Inverted-File / ANN nur als Lookup, decide bleibt.
 - **Continuity-Print jeden 2. Frame.** `VNGenerateFacePrint` bei 24 fps verdoppelt die Last; 8 fps bleibt jeder Frame. Trail/Median fängt den Skip.
-- **Yaw-Velocity Freeze** vor neuer Stimme, wenn der Kopf sich dreht.
-- **Print-Qualität vor Vote** (unscharfer Tick keine Stimme).
-- **Open-Set Unknown.** Explizite Klasse mit eigener Schwelle, nicht nur Floor.
-- **Platt-Skalierung** pro Galerie statt globaler Sigmoid-Mitte 0,55.
-- **Zwei-Gesichter-Swap-Guard.** Box-Tausch = UUID-Tausch, nicht leftover.
 - **Drop-in `.mlmodel`.** `FaceEmbedder` als Protokoll, Apple-Print default, ArcFace optional (Lizenz!).
 - **PhotoKit-Scan.** Mediathek lokal, nur mit expliziter Foto-Berechtigung.
 - **Cluster vor Anlegen.** Unbenannte Gesichter: „3 Fotos, dieselbe Person?“

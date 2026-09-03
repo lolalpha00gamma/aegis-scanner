@@ -255,6 +255,32 @@ enum MatchMathTests {
         ok(MatchMath.nameVoteProgress(history: ["A"], need: 3) == "1/3", "Taufe-Hold 1/3")
         ok(MatchMath.nameVoteProgress(history: ["A", "A", "A"], need: 3) == nil, "getauft kein Progress")
         ok(MatchMath.nameVoteProgress(history: ["", "A", "A"], need: 5) == "2/5", "leere Tokens zählen nicht")
+        ok(MatchMath.nameLockLabel(locked: true, leftover: false, progress: "2/3") == "hält", "Lock-HUD hält")
+        ok(MatchMath.nameLockLabel(locked: true, leftover: true, progress: "2/3") == "2/3", "leftover kein Lock-HUD")
+        ok(MatchMath.nameLockLabel(locked: false, leftover: false, progress: "2/3") == "2/3", "ohne Lock Progress")
+        ok(MatchMath.nameLockLabel(locked: false, leftover: false, progress: nil) == nil, "ohne alles tot")
+        ok(MatchMath.yawVelocityFreeze(delta: 0.20), "Δyaw 0,20 friert Vote")
+        ok(!MatchMath.yawVelocityFreeze(delta: 0.05), "Δyaw 0,05 läuft")
+        ok(MatchMath.yawVelocityFreeze(delta: -0.18), "Vorzeichen egal")
+        ok(!MatchMath.nameVoteAccepts(sharpness: 0.05, continuity: false), "Built-in unscharf keine Stimme")
+        ok(MatchMath.nameVoteAccepts(sharpness: 0.20, continuity: false), "scharf zählt")
+        ok(MatchMath.nameVoteAccepts(sharpness: 0.10, continuity: true), "Continuity 0,10 zählt")
+        ok(!MatchMath.nameVoteAccepts(sharpness: 0.05, continuity: true), "Continuity unter 0,08 tot")
+        ok(MatchMath.nameVoteAccepts(sharpness: nil, continuity: false), "ohne Schärfe darf")
+        near(MatchMath.boxIoU(ax: 0, ay: 0, aw: 0.2, ah: 0.2, bx: 0, by: 0, bw: 0.2, bh: 0.2), 1, 0.01, "gleiche Box IoU 1")
+        near(MatchMath.boxIoU(ax: 0, ay: 0, aw: 0.2, ah: 0.2, bx: 0.6, by: 0, bw: 0.2, bh: 0.2), 0, 0.01, "fremd IoU 0")
+        ok(
+            MatchMath.boxesCrossed(iouSameA: 0.05, iouSameB: 0.04, iouCrossAB: 0.70, iouCrossBA: 0.68),
+            "Kreuz = Swap"
+        )
+        ok(
+            !MatchMath.boxesCrossed(iouSameA: 0.80, iouSameB: 0.75, iouCrossAB: 0.10, iouCrossBA: 0.08),
+            "gleiche Boxen kein Swap"
+        )
+        ok(
+            !MatchMath.boxesCrossed(iouSameA: 0.05, iouSameB: 0.04, iouCrossAB: 0.10, iouCrossBA: 0.70),
+            "einseitig kein Swap"
+        )
         ok(MatchMath.siblingBadge(pairCosine: 0.83) == "Geschwister?", "close Pair Badge")
         ok(MatchMath.siblingBadge(pairCosine: 0.50) == nil, "fremd kein Badge")
         ok(MatchMath.siblingBadge(pairCosine: nil) == nil, "nil kein Badge")

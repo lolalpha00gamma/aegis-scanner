@@ -1,4 +1,4 @@
-# Aegis **2.1.42 alpha**
+# Aegis **2.1.43 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,17 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.43 alpha
+
+2.1.42 leftover-Lock — ¾-Drehung taufte den Nachbarn, unscharfe Ticks zählten als Stimme, Overlay nach Taufe tot, gekreuzte Köpfe erbten die UUID, Name nur in der selektierten Kiste.
+
+- **Yaw-Freeze.** |Δyaw| > 0,15 / Frame keine neue Stimme.
+- **Schärfe vor Vote.** Unter Floor (0,12 / Continuity 0,08) keine Namensstimme.
+- **Lock-HUD `hält`.** Uneinig nach Taufe wirkt nicht tot.
+- **Box-Swap.** IoU-Kreuz tauscht UUIDs, leftover nicht.
+- **Name auf jeder getauften Kiste.**
+- **VERSION = Models = MARKETING_VERSION 2.1.43** (Build 70).
 
 ## Neu in 2.1.42 alpha
 

@@ -59,6 +59,7 @@ final class LibraryStore: ObservableObject {
     private var liveNameHist: [UUID: [String]] = [:]
     private var liveNameLock: [UUID: UUID] = [:]
     private var liveScoreEma: [UUID: Double] = [:]
+    private var liveYaw: [UUID: Double] = [:]
     private var liveLastStamp: TimeInterval = 0
     private var liveDt: TimeInterval = 0.125
     private var livePrintTrail: [UUID: [[Double]]] = [:]
@@ -114,6 +115,7 @@ final class LibraryStore: ObservableObject {
         liveNameHist = [:]
         liveNameLock = [:]
         liveScoreEma = [:]
+        liveYaw = [:]
         liveLastStamp = 0
         liveDt = 0.125
         rematch()
@@ -585,6 +587,7 @@ final class LibraryStore: ObservableObject {
         liveNameHist = liveNameHist.filter { liveFaceIds.contains($0.key) }
         liveNameLock = liveNameLock.filter { liveFaceIds.contains($0.key) }
         liveScoreEma = liveScoreEma.filter { liveFaceIds.contains($0.key) }
+        liveYaw = liveYaw.filter { liveFaceIds.contains($0.key) }
         for i in matches.indices {
             let fid = matches[i].faceId
             guard liveFaceIds.contains(fid),
@@ -594,11 +597,23 @@ final class LibraryStore: ObservableObject {
             if !hit.measured {
                 continue
             }
+            let face = faces.first { $0.id == fid }
+            let yaw = face?.quality.yaw ?? 0
+            let prevYaw = liveYaw[fid]
+            liveYaw[fid] = yaw
+            let spinning = prevYaw.map { MatchMath.yawVelocityFreeze(delta: yaw - $0) } ?? false
+            let qualityOK = MatchMath.nameVoteAccepts(
+                sharpness: face?.quality.sharpness,
+                continuity: liveContinuity
+            )
             // leftover wischt Hist einmal am Pin (applyLiveFaces). Hier nicht jeden Tick
             // leere Tokens füttern — sonst tauft Genuine 0,64–0,79 nie.
-            let token = MatchMath.leftoverStarvesVote() && leftoverHold[fid] != nil
-                ? ""
-                : (hit.identityId?.uuidString ?? "")
+            // Drehung / Unschärfe: Token leer = Skip, Lock hält.
+            let token: String = {
+                if MatchMath.leftoverStarvesVote() && leftoverHold[fid] != nil { return "" }
+                if spinning || !qualityOK { return "" }
+                return hit.identityId?.uuidString ?? ""
+            }()
             let vs = hit.versus
             let close = MatchMath.nameClosePair(
                 best: vs.first?.percent ?? 0,
@@ -898,7 +913,12 @@ final class LibraryStore: ObservableObject {
             pairCosine: hit?.pairCosine
         )
         let need = MatchMath.nameAgreeNeed(family: close, dt: liveDt)
-        return MatchMath.nameVoteProgress(history: hist, need: need)
+        let progress = MatchMath.nameVoteProgress(history: hist, need: need)
+        return MatchMath.nameLockLabel(
+            locked: liveNameLock[faceId] != nil,
+            leftover: leftoverHold[faceId] != nil,
+            progress: progress
+        )
     }
 
     func removeIdentity(_ id: UUID) {
@@ -979,6 +999,7 @@ final class LibraryStore: ObservableObject {
         liveNameHist = [:]
         liveNameLock = [:]
         liveScoreEma = [:]
+        liveYaw = [:]
         liveLastStamp = 0
         liveDt = 0.125
         livePrintTrail.removeAll()
@@ -1261,6 +1282,40 @@ final class LibraryStore: ObservableObject {
                 }
             }
             adopted.append(face)
+        }
+        if adopted.count >= 2 {
+            let unnamedIdx = adopted.indices.filter { i in
+                !namedTracks.contains(adopted[i].id) && !enrolled.contains(adopted[i].id)
+            }
+            let unusedNamed = previous.filter {
+                MatchMath.leftoverNamedTrack(hadName: namedTracks.contains($0.id)) && !used.contains($0.id)
+            }
+            if unnamedIdx.count == 2, unusedNamed.count == 2 {
+                let a = unusedNamed[0]
+                let b = unusedNamed[1]
+                let i0 = unnamedIdx[0]
+                let i1 = unnamedIdx[1]
+                let n0 = adopted[i0]
+                let n1 = adopted[i1]
+                let iouAA = FaceEngine.iou(a.box, n0.box)
+                let iouBB = FaceEngine.iou(b.box, n1.box)
+                let iouAB = FaceEngine.iou(a.box, n1.box)
+                let iouBA = FaceEngine.iou(b.box, n0.box)
+                if MatchMath.boxesCrossed(iouSameA: iouAA, iouSameB: iouBB, iouCrossAB: iouAB, iouCrossBA: iouBA) {
+                    adopted[i1].id = a.id
+                    adopted[i1].trackId = a.trackId ?? a.id
+                    adopted[i1].enrolledAt = a.enrolledAt ?? adopted[i1].enrolledAt
+                    adopted[i0].id = b.id
+                    adopted[i0].trackId = b.trackId ?? b.id
+                    adopted[i0].enrolledAt = b.enrolledAt ?? adopted[i0].enrolledAt
+                    used.insert(a.id)
+                    used.insert(b.id)
+                    boxEuro.removeValue(forKey: a.id)
+                    boxEuro.removeValue(forKey: b.id)
+                    boxJumpPending.removeValue(forKey: a.id)
+                    boxJumpPending.removeValue(forKey: b.id)
+                }
+            }
         }
         liveGhosts.removeAll { $0.until < now }
         boxEuro = boxEuro.filter { used.contains($0.key) }
