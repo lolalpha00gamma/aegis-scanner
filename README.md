@@ -1,4 +1,4 @@
-# Aegis **2.1.52 alpha**
+# Aegis **2.1.53 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,10 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.53 alpha
+
+Größere Testreihe: `ident20` (~62 Personen × 20 Fotos) und `ident10` (~158 × 20). Testmodus nimmt bis 200 Personen / 20 Fotos; volle LFW filtert automatisch auf ≥10 Bilder.
 
 ## Neu in 2.1.52 alpha
 

@@ -3,8 +3,8 @@ import Foundation
 
 /// Testmodus: LFW-Verifikation (Paare) und Identifikation (Ordner = Person).
 enum Benchmark {
-    static let identifyPeopleCap = 24
-    static let photosPerPerson = 6
+    static let identifyPeopleCap = 200
+    static let photosPerPerson = 20
 
     static func detectLargest(url: URL) -> FaceObservation? {
         guard let image = FrameExtractor.loadCGImage(url: url) else { return nil }

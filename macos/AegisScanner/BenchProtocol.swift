@@ -75,7 +75,8 @@ enum BenchProtocol {
         let fm = FileManager.default
         let names = ["pairs.txt", "pairsDevTest.txt"]
         var dirs = [root, root.deletingLastPathComponent()]
-        if root.lastPathComponent == "lfw" || root.lastPathComponent == "smoke" {
+        if root.lastPathComponent == "lfw" || root.lastPathComponent == "smoke"
+            || root.lastPathComponent.hasPrefix("ident") {
             dirs.append(root.deletingLastPathComponent())
         }
         dirs.append(root.appendingPathComponent("bench"))
@@ -106,6 +107,31 @@ enum BenchProtocol {
             imageCount(a) > imageCount(b)
         }
         return folders
+    }
+
+    /// Volle LFW hat 5749 Ordner, die meisten mit 1 Foto. Dann: nur Personen mit
+    /// genug Bildern. Liegen ≥`cap` Leute mit 20 Fotos vor, nimm die; sonst min 10.
+    static func identificationCut(counts: [Int], cap: Int) -> (minPhotos: Int, kept: Int) {
+        let n2 = counts.filter { $0 >= 2 }.count
+        if counts.count <= cap {
+            return (2, min(cap, n2))
+        }
+        let n10 = counts.filter { $0 >= 10 }.count
+        let n20 = counts.filter { $0 >= 20 }.count
+        if n20 >= cap {
+            return (20, cap)
+        }
+        if n10 > 0 {
+            return (10, min(cap, n10))
+        }
+        return (2, min(cap, n2))
+    }
+
+    static func selectPeople(_ folders: [URL], cap: Int) -> (urls: [URL], minPhotos: Int) {
+        let counts = folders.map { imageCount($0) }
+        let cut = identificationCut(counts: counts, cap: cap)
+        let picked = folders.filter { imageCount($0) >= cut.minPhotos }
+        return (Array(picked.prefix(cap)), cut.minPhotos)
     }
 
     static func imageCount(_ folder: URL) -> Int {

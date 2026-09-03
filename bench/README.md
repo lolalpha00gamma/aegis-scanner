@@ -7,7 +7,9 @@ Misst, wie gut der Face-Print und die Identifikation auf **öffentlichen** Sätz
 | Satz | Wofür | Größe | Quelle |
 |------|--------|-------|--------|
 | **LFW View 2** | Verifikation 6000 Paare (3000 gleich, 3000 fremd, 10 Folds) | 13 233 Bilder, 5 749 Personen, ~173 MB | [UMass LFW](http://vis-www.cs.umass.edu/lfw/), Spiegel [figshare/sklearn](https://ndownloader.figshare.com/files/5976018) |
-| **Smoke** | Identifikation 12 Personen × 6 Fotos | ~2 MB, aus LFW | `smoke-people.txt` — die 12 LFW-Personen mit den meisten Bildern |
+| **Smoke** | schnell | 12 × 6 | `smoke-people.txt` |
+| **ident20** | sklearn-Split, kalibrieren | ~62 Personen × 20 Fotos | alle LFW mit ≥20 Bildern |
+| **ident10** | große Reihe | ~158 × 20 | alle LFW mit ≥10 Bildern |
 | Eigener Ordner | Jede Person = Unterordner mit ≥2 Fotos | beliebig | du |
 
 `pairs.txt` im Ordner ist das offizielle LFW-Protokoll (Huang et al., 2007). Hugging Face hat Kopien (`marcelohaps/lfw`), IJB-B/C und CFP-FP sind größer und für später — erst LFW, sonst ist die Zahl nicht vergleichbar.
@@ -24,18 +26,19 @@ chmod +x bench/fetch.sh
 schreibt nach `~/AegisBench/`:
 
 - `lfw/` — ganzer Satz
-- `smoke/` — 12 Personen, 6 Fotos
+- `smoke/` — 12 Personen × 6 Fotos (schnell)
+- `ident20/` — alle LFW-Personen mit ≥20 Bildern, bis 20 Fotos (~62, sklearn-Split)
+- `ident10/` — alle mit ≥10 Bildern, bis 20 Fotos (~158, große Reihe)
 - `pairs.txt` — 6000 Paare
-
-Ohne Netz: `lfw.tgz` selbst nach `~/AegisBench/lfw.tgz` legen und das Skript nochmal starten.
 
 ## In der App
 
 1. **Testmodus** in der Toolbar
-2. `~/AegisBench/smoke` wählen → Identifikation (Leave-one-out) + alle LFW-Paare, deren beide Bilder im Ordner liegen
-3. `~/AegisBench/lfw` wählen → volle 6000-Paar-Verifikation (dauert, Status zählt hoch)
+2. `~/AegisBench/ident20` — Kalibrieren (ca. 1 200 Fotos, Leave-one-out + passende LFW-Paare)
+3. `~/AegisBench/ident10` — große Reihe (ca. 3 000 Fotos, dauert)
+4. `~/AegisBench/lfw` — volle 6000-Paar-Verifikation; Identifikation filtert auf ≥10 Bilder
 
-Die eigene Galerie wird nicht überschrieben. Der Bericht landet als Textdatei (TAR@FAR, EER, Histogramme, Cosines).
+Die eigene Galerie wird nicht überschrieben. Cap in der App: 200 Personen × 20 Fotos.
 
 Was die Zahlen heißen:
 

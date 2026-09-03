@@ -872,6 +872,18 @@ enum MatchMathTests {
         } else {
             ok(false, "bench/pairs.txt fehlt")
         }
+        let tiny = BenchProtocol.identificationCut(counts: [6, 6, 6, 6], cap: 200)
+        ok(tiny.minPhotos == 2 && tiny.kept == 4, "kleine Mappe min 2")
+        let lfwLike = Array(repeating: 1, count: 5500) + Array(repeating: 12, count: 96) + Array(repeating: 25, count: 62)
+        let cut10 = BenchProtocol.identificationCut(counts: lfwLike, cap: 200)
+        ok(cut10.minPhotos == 10, "volle LFW → min 10 (ist \(cut10.minPhotos))")
+        ok(cut10.kept == 158, "158 Personen mit ≥10 (ist \(cut10.kept))")
+        let crowded = Array(repeating: 12, count: 300)
+        let cutCrowd = BenchProtocol.identificationCut(counts: crowded, cap: 200)
+        ok(cutCrowd.minPhotos == 10 && cutCrowd.kept == 200, "300×12 → top 200 mit min 10")
+        let dense = Array(repeating: 25, count: 250)
+        let cutDense = BenchProtocol.identificationCut(counts: dense, cap: 200)
+        ok(cutDense.minPhotos == 20 && cutDense.kept == 200, "250×25 → min 20, Cap 200")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

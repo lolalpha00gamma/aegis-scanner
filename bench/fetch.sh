@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
-# LFW nach ~/AegisBench laden und eine 12-Personen-Rauchwolke bauen.
+# LFW nach ~/AegisBench und drei Identifikationssätze:
+#   smoke    12 Personen × 6 Fotos     — schnell
+#   ident20  alle mit ≥20 Bildern ×20  — sklearn-Split (~62 Personen)
+#   ident10  alle mit ≥10 Bildern ×20  — große Reihe (~158 Personen)
 # Bilder nicht ins Git — nur pairs.txt liegt im Repo.
 set -euo pipefail
 
@@ -47,28 +50,77 @@ if [[ ! -d "$LFW/George_W_Bush" ]]; then
   fi
 fi
 
-SMOKE="$DEST/smoke"
-rm -rf "$SMOKE"
-mkdir -p "$SMOKE"
-while IFS= read -r person || [[ -n "$person" ]]; do
-  [[ -z "$person" || "$person" == \#* ]] && continue
-  src="$LFW/$person"
-  if [[ ! -d "$src" ]]; then
-    echo "fehlt: $person"
-    continue
+jpg_count() {
+  find "$1" -maxdepth 1 -iname '*.jpg' 2>/dev/null | wc -l | tr -d ' '
+}
+
+slice() {
+  local dest="$1"
+  local min="$2"
+  local maxphotos="$3"
+  local list="$4"
+  rm -rf "$dest"
+  mkdir -p "$dest"
+  local n=0
+  local photos=0
+  if [[ -n "$list" && -f "$list" ]]; then
+    while IFS= read -r person || [[ -n "$person" ]]; do
+      [[ -z "$person" || "$person" == \#* ]] && continue
+      local src="$LFW/$person"
+      [[ -d "$src" ]] || continue
+      mkdir -p "$dest/$person"
+      find "$src" -maxdepth 1 -iname '*.jpg' | sort | head -n "$maxphotos" | while read -r f; do
+        cp -n "$f" "$dest/$person/"
+      done
+      local c
+      c=$(jpg_count "$dest/$person")
+      n=$((n + 1))
+      photos=$((photos + c))
+      echo "  $person  $c"
+    done < "$list"
+  else
+    for src in "$LFW"/*/; do
+      [[ -d "$src" ]] || continue
+      local person
+      person="$(basename "$src")"
+      local have
+      have=$(jpg_count "$src")
+      if [[ "$have" -ge "$min" ]]; then
+        mkdir -p "$dest/$person"
+        find "$src" -maxdepth 1 -iname '*.jpg' | sort | head -n "$maxphotos" | while read -r f; do
+          cp -n "$f" "$dest/$person/"
+        done
+        local c
+        c=$(jpg_count "$dest/$person")
+        n=$((n + 1))
+        photos=$((photos + c))
+      fi
+    done
+    echo "  $n Personen, $photos Fotos  (min $min, max $maxphotos/Person)"
   fi
-  mkdir -p "$SMOKE/$person"
-  # erste 6 JPEGs — genug für Leave-one-out, klein genug für einen Lauf
-  find "$src" -maxdepth 1 -iname '*.jpg' | sort | head -n 6 | while read -r f; do
-    cp -n "$f" "$SMOKE/$person/"
-  done
-  echo "smoke  $person  $(find "$SMOKE/$person" -iname '*.jpg' | wc -l | tr -d ' ') Fotos"
-done < "$SCRIPT_DIR/smoke-people.txt"
+  cp -f "$DEST/pairs.txt" "$dest/pairs.txt"
+}
+
+echo "— smoke (12 × 6)"
+slice "$DEST/smoke" 6 6 "$SCRIPT_DIR/smoke-people.txt"
+
+echo "— ident20 (≥20 Bilder, bis 20 Fotos)  sklearn-Split"
+slice "$DEST/ident20" 20 20 ""
+
+echo "— ident10 (≥10 Bilder, bis 20 Fotos)  große Reihe"
+slice "$DEST/ident10" 10 20 ""
+
+{
+  echo "AegisBench $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  echo "lfw      $(find "$LFW" -iname '*.jpg' | wc -l | tr -d ' ') Bilder, $(find "$LFW" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ') Personen"
+  echo "smoke    $(find "$DEST/smoke" -iname '*.jpg' | wc -l | tr -d ' ') Bilder, $(find "$DEST/smoke" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ') Personen"
+  echo "ident20  $(find "$DEST/ident20" -iname '*.jpg' | wc -l | tr -d ' ') Bilder, $(find "$DEST/ident20" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ') Personen"
+  echo "ident10  $(find "$DEST/ident10" -iname '*.jpg' | wc -l | tr -d ' ') Bilder, $(find "$DEST/ident10" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ') Personen"
+} | tee "$DEST/MANIFEST.txt"
 
 echo
-echo "Fertig."
-echo "  Voll  $LFW"
-echo "  Smoke $SMOKE"
-echo "  Paare $DEST/pairs.txt"
-echo
-echo "In Aegis: Testmodus → $SMOKE  (schnell) oder $LFW (6000 LFW-Paare, dauert)."
+echo "In Aegis → Testmodus:"
+echo "  $DEST/smoke     schnell"
+echo "  $DEST/ident20   ~62 Personen  (empfohlen zum Kalibrieren)"
+echo "  $DEST/ident10   ~158 Personen (große Reihe, dauert)"
+echo "  $DEST/lfw       6000-Paar-Verifikation + Identifikation min-10"

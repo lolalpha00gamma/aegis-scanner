@@ -1870,7 +1870,7 @@ final class LibraryStore: ObservableObject {
         panel.canChooseFiles = false
         panel.allowsMultipleSelection = false
         panel.prompt = "Testmodus"
-        panel.message = "Personen-Ordner (Name/foto.jpg) oder LFW-Wurzel. pairs.txt daneben = Verifikation."
+        panel.message = "Smoke (schnell), ident20 (~62 Personen) oder ident10 (~158). pairs.txt daneben = Verifikation."
         let home = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("AegisBench")
         if FileManager.default.fileExists(atPath: home.path) {
             panel.directoryURL = home
@@ -1903,7 +1903,8 @@ final class LibraryStore: ObservableObject {
             let pairsText = pairsURL.flatMap { try? String(contentsOf: $0, encoding: .utf8) } ?? ""
             let pairs = BenchProtocol.parsePairs(pairsText)
             let people = BenchProtocol.personFolders(root: root)
-            let large = people.count > Benchmark.identifyPeopleCap
+            let picked = BenchProtocol.selectPeople(people, cap: Benchmark.identifyPeopleCap)
+            let large = people.count > picked.urls.count
 
             if !pairs.isEmpty {
                 self.status = "Testmodus · Verifikation 0/\(pairs.count)"
@@ -1942,7 +1943,7 @@ final class LibraryStore: ObservableObject {
                 return
             }
 
-            let subset = Array(people.prefix(Benchmark.identifyPeopleCap))
+            let subset = picked.urls
             var urls: [URL] = []
             for person in subset {
                 urls.append(contentsOf: BenchProtocol.images(in: person, limit: Benchmark.photosPerPerson))
@@ -1977,9 +1978,9 @@ final class LibraryStore: ObservableObject {
                     )
                 }.value
                 parts.append("")
-                parts.append("Identifikation (Leave-one-out, max \(Benchmark.identifyPeopleCap) Personen × \(Benchmark.photosPerPerson) Fotos)")
+                parts.append("Identifikation (Leave-one-out, ≥\(picked.minPhotos) Fotos, max \(Benchmark.identifyPeopleCap) Personen × \(Benchmark.photosPerPerson) Fotos)")
                 if large {
-                    parts.append("Galerie gekappt — volle LFW-Identifikation wäre \(people.count) Personen. Smoke-Ordner für den schnellen Satz.")
+                    parts.append("Galerie gekappt: \(people.count) Ordner → \(subset.count) Personen (min \(picked.minPhotos) Bilder). ident10/ident20 sind die vorbereiteten Sätze.")
                 }
                 parts.append(lab)
             }
