@@ -55,6 +55,17 @@ struct ContentView: View {
             if store.liveActive {
                 Button("Stop") { store.stopLive() }
             }
+            Picker("Kamera", selection: Binding(
+                get: { store.cameraChoice },
+                set: { store.setCameraChoice($0) }
+            )) {
+                ForEach(CameraChoice.allCases) { c in
+                    Text(c.titleDE).tag(c)
+                }
+            }
+            .pickerStyle(.menu)
+            .frame(width: 150)
+            .help("Built-in zuerst, sonst Continuity. Analog Helios.")
             Button("Erkennen") { Task { await store.scan() } }
                 .disabled(store.busy || store.media.isEmpty)
             if store.busy {
@@ -641,12 +652,39 @@ struct FaceOverlay: View {
                     }()
                     let liveCont = store.liveContinuity && item.kind == .live
                     let hint = FaceEngine.overlayHint(face, gallery: gallery, continuity: liveCont)
+                    let leftover = store.leftoverHold[face.id] != nil
+                    let kind = MatchMath.overlayBoxKind(selected: selected, pinned: pinned, leftover: leftover)
+                    let boxColor: Color = {
+                        switch kind {
+                        case .selected: return .white
+                        case .enrolled: return Color.green.opacity(0.85)
+                        case .leftover: return Color.orange.opacity(0.95)
+                        case .unmatched: return Color.white.opacity(0.45)
+                        }
+                    }()
+                    let slotRaw = FaceEngine.poseSlot(face).rawValue
+                    let slotTone = MatchMath.slotTone(slotRaw)
+                    let slotColor: Color = {
+                        switch slotTone {
+                        case "green": return Color.green
+                        case "amber": return Color.orange
+                        case "red": return Color.red
+                        case "violet": return Color.purple
+                        default: return Color.secondary
+                        }
+                    }()
                     let printLabel: String = {
                         if printDead { return "Print tot" }
                         let printPct = printHit?.percent ?? 0
                         let lookPct = aegisHit?.percent ?? printPct
-                        let slot = MatchMath.slotLetter(FaceEngine.poseSlot(face).rawValue)
-                        let base = "\(slot) · \(MatchMath.lookPrintLabel(printPercent: printPct, look: lookPct))"
+                        let slot = MatchMath.slotLetter(slotRaw)
+                        var base = "\(slot) · \(MatchMath.lookPrintLabel(printPercent: printPct, look: lookPct))"
+                        if let vote = store.voteProgress(faceId: face.id) {
+                            base += " · \(vote)"
+                        }
+                        if let sib = MatchMath.siblingBadge(pairCosine: aegisHit?.pairCosine) {
+                            base += " · \(sib)"
+                        }
                         let note = aegisHit?.note ?? ""
                         if note.contains(MatchMath.liveNameDisagreeNote()) {
                             let lookName = store.identities.first { $0.id == aegisHit?.versus.first?.identityId }?.name
@@ -665,10 +703,11 @@ struct FaceOverlay: View {
                         store.selectedMediaId = item.id
                     } label: {
                         Rectangle()
-                            .stroke(selected ? Color.white : (pinned ? Color.green.opacity(0.85) : Color.white.opacity(0.45)), lineWidth: selected ? 2 : 1.5)
+                            .stroke(boxColor, lineWidth: selected ? 2 : 1.5)
                             .overlay(alignment: .topLeading) {
                                 Text("\(index + 1)")
                                     .font(.caption2.monospacedDigit())
+                                    .foregroundStyle(slotColor)
                                     .padding(.horizontal, 5)
                                     .padding(.vertical, 1)
                                     .background(.black.opacity(0.7))
@@ -685,7 +724,10 @@ struct FaceOverlay: View {
                                         .font(.caption2.monospacedDigit())
                                         .padding(.horizontal, 5)
                                         .padding(.vertical, 1)
-                                        .background((hint != nil && printDead) ? Color.red.opacity(0.78) : Color.black.opacity(0.7))
+                                        .background(
+                                            leftover ? Color.orange.opacity(0.78)
+                                                : ((hint != nil && printDead) ? Color.red.opacity(0.78) : Color.black.opacity(0.7))
+                                        )
                                 }
                                 .offset(x: 4, y: -10)
                             }

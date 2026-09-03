@@ -12,6 +12,18 @@ enum LiveKind: String {
     case webcam, hls, mjpeg, httpVideo, snapshot, rtsp
 }
 
+enum CameraChoice: String, CaseIterable, Identifiable {
+    case auto, builtIn, continuity
+    var id: String { rawValue }
+    var titleDE: String {
+        switch self {
+        case .auto: return "Auto (Built-in zuerst)"
+        case .builtIn: return "Built-in Front"
+        case .continuity: return "Continuity / Desk-View"
+        }
+    }
+}
+
 @MainActor
 final class LiveCapture: NSObject {
     private var player: AVPlayer?
@@ -31,6 +43,7 @@ final class LiveCapture: NSObject {
     private(set) var cameraUniqueID: String = ""
     private(set) var orientOverride: String = "auto"
     private(set) var isContinuity = false
+    var choice: CameraChoice = .auto
 
     static func orientKey(_ uniqueID: String) -> String { "aegis.camOrient.\(uniqueID)" }
 
@@ -158,12 +171,30 @@ final class LiveCapture: NSObject {
         if let front = discovered.first(where: {
             $0.deviceType == .builtInWideAngleCamera && ($0.position == .front || $0.position == .unspecified)
         }) {
-            return front
+            if choice != .continuity { return front }
         }
         if let builtIn = discovered.first(where: { $0.deviceType == .builtInWideAngleCamera }) {
-            return builtIn
+            if choice != .continuity { return builtIn }
         }
-        return discovered.first ?? AVCaptureDevice.default(for: .video)
+        let extra = discovered.first(where: {
+            if #available(macOS 14.0, *) {
+                return $0.deviceType == .continuityCamera || $0.deviceType == .deskViewCamera
+            }
+            return $0.deviceType == .continuityCamera
+        })
+        switch choice {
+        case .continuity:
+            return extra ?? discovered.first ?? AVCaptureDevice.default(for: .video)
+        case .builtIn:
+            return discovered.first(where: { $0.deviceType == .builtInWideAngleCamera })
+                ?? extra ?? discovered.first ?? AVCaptureDevice.default(for: .video)
+        case .auto:
+            if let front = discovered.first(where: {
+                $0.deviceType == .builtInWideAngleCamera && ($0.position == .front || $0.position == .unspecified)
+            }) { return front }
+            if let builtIn = discovered.first(where: { $0.deviceType == .builtInWideAngleCamera }) { return builtIn }
+            return extra ?? discovered.first ?? AVCaptureDevice.default(for: .video)
+        }
     }
 
     private func startPlayer(url: URL) {

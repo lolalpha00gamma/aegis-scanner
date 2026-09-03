@@ -1,6 +1,18 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.36 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.37 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.37 wirklich im Code
+
+2.1.36 leftover tauft nicht unter 0,80 — Overlay-Kiste blieb trotzdem grün wie enrolled. Taufe-Hold unsichtbar (Live wirkt tot für 0,28–0,80 s). Slot-Buchstabe ohne Farbe. Close-Pair ohne Badge. Continuity still Fallback, kein Picker.
+
+1. **`overlayBoxKind`.** leftover orange, enrolled grün, selected weiß.
+2. **`nameVoteProgress`.** Overlay `2/3` / `5/7` bis Mehrheit sitzt.
+3. **`siblingBadge`.** pairCosine ≥ 0,80 → „Geschwister?“.
+4. **`slotTone`.** F grün, ¾ amber, P rot, U violet.
+5. **Kamera-Picker** Auto / Built-in / Continuity. Prefs. Webcam-Restart.
+6. Tests: boxKind, voteProgress, siblingBadge, slotTone.
+7. MARKETING_VERSION 2.1.37 (Build 64), `Models.swift` + `VERSION` gleich.
 
 ## In 2.1.36 wirklich im Code
 
@@ -243,15 +255,15 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - **Galerie kompakt:** unscharfe same-Slot-Refs droppen, sobald eine scharfe da ist.
 - **1-Euro minCutoff Slider** für Continuity vs Built-in, Fläche bleibt Bias.
 - **Uneinig-Namen nur Live**, Still-Fotos nicht mit Look/Print-Ghosts.
-- **Slot-Letter Farbe** (F grün, ¾ amber, P rot) analog Quality-Ampel.
+- **Slot-Letter Farbe** (F grün, ¾ amber, P rot) analog Quality-Ampel. **→ 2.1.37 slotTone**
 - **Leftover nicht taufen** bis Print ≥ 0,80 — Hold darf die Overlay-Kiste, nicht die Galerie. **→ 2.1.36 leftoverBaptize**
 - **nameHist in Sekunden** (8 fps × 5 Ticks = 0,6 s), nicht Frame-Count. **→ 2.1.36 nameAgreeNeed(dt:)**
 - **Pairwise close Pair aus Centroid-Cosine**, nicht nur Look-Delta 8. **→ 2.1.36 pairCosine**
-- **Overlay leftover vs enrolled** verschiedene Kistenfarbe, nicht nur Text.
+- **Overlay leftover vs enrolled** verschiedene Kistenfarbe, nicht nur Text. **→ 2.1.37 overlayBoxKind**
 - **Leftover-Hist nicht an die nächste Box vererben.** **→ 2.1.36 wipe**
-- **Kamera-Picker** Built-in / Continuity analog Helios 1.5.19.
-- **Taufe-Hold sichtbar:** Overlay `2/3` bzw. `5/7` bis Mehrheit sitzt — sonst wirkt Live „tot“.
-- **Zwei-Personen-FAR im Overlay.** Wenn pairCosine ≥ 0,80, Badge „Geschwister?“ statt Name.
+- **Kamera-Picker** Built-in / Continuity analog Helios 1.5.19. **→ 2.1.37 CameraChoice**
+- **Taufe-Hold sichtbar:** Overlay `2/3` bzw. `5/7` bis Mehrheit sitzt — sonst wirkt Live „tot“. **→ 2.1.37 nameVoteProgress**
+- **Zwei-Personen-FAR im Overlay.** Wenn pairCosine ≥ 0,80, Badge „Geschwister?“ statt Name. **→ 2.1.37 siblingBadge**
 
 ## Erweiterungen
 
@@ -306,6 +318,23 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - **Track-ID `T…` in der UI.** intern `trackId` gibt es, die Kiste zeigt die Snapshot-UUID.
 - **Continuity 8 fps:** Spark-Fenster in Sekunden (schon als Idee), analog Helios sampleDt.
 - **Drop-in `.mlmodel` bleibt der große Sprung** — Apple-Print ist die Decke.
+- **Live-FAR-Spark** letzte 200 Impostor-Ticks im Overlay, nicht nur Labor.
+- **Enrollment-Coach.** „Kopf nach links“ wenn ¾ fehlt, Pose-Balken F/¾/P.
+- **Crop-Align Augen** vor `VNGenerateFacePrint`.
+- **Restore-Diff.** Backup vs. aktuell: welche IDs kämen zurück.
+- **gallery.json SHA-256** neben schemaVersion.
+- **Hold-Still-Ring** 0,8 s im Overlay.
+- **Track-ID `T…` in der UI**, Galerie bleibt Snapshot-UUID.
+- **Export Labor als CSV-Datei**, nicht nur Textfeld.
+- **liveCentroid Cache** am Identity-Modell (slot + printRevision).
+- **Identitäten mergen** UI-Button, nicht nur Anlegen-Confirm.
+- **Offen-Set.** Explizite „unbekannt“-Klasse.
+- **Helios-Bridge.** Eine Kamera-Session, eine TCC.
+- **Zwei-Kamera-Live.** Built-in + Continuity parallel, Track über Print.
+- **PhotoKit-Scan** nur mit expliziter Foto-Berechtigung.
+- **Match-Log JSONL** (Tick, UUID, lookOf, geoMix).
+- **AE-Lock 200 ms** nach Belichtungssprung beim `+`.
+- **Print-Drift-Spark.** Overlay-Linie Cosine zum Centroid über 8 Frames.
 - **Per-Identität leftover-Log** in der Overlay-Kiste, nicht nur Statuszeile.
 - **Hold-Still Ring** im Overlay 0,8 s, analog Peace.
 - **Pose-Meter als Balken** (F/¾/P) neben dem Namen, nicht nur Text.
@@ -407,3 +436,7 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - `.bak` ohne fsync.
 - 1-Euro Cutoff unabhängig von Box-Fläche.
 - Overlay ohne Slot-Buchstaben.
+- Leftover-Kiste dieselbe Farbe wie enrolled.
+- Taufe still, ohne `n/need` im Overlay.
+- Continuity still Fallback ohne Picker.
+- Close-Pair ohne Badge.

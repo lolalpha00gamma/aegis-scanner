@@ -1,4 +1,4 @@
-# Aegis **2.1.36 alpha**
+# Aegis **2.1.37 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,14 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.37 alpha
+
+2.1.36 leftover tauft nicht unter 0,80 — die Overlay-Kiste blieb grün wie eine getaufte Person. Taufe-Hold unsichtbar. Continuity still Fallback.
+
+- **Leftover-Kiste orange**, enrolled grün. Overlay `2/3` bis die Mehrheit sitzt. „Geschwister?“ bei Centroid ≥ 0,80.
+- **Slot-Farbe** F/¾/P. **Kamera-Picker** Auto / Built-in / Continuity.
+- **VERSION = Models = MARKETING_VERSION 2.1.37** (Build 64).
 
 ## Neu in 2.1.36 alpha
 

@@ -37,6 +37,7 @@ final class LibraryStore: ObservableObject {
     @Published var cameraUniqueID: String = ""
     @Published var liveHeldIds: Set<UUID> = []
     @Published var leftoverHold: [UUID: Double] = [:]
+    @Published var cameraChoice: CameraChoice = .auto
 
     private let liveCapture = LiveCapture()
     private var liveMediaId: UUID?
@@ -88,6 +89,12 @@ final class LibraryStore: ObservableObject {
                 ? "Galerie · \(identities.count) Personen"
                 : revisionWarning
         }
+        if let raw = UserDefaults.standard.string(forKey: "aegis.cameraChoice"),
+           let c = CameraChoice(rawValue: raw)
+        {
+            cameraChoice = c
+        }
+        liveCapture.choice = cameraChoice
     }
 
     private func persist() {
@@ -868,6 +875,29 @@ final class LibraryStore: ObservableObject {
         }
     }
 
+    func setCameraChoice(_ choice: CameraChoice) {
+        cameraChoice = choice
+        liveCapture.choice = choice
+        UserDefaults.standard.set(choice.rawValue, forKey: "aegis.cameraChoice")
+        status = "Kamera: \(choice.titleDE)"
+        if liveActive {
+            startWebcam()
+        }
+    }
+
+    func voteProgress(faceId: UUID) -> String? {
+        let hist = liveNameHist[faceId] ?? []
+        let hit = matches.first { $0.faceId == faceId }?.hits.first { $0.strategy == .aegis }
+        let vs = hit?.versus ?? []
+        let close = MatchMath.nameClosePair(
+            best: vs.first?.percent ?? 0,
+            second: vs.dropFirst().first?.percent,
+            pairCosine: hit?.pairCosine
+        )
+        let need = MatchMath.nameAgreeNeed(family: close, dt: liveDt)
+        return MatchMath.nameVoteProgress(history: hist, need: need)
+    }
+
     func removeIdentity(_ id: UUID) {
         identities.removeAll { $0.id == id }
         persist()
@@ -1009,6 +1039,7 @@ final class LibraryStore: ObservableObject {
         liveCapture.onFrame = { [weak self] image, stamp in
             self?.ingestLiveFrame(image, mediaId: id, stamp: stamp)
         }
+        liveCapture.choice = cameraChoice
         liveCapture.start(url: url, kind: kind)
     }
 

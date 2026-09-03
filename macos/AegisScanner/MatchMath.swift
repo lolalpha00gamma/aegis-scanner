@@ -669,6 +669,45 @@ enum MatchMath {
         }
     }
 
+    /// Overlay-Farbe analog Quality-Ampel. Tests als String.
+    static func slotTone(_ slot: String) -> String {
+        switch slot {
+        case "frontal": return "green"
+        case "threeQuarter": return "amber"
+        case "profile": return "red"
+        case "upper": return "violet"
+        default: return "gray"
+        }
+    }
+
+    enum OverlayBoxKind: String {
+        case selected, enrolled, leftover, unmatched
+    }
+
+    /// Leftover-Kiste anders als enrolled — sonst wirkt 0,64 wie ein Name.
+    static func overlayBoxKind(selected: Bool, pinned: Bool, leftover: Bool) -> OverlayBoxKind {
+        if selected { return .selected }
+        if leftover { return .leftover }
+        if pinned { return .enrolled }
+        return .unmatched
+    }
+
+    /// Taufe-Hold: „2/3“ bis Mehrheit sitzt. nil = getauft oder leer.
+    static func nameVoteProgress(history: [String], need: Int) -> String? {
+        let agreeing = history.filter { !$0.isEmpty }
+        guard need > 0 else { return nil }
+        let winner = nameMajority(agreeing)
+        let n = winner.map { w in agreeing.filter { $0 == w }.count } ?? 0
+        if n >= need { return nil }
+        return "\(n)/\(need)"
+    }
+
+    /// Pairwise ≥ 0,80: Badge statt still taufen.
+    static func siblingBadge(pairCosine: Double?) -> String? {
+        guard let pairCosine, pairCosine >= familyCosineLo else { return nil }
+        return "Geschwister?"
+    }
+
     static func liveNameDisagreeLabel(lookName: String?, printName: String?) -> String {
         "L \(lookName ?? "—") · P \(printName ?? "—")"
     }
