@@ -1,4 +1,4 @@
-# Aegis **2.1.35 alpha**
+# Aegis **2.1.36 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.36 alpha
+
+2.1.35 hat Familien-Taufe 5 Ticks — bei 8 fps 0,6 s, das leftover 0,64 erbte trotzdem den Namen und die Hist der Vorperson. Look-Delta 8 ohne Centroid-Cosine bremste Fremde. Taufe zählte Frames, nicht Zeit.
+
+- **Leftover tauft nicht unter 0,80.** Overlay `gehalten 0,64` bleibt. Namens-Hist wird gewischt. Nachbar erbt Anna nicht.
+- **Close-Pair braucht Centroid ≥ 0,80.** Look 84 vs 80 ohne Nähe ist kein Geschwister.
+- **Taufe in Sekunden.** `nameAgreeNeed(family:dt:)` — 8 fps Fremde 3 / Familie 7, nicht 80 ms bei 24 fps.
+- **VERSION = Models = MARKETING_VERSION 2.1.36** (Build 63).
 
 ## Neu in 2.1.35 alpha
 

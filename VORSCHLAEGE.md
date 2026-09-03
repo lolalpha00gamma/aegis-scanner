@@ -1,6 +1,15 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.35 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.36 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.36 wirklich im Code
+
+2.1.35 Familien-Taufe 5 Ticks — leftover 0,64 erbte UUID **und** Namens-Hist. Look-Delta 8 ohne Centroid. Taufe in Frames (24 fps = 80 ms).
+
+1. **`leftoverBaptize` 0,80.** Darunter Hold-Label, keine Taufe, Hist weg.
+2. **`nameClosePair(pairCosine:)`.** Look-Delta < 8 **und** Centroid ≥ 0,80.
+3. **`nameAgreeNeed(family:dt:)`.** 0,28 s / 0,80 s, geklemmt 2–10 / 5–16 Ticks. `liveDt` aus PTS.
+4. MARKETING_VERSION 2.1.36 (Build 63), `Models.swift` + `VERSION` gleich.
 
 ## In 2.1.35 wirklich im Code
 
@@ -235,10 +244,14 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - **1-Euro minCutoff Slider** für Continuity vs Built-in, Fläche bleibt Bias.
 - **Uneinig-Namen nur Live**, Still-Fotos nicht mit Look/Print-Ghosts.
 - **Slot-Letter Farbe** (F grün, ¾ amber, P rot) analog Quality-Ampel.
-- **Leftover nicht taufen** bis Print ≥ 0,80 — Hold darf die Overlay-Kiste, nicht die Galerie.
-- **nameHist in Sekunden** (8 fps × 5 Ticks = 0,6 s), nicht Frame-Count.
-- **Pairwise close Pair aus Centroid-Cosine**, nicht nur Look-Delta 8.
+- **Leftover nicht taufen** bis Print ≥ 0,80 — Hold darf die Overlay-Kiste, nicht die Galerie. **→ 2.1.36 leftoverBaptize**
+- **nameHist in Sekunden** (8 fps × 5 Ticks = 0,6 s), nicht Frame-Count. **→ 2.1.36 nameAgreeNeed(dt:)**
+- **Pairwise close Pair aus Centroid-Cosine**, nicht nur Look-Delta 8. **→ 2.1.36 pairCosine**
 - **Overlay leftover vs enrolled** verschiedene Kistenfarbe, nicht nur Text.
+- **Leftover-Hist nicht an die nächste Box vererben.** **→ 2.1.36 wipe**
+- **Kamera-Picker** Built-in / Continuity analog Helios 1.5.19.
+- **Taufe-Hold sichtbar:** Overlay `2/3` bzw. `5/7` bis Mehrheit sitzt — sonst wirkt Live „tot“.
+- **Zwei-Personen-FAR im Overlay.** Wenn pairCosine ≥ 0,80, Badge „Geschwister?“ statt Name.
 
 ## Erweiterungen
 

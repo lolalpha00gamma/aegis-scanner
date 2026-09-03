@@ -671,13 +671,19 @@ enum FaceEngine {
                 return geoVersus.first { $0.id == id }?.percent ?? 0
             }()
             let geoMargin = (geoBest?.percent ?? 0) - (geoVersus.dropFirst().first?.percent ?? 0)
-            let bump: Double = {
-                guard let a = best?.identityId, let b = second?.identityId,
-                      let va = modelVec[a], let vb = modelVec[b],
-                      va.count >= 32, va.count == vb.count
-                else { return 0 }
-                return MatchMath.familyBump(bestPairCosine: cosine(va, vb))
-            }()
+            let bump: Double
+            let pairCos: Double?
+            if let a = best?.identityId, let b = second?.identityId,
+               let va = modelVec[a], let vb = modelVec[b],
+               va.count >= 32, va.count == vb.count
+            {
+                let c = cosine(va, vb)
+                pairCos = c
+                bump = MatchMath.familyBump(bestPairCosine: c)
+            } else {
+                pairCos = nil
+                bump = 0
+            }
             let liveFloors = Floors(match: min(96, floors.match + bump), solo: min(96, floors.solo + bump))
             let printBest = printVersus.first { $0.identityId == best?.identityId }
             let printWinner = printVersus.first
@@ -736,7 +742,8 @@ enum FaceEngine {
                 versus: versus,
                 note: note,
                 measured: pv.count >= 32,
-                geoMix: geoAvailable ? geoMix : nil
+                geoMix: geoAvailable ? geoMix : nil,
+                pairCosine: pairCos
             )
             return MatchResult(faceId: face.id, hits: [printHit, aegisHit])
         }

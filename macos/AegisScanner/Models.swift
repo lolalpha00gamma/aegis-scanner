@@ -2,9 +2,9 @@ import CoreGraphics
 import Foundation
 
 enum AppVersion {
-    static let marketing = "2.1.35"
+    static let marketing = "2.1.36"
     static let channel = "alpha"
-    static let display = "2.1.35 alpha"
+    static let display = "2.1.36 alpha"
 }
 
 enum StrategyTrack: String, CaseIterable, Identifiable {
@@ -356,6 +356,8 @@ struct StrategyHit: Hashable {
     var note: String = ""
     var measured: Bool = true
     var geoMix: Double? = nil
+    /// Centroid-Cosine Look-Sieger vs Zweiter. Close-Pair braucht echte Nähe, nicht nur Look-Delta 8.
+    var pairCosine: Double? = nil
 }
 
 struct MatchResult: Hashable {

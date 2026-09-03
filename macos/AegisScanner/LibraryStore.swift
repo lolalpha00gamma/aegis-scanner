@@ -57,6 +57,8 @@ final class LibraryStore: ObservableObject {
     private var boxJumpPending: [UUID: FaceBox] = [:]
     private var liveNameHist: [UUID: [String]] = [:]
     private var liveScoreEma: [UUID: Double] = [:]
+    private var liveLastStamp: TimeInterval = 0
+    private var liveDt: TimeInterval = 0.125
     private var livePrintTrail: [UUID: [[Double]]] = [:]
     private var livePrintTrailSlot: [UUID: String] = [:]
     private var lastCameraUniqueID: String = ""
@@ -103,6 +105,8 @@ final class LibraryStore: ObservableObject {
         faces = packed.faces
         liveNameHist = [:]
         liveScoreEma = [:]
+        liveLastStamp = 0
+        liveDt = 0.125
         rematch()
         persist()
         let schema = packed.schemaVersion.map { "Schema \($0)" } ?? "Schema <2"
@@ -577,15 +581,22 @@ final class LibraryStore: ObservableObject {
             if !hit.measured {
                 continue
             }
-            let token = hit.identityId?.uuidString ?? ""
+            let token: String
+            if leftoverHold[fid] != nil, MatchMath.leftoverWipeHist(cosine: leftoverHold[fid]) {
+                token = ""
+                hit.identityId = nil
+            } else {
+                token = hit.identityId?.uuidString ?? ""
+            }
             var hist = liveNameHist[fid] ?? []
             hist.append(token)
             let vs = hit.versus
             let close = MatchMath.nameClosePair(
                 best: vs.first?.percent ?? 0,
-                second: vs.dropFirst().first?.percent
+                second: vs.dropFirst().first?.percent,
+                pairCosine: hit.pairCosine
             )
-            let need = MatchMath.nameAgreeNeed(family: close)
+            let need = MatchMath.nameAgreeNeed(family: close, dt: liveDt)
             let cap = MatchMath.nameHistCap(need: need)
             if hist.count > cap {
                 hist.removeFirst(hist.count - cap)
@@ -934,6 +945,8 @@ final class LibraryStore: ObservableObject {
         boxJumpPending.removeAll()
         liveNameHist = [:]
         liveScoreEma = [:]
+        liveLastStamp = 0
+        liveDt = 0.125
         livePrintTrail.removeAll()
         livePrintTrailSlot.removeAll()
         liveCapture.stop()
@@ -1060,6 +1073,10 @@ final class LibraryStore: ObservableObject {
         media[idx].height = image.height
         media[idx].preview = image
         let now = stamp > 0 ? stamp : Date().timeIntervalSince1970
+        if liveLastStamp > 0, now > liveLastStamp {
+            liveDt = min(0.50, max(0.04, now - liveLastStamp))
+        }
+        liveLastStamp = now
         let enrolled = Set(identities.flatMap(\.faceIds))
         let previous = faces.filter { $0.mediaId == mediaId }
         let namedTracks = Set(previous.compactMap { old -> UUID? in
@@ -1281,6 +1298,10 @@ final class LibraryStore: ObservableObject {
                 leftoverPins += 1
                 if let cos = remaining.first(where: { $0.index == bestJ })?.cosine ?? item.bestCos {
                     leftoverHold[adopted[bestJ].id] = cos
+                    if MatchMath.leftoverWipeHist(cosine: cos) {
+                        liveNameHist.removeValue(forKey: old.id)
+                        liveScoreEma.removeValue(forKey: old.id)
+                    }
                 }
             }
             if leftoverPins > 0, let line = MatchMath.leftoverPinStatus(

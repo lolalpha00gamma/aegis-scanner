@@ -42,15 +42,31 @@ enum MatchMath {
     /// Ein Look=Print-Tick tauft nicht. Zwei agreeing Stimmen. Geschwister: fünf.
     static let nameAgreeNeed = 2
     static let nameFamilyNeed = 5
+    /// 8 fps × 2 = 0,25 s ist zu knapp gegen Rauschen. Zeit, nicht nur Ticks.
+    static let nameAgreeSec: TimeInterval = 0.28
+    static let nameFamilySec: TimeInterval = 0.80
 
     static func nameAgreeNeed(family: Bool) -> Int {
         family ? nameFamilyNeed : nameAgreeNeed
     }
 
+    /// dt aus dem Live-Takt. 8 fps: Fremde 3, Familie 7. 24 fps: nicht nach 80 ms taufen.
+    static func nameAgreeNeed(family: Bool, dt: TimeInterval) -> Int {
+        let sec = family ? nameFamilySec : nameAgreeSec
+        let step = max(0.04, min(0.20, dt <= 0 ? 0.125 : dt))
+        let frames = Int(ceil(sec / step))
+        let lo = family ? nameFamilyNeed : nameAgreeNeed
+        let hi = family ? 16 : 10
+        return max(lo, min(hi, frames))
+    }
+
     /// Look-Scores enger als 8 Punkte: Geschwister oder Unsicher — länger halten.
-    static func nameClosePair(best: Double, second: Double?) -> Bool {
+    /// Ohne pairCosine bleibt das Look-Delta (Tests). Mit Cosine: nur echte Nähe.
+    static func nameClosePair(best: Double, second: Double?, pairCosine: Double? = nil) -> Bool {
         guard let second else { return false }
-        return best - second < 8
+        if best - second >= 8 { return false }
+        if let pairCosine { return pairCosine >= familyCosineLo }
+        return true
     }
 
     /// Leere Look≠Print-Tokens dürfen die Familien-Taufe nicht aushungern.
@@ -271,6 +287,15 @@ enum MatchMath {
         let frac = abs(hundredths % 100)
         let fracStr = frac < 10 ? "0\(frac)" : "\(frac)"
         return "gehalten \(whole),\(fracStr)"
+    }
+
+    /// Overlay darf den Track halten. Taufe erst ab Pin-Print 0,80 — sonst erbt der Nachbar den Namen.
+    static func leftoverBaptize(cosine: Double?) -> Bool {
+        pinByPrint(cosine: cosine ?? -1)
+    }
+
+    static func leftoverWipeHist(cosine: Double?) -> Bool {
+        !leftoverBaptize(cosine: cosine)
     }
 
     /// Leftover darf Genuine 0,62–0,79 halten. Pin-Print 0,80 bleibt für enrolled IoU-Steal.
