@@ -144,6 +144,23 @@ enum MatchMathTests {
         )
         ok(MatchMath.liveNamePrintLeadsNote() == "Print führt", "Print-führt-Notiz")
         ok(!MatchMath.leftoverStarvesVote(), "leftover hungert Votes nicht jeden Tick")
+        ok(
+            MatchMath.nameHistAppend(["A", "A"], token: "", cap: 5) == ["A", "A"],
+            "leere Tokens belegen den Cap nicht"
+        )
+        ok(
+            MatchMath.nameHistAppend(["A", "A"], token: "A", cap: 5) == ["A", "A", "A"],
+            "agreeing Token hängt an"
+        )
+        let locked = Array(repeating: "A", count: 7)
+        let afterEmpty = (0..<12).reduce(locked) { acc, _ in
+            MatchMath.nameHistAppend(acc, token: "", cap: 10)
+        }
+        ok(afterEmpty.filter { $0 == "A" }.count == 7, "12 Uneinig wischen Taufe nicht")
+        ok(MatchMath.nameLockHolds(voted: "B", locked: "A") == "B", "neue Mehrheit kippt Lock")
+        ok(MatchMath.nameLockHolds(voted: nil, locked: "A") == "A", "ohne Mehrheit hält Lock")
+        ok(MatchMath.nameLockHolds(voted: "", locked: "A") == "A", "leere Vote hält Lock")
+        ok(MatchMath.nameLockHolds(voted: nil, locked: nil) == nil, "ohne Lock tot")
         ok(MatchMath.liveNameDisagreeNote() == "Look und Print uneinig", "Uneinig-Notiz")
         ok(MatchMath.printTrailAccepts(prevSlot: nil, nextSlot: "frontal"), "erster Slot darf in den Trail")
         ok(MatchMath.printTrailAccepts(prevSlot: "frontal", nextSlot: "frontal"), "gleicher Slot bleibt")

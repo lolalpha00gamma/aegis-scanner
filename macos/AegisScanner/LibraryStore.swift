@@ -57,6 +57,7 @@ final class LibraryStore: ObservableObject {
     private var boxEuro: [UUID: (x: MatchMath.OneEuro, y: MatchMath.OneEuro, w: MatchMath.OneEuro, h: MatchMath.OneEuro)] = [:]
     private var boxJumpPending: [UUID: FaceBox] = [:]
     private var liveNameHist: [UUID: [String]] = [:]
+    private var liveNameLock: [UUID: UUID] = [:]
     private var liveScoreEma: [UUID: Double] = [:]
     private var liveLastStamp: TimeInterval = 0
     private var liveDt: TimeInterval = 0.125
@@ -111,6 +112,7 @@ final class LibraryStore: ObservableObject {
         identities = packed.identities
         faces = packed.faces
         liveNameHist = [:]
+        liveNameLock = [:]
         liveScoreEma = [:]
         liveLastStamp = 0
         liveDt = 0.125
@@ -581,6 +583,7 @@ final class LibraryStore: ObservableObject {
         guard liveActive, let liveId = liveMediaId else { return }
         let liveFaceIds = Set(faces.filter { $0.mediaId == liveId }.map(\.id))
         liveNameHist = liveNameHist.filter { liveFaceIds.contains($0.key) }
+        liveNameLock = liveNameLock.filter { liveFaceIds.contains($0.key) }
         liveScoreEma = liveScoreEma.filter { liveFaceIds.contains($0.key) }
         for i in matches.indices {
             let fid = matches[i].faceId
@@ -596,8 +599,6 @@ final class LibraryStore: ObservableObject {
             let token = MatchMath.leftoverStarvesVote() && leftoverHold[fid] != nil
                 ? ""
                 : (hit.identityId?.uuidString ?? "")
-            var hist = liveNameHist[fid] ?? []
-            hist.append(token)
             let vs = hit.versus
             let close = MatchMath.nameClosePair(
                 best: vs.first?.percent ?? 0,
@@ -606,25 +607,21 @@ final class LibraryStore: ObservableObject {
             )
             let need = MatchMath.nameAgreeNeed(family: close, dt: liveDt)
             let cap = MatchMath.nameHistCap(need: need)
-            if hist.count > cap {
-                hist.removeFirst(hist.count - cap)
-            }
+            let hist = MatchMath.nameHistAppend(liveNameHist[fid] ?? [], token: token, cap: cap)
             liveNameHist[fid] = hist
-            if let voted = MatchMath.nameMajorityAgreeing(hist, window: cap, need: need) {
+            let voted = MatchMath.nameMajorityAgreeing(hist, window: cap, need: need)
+            let keep = MatchMath.nameLockHolds(voted: voted, locked: liveNameLock[fid]?.uuidString)
+            if let keep, let ident = identities.first(where: { $0.id.uuidString == keep }) {
                 leftoverHold.removeValue(forKey: fid)
-                if voted.isEmpty {
-                    hit.identityId = nil
-                } else if let ident = identities.first(where: { $0.id.uuidString == voted }) {
-                    hit.identityId = ident.id
-                    hit.percent = MatchMath.votedPercent(
-                        versus: hit.versus.map { ($0.identityId, $0.percent) },
-                        identityId: ident.id,
-                        fallback: hit.percent
-                    )
-                } else {
-                    hit.identityId = nil
-                }
+                liveNameLock[fid] = ident.id
+                hit.identityId = ident.id
+                hit.percent = MatchMath.votedPercent(
+                    versus: hit.versus.map { ($0.identityId, $0.percent) },
+                    identityId: ident.id,
+                    fallback: hit.percent
+                )
             } else {
+                liveNameLock.removeValue(forKey: fid)
                 hit.identityId = nil
             }
             let ema = MatchMath.liveScoreEMA(prev: liveScoreEma[fid], next: hit.percent)
@@ -976,6 +973,7 @@ final class LibraryStore: ObservableObject {
         lastUSlotHint = 0
         boxJumpPending.removeAll()
         liveNameHist = [:]
+        liveNameLock = [:]
         liveScoreEma = [:]
         liveLastStamp = 0
         liveDt = 0.125
@@ -1333,6 +1331,7 @@ final class LibraryStore: ObservableObject {
                     if MatchMath.leftoverWipeHist(cosine: cos) {
                         leftoverHold[adopted[bestJ].id] = cos
                         liveNameHist.removeValue(forKey: old.id)
+                        liveNameLock.removeValue(forKey: old.id)
                         liveScoreEma.removeValue(forKey: old.id)
                     }
                 }

@@ -1,6 +1,16 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.40 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.41 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.41 wirklich im Code
+
+2.1.40 Vote-Fenster / Print-führt — der Name starb nach der Taufe: Look≠Print schreibt `""` in `liveNameHist`. Cap kappte inklusive Leer, Majority filtert erst danach. 10 Uneinig-Ticks schieben 7 Familien-Stimmen raus, `else { identityId = nil }`. Overlay tot.
+
+1. **`nameHistAppend`.** Leere Tokens nicht anhängen. Cap gilt nur agreeing.
+2. **`nameLockHolds`.** Nach Mehrheit bleibt die UUID, bis eine andere ID die Mehrheit hat. `liveNameLock` analog Hist.
+3. Leftover-Wipe und `stopLive` leeren den Lock.
+4. Tests: 12× `""` lässt 7 A stehen; Lock hält ohne Vote; neue Mehrheit kippt.
+5. MARKETING_VERSION 2.1.41 (Build 68), `Models.swift` + `VERSION` gleich.
 
 ## In 2.1.40 wirklich im Code
 
@@ -266,10 +276,34 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 
 ## Nächste Fixes (klein)
 
+- **Leere Tokens nicht im Cap.** **→ 2.1.41 nameHistAppend**
+- **Namens-Lock nach Taufe.** **→ 2.1.41 nameLockHolds**
 - **Vote-Fenster ≥ Need.** Familie 7 bei Window 5. **→ 2.1.40 nameMajorityAgreeing**
 - **Print-führt LookOf behalten**, nicht Print-Prozent über decide. **→ 2.1.40**
 - **Fremde Print-Margin 4**, Familie 8. **→ 2.1.40 liveNamePrintClear**
-- **Namens-Lock nach Taufe.** Ein Disagree-Tick darf die UUID nicht sofort nil setzen — Streak = Need.
+- **Yaw-Velocity Freeze.** `|Δyaw| > 0,15 / Frame` → keine neue Stimme, Lock hält. Sonst tauft ¾-Drehung den Nachbarn.
+- **Print-Qualität vor Vote.** Laplacian unter Floor zählt nicht als Namensstimme (Trail skippt schon, Vote nicht).
+- **Export Labor als CSV-Datei**, nicht nur Textfeld.
+- **Hold-Still-Ring** im Overlay 0,8 s, analog Peace.
+- **Pose-Meter als Balken** (F/¾/P) neben dem Namen.
+- **liveCentroid Cache am Identity-Modell** (2.1.29 cacht nur den Tick; 2.1.32 leert den Trail bei `+`).
+- **Print-Drift-Spark.** Overlay-Linie Cosine zum Centroid über 8 Frames.
+- **Restore-Diff.** Backup vs. aktuell: welche IDs kämen zurück, bevor überschrieben wird.
+- **Track-ID `T…` in der UI.** intern `trackId` gibt es, die Kiste zeigt die Snapshot-UUID.
+- **Crop-Align Augen** vor `VNGenerateFacePrint`.
+- **Live-FAR** aus den letzten 200 Impostor-Ticks im Labor.
+- **Open-Set Unknown.** Explizite „unbekannt“-Klasse, Slider für Reject, nicht nur Floor.
+- **Platt-Skalierung** der Sigmoid auf Leave-one-out der Galerie, globaler Mid 0,55 nur Fallback.
+- **Zwei-Gesichter-Swap-Guard.** IoU-Kreuz: wenn A und B die Box tauschen, UUIDs tauschen, nicht leftover-Adopt.
+- **Print-Revision-Banner** wenn `VNGenerateFacePrint` nach OS-Update andere Dim liefert.
+- **Coach-Pfeil** auf der Kiste (‹ ›) statt nur Text.
+- **Live-Name in unselektierter Kiste** sobald Mehrheit sitzt (jetzt nur selected overlayName).
+- **gallery.json SHA-256** neben schemaVersion.
+- **Enrollment AE-Lock.** `+` wartet 200 ms nach Belichtungssprung.
+- **Ampel G-Lampe** neben C/S/Y wenn lookOfCapped (rot) vs skip (grün).
+- **Galerie kompakt:** unscharfe same-Slot-Refs droppen, sobald eine scharfe da ist.
+- **1-Euro minCutoff Slider** für Continuity vs Built-in.
+- **Jacobi nur Still-Labor.** Still-Foto-Detect ohne Tiles noch voller Graph wenn `tiles: false`.
 - **Export Labor als CSV-Datei**, nicht nur Textfeld.
 - **Hold-Still-Ring** im Overlay 0,8 s, analog Peace.
 - **Pose-Meter als Balken** (F/¾/P) neben dem Namen.
@@ -331,7 +365,9 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 
 ## Erweiterungen
 
-- **Taufe-Hysterese / Namens-Lock.** Ein Look≠Print-Tick nach Mehrheit darf nicht nil setzen.
+- **Taufe-Hysterese / Namens-Lock.** **→ 2.1.41** Ein Look≠Print-Tick nach Mehrheit darf nicht nil setzen.
+- **Yaw-Velocity Freeze** vor neuer Stimme, wenn der Kopf sich dreht.
+- **Print-Qualität vor Vote** (unscharfer Tick keine Stimme).
 - **Open-Set Unknown.** Explizite Klasse mit eigener Schwelle, nicht nur Floor.
 - **Platt-Skalierung** pro Galerie statt globaler Sigmoid-Mitte 0,55.
 - **Zwei-Gesichter-Swap-Guard.** Box-Tausch = UUID-Tausch, nicht leftover.
@@ -522,4 +558,6 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - Look≠Print bei Print-Abstand ≥ 8 totlegen (Geo-Rauschen = nie Taufe).
 - leftover jeden Tick leere Namens-Tokens füttern (Genuine 0,64–0,79 hungert).
 - leftoverHold nach erfolgreicher Mehrheit stehen lassen (ewig orange).
+- Leere Look≠Print-Tokens in den Hist-Cap (Taufe stirbt nach 10 Uneinig).
+- `identityId = nil` sobald keine Mehrheit, trotz vorheriger Taufe.
 - `bugfix`-Branch anlegen oder fortsetzen. Nur `main`.

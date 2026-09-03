@@ -1,4 +1,4 @@
-# Aegis **2.1.40 alpha**
+# Aegis **2.1.41 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,14 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.41 alpha
+
+2.1.40 hat Familien-Taufe und Print-führt — der Name starb trotzdem nach der Taufe. Look≠Print schreibt leere Tokens in die Hist. `nameHistCap` kappte **inklusive** Leer, `nameMajorityAgreeing` filtert sie erst danach: 10 Uneinig-Ticks (1,25 s bei 8 fps) schieben die 7 Familien-Stimmen aus dem Fenster, `identityId = nil`. Overlay wirkte getauft, dann tot.
+
+- **Leere Tokens belegen den Cap nicht.** `nameHistAppend` hängt nur agreeing Namen an.
+- **Namens-Lock.** Nach Mehrheit bleibt die UUID, bis eine *andere* ID die Mehrheit hat. Ein Uneinig-Tick setzt nicht nil.
+- **VERSION = Models = MARKETING_VERSION 2.1.41** (Build 68).
 
 ## Neu in 2.1.40 alpha
 

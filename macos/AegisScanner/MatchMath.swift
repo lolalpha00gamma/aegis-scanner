@@ -682,6 +682,28 @@ enum MatchMath {
     /// Jeden Tick leere Tokens zu füttern hungert Genuine 0,64–0,79 aus — nie Taufe.
     static func leftoverStarvesVote() -> Bool { false }
 
+    /// Leere Look≠Print-Tokens belegen den Cap nicht.
+    /// Sonst wischen 10 Uneinig-Ticks die Familien-Taufe, obwohl agreeing sie filtert.
+    static func nameHistAppend(_ history: [String], token: String, cap: Int) -> [String] {
+        var hist = history
+        if !token.isEmpty {
+            hist.append(token)
+        }
+        let keep = max(1, cap)
+        if hist.count > keep {
+            hist.removeFirst(hist.count - keep)
+        }
+        return hist
+    }
+
+    /// Nach Mehrheit: Name bleibt, bis eine andere ID die Mehrheit hat.
+    /// Kein Mehrheit ≠ nil — sonst ein Frame Uneinig = Overlay tot.
+    static func nameLockHolds(voted: String?, locked: String?) -> String? {
+        if let voted, !voted.isEmpty { return voted }
+        if let locked, !locked.isEmpty { return locked }
+        return nil
+    }
+
     static func liveNameDisagreeNote() -> String { "Look und Print uneinig" }
 
     /// IoU-Hysterese und Print-Pin uneinig → Print gewinnt im selben Pass (kein 2-Frame-Flackern).
