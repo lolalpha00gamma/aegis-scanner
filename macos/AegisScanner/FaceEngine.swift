@@ -625,7 +625,12 @@ enum FaceEngine {
             var modelVec: [UUID: [Double]] = [:]
             let poseW = poseWeight(face.quality)
             for m in models {
-                let key = m.id.uuidString + ":" + probeSlot.rawValue
+                let pale = MatchMath.palePrintDroppedCount(m.owned, enrolledAt: { $0.enrolledAt })
+                let key = MatchMath.liveCentroidCacheKey(
+                    ids: m.owned.map(\.id),
+                    slot: probeSlot.rawValue,
+                    paleDropped: pale
+                )
                 let vec: [Double]
                 if let hit = centroidCache[key] {
                     vec = hit
@@ -1169,18 +1174,26 @@ enum FaceEngine {
 
     /// Live: Slot-Centroid wenn der Pose-Slot Refs hat, sonst Frontal, nie Profil-Mix.
     /// Slot-Hit überspringt den All-Mean (teuer und falsch gegen ¾).
-    static func liveCentroid(_ faces: [FaceObservation], slot: PoseSlot? = nil) -> [Double] {
-        let slotCount = slot.map { s in faces.filter { poseSlot($0) == s }.count } ?? 0
+    /// Pale Prints (≥ 90 d) raus, solange frische bleiben — sonst driftet der Name.
+    static func liveCentroid(_ faces: [FaceObservation], slot: PoseSlot? = nil, now: Date = Date()) -> [Double] {
+        let pale = faces.filter { MatchMath.palePrintDrops(enrolledAt: $0.enrolledAt, now: now) }.count
+        let pool: [FaceObservation]
+        if pale > 0, pale < faces.count {
+            pool = faces.filter { !MatchMath.palePrintDrops(enrolledAt: $0.enrolledAt, now: now) }
+        } else {
+            pool = faces
+        }
+        let slotCount = slot.map { s in pool.filter { poseSlot($0) == s }.count } ?? 0
         if let slot, MatchMath.preferSlotCentroid(slotCount: slotCount) {
-            let slotMean = meanPrintVector(faces.filter { poseSlot($0) == slot })
+            let slotMean = meanPrintVector(pool.filter { poseSlot($0) == slot })
             if slotMean.count >= 32 { return slotMean }
         }
         if slot != nil, MatchMath.slotCentroidFallsBackToFrontal(slotCount: slotCount) {
-            let front = meanPrintVector(faces.filter { poseSlot($0) == .frontal })
+            let front = meanPrintVector(pool.filter { poseSlot($0) == .frontal })
             if front.count >= 32 { return front }
         }
-        let all = meanPrintVector(faces)
-        let front = meanPrintVector(faces.filter { poseSlot($0) == .frontal })
+        let all = meanPrintVector(pool)
+        let front = meanPrintVector(pool.filter { poseSlot($0) == .frontal })
         if front.count >= 32, all.count == front.count {
             return blendEmbeddings(all, front, alpha: MatchMath.liveCentroidFront)
         }

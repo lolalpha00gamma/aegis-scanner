@@ -453,6 +453,33 @@ enum MatchMath {
         return age >= days
     }
 
+    /// Live-Centroid: blasse Prints (≥ 90 d) raus, solange frische bleiben.
+    static func palePrintDrops(enrolledAt: Date?, now: Date = Date(), days: Double = printAgePaleDays) -> Bool {
+        printAgePaler(enrolledAt: enrolledAt, now: now, days: days)
+    }
+
+    static func palePrintDroppedCount<T>(_ items: [T], enrolledAt: (T) -> Date?, now: Date = Date()) -> Int {
+        items.filter { palePrintDrops(enrolledAt: enrolledAt($0), now: now) }.count
+    }
+
+    /// Cache-Key am Identity-Modell. IDs sortiert, Slot, Pale-Count — sonst 8-fps-Tick neu.
+    static func liveCentroidCacheKey(ids: [UUID], slot: String, paleDropped: Int) -> String {
+        let sorted = ids.map(\.uuidString).sorted().joined(separator: ",")
+        return "\(sorted)|\(slot)|\(paleDropped)"
+    }
+
+    /// Kisten-Zahl springt: Overlay-Blitz. Erster Kopf (0→n) kein Flash.
+    static let headCountFlashHold: TimeInterval = 0.45
+
+    static func headCountJumped(prev: Int, next: Int) -> Bool {
+        prev > 0 && next != prev
+    }
+
+    static func headCountFlashLabel(prev: Int, next: Int) -> String? {
+        guard headCountJumped(prev: prev, next: next) else { return nil }
+        return "KOPF \(prev)→\(next)"
+    }
+
     /// Continuity-Floor: Schärfe würde Built-in ablehnen, Continuity nicht.
     static func sparkContinuityFloor(sharpness: Double, continuity: Bool) -> Bool {
         continuity && sharpness >= continuitySharpnessFloor && sharpness < sharpnessFloor
@@ -903,14 +930,16 @@ enum MatchMath {
         abs(yaw) > yawLim || abs(pitch) > pitchLim
     }
 
-    /// leftover 1 Frame = Nachbar erbt UUID. 3 gleiche Picks, dann Adopt.
+    /// leftover 1 Frame = Nachbar erbt UUID. 3 gleiche Picks, dann Zeit.
+    /// 0,38 s war Vorbeigehen (8 fps 4 Frames). 1,2 s = Walk, nicht Taufe.
     static let leftoverAdoptFrames = 3
-    static let leftoverAdoptSec: TimeInterval = 0.38
+    static let leftoverAdoptSec: TimeInterval = 1.20
+    static let leftoverAdoptCap = 80
 
     static func leftoverAdoptNeed(dt: TimeInterval) -> Int {
         let step = max(0.008, min(0.20, dt <= 0 ? 0.125 : dt))
         let frames = Int(ceil(leftoverAdoptSec / step))
-        return max(leftoverAdoptFrames, min(30, frames))
+        return max(leftoverAdoptFrames, min(leftoverAdoptCap, frames))
     }
 
     static func leftoverAdoptReady(streak: Int, need: Int) -> Bool {

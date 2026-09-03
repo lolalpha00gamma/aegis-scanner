@@ -1,6 +1,17 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.48 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.49 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.49 wirklich im Code
+
+2.1.48 leftover ~380 ms — jemand geht vorbei, UUID sitzt. Pale Prints (90 d) zogen den Centroid. Kisten-Sprung unsichtbar. Cache nur `id:slot`.
+
+1. **`leftoverAdoptSec` 1,20.** 8 fps 10 Frames, 24 fps 75, Cap 80. Overlay `1/10`.
+2. **`palePrintDrops`.** Live-Centroid ohne ≥ 90 d, solange frische Refs.
+3. **`headCountJumped`.** Overlay cyan `KOPF n→m` 0,45 s. 0→1 kein Flash.
+4. **`liveCentroidCacheKey`.** IDs sortiert + Slot + Pale.
+5. Tests: Need 10/75, Pale, Key, Flash.
+6. MARKETING_VERSION 2.1.49 (Build 76), `Models.swift` + `VERSION` gleich.
 
 ## In 2.1.48 wirklich im Code
 
@@ -40,30 +51,27 @@ Stand: **2.1.48 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 
 ## Nächste (offen)
 
-- **Identitäten-Merge-Wizard** bei Centroid 0,89–0,94.
+- **Identitäten-Merge-Wizard** bei Centroid 0,89–0,94. Confirm, nie still.
 - **Helios-Bridge.** Eine Kamera-Session, eine TCC.
 - **Enrollment AE-Lock** 200 ms nach Belichtungssprung.
 - **Zwei-Kamera-Live.** Built-in + Continuity, Track über Print.
 - **PhotoKit-Scan** nur mit expliziter Foto-Berechtigung.
-- **Live-FAR** letzte 200 Impostor-Ticks im Labor.
+- **Live-FAR** letzte 200 Impostor-Ticks im Labor, Overlay-Ticker.
 - **Open-Set Unknown.** Slider für Reject.
 - **Drop-in `.mlmodel`.** FaceEmbedder-Protokoll, Apple-Print default.
 - **Per-Identität leftover-Log** in der Overlay-Kiste.
 - **Pairwise-Heatmap klickbar** im Labor.
-- **liveCentroid Cache** am Identity-Modell.
 - **Box-Kalman** statt 1-Euro bei 8 fps.
 - **Ampel R-Lampe** wenn |Δroll| freeze (neben C/S/Y).
 - **Watch-Folder.** Neue Fotos automatisch ingestieren.
 - **Aktives Lernen.** „Ist das dieselbe Person?“ an unsicheren Rändern.
 - **Platt-Skalierung** der Sigmoid auf Leave-one-out der Galerie.
 - **Print-Revision-Banner** wenn Face-Print nach OS-Update andere Dim liefert.
-- **Pale-Print droppen** aus dem Live-Centroid nach `printAgePaleDays`.
 - **Mouth-open freeze** analog Pose, Gähnen tauft nicht.
 - **Poster-Face reject.** Landmark-Jitter 0 über 4 Frames = Foto an der Wand.
 - **Glasses as Slot.** Brille an/aus nicht neue Identität.
 - **Track-ID in Labor-CSV.**
 - **CLAHE vor Print** bei Continuity, sonst Nacht-Print driftet.
-- **Head-count Flash** wenn die Zahl der Kisten springt.
 - **leftoverAssign Ambiguity.** Cosine-Spread < 0,08 (Zwillinge) kein Adopt, nur Overlay.
 - **Twin-IoU-Veto.** pairCosine > 0,90: leftover nie über Box, nur Print ≥ 0,80.
 - **Enrollment-Burst Dedup nach Pose.** gleicher Slot + Cosine 0,95 in 400 ms = ein Ref.
@@ -71,6 +79,11 @@ Stand: **2.1.48 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 - **Yaw-Slot Hysterese 2 Frames** bevor F→¾ wechselt — Nicken tauft den ¾-Centroid nicht.
 - **Live-Name-Lock nach leftover-Wipe 800 ms stumm.** Sonst tauft Genuine 0,64 den Nachbarn sofort neu.
 - **Partial-Print bei Maske.** `meanPartialVector` statt Vote-Skip wenn U-Slot-Refs da sind.
+- **Enrollment-Radar** F/¾/P als Ring, nicht nur Balken.
+- **Gallery-Compact.** gleiche Pose Cosine 0,97 mergen, Confirm.
+- **Name-Farbe sticky** nach Lock, nicht jedes Tick neu.
+- **Nacht-ISO Banner** wenn Capture < 0,30 drei Frames — CLAHE vorschlagen.
+- **Twin-Wizard.** pairCosine 0,89–0,94 → „dieselbe Person?“ statt still taufen.
 
 ## In 2.1.45 wirklich im Code
 

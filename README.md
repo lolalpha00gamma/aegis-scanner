@@ -1,4 +1,4 @@
-# Aegis **2.1.48 alpha**
+# Aegis **2.1.49 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,17 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.49 alpha
+
+2.1.48 leftover ~380 ms — Vorbeigehen taufte den Nachbarn. Pale Prints (≥ 90 d) zogen den Live-Centroid. Kisten-Zahl sprang unsichtbar. Centroid-Cache nur Identity+Slot, Pale invalidierte nicht.
+
+- **leftover 1,2 s Walk.** `leftoverAdoptSec` 1,20, Cap 80. 8 fps 10 Frames, 24 fps 75. Overlay `1/10`.
+- **Pale-Print drop.** `palePrintDrops` aus dem Live-Centroid, solange frische Refs bleiben.
+- **Head-count Flash.** `KOPF 1→2` 0,45 s cyan, nicht beim ersten Kopf.
+- **liveCentroid Cache-Key.** IDs sortiert + Slot + Pale-Count.
+- Tests: Need 10/75, Pale, Cache-Key, Kopf-Blitz.
+- VERSION = Models = MARKETING_VERSION 2.1.49 (Build 76).
 
 ## Neu in 2.1.48 alpha
 

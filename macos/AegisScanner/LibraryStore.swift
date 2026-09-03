@@ -41,11 +41,14 @@ final class LibraryStore: ObservableObject {
     @Published var cameraChoice: CameraChoice = .auto
     @Published var freezeAxis: [UUID: String] = [:]
     @Published var swapFlashUntil: TimeInterval = 0
+    @Published var headCountFlashUntil: TimeInterval = 0
 
     private let liveCapture = LiveCapture()
     private var liveMediaId: UUID?
     private var leftoverStreak: [UUID: Int] = [:]
     private var leftoverStreakBox: [UUID: FaceBox] = [:]
+    private var lastLiveHeadCount: Int = 0
+    private var lastHeadCountLabel: String?
     private var scopedRoots: [URL] = []
     private var liveBusy = false
     private var livePending: (image: CGImage, mediaId: UUID, stamp: TimeInterval)?
@@ -1027,6 +1030,14 @@ final class LibraryStore: ObservableObject {
         now < swapFlashUntil
     }
 
+    func headCountFlashing(now: TimeInterval = Date().timeIntervalSince1970) -> Bool {
+        now < headCountFlashUntil
+    }
+
+    func headCountFlashText() -> String? {
+        headCountFlashing() ? lastHeadCountLabel : nil
+    }
+
     func removeIdentity(_ id: UUID) {
         identities.removeAll { $0.id == id }
         persist()
@@ -1113,6 +1124,9 @@ final class LibraryStore: ObservableObject {
         livePoseAt.removeAll()
         freezeAxis = [:]
         swapFlashUntil = 0
+        headCountFlashUntil = 0
+        lastLiveHeadCount = 0
+        lastHeadCountLabel = nil
         livePrintTrail.removeAll()
         livePrintTrailSlot.removeAll()
         liveStillFor.removeAll()
@@ -1581,6 +1595,11 @@ final class LibraryStore: ObservableObject {
             leftoverStreakBox = [:]
             liveStillFor = [:]
             faces.removeAll { $0.mediaId == mediaId }
+            if let label = MatchMath.headCountFlashLabel(prev: lastLiveHeadCount, next: 0) {
+                lastHeadCountLabel = label
+                headCountFlashUntil = now + MatchMath.headCountFlashHold
+            }
+            lastLiveHeadCount = 0
         } else {
             let leftoverPinned = previous.filter {
                 MatchMath.leftoverNamedTrack(hadName: namedTracks.contains($0.id)) && !used.contains($0.id)
@@ -1680,6 +1699,12 @@ final class LibraryStore: ObservableObject {
             liveHeldIds = Set(adopted.compactMap { namedTracks.contains($0.id) ? $0.id : nil })
             faces.removeAll { $0.mediaId == mediaId }
             faces.append(contentsOf: adopted)
+            let n = adopted.count
+            if let label = MatchMath.headCountFlashLabel(prev: lastLiveHeadCount, next: n) {
+                lastHeadCountLabel = label
+                headCountFlashUntil = now + MatchMath.headCountFlashHold
+            }
+            lastLiveHeadCount = n
         }
         if selectedMediaId == mediaId {
             if found.isEmpty {

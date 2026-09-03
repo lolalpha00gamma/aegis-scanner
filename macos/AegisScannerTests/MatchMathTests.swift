@@ -725,17 +725,45 @@ enum MatchMathTests {
         ])
         ok(greedyTrap[0] == 1 && greedyTrap[1] == 0, "2-opt schlägt greedy 0,70+0,40")
         ok(MatchMath.leftoverAssign(scores: []).isEmpty, "Assign leer")
-        ok(MatchMath.leftoverAdoptNeed(dt: 0.125) == 4, "8 fps leftover 4 Frames")
-        ok(MatchMath.leftoverAdoptNeed(dt: 0.016) == 24, "24 fps leftover ~380 ms")
-        ok(MatchMath.leftoverAdoptNeed(dt: 0) == 4, "ohne dt Continuity-Takt")
-        ok(!MatchMath.leftoverAdoptReady(streak: 3, need: 4), "3/4 noch nicht")
-        ok(MatchMath.leftoverAdoptReady(streak: 4, need: 4), "4/4 Adopt")
-        ok(MatchMath.leftoverStreakLabel(streak: 1, need: 4) == "1/4", "Streak Overlay")
-        ok(MatchMath.leftoverStreakLabel(streak: 4, need: 4) == nil, "ready kein Overlay")
+        ok(MatchMath.leftoverAdoptNeed(dt: 0.125) == 10, "8 fps leftover 1,2 s → 10")
+        ok(MatchMath.leftoverAdoptNeed(dt: 0.016) == 75, "24 fps leftover 1,2 s")
+        ok(MatchMath.leftoverAdoptNeed(dt: 0) == 10, "ohne dt Continuity-Takt")
+        ok(!MatchMath.leftoverAdoptReady(streak: 9, need: 10), "9/10 noch nicht")
+        ok(MatchMath.leftoverAdoptReady(streak: 10, need: 10), "10/10 Adopt")
+        ok(MatchMath.leftoverStreakLabel(streak: 1, need: 10) == "1/10", "Streak Overlay")
+        ok(MatchMath.leftoverStreakLabel(streak: 10, need: 10) == nil, "ready kein Overlay")
         ok(MatchMath.leftoverSameTarget(iou: 0.50), "gleiche Box Streak")
         ok(!MatchMath.leftoverSameTarget(iou: 0.10), "andere Box Reset")
         ok(MatchMath.leftoverStreakAdvance(prev: 2, sameTarget: true) == 3, "gleiche Box +1")
         ok(MatchMath.leftoverStreakAdvance(prev: 2, sameTarget: false) == 1, "andere Box 1")
+        ok(MatchMath.palePrintDrops(enrolledAt: Date().addingTimeInterval(-100 * 86_400)), "Print ≥ 90 d drop")
+        ok(!MatchMath.palePrintDrops(enrolledAt: Date()), "frischer Print bleibt")
+        ok(!MatchMath.palePrintDrops(enrolledAt: nil), "ohne Datum kein Drop")
+        ok(MatchMath.palePrintDroppedCount(["old", "new"], enrolledAt: { $0 == "old" ? Date().addingTimeInterval(-100 * 86_400) : Date() }) == 1, "ein Pale in zwei")
+        let idCacheA = UUID(uuidString: "00000000-0000-0000-0000-0000000000CA")!
+        let idCacheB = UUID(uuidString: "00000000-0000-0000-0000-0000000000CB")!
+        ok(
+            MatchMath.liveCentroidCacheKey(ids: [idCacheA, idCacheB], slot: "frontal", paleDropped: 0)
+                == MatchMath.liveCentroidCacheKey(ids: [idCacheB, idCacheA], slot: "frontal", paleDropped: 0),
+            "Key sortiert IDs"
+        )
+        ok(
+            MatchMath.liveCentroidCacheKey(ids: [idCacheA], slot: "frontal", paleDropped: 0)
+                != MatchMath.liveCentroidCacheKey(ids: [idCacheA], slot: "threeQuarter", paleDropped: 0),
+            "Slot im Key"
+        )
+        ok(
+            MatchMath.liveCentroidCacheKey(ids: [idCacheA], slot: "frontal", paleDropped: 0)
+                != MatchMath.liveCentroidCacheKey(ids: [idCacheA], slot: "frontal", paleDropped: 1),
+            "Pale im Key"
+        )
+        ok(MatchMath.headCountJumped(prev: 1, next: 2), "1→2 Flash")
+        ok(!MatchMath.headCountJumped(prev: 0, next: 1), "erster Kopf kein Flash")
+        ok(!MatchMath.headCountJumped(prev: 2, next: 2), "gleich kein Flash")
+        ok(MatchMath.headCountJumped(prev: 2, next: 0), "alle weg Flash")
+        ok(MatchMath.headCountFlashLabel(prev: 1, next: 2) == "KOPF 1→2", "Label")
+        ok(MatchMath.headCountFlashLabel(prev: 0, next: 1) == nil, "erster kein Label")
+        near(MatchMath.headCountFlashHold, 0.45, 0.001, "Kopf-Blitz 0,45 s")
         ok(MatchMath.motionBlurDrops(aligned: true, sharpness: 0.08), "Deskew-Blur drop")
         ok(!MatchMath.motionBlurDrops(aligned: true, sharpness: 0.18), "scharf nach Roll bleibt")
         ok(!MatchMath.motionBlurDrops(aligned: false, sharpness: 0.08), "ohne Align kein extra Drop")

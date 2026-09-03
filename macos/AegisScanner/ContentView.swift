@@ -658,6 +658,7 @@ struct FaceOverlay: View {
                     let coach = selected ? FaceEngine.enrollmentCoach(face: face, identity: coachDest, faces: store.faces) : nil
                     let boxColor: Color = {
                         if store.swapFlashing() { return Color.yellow.opacity(0.95) }
+                        if store.headCountFlashing() { return Color.cyan.opacity(0.95) }
                         switch kind {
                         case .selected: return .white
                         case .enrolled: return Color.green.opacity(0.85)
@@ -693,6 +694,9 @@ struct FaceOverlay: View {
                         }
                         if store.swapFlashing() {
                             base += " · SWAP"
+                        }
+                        if let head = store.headCountFlashText() {
+                            base += " · \(head)"
                         }
                         if let still = store.stillProgress(faceId: face.id) {
                             base += " · HALTEN \(Int((still * 100).rounded()))%"
