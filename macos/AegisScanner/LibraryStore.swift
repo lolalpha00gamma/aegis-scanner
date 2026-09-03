@@ -610,7 +610,7 @@ final class LibraryStore: ObservableObject {
                 hist.removeFirst(hist.count - cap)
             }
             liveNameHist[fid] = hist
-            if let voted = MatchMath.nameMajorityAgreeing(hist, need: need) {
+            if let voted = MatchMath.nameMajorityAgreeing(hist, window: cap, need: need) {
                 leftoverHold.removeValue(forKey: fid)
                 if voted.isEmpty {
                     hit.identityId = nil

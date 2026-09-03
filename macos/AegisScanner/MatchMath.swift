@@ -156,15 +156,17 @@ enum MatchMath {
     }
 
     /// Leere Tokens (Look≠Print) zählen nicht. Sieger braucht `need` Stimmen.
+    /// Fenster mindestens `need` — sonst Familie bei 8 fps (need 7, window 5) nie.
     static func nameMajorityAgreeing(
         _ history: [String],
         window: Int = nameVoteFrames,
         need: Int = nameAgreeNeed
     ) -> String? {
         let agreeing = history.filter { !$0.isEmpty }
-        let slice = Array(agreeing.suffix(max(1, window)))
+        let win = max(window, need)
+        let slice = Array(agreeing.suffix(max(1, win)))
         guard slice.count >= need else { return nil }
-        guard let winner = nameMajority(slice, window: window) else { return nil }
+        guard let winner = nameMajority(slice, window: win) else { return nil }
         return slice.filter { $0 == winner }.count >= need ? winner : nil
     }
 
@@ -660,15 +662,18 @@ enum MatchMath {
     /// Geo-Rauschen (Jacke/Haar) hebt oft den Look-Geschwister über den echten Print-Sieger —
     /// dann war Live tot, weil `liveNameAgree` jeden Tick blockte.
     static let liveNamePrintMargin = 8.0
+    /// Fremde: Geo-Jacke hebt Look oft 4–7 Punkte. 8 hat Genuine tot gemacht.
+    static let liveNamePrintClear = 4.0
 
     static func liveNamePrintLeads(
         lookId: UUID?,
         printId: UUID?,
         printMeasured: Bool,
-        printMargin: Double
+        printMargin: Double,
+        family: Bool = false
     ) -> Bool {
         guard printMeasured, let lookId, let printId, lookId != printId else { return false }
-        return printMargin >= liveNamePrintMargin
+        return printMargin >= (family ? liveNamePrintMargin : liveNamePrintClear)
     }
 
     static func liveNamePrintLeadsNote() -> String { "Print führt" }

@@ -119,6 +119,18 @@ enum MatchMathTests {
             "Print-Abstand 12 → Print führt"
         )
         ok(
+            MatchMath.liveNamePrintLeads(lookId: idLook, printId: idPrint, printMeasured: true, printMargin: 4),
+            "Fremde Margin 4 führt (Geo-Jacke)"
+        )
+        ok(
+            !MatchMath.liveNamePrintLeads(lookId: idLook, printId: idPrint, printMeasured: true, printMargin: 4, family: true),
+            "Familie Margin 4 nicht — Geschwister brauchen 8"
+        )
+        ok(
+            MatchMath.liveNamePrintLeads(lookId: idLook, printId: idPrint, printMeasured: true, printMargin: 8, family: true),
+            "Familie Margin 8 führt"
+        )
+        ok(
             !MatchMath.liveNamePrintLeads(lookId: idLook, printId: idPrint, printMeasured: true, printMargin: 2),
             "Print-Abstand 2 Geschwister, nicht führen"
         )
@@ -178,6 +190,14 @@ enum MatchMathTests {
         ok(MatchMath.nameHistCap(need: 5) >= 8, "Hist länger als Familien-Need")
         ok(MatchMath.nameMajorityAgreeing(["A", "A", "A", "A"], need: 5) == nil, "4 Familien-Ticks taufen nicht")
         ok(MatchMath.nameMajorityAgreeing(["A", "A", "A", "A", "A"], need: 5) == "A", "5 Familien-Ticks taufen")
+        ok(
+            MatchMath.nameMajorityAgreeing(Array(repeating: "A", count: 7), need: 7) == "A",
+            "Familien-Need 7 trotz Default-Window 5"
+        )
+        ok(
+            MatchMath.nameMajorityAgreeing(Array(repeating: "A", count: 6), need: 7) == nil,
+            "6 < 7 trotz Window-Lift"
+        )
         ok(MatchMath.nameMajorityAgreeing(["", "A", "A", "A", "A", "A"], need: 5) == "A", "leere Tokens hungern Familie nicht")
         ok(MatchMath.leftoverHoldLabel(cosine: 0.64) == "gehalten 0,64", "Leftover-Hold Overlay")
         ok(MatchMath.leftoverHoldLabel(cosine: 0.50) == nil, "unter Floor kein Hold-Label")

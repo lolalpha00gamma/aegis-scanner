@@ -1,4 +1,4 @@
-# Aegis **2.1.39 alpha**
+# Aegis **2.1.40 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,14 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.40 alpha
+
+2.1.39 Print-führt — Familie taufte trotzdem nie. `nameAgreeNeed(family:dt:)` verlangt 7 Stimmen bei 8 fps, `nameMajorityAgreeing` schnitt auf Window 5. Overlay zeigte „getauft“, `identityId` blieb nil. Print-führt schrieb den Print-Prozent über LookOf: 82 % unter Floor 84, obwohl Look 86 durch wäre. Margin 8 ließ Genuine mit Geo-Jacke (+4–7) tot.
+
+- **Vote-Fenster ≥ Need.** Familie 7 bei Window 5 tauft. `stabilizeLiveMatches` reicht `cap`.
+- **Print-führt behält LookOf.** decide sieht 86, nicht 82. Fremde führen ab Margin 4, Familie bleibt 8.
+- **VERSION = Models = MARKETING_VERSION 2.1.40** (Build 67).
 
 ## Neu in 2.1.39 alpha
 

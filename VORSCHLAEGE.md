@@ -1,6 +1,16 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.39 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.40 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.40 wirklich im Code
+
+2.1.39 Print-führt / leftover hungert nicht — Familie taufte trotzdem nie: `nameAgreeNeed(family: true, dt: 0,125) == 7`, `nameMajorityAgreeing` Default-Window 5, `slice.count >= 7` nie. Overlay `nameVoteProgress` zählte alle Stimmen (wirkte getauft), `identityId` blieb nil. Print-führt setzte `versus[0].percent = print` — LookOf 86 wurde 82, `decide` kippte am Solo-Floor 84. Margin 8 blockte Genuine, den Geo nur 4–7 Punkte über den Print-Sieger hob.
+
+1. **`nameMajorityAgreeing` Fenster `max(window, need)`.** 7 Familien-Ticks taufen. `stabilizeLiveMatches` reicht `cap`.
+2. **Print-führt behält LookOf.** decide und Overlay L sind Look, nicht Roh-Print.
+3. **`liveNamePrintClear` 4** für Fremde. Familie bleibt Margin 8.
+4. Tests: Need 7 trotz Window 5, Margin 4 Fremde / 4 Familie tot / 8 Familie.
+5. MARKETING_VERSION 2.1.40 (Build 67), `Models.swift` + `VERSION` gleich.
 
 ## In 2.1.39 wirklich im Code
 
@@ -256,6 +266,34 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 
 ## Nächste Fixes (klein)
 
+- **Vote-Fenster ≥ Need.** Familie 7 bei Window 5. **→ 2.1.40 nameMajorityAgreeing**
+- **Print-führt LookOf behalten**, nicht Print-Prozent über decide. **→ 2.1.40**
+- **Fremde Print-Margin 4**, Familie 8. **→ 2.1.40 liveNamePrintClear**
+- **Namens-Lock nach Taufe.** Ein Disagree-Tick darf die UUID nicht sofort nil setzen — Streak = Need.
+- **Export Labor als CSV-Datei**, nicht nur Textfeld.
+- **Hold-Still-Ring** im Overlay 0,8 s, analog Peace.
+- **Pose-Meter als Balken** (F/¾/P) neben dem Namen.
+- **liveCentroid Cache am Identity-Modell** (2.1.29 cacht nur den Tick; 2.1.32 leert den Trail bei `+`).
+- **Print-Drift-Spark.** Overlay-Linie Cosine zum Centroid über 8 Frames.
+- **Restore-Diff.** Backup vs. aktuell: welche IDs kämen zurück, bevor überschrieben wird.
+- **Track-ID `T…` in der UI.** intern `trackId` gibt es, die Kiste zeigt die Snapshot-UUID.
+- **Jacobi nur Still-Labor**, Scan-Tiles sind cheap — Still-Foto-Detect ohne Tiles noch voller Graph wenn `tiles: false` und nicht live.
+- **Enrollment AE-Lock.** `+` wartet 200 ms nach Belichtungssprung.
+- **Ampel G-Lampe** neben C/S/Y wenn lookOfCapped (rot) vs skip (grün).
+- **gallery.json SHA-256** neben schemaVersion, Restore warnt bei Drift.
+- **Crop-Align Augen** vor `VNGenerateFacePrint`.
+- **Live-FAR** aus den letzten 200 Impostor-Ticks im Labor.
+- **Galerie kompakt:** unscharfe same-Slot-Refs droppen, sobald eine scharfe da ist.
+- **1-Euro minCutoff Slider** für Continuity vs Built-in, Fläche bleibt Bias.
+- **Uneinig-Namen nur Live**, Still-Fotos nicht mit Look/Print-Ghosts.
+- **Coach-Pfeil** auf der Kiste (‹ ›) statt nur Text — Richtung beim Live-Anlegen.
+- **Live-Name in unselektierter Kiste** sobald Mehrheit sitzt (jetzt nur selected overlayName).
+- **Open-Set Unknown.** Explizite „unbekannt“-Klasse, Slider für Reject, nicht nur Floor.
+- **Taufe-Hysterese.** Nach Mehrheit bleibt der Name, bis Print-Cosine unter 0,50 fällt — nicht bei einem Look≠Print-Tick.
+- **Platt-Skalierung** der Sigmoid auf Leave-one-out der Galerie, globaler Mid 0,55 nur Fallback.
+- **Zwei-Gesichter-Swap-Guard.** IoU-Kreuz: wenn A und B die Box tauschen, UUIDs tauschen, nicht leftover-Adopt.
+- **Print-Revision-Banner** wenn `VNGenerateFacePrint` nach OS-Update andere Dim liefert.
+
 - **Export Labor als CSV-Datei**, nicht nur Textfeld.
 - **Hold-Still-Ring** im Overlay 0,8 s, analog Peace.
 - **Pose-Meter als Balken** (F/¾/P) neben dem Namen.
@@ -293,6 +331,10 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 
 ## Erweiterungen
 
+- **Taufe-Hysterese / Namens-Lock.** Ein Look≠Print-Tick nach Mehrheit darf nicht nil setzen.
+- **Open-Set Unknown.** Explizite Klasse mit eigener Schwelle, nicht nur Floor.
+- **Platt-Skalierung** pro Galerie statt globaler Sigmoid-Mitte 0,55.
+- **Zwei-Gesichter-Swap-Guard.** Box-Tausch = UUID-Tausch, nicht leftover.
 - **Drop-in `.mlmodel`.** `FaceEmbedder` als Protokoll, Apple-Print default, ArcFace optional (Lizenz!).
 - **PhotoKit-Scan.** Mediathek lokal, nur mit expliziter Foto-Berechtigung.
 - **Cluster vor Anlegen.** Unbenannte Gesichter: „3 Fotos, dieselbe Person?“

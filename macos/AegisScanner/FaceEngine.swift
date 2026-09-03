@@ -663,17 +663,26 @@ enum FaceEngine {
             geoVersus.sort { $0.percent > $1.percent }
             let printWinnerEarly = printVersus.first
             let printMarginEarly = (printWinnerEarly?.percent ?? 0) - (printVersus.dropFirst().first?.percent ?? 0)
+            let familyEarly: Bool = {
+                guard let a = versus.first?.identityId, let b = printWinnerEarly?.identityId, a != b,
+                      let va = modelVec[a], let vb = modelVec[b],
+                      va.count >= 32, va.count == vb.count
+                else { return false }
+                return cosine(va, vb) >= MatchMath.familyCosineLo
+            }()
             var printLed = false
             if MatchMath.liveNamePrintLeads(
                 lookId: versus.first?.identityId,
                 printId: printWinnerEarly?.identityId,
                 printMeasured: pv.count >= 32,
-                printMargin: printMarginEarly
+                printMargin: printMarginEarly,
+                family: familyEarly
             ), let pWin = printWinnerEarly,
                let idx = versus.firstIndex(where: { $0.identityId == pWin.identityId })
             {
-                var row = versus.remove(at: idx)
-                row.percent = pWin.percent
+                // LookOf-Prozent behalten. Print-Prozent unter Floor 84 kippte decide,
+                // obwohl Look 86 (Print + Geo) durch wäre.
+                let row = versus.remove(at: idx)
                 versus.insert(row, at: 0)
                 printLed = true
             }
