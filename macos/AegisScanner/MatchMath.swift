@@ -178,7 +178,15 @@ enum MatchMath {
         let printable = ok.filter { leftoverPrintOk(cosine: $0.cosine, sharpness: sharpness[$0.index]) }
         guard !printable.isEmpty else { return nil }
         let slotted = printable.filter { sameSlot[$0.index] == true }
-        let pool = slotted.isEmpty ? printable : slotted
+        let pool: [(index: Int, iou: Double, cosine: Double?)]
+        if !slotted.isEmpty {
+            pool = slotted
+        } else if sameSlot.isEmpty {
+            pool = printable
+        } else {
+            // Slot-Info da, kein gleicher Pose-Slot → ¾-Ghost pinnt keinen Frontal-Nachbarn.
+            return nil
+        }
         if let best = pool.max(by: {
             leftoverScore(cosine: $0.cosine ?? -1, sharpness: sharpness[$0.index])
                 < leftoverScore(cosine: $1.cosine ?? -1, sharpness: sharpness[$1.index])
@@ -537,9 +545,35 @@ enum MatchMath {
         String(format: "P %.0f · L %.0f", printPercent, look)
     }
 
+    /// lookOf-Sieger und Print-Sieger müssen dieselbe UUID sein, sonst keine Taufe.
+    /// Ohne gemessenen Print darf Look (der dann 0 ist) nicht blocken.
+    static func liveNameAgree(lookId: UUID?, printId: UUID?, printMeasured: Bool) -> Bool {
+        if !printMeasured { return true }
+        return lookId != nil && lookId == printId
+    }
+
+    static func liveNameDisagreeNote() -> String { "Look und Print uneinig" }
+
     /// IoU-Hysterese und Print-Pin uneinig → Print gewinnt im selben Pass (kein 2-Frame-Flackern).
-    static func boxPinTakePrint(iouHold: Bool, printPinDifferent: Bool) -> Bool {
-        iouHold && printPinDifferent
+    /// Namenlose IoU-Hold darf ein Print-Pin nicht stehlen.
+    static func boxPinTakePrint(iouHold: Bool, printPinDifferent: Bool, printEnrolled: Bool = true) -> Bool {
+        iouHold && printPinDifferent && printEnrolled
+    }
+
+    /// Median-Trail nur gleicher Pose-Slot. ¾ nicht mit Frontal mischen.
+    static func printTrailAccepts(prevSlot: String?, nextSlot: String) -> Bool {
+        guard let prev = prevSlot, !prev.isEmpty else { return true }
+        return prev == nextSlot
+    }
+
+    /// Rename: gleicher Name einer *anderen* Identität → Confirm.
+    static func renameConflict(newName: String, existing: [String], selfName: String) -> Bool {
+        let n = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !n.isEmpty else { return false }
+        return existing.contains { other in
+            other.caseInsensitiveCompare(selfName) != .orderedSame
+                && other.caseInsensitiveCompare(n) == .orderedSame
+        }
     }
 
     /// Geschwister: Centroid-Cosine ≥ 0,80 → +4 Floor **für dieses Paar**.

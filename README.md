@@ -1,4 +1,4 @@
-# Aegis **2.1.30 alpha**
+# Aegis **2.1.31 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,17 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.31 alpha
+
+2.1.30 leftover `sameSlot` fiel auf **alle** Prints, sobald der Pose-Slot leer war — ¾-Ghost taufte den Frontal-Nachbarn. lookOf-Sieger ≠ Print-Sieger taufte trotzdem. Print-Trail mischte Frontal+¾. Namenloser Print-Pin stahl IoU-Hold. Rename ohne Duplikat-Confirm. `gallery.json` ohne fsync.
+
+- **Leftover Slot-hart.** `sameSlot` gesetzt und kein Treffer → kein Pin.
+- **Live-Name nur bei ID-Einigkeit.** Look ≠ Print → Overlay „Look und Print uneinig“, keine Taufe.
+- **Print-Trail gleicher Slot.** Nicken von Frontal auf ¾ leert den Median.
+- **boxPinTakePrint nur enrolled/named.**
+- **Rename-Konflikt.** Gleicher Name → nochmal Return.
+- **`gallery.json` fsync** nach atomarem Write.
 
 ## Neu in 2.1.30 alpha
 

@@ -761,7 +761,7 @@ private struct IdentityNameField: View {
                 if draft != name { draft = name }
             }
             .onSubmit { store.renameIdentity(identity.id, to: draft) }
-            .help("Return speichert den neuen Namen.")
+            .help("Return speichert. Gleicher Name zweimal bestätigt den Konflikt.")
     }
 }
 

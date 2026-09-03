@@ -57,7 +57,10 @@ final class LibraryStore: ObservableObject {
     private var liveNameHist: [UUID: [String]] = [:]
     private var liveScoreEma: [UUID: Double] = [:]
     private var livePrintTrail: [UUID: [[Double]]] = [:]
+    private var livePrintTrailSlot: [UUID: String] = [:]
     private var lastCameraUniqueID: String = ""
+    private var pendingRenameId: UUID?
+    private var pendingRenameName: String?
 
     init() {
         let packed = GalleryFile.load()
@@ -852,6 +855,16 @@ final class LibraryStore: ObservableObject {
         guard !name.isEmpty else { return }
         guard let idx = identities.firstIndex(where: { $0.id == id }) else { return }
         guard identities[idx].name != name else { return }
+        if MatchMath.renameConflict(newName: name, existing: identities.map(\.name), selfName: identities[idx].name) {
+            if pendingRenameName != name || pendingRenameId != id {
+                pendingRenameName = name
+                pendingRenameId = id
+                status = "Name \(name) existiert. Nochmal Return bestätigt den Konflikt."
+                return
+            }
+        }
+        pendingRenameName = nil
+        pendingRenameId = nil
         identities[idx].name = name
         persist()
         status = "\(name) umbenannt"
@@ -903,6 +916,7 @@ final class LibraryStore: ObservableObject {
         liveNameHist = [:]
         liveScoreEma = [:]
         livePrintTrail.removeAll()
+        livePrintTrailSlot.removeAll()
         liveCapture.stop()
         liveActive = false
         if let id = liveMediaId {
@@ -950,6 +964,7 @@ final class LibraryStore: ObservableObject {
                 self.boxEuro.removeAll()
                 self.boxJumpPending.removeAll()
                 self.livePrintTrail.removeAll()
+                self.livePrintTrailSlot.removeAll()
             }
             self.lastCameraUniqueID = uid
             self.cameraUniqueID = uid
@@ -1064,9 +1079,11 @@ final class LibraryStore: ObservableObject {
                 }
             }
             let printPin = pinByPrint(face, pool: previous + reconnectGhosts + liveGhosts.map(\.face), used: used)
+            let printEnrolled = printPin.map { enrolled.contains($0.id) || namedTracks.contains($0.id) } ?? false
             let takePrint = MatchMath.boxPinTakePrint(
                 iouHold: best.map { MatchMath.boxHysteresisHold(iou: bestIoU) } ?? false,
-                printPinDifferent: printPin.map { $0.id != best?.id } ?? false
+                printPinDifferent: printPin.map { $0.id != best?.id } ?? false,
+                printEnrolled: printEnrolled
             )
             if let old = best, !takePrint {
                 used.insert(old.id)
@@ -1132,7 +1149,12 @@ final class LibraryStore: ObservableObject {
                     } else {
                     let prev = old.printVec.count >= 32 ? old.printVec : FaceEngine.embedding(of: old)
                     let next = FaceEngine.embedding(of: face)
+                    let nextSlot = FaceEngine.poseSlot(face).rawValue
                     var trail = livePrintTrail[old.id] ?? []
+                    if !MatchMath.printTrailAccepts(prevSlot: livePrintTrailSlot[old.id], nextSlot: nextSlot) {
+                        trail = []
+                    }
+                    livePrintTrailSlot[old.id] = nextSlot
                     if prev.count >= 32 { trail.append(prev) }
                     if next.count >= 32 { trail.append(next) }
                     if trail.count > 5 { trail.removeFirst(trail.count - 5) }
@@ -1156,6 +1178,7 @@ final class LibraryStore: ObservableObject {
                 boxEuro.removeValue(forKey: old.id)
                 boxJumpPending.removeValue(forKey: old.id)
                 livePrintTrail.removeValue(forKey: old.id)
+                livePrintTrailSlot.removeValue(forKey: old.id)
                 face.qualitySpark = []
                 let blend = MatchMath.liveBlendAlpha(continuity: liveCapture.isContinuity)
                 if face.featurePrint.isEmpty, !old.featurePrint.isEmpty {
@@ -1171,6 +1194,7 @@ final class LibraryStore: ObservableObject {
         boxEuro = boxEuro.filter { used.contains($0.key) }
         boxJumpPending = boxJumpPending.filter { used.contains($0.key) }
         livePrintTrail = livePrintTrail.filter { used.contains($0.key) }
+        livePrintTrailSlot = livePrintTrailSlot.filter { used.contains($0.key) }
         if found.isEmpty {
             for old in previous where !enrolled.contains(old.id) {
                 liveGhosts.append((old, now + 1.8))

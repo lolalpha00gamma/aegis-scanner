@@ -77,6 +77,14 @@ enum MatchMathTests {
         ok(!MatchMath.boxPinTakePrint(iouHold: true, printPinDifferent: false), "gleiche UUID bleibt IoU")
         ok(!MatchMath.boxPinTakePrint(iouHold: false, printPinDifferent: true), "ohne Hold kein Override")
         ok(
+            !MatchMath.boxPinTakePrint(iouHold: true, printPinDifferent: true, printEnrolled: false),
+            "namenloser Print-Pin stiehlt IoU-Hold nicht"
+        )
+        ok(
+            MatchMath.boxPinTakePrint(iouHold: true, printPinDifferent: true, printEnrolled: true),
+            "enrolled Print-Pin darf Hold überschreiben"
+        )
+        ok(
             MatchMath.leftoverPick(
                 candidates: [(0, 0.40, 0.70), (1, 0.40, 0.69)],
                 sharpness: [0: 0.20, 1: 0.20],
@@ -92,6 +100,28 @@ enum MatchMathTests {
             ) == 0,
             "ohne Slot-Hint bleibt höherer Print"
         )
+        ok(
+            MatchMath.leftoverPick(
+                candidates: [(0, 0.40, 0.75), (1, 0.40, 0.70)],
+                sharpness: [0: 0.20, 1: 0.20],
+                sameSlot: [0: false, 1: false]
+            ) == nil,
+            "sameSlot gesetzt, kein Slot-Treffer → ¾-Ghost pinnt nicht"
+        )
+        let idLook = UUID(uuidString: "00000000-0000-0000-0000-0000000000AA")!
+        let idPrint = UUID(uuidString: "00000000-0000-0000-0000-0000000000BB")!
+        ok(MatchMath.liveNameAgree(lookId: idLook, printId: idLook, printMeasured: true), "Look=Print tauft")
+        ok(!MatchMath.liveNameAgree(lookId: idLook, printId: idPrint, printMeasured: true), "Look≠Print keine Taufe")
+        ok(MatchMath.liveNameAgree(lookId: idLook, printId: idPrint, printMeasured: false), "ohne Print Look nicht blocken")
+        ok(!MatchMath.liveNameAgree(lookId: nil, printId: idPrint, printMeasured: true), "Look fehlt keine Taufe")
+        ok(MatchMath.liveNameDisagreeNote() == "Look und Print uneinig", "Uneinig-Notiz")
+        ok(MatchMath.printTrailAccepts(prevSlot: nil, nextSlot: "frontal"), "erster Slot darf in den Trail")
+        ok(MatchMath.printTrailAccepts(prevSlot: "frontal", nextSlot: "frontal"), "gleicher Slot bleibt")
+        ok(!MatchMath.printTrailAccepts(prevSlot: "frontal", nextSlot: "threeQuarter"), "¾ leert Frontal-Trail")
+        ok(MatchMath.renameConflict(newName: "Anna", existing: ["Anna", "Ben"], selfName: "Ben"), "Rename-Konflikt")
+        ok(!MatchMath.renameConflict(newName: "Ben", existing: ["Anna", "Ben"], selfName: "Ben"), "eigener Name kein Konflikt")
+        ok(!MatchMath.renameConflict(newName: "Cara", existing: ["Anna", "Ben"], selfName: "Ben"), "neuer Name frei")
+        ok(MatchMath.renameConflict(newName: "anna", existing: ["Anna"], selfName: "Ben"), "Rename case-insensitive")
 
         let agree = MatchMath.lookOf(geo: 90, embed: 92, pose: 1, printMeasured: true)
         ok(agree > 92 && agree <= 96, "Print führt, Geo gibt bis +4 (ist \(agree))")

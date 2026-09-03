@@ -1,6 +1,19 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.30 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.31 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.31 wirklich im Code
+
+2.1.30 leftover sameSlot fiel auf alle printable, wenn der Slot leer war (¾-Ghost pinnt Frontal). lookOf-Sieger ≠ Print-Sieger taufte. Print-Trail mischte Frontal+¾. boxPinTakePrint stahl namenlose Hold. Rename ohne Duplikat-Confirm. gallery.json ohne fsync.
+
+1. **`leftoverPick` Slot-hart.** sameSlot gesetzt + kein Treffer → nil.
+2. **`liveNameAgree`.** Look ≠ Print → keine Taufe, Notiz „Look und Print uneinig“.
+3. **`printTrailAccepts`.** Slot-Wechsel leert den Median-Trail.
+4. **`boxPinTakePrint` nur enrolled/named.**
+5. **`renameConflict` + Confirm** (zweites Return).
+6. **`GalleryFile.save` fsync** nach atomarem Write.
+7. Tests: leftover all-false sameSlot, liveNameAgree, printTrailAccepts, renameConflict, printEnrolled.
+8. MARKETING_VERSION 2.1.31 (Build 59), `Models.swift` + `VERSION` gleich.
 
 ## In 2.1.30 wirklich im Code
 
@@ -179,20 +192,23 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - **Jacobi nur Still-Labor**, Scan-Tiles sind cheap — Still-Foto-Detect ohne Tiles noch voller Graph wenn `tiles: false` und nicht live.
 - **Slot-Count in der Namensliste** (F 2 · ¾ 1 · P 0), nicht nur Statuszeile.
 - **Reject-Liste persistieren** — Hard-Negatives über Restarts, nicht nur RAM.
-- **Print-Trail nur gleicher Slot.** ¾ nicht mit Frontal in denselben Median.
 - **Overlay zwei Zahlen.** lookOf und Print nebeneinander, wenn sie > 4 Pkt differieren. **→ 2.1.30 lookPrintLabel immer**
-- **Live-Name nur bei ID-Einigkeit.** lookOf-Sieger ≠ Print-Sieger → keine Taufe.
-- **gallery.json fsync** nach atomarem Write.
 - **Enrollment AE-Lock.** `+` wartet 200 ms nach Belichtungssprung.
-- **Yaw-bedingtes leftover** (¾ gegen ¾-Ghost). **→ 2.1.30 sameSlot**
-- **Box-Hysterese + Print-Pin in einem Pass.** **→ 2.1.30 boxPinTakePrint**
-- **Rename-Konflikt.** Gleicher Name → Confirm wie Anlegen-Duplikat.
-- **boxPinTakePrint nur enrolled.** Namenlose IoU-Hold darf Print nicht stehlen.
+- **Yaw-bedingtes leftover** (¾ gegen ¾-Ghost). **→ 2.1.30 sameSlot / 2.1.31 Slot-hart**
+- **Box-Hysterese + Print-Pin in einem Pass.** **→ 2.1.30 boxPinTakePrint / 2.1.31 nur enrolled**
 - **U-Slot leftover** nur gegen U-Refs, analog sameSlot.
 - **Leftover-Print im Overlay** Cosine 0,64 als „gehalten 0,64“.
 - **Centroid invalidieren** wenn `+` eine Ref ändert — Tick-Cache reicht nicht über Frames.
 - **Live-dt in 1-Euro** aus Frame-Stempel, nicht CACurrent (Coalesce macht dt 0).
 - **Ampel G-Lampe** neben C/S/Y wenn lookOfCapped (rot) vs skip (grün).
+- **Overlay `P≠L` Chip** wenn liveNameAgree false (Notiz ist 2.1.31, Chip fehlt).
+- **Rename-Merge.** Confirm auf Konflikt → Identitäten mergen, nicht nur umbenennen.
+- **Overlay Slot-Buchstabe** F/¾/P auf der Kiste, damit Trail-Reset sichtbar ist.
+- **gallery.json SHA-256** neben schemaVersion, Restore warnt bei Drift.
+- **Enrollment-Coach.** „Kopf nach links“ wenn ¾ fehlt, nicht nur Statuszeile.
+- **Crop-Align Augen** vor `VNGenerateFacePrint` (Yaw-Slot allein reicht nicht).
+- **Live-FAR** aus den letzten 200 Impostor-Ticks im Labor.
+- **Galerie kompakt:** unscharfe same-Slot-Refs droppen, sobald eine scharfe da ist.
 
 ## Erweiterungen
 
@@ -334,6 +350,12 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - Leftover-Ranking nur Cosine (unscharf 0,73 schlägt scharf 0,72).
 - `lookOf` mit `printMeasured: true` ohne Vektor-Paar (Geo tauft).
 - leftover ohne Pose-Slot (¾ auf Frontal-Ghost).
+- leftover sameSlot Fallback auf andere Slots.
 - IoU-Hold gegen anderen Print-Pin zwei Frames stehen lassen.
+- namenloser Print-Pin stiehlt IoU-Hold.
+- Look≠Print taufen.
+- Print-Trail Frontal+¾ mischen.
 - Identität nur über Löschen+neu umbenennen.
+- Rename ohne Duplikat-Confirm.
+- gallery.json ohne fsync.
 - Overlay nur „Print 82%“ ohne Look.

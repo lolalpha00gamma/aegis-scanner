@@ -659,6 +659,7 @@ enum FaceEngine {
                 geoVersus.append((m.id, geo))
             }
             versus.sort { $0.percent > $1.percent }
+            printVersus.sort { $0.percent > $1.percent }
             geoVersus.sort { $0.percent > $1.percent }
             let best = versus.first
             let second = versus.dropFirst().first
@@ -679,6 +680,12 @@ enum FaceEngine {
             }()
             let liveFloors = Floors(match: min(96, floors.match + bump), solo: min(96, floors.solo + bump))
             let printBest = printVersus.first { $0.identityId == best?.identityId }
+            let printWinner = printVersus.first
+            let nameAgree = MatchMath.liveNameAgree(
+                lookId: best?.identityId,
+                printId: printWinner?.identityId,
+                printMeasured: pv.count >= 32
+            )
             let capNote = MatchMath.lookOfCapNote(geo: geoMix, embed: printBest?.percent ?? 0)
             let decided = decide(
                 percent: best?.percent ?? 0,
@@ -701,15 +708,20 @@ enum FaceEngine {
                 floors: liveFloors,
                 yawAbs: abs(face.quality.yaw)
             )
-            let note: String = {
+            var note: String = {
                 guard let capNote else { return decided.note }
                 if decided.note.isEmpty { return capNote }
                 return capNote + ". " + decided.note
             }()
-            printVersus.sort { $0.percent > $1.percent }
+            var decidedId = decided.id
+            if !nameAgree {
+                decidedId = nil
+                let disagree = MatchMath.liveNameDisagreeNote()
+                note = note.isEmpty ? disagree : disagree + ". " + note
+            }
             let printHit = StrategyHit(
                 strategy: .featurePrint,
-                identityId: decided.id,
+                identityId: decidedId,
                 percent: printBest?.percent ?? 0,
                 margin: (printVersus.first?.percent ?? 0) - (printVersus.dropFirst().first?.percent ?? 0),
                 versus: printVersus,
@@ -718,7 +730,7 @@ enum FaceEngine {
             )
             let aegisHit = StrategyHit(
                 strategy: .aegis,
-                identityId: decided.id,
+                identityId: decidedId,
                 percent: best?.percent ?? 0,
                 margin: margin,
                 versus: versus,

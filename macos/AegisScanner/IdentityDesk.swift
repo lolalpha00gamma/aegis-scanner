@@ -77,7 +77,17 @@ enum GalleryFile {
             try? fm.removeItem(at: backupURL)
             try? fm.copyItem(at: url, to: backupURL)
         }
-        try? data.write(to: url, options: .atomic)
+        let tmp = url.appendingPathExtension("tmp")
+        do {
+            try data.write(to: tmp, options: [])
+            let fh = try FileHandle(forWritingTo: tmp)
+            try fh.synchronize()
+            try fh.close()
+            _ = try fm.replaceItemAt(url, withItemAt: tmp)
+        } catch {
+            try? data.write(to: url, options: .atomic)
+            try? fm.removeItem(at: tmp)
+        }
     }
 }
 
