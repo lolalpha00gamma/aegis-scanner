@@ -1167,12 +1167,17 @@ enum FaceEngine {
         return l2normalize(acc)
     }
 
-    /// Live: Slot-Centroid wenn der Pose-Slot Refs hat, sonst 72 % Frontal + 28 % alle.
+    /// Live: Slot-Centroid wenn der Pose-Slot Refs hat, sonst Frontal, nie Profil-Mix.
     /// Slot-Hit überspringt den All-Mean (teuer und falsch gegen ¾).
     static func liveCentroid(_ faces: [FaceObservation], slot: PoseSlot? = nil) -> [Double] {
-        if let slot, MatchMath.preferSlotCentroid(slotCount: faces.filter { poseSlot($0) == slot }.count) {
+        let slotCount = slot.map { s in faces.filter { poseSlot($0) == s }.count } ?? 0
+        if let slot, MatchMath.preferSlotCentroid(slotCount: slotCount) {
             let slotMean = meanPrintVector(faces.filter { poseSlot($0) == slot })
             if slotMean.count >= 32 { return slotMean }
+        }
+        if slot != nil, MatchMath.slotCentroidFallsBackToFrontal(slotCount: slotCount) {
+            let front = meanPrintVector(faces.filter { poseSlot($0) == .frontal })
+            if front.count >= 32 { return front }
         }
         let all = meanPrintVector(faces)
         let front = meanPrintVector(faces.filter { poseSlot($0) == .frontal })

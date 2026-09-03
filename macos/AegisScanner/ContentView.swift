@@ -709,6 +709,9 @@ struct FaceOverlay: View {
                         if let hold = MatchMath.leftoverHoldLabel(cosine: store.leftoverHold[face.id]) {
                             return "\(base) · \(hold)"
                         }
+                        if let pending = store.leftoverAdoptProgress(faceId: face.id) {
+                            return "\(base) · leftover \(pending)"
+                        }
                         let capped = note.contains(MatchMath.lookOfCapNote())
                         return capped ? "\(base) · \(MatchMath.lookOfCapNote())" : base
                     }()
@@ -823,6 +826,9 @@ struct FaceOverlay: View {
                 return "\(owner.name) \(Int(pct))% · \(hold)"
             }
             return "\(owner.name) \(Int(pct))% · \(MatchMath.trackHoldLabel(held: held))"
+        }
+        if let pending = store.leftoverAdoptProgress(faceId: faceId) {
+            return "leftover \(pending)"
         }
         if near, let ident {
             return "Nähe \(ident.name) \(Int(pct))%"

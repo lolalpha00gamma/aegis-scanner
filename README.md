@@ -1,4 +1,4 @@
-# Aegis **2.1.47 alpha**
+# Aegis **2.1.48 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,17 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.48 alpha
+
+2.1.47 leftover 3+ — Adopt im ersten Frame. Nachbar erbt UUID. `liveCentroid` 72/28 mit Profil bei leerem Slot. Vote bei Maske/Blick/Lid. leftover-Need kappte 24 fps auf 128 ms.
+
+- **leftover 3+/~380 ms.** `leftoverAdvance` — gleiche Box, dann Adopt. Overlay `1/4`.
+- **Need aus dt.** 8 fps 4 Frames, 24 fps 24 Frames. Cap 30.
+- **Slot leer → Frontal.** Nie Profil im Live-Centroid.
+- **Vote-Skip.** occluded / gazeAway / eyesClosed.
+- Tests: Need, Streak, Same-Target, Maske/Blick/Lid, Frontal-Fallback.
+- VERSION = Models = MARKETING_VERSION 2.1.48 (Build 75).
 
 ## Neu in 2.1.47 alpha
 

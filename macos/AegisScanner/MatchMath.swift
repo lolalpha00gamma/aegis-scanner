@@ -509,7 +509,7 @@ enum MatchMath {
     /// TER-Fusion ist Diagnose, nicht Taufe.
     static var diagnoseOnly: Set<String> { ["terFusion"] }
 
-    /// Slot-Centroid wenn der Slot Refs hat, sonst 72/28-Fallback.
+    /// Slot-Centroid wenn der Slot Refs hat, sonst Frontal — nie Profil-Mix.
     static func preferSlotCentroid(slotCount: Int) -> Bool {
         slotCount >= 1
     }
@@ -875,9 +875,65 @@ enum MatchMath {
     }
 
     /// Unscharfer Tick zählt nicht als Namensstimme. Trail skippt schon, Vote bisher nicht.
-    static func nameVoteAccepts(sharpness: Double?, continuity: Bool) -> Bool {
+    static func nameVoteAccepts(
+        sharpness: Double?,
+        continuity: Bool,
+        occluded: Bool = false,
+        gazeAway: Bool = false,
+        eyesClosed: Bool = false
+    ) -> Bool {
+        if occluded || gazeAway || eyesClosed { return false }
         guard let sharpness else { return true }
         return sharpness >= activeSharpnessFloor(continuity: continuity)
+    }
+
+    /// Lid / IOD unter Floor = zu. Gähnen/Blinzeln tauft nicht.
+    static let eyesClosedFloor = 0.20
+
+    static func eyesClosed(openIod: Double?, floor: Double = eyesClosedFloor) -> Bool {
+        guard let openIod else { return false }
+        return openIod < floor
+    }
+
+    /// Blick nicht zur Kamera: keine Taufe. Yaw 0,55 ≈ Profil, Pitch 0,40 ≈ Stirn/Kinn.
+    static let gazeYawAbs = 0.55
+    static let gazePitchAbs = 0.40
+
+    static func gazeAway(yaw: Double, pitch: Double, yawLim: Double = gazeYawAbs, pitchLim: Double = gazePitchAbs) -> Bool {
+        abs(yaw) > yawLim || abs(pitch) > pitchLim
+    }
+
+    /// leftover 1 Frame = Nachbar erbt UUID. 3 gleiche Picks, dann Adopt.
+    static let leftoverAdoptFrames = 3
+    static let leftoverAdoptSec: TimeInterval = 0.38
+
+    static func leftoverAdoptNeed(dt: TimeInterval) -> Int {
+        let step = max(0.008, min(0.20, dt <= 0 ? 0.125 : dt))
+        let frames = Int(ceil(leftoverAdoptSec / step))
+        return max(leftoverAdoptFrames, min(30, frames))
+    }
+
+    static func leftoverAdoptReady(streak: Int, need: Int) -> Bool {
+        streak >= need
+    }
+
+    /// Overlay während Streak: `1/3`.
+    static func leftoverStreakLabel(streak: Int, need: Int) -> String? {
+        guard streak > 0, need > 0, streak < need else { return nil }
+        return "\(streak)/\(need)"
+    }
+
+    static func leftoverSameTarget(iou: Double, floor: Double = leftoverIoU) -> Bool {
+        iou > floor
+    }
+
+    static func leftoverStreakAdvance(prev: Int, sameTarget: Bool) -> Int {
+        sameTarget ? prev + 1 : 1
+    }
+
+    /// Slot leer: Frontal-only, nie 72/28 mit Profil. ¾-Sonde vs All-Mean war weich.
+    static func slotCentroidFallsBackToFrontal(slotCount: Int) -> Bool {
+        slotCount == 0
     }
 
     static func boxIoU(

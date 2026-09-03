@@ -37,12 +37,15 @@ final class LibraryStore: ObservableObject {
     @Published var cameraUniqueID: String = ""
     @Published var liveHeldIds: Set<UUID> = []
     @Published var leftoverHold: [UUID: Double] = [:]
+    @Published var leftoverPending: [UUID: String] = [:]
     @Published var cameraChoice: CameraChoice = .auto
     @Published var freezeAxis: [UUID: String] = [:]
     @Published var swapFlashUntil: TimeInterval = 0
 
     private let liveCapture = LiveCapture()
     private var liveMediaId: UUID?
+    private var leftoverStreak: [UUID: Int] = [:]
+    private var leftoverStreakBox: [UUID: FaceBox] = [:]
     private var scopedRoots: [URL] = []
     private var liveBusy = false
     private var livePending: (image: CGImage, mediaId: UUID, stamp: TimeInterval)?
@@ -652,7 +655,12 @@ final class LibraryStore: ObservableObject {
             }
             let qualityOK = MatchMath.nameVoteAccepts(
                 sharpness: face?.quality.sharpness,
-                continuity: liveContinuity
+                continuity: liveContinuity,
+                occluded: face.map { FaceEngine.lowerFaceOccluded($0) } ?? false,
+                gazeAway: MatchMath.gazeAway(yaw: face?.quality.yaw ?? 0, pitch: face?.quality.pitch ?? 0),
+                eyesClosed: MatchMath.eyesClosed(
+                    openIod: face?.ratioSheet.first { $0.id == "eyeOpen_iod" }?.value
+                )
             )
             // leftover wischt Hist einmal am Pin (applyLiveFaces). Hier nicht jeden Tick
             // leere Tokens füttern — sonst tauft Genuine 0,64–0,79 nie.
@@ -996,6 +1004,10 @@ final class LibraryStore: ObservableObject {
         )
     }
 
+    func leftoverAdoptProgress(faceId: UUID) -> String? {
+        leftoverPending[faceId]
+    }
+
     func stillProgress(faceId: UUID) -> Double? {
         let t = liveStillFor[faceId] ?? 0
         guard t > 0 else { return nil }
@@ -1104,6 +1116,10 @@ final class LibraryStore: ObservableObject {
         livePrintTrail.removeAll()
         livePrintTrailSlot.removeAll()
         liveStillFor.removeAll()
+        leftoverStreak = [:]
+        leftoverStreakBox = [:]
+        leftoverPending = [:]
+        leftoverHold = [:]
         liveCapture.stop()
         liveActive = false
         if let id = liveMediaId {
@@ -1222,6 +1238,28 @@ final class LibraryStore: ObservableObject {
         return best
     }
 
+    private func leftoverAdvance(oldId: UUID, box: FaceBox) -> (ready: Bool, label: String?) {
+        let same: Bool
+        if let prev = leftoverStreakBox[oldId] {
+            same = MatchMath.leftoverSameTarget(iou: FaceEngine.iou(prev, box))
+        } else {
+            same = false
+        }
+        let next = MatchMath.leftoverStreakAdvance(prev: leftoverStreak[oldId] ?? 0, sameTarget: same)
+        leftoverStreak[oldId] = next
+        leftoverStreakBox[oldId] = box
+        let need = MatchMath.leftoverAdoptNeed(dt: liveDt)
+        return (
+            MatchMath.leftoverAdoptReady(streak: next, need: need),
+            MatchMath.leftoverStreakLabel(streak: next, need: need)
+        )
+    }
+
+    private func leftoverClearStreak(_ id: UUID) {
+        leftoverStreak.removeValue(forKey: id)
+        leftoverStreakBox.removeValue(forKey: id)
+    }
+
     private func applyLiveFaces(_ found: [FaceObservation], image: CGImage, mediaId: UUID, stamp: TimeInterval) {
         liveCapture.setFacesPresent(!found.isEmpty)
         guard let idx = media.firstIndex(where: { $0.id == mediaId }) else { return }
@@ -1240,6 +1278,8 @@ final class LibraryStore: ObservableObject {
             return hit?.identityId != nil ? old.id : nil
         })
         var used = Set<UUID>()
+        var leftoverTried = Set<UUID>()
+        leftoverPending = [:]
         var adopted: [FaceObservation] = []
         adopted.reserveCapacity(found.count)
         for var face in found {
@@ -1503,12 +1543,23 @@ final class LibraryStore: ObservableObject {
                     let old = unusedLeft[r]
                     let i = unnamedLeft[col]
                     guard !used.contains(old.id) else { continue }
+                    leftoverTried.insert(old.id)
+                    let step = leftoverAdvance(oldId: old.id, box: adopted[i].box)
+                    if let label = step.label {
+                        leftoverPending[adopted[i].id] = label
+                    }
+                    guard step.ready else { continue }
+                    leftoverClearStreak(old.id)
+                    leftoverPending.removeValue(forKey: adopted[i].id)
                     used.insert(old.id)
                     adopted[i].id = old.id
                     adopted[i].trackId = old.trackId ?? old.id
                     adopted[i].enrolledAt = old.enrolledAt ?? adopted[i].enrolledAt
                     boxEuro.removeValue(forKey: old.id)
                     boxJumpPending.removeValue(forKey: old.id)
+                }
+                for old in unusedLeft where !leftoverTried.contains(old.id) {
+                    leftoverClearStreak(old.id)
                 }
             }
         }
@@ -1525,6 +1576,9 @@ final class LibraryStore: ObservableObject {
             }
             liveHeldIds = []
             leftoverHold = [:]
+            leftoverPending = [:]
+            leftoverStreak = [:]
+            leftoverStreakBox = [:]
             liveStillFor = [:]
             faces.removeAll { $0.mediaId == mediaId }
         } else {
@@ -1564,12 +1618,24 @@ final class LibraryStore: ObservableObject {
                 var sharp: [Int: Double] = [:]
                 var sameSlot: [Int: Bool] = [:]
                 let old = item.old
+                if leftoverTried.contains(old.id) { continue }
                 let oldSlot = FaceEngine.poseSlot(old)
                 for cand in remaining {
                     sharp[cand.index] = adopted[cand.index].quality.sharpness
                     sameSlot[cand.index] = FaceEngine.poseSlot(adopted[cand.index]) == oldSlot
                 }
-                guard let bestJ = MatchMath.leftoverPick(candidates: remaining, sharpness: sharp, sameSlot: sameSlot) else { continue }
+                guard let bestJ = MatchMath.leftoverPick(candidates: remaining, sharpness: sharp, sameSlot: sameSlot) else {
+                    leftoverClearStreak(old.id)
+                    continue
+                }
+                leftoverTried.insert(old.id)
+                let step = leftoverAdvance(oldId: old.id, box: adopted[bestJ].box)
+                if let label = step.label {
+                    leftoverPending[adopted[bestJ].id] = label
+                }
+                guard step.ready else { continue }
+                leftoverClearStreak(old.id)
+                leftoverPending.removeValue(forKey: adopted[bestJ].id)
                 used.insert(old.id)
                 adopted[bestJ].id = old.id
                 adopted[bestJ].trackId = old.trackId ?? old.id
@@ -1597,12 +1663,18 @@ final class LibraryStore: ObservableObject {
             }
             let liveIds = Set(adopted.map(\.id))
             leftoverHold = leftoverHold.filter { liveIds.contains($0.key) }
+            leftoverPending = leftoverPending.filter { liveIds.contains($0.key) }
+            let leftoverIds = Set(leftoverPinned.map(\.id))
+            leftoverStreak = leftoverStreak.filter { leftoverIds.contains($0.key) && !used.contains($0.key) }
+            leftoverStreakBox = leftoverStreakBox.filter { leftoverIds.contains($0.key) && !used.contains($0.key) }
             if leftoverPins > 0, let line = MatchMath.leftoverPinStatus(
                 count: leftoverPins,
                 cosine: leftoverHold.values.max()
             ) {
                 status = "Live · \(line)"
-            } else if status.hasPrefix("Live · Leftover") {
+            } else if let pending = leftoverPending.values.sorted().last {
+                status = "Live · leftover \(pending)"
+            } else if status.hasPrefix("Live · Leftover") || status.hasPrefix("Live · leftover") {
                 status = "Live"
             }
             liveHeldIds = Set(adopted.compactMap { namedTracks.contains($0.id) ? $0.id : nil })
