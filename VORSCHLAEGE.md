@@ -1,6 +1,16 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.31 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.32 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.32 wirklich im Code
+
+2.1.31 hat Look=Print, Slot-hart leftover, Trail-Slot, fsync — 1-Euro dt kam trotzdem aus der Apply-Wanduhr (Coalesce → dt 0). `+` ließ den Live-Trail auf dem alten Centroid. Slot-Count nur in der Statuszeile.
+
+1. **1-Euro dt aus PTS.** FrameTap reicht den Sample-Stempel durch `onFrame` bis `applyLiveFaces`.
+2. **`+` leert Print-Trail.** Neuer Ref darf den Median nicht mit der Vorperson mischen.
+3. **`slotCountLabel`** in der Namensliste `F 2 · ¾ 1 · P 0 · U 0`.
+4. Tests: slotCountLabel.
+5. MARKETING_VERSION 2.1.32 (Build 60), `Models.swift` + `VERSION` gleich.
 
 ## In 2.1.31 wirklich im Code
 
@@ -181,32 +191,27 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 
 ## Nächste Fixes (klein)
 
-- **Identität umbenennen** in der Liste (jetzt nur löschen + neu). **→ 2.1.30**
 - **Export Labor als CSV-Datei**, nicht nur Textfeld.
 - **Hold-Still-Ring** im Overlay 0,8 s, analog Peace.
 - **Pose-Meter als Balken** (F/¾/P) neben dem Namen.
-- **liveCentroid Cache am Identity-Modell** (2.1.29 cacht nur den Tick).
+- **liveCentroid Cache am Identity-Modell** (2.1.29 cacht nur den Tick; 2.1.32 leert den Trail bei `+`).
 - **Print-Drift-Spark.** Overlay-Linie Cosine zum Centroid über 8 Frames.
 - **Restore-Diff.** Backup vs. aktuell: welche IDs kämen zurück, bevor überschrieben wird.
 - **Track-ID `T…` in der UI.** intern `trackId` gibt es, die Kiste zeigt die Snapshot-UUID.
 - **Jacobi nur Still-Labor**, Scan-Tiles sind cheap — Still-Foto-Detect ohne Tiles noch voller Graph wenn `tiles: false` und nicht live.
-- **Slot-Count in der Namensliste** (F 2 · ¾ 1 · P 0), nicht nur Statuszeile.
-- **Reject-Liste persistieren** — Hard-Negatives über Restarts, nicht nur RAM.
-- **Overlay zwei Zahlen.** lookOf und Print nebeneinander, wenn sie > 4 Pkt differieren. **→ 2.1.30 lookPrintLabel immer**
 - **Enrollment AE-Lock.** `+` wartet 200 ms nach Belichtungssprung.
-- **Yaw-bedingtes leftover** (¾ gegen ¾-Ghost). **→ 2.1.30 sameSlot / 2.1.31 Slot-hart**
-- **Box-Hysterese + Print-Pin in einem Pass.** **→ 2.1.30 boxPinTakePrint / 2.1.31 nur enrolled**
-- **U-Slot leftover** nur gegen U-Refs, analog sameSlot.
 - **Leftover-Print im Overlay** Cosine 0,64 als „gehalten 0,64“.
-- **Centroid invalidieren** wenn `+` eine Ref ändert — Tick-Cache reicht nicht über Frames.
-- **Live-dt in 1-Euro** aus Frame-Stempel, nicht CACurrent (Coalesce macht dt 0).
 - **Ampel G-Lampe** neben C/S/Y wenn lookOfCapped (rot) vs skip (grün).
-- **Overlay `P≠L` Chip** wenn liveNameAgree false (Notiz ist 2.1.31, Chip fehlt).
-- **Rename-Merge.** Confirm auf Konflikt → Identitäten mergen, nicht nur umbenennen.
+- **Uneinigkeit im Overlay.** Look-Name und Print-Name nebeneinander, nicht nur die Notiz.
+- **Taufe 2 Ticks.** Ein einzelner look=print Frame reicht nicht — `liveNameAgree` muss zwei Frames halten.
+- **1-Euro Cutoff aus Box-Fläche.** Kleines Gesicht rauscht mehr, Cutoff höher.
+- **pendingRename Timeout** 8 s, sonst klebt die Confirm an der nächsten Person.
+- **fsync auch für `.bak`** nach dem Copy, nicht nur die neue Datei.
+- **nameMajority nur agreeing Ticks.** look≠print zählt nicht als Stimme.
 - **Overlay Slot-Buchstabe** F/¾/P auf der Kiste, damit Trail-Reset sichtbar ist.
 - **gallery.json SHA-256** neben schemaVersion, Restore warnt bei Drift.
 - **Enrollment-Coach.** „Kopf nach links“ wenn ¾ fehlt, nicht nur Statuszeile.
-- **Crop-Align Augen** vor `VNGenerateFacePrint` (Yaw-Slot allein reicht nicht).
+- **Crop-Align Augen** vor `VNGenerateFacePrint`.
 - **Live-FAR** aus den letzten 200 Impostor-Ticks im Labor.
 - **Galerie kompakt:** unscharfe same-Slot-Refs droppen, sobald eine scharfe da ist.
 

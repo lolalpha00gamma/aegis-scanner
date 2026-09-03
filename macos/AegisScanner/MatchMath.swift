@@ -566,6 +566,10 @@ enum MatchMath {
         return prev == nextSlot
     }
 
+    static func slotCountLabel(frontal: Int, threeQuarter: Int, profile: Int, upper: Int) -> String {
+        "F \(frontal) · ¾ \(threeQuarter) · P \(profile) · U \(upper)"
+    }
+
     /// Rename: gleicher Name einer *anderen* Identität → Confirm.
     static func renameConflict(newName: String, existing: [String], selfName: String) -> Bool {
         let n = newName.trimmingCharacters(in: .whitespacesAndNewlines)

@@ -135,7 +135,8 @@ struct ContentView: View {
                 HStack {
                     VStack(alignment: .leading) {
                         IdentityNameField(store: store, identity: identity)
-                        Text("\(identity.faceIds.count) Referenzen · \(FaceEngine.poseCoverageLabel(identity: identity, faces: store.faces))")
+                        let cov = FaceEngine.poseCoverage(identity: identity, faces: store.faces)
+                        Text("\(identity.faceIds.count) Referenzen · \(MatchMath.slotCountLabel(frontal: cov.frontal, threeQuarter: cov.threeQuarter, profile: cov.profile, upper: cov.upper))")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }

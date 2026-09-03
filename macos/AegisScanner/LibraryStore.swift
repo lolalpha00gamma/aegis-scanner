@@ -41,7 +41,7 @@ final class LibraryStore: ObservableObject {
     private var liveMediaId: UUID?
     private var scopedRoots: [URL] = []
     private var liveBusy = false
-    private var livePending: (image: CGImage, mediaId: UUID)?
+    private var livePending: (image: CGImage, mediaId: UUID, stamp: TimeInterval)?
     private var maskHoldSince: [UUID: TimeInterval] = [:]
     private var lastUSlotHint: TimeInterval = 0
     private var scanGeneration = 0
@@ -749,6 +749,8 @@ final class LibraryStore: ObservableObject {
         stampEnrolled(face.id)
         rematch()
         persist()
+        livePrintTrail.removeAll()
+        livePrintTrailSlot.removeAll()
         let extra = preview.isEmpty ? note : " · \(preview)\(note)"
         let cov = FaceEngine.poseCoverage(identity: identities[idx], faces: faces)
         let meter = MatchMath.poseMeterLabel(
@@ -974,22 +976,22 @@ final class LibraryStore: ObservableObject {
             self?.status = msg
             self?.liveActive = false
         }
-        liveCapture.onFrame = { [weak self] image in
-            self?.ingestLiveFrame(image, mediaId: id)
+        liveCapture.onFrame = { [weak self] image, stamp in
+            self?.ingestLiveFrame(image, mediaId: id, stamp: stamp)
         }
         liveCapture.start(url: url, kind: kind)
     }
 
-    private func ingestLiveFrame(_ image: CGImage, mediaId: UUID) {
+    private func ingestLiveFrame(_ image: CGImage, mediaId: UUID, stamp: TimeInterval) {
         if liveBusy {
-            livePending = (image, mediaId)
+            livePending = (image, mediaId, stamp)
             return
         }
         liveBusy = true
-        runLiveDetect(image, mediaId: mediaId)
+        runLiveDetect(image, mediaId: mediaId, stamp: stamp)
     }
 
-    private func runLiveDetect(_ image: CGImage, mediaId: UUID) {
+    private func runLiveDetect(_ image: CGImage, mediaId: UUID, stamp: TimeInterval) {
         let cont = liveCapture.isContinuity
         Task.detached(priority: .userInitiated) {
             let found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true)) ?? []
@@ -1000,10 +1002,10 @@ final class LibraryStore: ObservableObject {
                     self.livePending = nil
                     return
                 }
-                self.applyLiveFaces(found, image: image, mediaId: mediaId)
+                self.applyLiveFaces(found, image: image, mediaId: mediaId, stamp: stamp)
                 if let pending = self.livePending {
                     self.livePending = nil
-                    self.runLiveDetect(pending.image, mediaId: pending.mediaId)
+                    self.runLiveDetect(pending.image, mediaId: pending.mediaId, stamp: pending.stamp)
                 } else {
                     self.liveBusy = false
                 }
@@ -1034,13 +1036,13 @@ final class LibraryStore: ObservableObject {
         return best
     }
 
-    private func applyLiveFaces(_ found: [FaceObservation], image: CGImage, mediaId: UUID) {
+    private func applyLiveFaces(_ found: [FaceObservation], image: CGImage, mediaId: UUID, stamp: TimeInterval) {
         liveCapture.setFacesPresent(!found.isEmpty)
         guard let idx = media.firstIndex(where: { $0.id == mediaId }) else { return }
         media[idx].width = image.width
         media[idx].height = image.height
         media[idx].preview = image
-        let now = Date().timeIntervalSince1970
+        let now = stamp > 0 ? stamp : Date().timeIntervalSince1970
         let enrolled = Set(identities.flatMap(\.faceIds))
         let previous = faces.filter { $0.mediaId == mediaId }
         let namedTracks = Set(previous.compactMap { old -> UUID? in

@@ -1,4 +1,4 @@
-# Aegis **2.1.31 alpha**
+# Aegis **2.1.32 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,14 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.32 alpha
+
+2.1.31 hat Look=Print und Slot-hart leftover — die Box hing trotzdem einen Frame hinterher, weil 1-Euro die Apply-Wanduhr sah (zwei coalesced Frames → dt 0). `+` ließ den Print-Trail auf dem alten Centroid.
+
+- **1-Euro dt aus dem Kamera-Zeitstempel**, nicht aus dem Apply-Moment.
+- **`+` leert den Live-Trail.** Neue Referenz mischt nicht mit der Vorperson.
+- **Slot-Count** in der Namensliste `F 2 · ¾ 1 · P 0 · U 0`.
 
 ## Neu in 2.1.31 alpha
 

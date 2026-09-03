@@ -445,6 +445,7 @@ enum MatchMathTests {
         } else {
             ok(false, "tarBootstrap n=200")
         }
+        ok(MatchMath.slotCountLabel(frontal: 2, threeQuarter: 1, profile: 0, upper: 0) == "F 2 · ¾ 1 · P 0 · U 0", "Slot-Count Liste")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

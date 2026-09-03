@@ -23,7 +23,7 @@ final class LiveCapture: NSObject {
     private var snapshotURL: URL?
     private var failObserver: NSObjectProtocol?
     private var snapshotInFlight = false
-    var onFrame: ((CGImage) -> Void)?
+    var onFrame: ((CGImage, TimeInterval) -> Void)?
     var onError: ((String) -> Void)?
     var onReady: (() -> Void)?
     /// Live-Tap: 2 fps ohne Gesicht, 8 fps sobald ein Track sitzt.
@@ -126,8 +126,8 @@ final class LiveCapture: NSObject {
         let out = AVCaptureVideoDataOutput()
         out.alwaysDiscardsLateVideoFrames = true
         out.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA]
-        let delegate = FrameTap { [weak self] image in
-            self?.onFrame?(image)
+        let delegate = FrameTap { [weak self] image, stamp in
+            self?.onFrame?(image, stamp)
         }
         delegate.uniqueID = device.uniqueID
         delegate.orientOverride = orientOverride
@@ -229,7 +229,7 @@ final class LiveCapture: NSObject {
                         return
                     }
                     guard let data, let image = cgImage(from: data) else { return }
-                    capture?.onFrame?(image)
+                    capture?.onFrame?(image, Date().timeIntervalSince1970)
                 }
             }.resume()
             return
@@ -240,7 +240,7 @@ final class LiveCapture: NSObject {
            let pb = output.copyPixelBuffer(forItemTime: t, itemTimeForDisplay: nil),
            let image = cgImage(from: pb, transform: playerTransform)
         {
-            onFrame?(image)
+            onFrame?(image, CMTimeGetSeconds(t))
         }
         if player.timeControlStatus == .paused, item.duration.isNumeric {
             player.seek(to: .zero)
@@ -254,20 +254,22 @@ private final class FrameTap: NSObject, AVCaptureVideoDataOutputSampleBufferDele
     var minInterval: TimeInterval = 0.50
     var uniqueID: String = ""
     var orientOverride: String = "auto"
-    private let emit: (CGImage) -> Void
-    init(emit: @escaping (CGImage) -> Void) { self.emit = emit }
+    private let emit: (CGImage, TimeInterval) -> Void
+    init(emit: @escaping (CGImage, TimeInterval) -> Void) { self.emit = emit }
     func captureOutput(
         _ output: AVCaptureOutput,
         didOutput sampleBuffer: CMSampleBuffer,
         from connection: AVCaptureConnection
     ) {
-        let now = Date().timeIntervalSince1970
-        guard now - last >= minInterval else { return }
-        last = now
+        let pts = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
+        let ptsSec = CMTimeGetSeconds(pts)
+        let stamp = (pts.isValid && ptsSec.isFinite && ptsSec > 0) ? ptsSec : Date().timeIntervalSince1970
+        guard stamp - last >= minInterval else { return }
+        last = stamp
         guard let pb = CMSampleBufferGetImageBuffer(sampleBuffer),
               let image = cgImage(from: pb, orientation: visionOrientation(connection, override: orientOverride))
         else { return }
-        DispatchQueue.main.async { self.emit(image) }
+        DispatchQueue.main.async { self.emit(image, stamp) }
     }
 }
 
