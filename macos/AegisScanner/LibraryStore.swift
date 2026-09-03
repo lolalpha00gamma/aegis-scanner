@@ -67,6 +67,7 @@ final class LibraryStore: ObservableObject {
     private var livePrintTrail: [UUID: [[Double]]] = [:]
     private var livePrintTrailSlot: [UUID: String] = [:]
     private var liveStillFor: [UUID: TimeInterval] = [:]
+    private var livePrintDrift: [UUID: [Double]] = [:]
     private var lastCameraUniqueID: String = ""
     private var pendingRenameId: UUID?
     private var pendingRenameName: String?
@@ -595,6 +596,7 @@ final class LibraryStore: ObservableObject {
         liveYaw = liveYaw.filter { liveFaceIds.contains($0.key) }
         livePitch = livePitch.filter { liveFaceIds.contains($0.key) }
         liveRoll = liveRoll.filter { liveFaceIds.contains($0.key) }
+        livePrintDrift = livePrintDrift.filter { liveFaceIds.contains($0.key) }
         for i in matches.indices {
             let fid = matches[i].faceId
             guard liveFaceIds.contains(fid),
@@ -617,7 +619,8 @@ final class LibraryStore: ObservableObject {
             let spinning = MatchMath.poseVelocityFreeze(
                 yawDelta: prevYaw.map { yaw - $0 } ?? 0,
                 pitchDelta: prevPitch.map { pitch - $0 } ?? 0,
-                rollDelta: prevRoll.map { roll - $0 } ?? 0
+                rollDelta: prevRoll.map { roll - $0 } ?? 0,
+                dt: liveDt
             ) && (prevYaw != nil || prevPitch != nil || prevRoll != nil)
             let qualityOK = MatchMath.nameVoteAccepts(
                 sharpness: face?.quality.sharpness,
@@ -674,6 +677,11 @@ final class LibraryStore: ObservableObject {
             liveScoreEma[fid] = ema
             hit.percent = ema
             matches[i].hits[hi] = hit
+            let printPct = matches[i].hits.first(where: { $0.strategy == .featurePrint })?.percent ?? hit.percent
+            var spark = livePrintDrift[fid] ?? []
+            spark.append(printPct)
+            if spark.count > 8 { spark.removeFirst(spark.count - 8) }
+            livePrintDrift[fid] = spark
         }
     }
 
@@ -953,6 +961,10 @@ final class LibraryStore: ObservableObject {
         guard t > 0 else { return nil }
         let p = MatchMath.holdStillProgress(stillFor: t)
         return p < 1 ? p : nil
+    }
+
+    func printDriftSpark(faceId: UUID) -> String {
+        MatchMath.printDriftSpark(livePrintDrift[faceId] ?? [])
     }
 
     func removeIdentity(_ id: UUID) {
@@ -1325,16 +1337,19 @@ final class LibraryStore: ObservableObject {
             }
             adopted.append(face)
         }
-        if adopted.count == 2 {
-            let a = adopted[0]
-            let b = adopted[1]
-            if let oldA = previous.first(where: { $0.id == a.id }),
-               let oldB = previous.first(where: { $0.id == b.id }),
-               oldA.id != oldB.id
-            {
-                func vec(_ face: FaceObservation) -> [Double] {
-                    face.printVec.count >= 32 ? face.printVec : FaceEngine.embedding(of: face)
-                }
+        if adopted.count >= 2 {
+            var swapped = Set<UUID>()
+            func vec(_ face: FaceObservation) -> [Double] {
+                face.printVec.count >= 32 ? face.printVec : FaceEngine.embedding(of: face)
+            }
+            for (i, j) in MatchMath.pairSwapIndices(count: adopted.count) {
+                let a = adopted[i]
+                let b = adopted[j]
+                guard !swapped.contains(a.id), !swapped.contains(b.id) else { continue }
+                guard let oldA = previous.first(where: { $0.id == a.id }),
+                      let oldB = previous.first(where: { $0.id == b.id }),
+                      oldA.id != oldB.id
+                else { continue }
                 let va = vec(a)
                 let vb = vec(b)
                 let oa = vec(oldA)
@@ -1345,34 +1360,28 @@ final class LibraryStore: ObservableObject {
                     crossAB: MatchMath.cosine(va, ob),
                     crossBA: MatchMath.cosine(vb, oa)
                 ) {
-                    adopted[0].id = oldB.id
-                    adopted[0].trackId = oldB.trackId ?? oldB.id
-                    adopted[0].enrolledAt = oldB.enrolledAt ?? adopted[0].enrolledAt
-                    adopted[1].id = oldA.id
-                    adopted[1].trackId = oldA.trackId ?? oldA.id
-                    adopted[1].enrolledAt = oldA.enrolledAt ?? adopted[1].enrolledAt
-                    boxEuro.removeValue(forKey: oldA.id)
-                    boxEuro.removeValue(forKey: oldB.id)
-                    boxJumpPending.removeValue(forKey: oldA.id)
-                    boxJumpPending.removeValue(forKey: oldB.id)
-                    livePrintTrail.removeValue(forKey: oldA.id)
-                    livePrintTrail.removeValue(forKey: oldB.id)
-                    livePrintTrailSlot.removeValue(forKey: oldA.id)
-                    livePrintTrailSlot.removeValue(forKey: oldB.id)
-                    liveNameHist.removeValue(forKey: oldA.id)
-                    liveNameHist.removeValue(forKey: oldB.id)
-                    liveNameLock.removeValue(forKey: oldA.id)
-                    liveNameLock.removeValue(forKey: oldB.id)
-                    leftoverHold.removeValue(forKey: oldA.id)
-                    leftoverHold.removeValue(forKey: oldB.id)
-                    liveScoreEma.removeValue(forKey: oldA.id)
-                    liveScoreEma.removeValue(forKey: oldB.id)
-                    liveYaw.removeValue(forKey: oldA.id)
-                    liveYaw.removeValue(forKey: oldB.id)
-                    livePitch.removeValue(forKey: oldA.id)
-                    livePitch.removeValue(forKey: oldB.id)
-                    liveRoll.removeValue(forKey: oldA.id)
-                    liveRoll.removeValue(forKey: oldB.id)
+                    adopted[i].id = oldB.id
+                    adopted[i].trackId = oldB.trackId ?? oldB.id
+                    adopted[i].enrolledAt = oldB.enrolledAt ?? adopted[i].enrolledAt
+                    adopted[j].id = oldA.id
+                    adopted[j].trackId = oldA.trackId ?? oldA.id
+                    adopted[j].enrolledAt = oldA.enrolledAt ?? adopted[j].enrolledAt
+                    swapped.insert(oldA.id)
+                    swapped.insert(oldB.id)
+                    for id in [oldA.id, oldB.id] {
+                        boxEuro.removeValue(forKey: id)
+                        boxJumpPending.removeValue(forKey: id)
+                        livePrintTrail.removeValue(forKey: id)
+                        livePrintTrailSlot.removeValue(forKey: id)
+                        liveNameHist.removeValue(forKey: id)
+                        liveNameLock.removeValue(forKey: id)
+                        leftoverHold.removeValue(forKey: id)
+                        liveScoreEma.removeValue(forKey: id)
+                        liveYaw.removeValue(forKey: id)
+                        livePitch.removeValue(forKey: id)
+                        liveRoll.removeValue(forKey: id)
+                        livePrintDrift.removeValue(forKey: id)
+                    }
                 }
             }
         }
@@ -1416,6 +1425,7 @@ final class LibraryStore: ObservableObject {
         livePrintTrail = livePrintTrail.filter { used.contains($0.key) }
         livePrintTrailSlot = livePrintTrailSlot.filter { used.contains($0.key) }
         liveStillFor = liveStillFor.filter { used.contains($0.key) }
+        livePrintDrift = livePrintDrift.filter { used.contains($0.key) }
         if found.isEmpty {
             for old in previous where !enrolled.contains(old.id) {
                 liveGhosts.append((old, now + 1.8))
@@ -1486,6 +1496,7 @@ final class LibraryStore: ObservableObject {
                         liveNameHist.removeValue(forKey: old.id)
                         liveNameLock.removeValue(forKey: old.id)
                         liveScoreEma.removeValue(forKey: old.id)
+                        livePrintDrift.removeValue(forKey: old.id)
                     } else {
                         leftoverHold.removeValue(forKey: adopted[bestJ].id)
                     }

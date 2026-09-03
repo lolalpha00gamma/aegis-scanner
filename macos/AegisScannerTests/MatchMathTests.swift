@@ -296,6 +296,19 @@ enum MatchMathTests {
         ok(MatchMath.poseVelocityFreeze(yawDelta: -0.02, pitchDelta: -0.18), "Pitch Vorzeichen egal")
         ok(MatchMath.poseVelocityFreeze(yawDelta: 0, pitchDelta: 0, rollDelta: 0.20), "Roll-Schulter friert Vote")
         ok(!MatchMath.poseVelocityFreeze(yawDelta: 0.02, pitchDelta: 0.03, rollDelta: 0.04), "kleines Rollen läuft")
+        ok(!MatchMath.poseVelocityFreeze(yawDelta: 0, pitchDelta: 0.12, dt: 0.125), "8 fps Pitch-Rauschen 0,12 läuft")
+        ok(MatchMath.poseVelocityFreeze(yawDelta: 0, pitchDelta: 0.12, dt: 0.04), "24 fps Pitch 0,12 friert")
+        ok(!MatchMath.poseVelocityFreeze(yawDelta: 0.05, pitchDelta: 0.05, dt: 0.04), "24 fps kleines Nicken läuft")
+        ok(MatchMath.pairSwapIndices(count: 3).count == 3, "3 Köpfe → 3 Paare")
+        ok(MatchMath.pairSwapIndices(count: 3).map { "\($0.0)-\($0.1)" }.joined(separator: ",") == "0-1,0-2,1-2", "Paare 0-1 0-2 1-2")
+        ok(MatchMath.pairSwapIndices(count: 2).count == 1, "2 Köpfe → 1 Paar")
+        ok(MatchMath.pairSwapIndices(count: 1).isEmpty, "1 Kopf kein Swap")
+        let tid = UUID(uuidString: "ABCDEF01-2345-6789-ABCD-EF0123456789")!
+        ok(MatchMath.trackLabel(tid) == "TABC", "Track-Label 3 Hex")
+        ok(MatchMath.trackLabel(nil) == "T—", "ohne Track T—")
+        ok(MatchMath.printDriftSpark([90, 90, 90, 90]).contains("█") || MatchMath.printDriftSpark([90, 90, 90, 90]).contains("▇"), "starker Print-Spark hoch")
+        ok(MatchMath.printDriftSpark([50, 50, 50, 50]).contains("▁") || MatchMath.printDriftSpark([50, 50, 50, 50]).contains("▂"), "schwacher Print-Spark niedrig")
+        ok(MatchMath.printDriftSpark([]) == "", "ohne Samples leer")
         ok(
             MatchMath.identitiesCrossed(keepA: 0.40, keepB: 0.38, crossAB: 0.78, crossBA: 0.80),
             "Print-Kreuz klar besser = Swap"

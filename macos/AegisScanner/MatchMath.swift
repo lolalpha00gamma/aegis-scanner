@@ -909,17 +909,50 @@ enum MatchMath {
         return swap && (lost || clearly)
     }
 
-    /// Nicken ist Yaw-Drehung: |Δpitch| > 0,15 / Frame tauft sonst den Nachbarn.
-    /// Schulterzucken ist Roll.
+    /// Nicken ist Yaw-Drehung: |Δ| / dt. 2.1.45 hat Pitch+Roll mit 0,15/Frame
+    /// ohne Takt: Continuity 8 fps (Rauschen 0,12) fror jede Stimme.
+    /// 8 fps: Yaw 0,15 / Pitch-Roll 0,18. 24 fps: 0,06 / 0,10.
     static func poseVelocityFreeze(
         yawDelta: Double,
         pitchDelta: Double,
         rollDelta: Double = 0,
+        dt: TimeInterval = 0.125,
         perFrame: Double = yawFreezePerFrame
     ) -> Bool {
-        yawVelocityFreeze(delta: yawDelta, perFrame: perFrame)
-            || yawVelocityFreeze(delta: pitchDelta, perFrame: perFrame)
-            || yawVelocityFreeze(delta: rollDelta, perFrame: perFrame)
+        let step = max(0.04, min(0.20, dt <= 0 ? 0.125 : dt))
+        let yawLim = max(0.06, perFrame * (step / 0.125))
+        let prLim = max(0.10, 0.18 * (step / 0.125))
+        return abs(yawDelta) >= yawLim
+            || abs(pitchDelta) >= prLim
+            || abs(rollDelta) >= prLim
+    }
+
+    /// Overlay-Track unabhängig von der Snapshot-UUID.
+    static func trackLabel(_ id: UUID?) -> String {
+        guard let id else { return "T—" }
+        let hex = id.uuidString.replacingOccurrences(of: "-", with: "")
+        return "T" + String(hex.prefix(3)).uppercased()
+    }
+
+    /// Print zum Centroid über 8 Frames. Continuity-Drop ohne Konsole.
+    static func printDriftSpark(_ samples: [Double], lo: Double = 50, hi: Double = 95) -> String {
+        guard !samples.isEmpty else { return "" }
+        let bars = Array("▁▂▃▄▅▆▇█")
+        return samples.suffix(8).map { v -> String in
+            let t = (v - lo) / max(1, hi - lo)
+            let i = min(bars.count - 1, max(0, Int((t * Double(bars.count - 1)).rounded())))
+            return String(bars[i])
+        }.joined()
+    }
+
+    /// 3+ Köpfe: jedes Paar, nicht nur adopted.count == 2.
+    static func pairSwapIndices(count: Int) -> [(Int, Int)] {
+        guard count >= 2 else { return [] }
+        var out: [(Int, Int)] = []
+        for i in 0..<count {
+            for j in (i + 1)..<count { out.append((i, j)) }
+        }
+        return out
     }
 
     /// IoU-Zuweisung klebt die UUID an die *Stelle*. Zwei Leute tauschen die Plätze:

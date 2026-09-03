@@ -1,6 +1,45 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.45 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.46 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.46 wirklich im Code
+
+2.1.45 Pose-Freeze — Pitch+Roll mit 0,15/Frame ohne dt. Continuity 8 fps: Rauschen 0,12 fror die Stimme, Namen wirkten tot. Swap nur `adopted.count == 2`. Overlay-Index statt Track-UUID. Print-Drift unsichtbar.
+
+1. **`poseVelocityFreeze(dt:)`.** 8 fps Yaw 0,15 / Pitch-Roll 0,18. 24 fps 0,06 / 0,10.
+2. **`pairSwapIndices`.** 3 Köpfe → 3 Paare, leftover-Swap nicht nur 2×2.
+3. **`trackLabel`.** `T` + 3 Hex auf der Kiste.
+4. **`printDriftSpark`.** 8 Samples Print-Prozent (sonst Look).
+5. Tests: 8 fps 0,12 läuft, 24 fps 0,12 friert, 3 Paare, Track, Spark.
+6. MARKETING_VERSION 2.1.46 (Build 73), `Models.swift` + `VERSION` gleich.
+
+## Nächste (offen)
+
+- **Spark aus Centroid-Cosine**, nicht Hit-Prozent (2.1.46 zeigt Print-Prozent).
+- **Swap-Blitz** im Overlay wenn `identitiesCrossed` feuert.
+- **Freeze-Achse** Y/P/R neben F, nicht nur tot.
+- **3+ leftover Hungarian** — `boxesCrossed` ist noch 2×2 ungenutzt.
+- **Identitäten-Merge-Wizard** bei Centroid 0,89–0,94.
+- **Helios-Bridge.** Eine Kamera-Session, eine TCC.
+- **Enrollment AE-Lock** 200 ms nach Belichtungssprung.
+- **Zwei-Kamera-Live.** Built-in + Continuity, Track über Print.
+- **PhotoKit-Scan** nur mit expliziter Foto-Berechtigung.
+- **Live-FAR** letzte 200 Impostor-Ticks im Labor.
+- **Open-Set Unknown.** Slider für Reject.
+- **Drop-in `.mlmodel`.** FaceEmbedder-Protokoll, Apple-Print default.
+- **Per-Identität leftover-Log** in der Overlay-Kiste.
+- **Pairwise-Heatmap klickbar** im Labor.
+- **liveCentroid Cache** am Identity-Modell.
+- **Box-Kalman** statt 1-Euro bei 8 fps.
+- **SHA-Verify beim Load.** sidecar ≠ Hash → Banner, Restore anbieten.
+- **Motion-Blur nach Deskew.** Laplacian < 0,10 nach Roll verwerfen.
+- **Ampel R-Lampe** wenn |Δroll| freeze (neben C/S/Y).
+- **Watch-Folder.** Neue Fotos automatisch ingestieren.
+- **Aktives Lernen.** „Ist das dieselbe Person?“ an unsicheren Rändern.
+- **Platt-Skalierung** der Sigmoid auf Leave-one-out der Galerie.
+- **Print-Revision-Banner** wenn Face-Print nach OS-Update andere Dim liefert.
+- **Pale-Print droppen** aus dem Live-Centroid nach `printAgePaleDays`.
+- **dt pro Track** statt globalem `liveDt` (ein Dropout darf nicht alle frieren).
 
 ## In 2.1.45 wirklich im Code
 
@@ -333,9 +372,9 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - **Hold-Still-Ring** im Overlay 0,8 s, analog Peace. **→ 2.1.44 holdStillReady / HALTEN n%**
 - **Pose-Meter als Balken** (F/¾/P) neben dem Namen. **→ 2.1.44 poseMeter**
 - **liveCentroid Cache am Identity-Modell** (2.1.29 cacht nur den Tick; 2.1.32 leert den Trail bei `+`).
-- **Print-Drift-Spark.** Overlay-Linie Cosine zum Centroid über 8 Frames.
+- **Print-Drift-Spark.** Overlay-Linie Cosine zum Centroid über 8 Frames. **→ 2.1.46 printDriftSpark (Look-EMA; Centroid-Cosine bleibt)**
 - **Restore-Diff.** Backup vs. aktuell: welche IDs kämen zurück, bevor überschrieben wird.
-- **Track-ID `T…` in der UI.** intern `trackId` gibt es, die Kiste zeigt die Snapshot-UUID.
+- **Track-ID `T…` in der UI.** intern `trackId` gibt es, die Kiste zeigt die Snapshot-UUID. **→ 2.1.46 trackLabel**
 - **Crop-Align Augen** vor `VNGenerateFacePrint`. **→ 2.1.44 eyeRoll / deskewIfNeeded**
 - **Live-FAR** aus den letzten 200 Impostor-Ticks im Labor.
 - **Open-Set Unknown.** Explizite „unbekannt“-Klasse, Slider für Reject, nicht nur Floor.
@@ -358,7 +397,7 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - **Continuity-Print jeden 2. Frame** bei ≥ 20 fps. Trail/Median fängt den Skip.
 - **IVF / ANN ab 50 IDs.** Brute-Force Cosine wird bei Familien-Galerien langsam.
 - **3+-Gesichter Hungarian.** 2×2-Swap deckt Crowd nicht — Zuweisung min-cost über Print+IoU.
-- **Print-Swap 3×3** greedy identitiesCrossed-Paare, nicht nur 2×2.
+- **Print-Swap 3×3** greedy identitiesCrossed-Paare, nicht nur 2×2. **→ 2.1.46 pairSwapIndices (Hungarian bleibt)**
 - **Ampel R-Lampe** wenn |Δroll| freeze (neben C/S/Y).
 - **Box-Kalman** statt 1-Euro bei 8 fps (Continuity hängt einen Frame).
 - **Match-Log JSONL** (Tick, UUID, lookOf, geoMix, decide-Notiz).
@@ -658,3 +697,7 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - Pose-Freeze ohne Roll (Schulterzucken tauft).
 - `boxesCrossed` nur Keep < Pin (IoU-Hold 0,30 macht Swap tot).
 - Assigned-Swap über Box-IoU nach greedy Zuweisung (Keep hoch, Swap tot).
+- Pose-Freeze ohne dt (8 fps Pitch-Rauschen tot).
+- `identitiesCrossed` nur `adopted.count == 2`.
+- Overlay-Index statt Track-ID.
+- Print-Drift unsichtbar.

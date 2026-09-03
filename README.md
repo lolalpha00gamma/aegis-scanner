@@ -1,4 +1,4 @@
-# Aegis **2.1.45 alpha**
+# Aegis **2.1.46 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.46 alpha
+
+2.1.45 Pose-Freeze ohne Takt — Continuity 8 fps: Pitch/Roll-Rauschen 0,12/Frame fror jede Namensstimme. `identitiesCrossed` nur bei genau 2 Köpfen. Overlay zeigte Snapshot-Index, nicht Track. Print-Drift unsichtbar.
+
+- **Freeze folgt dt.** 8 fps Yaw 0,15 / Pitch-Roll 0,18. 24 fps 0,06 / 0,10. Continuity-Rauschen tauft weiter.
+- **Swap für 3+.** `pairSwapIndices` jedes Paar, nicht nur `count == 2`.
+- **Track-Label `T` + 3 Hex** auf der Kiste.
+- **Print-Drift-Spark** letzte 8 Print-Prozent neben P/L.
+- **VERSION = Models = MARKETING_VERSION 2.1.46** (Build 73).
 
 ## Neu in 2.1.45 alpha
 

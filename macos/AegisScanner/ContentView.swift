@@ -635,7 +635,7 @@ struct FaceOverlay: View {
                     .interpolation(.high)
                     .frame(width: dw, height: dh)
                     .offset(x: ox, y: oy)
-                ForEach(Array(faces.enumerated()), id: \.element.id) { index, face in
+                ForEach(Array(faces.enumerated()), id: \.element.id) { _, face in
                     let hit = store.matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == store.strategy }
                     let printHit = store.matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == .featurePrint }
                     let aegisHit = store.matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == .aegis }
@@ -680,10 +680,13 @@ struct FaceOverlay: View {
                         let printPct = printHit?.percent ?? 0
                         let lookPct = aegisHit?.percent ?? printPct
                         let slot = MatchMath.slotLetter(slotRaw)
-                        var base = "\(slot) · \(MatchMath.lookPrintLabel(printPercent: printPct, look: lookPct))"
+                        let tid = MatchMath.trackLabel(face.trackId ?? face.id)
+                        var base = "\(tid) · \(slot) · \(MatchMath.lookPrintLabel(printPercent: printPct, look: lookPct))"
                         if let vote = store.voteProgress(faceId: face.id) {
                             base += " · \(vote)"
                         }
+                        let drift = store.printDriftSpark(faceId: face.id)
+                        if !drift.isEmpty { base += " · \(drift)" }
                         if let still = store.stillProgress(faceId: face.id) {
                             base += " · HALTEN \(Int((still * 100).rounded()))%"
                         }
@@ -710,7 +713,7 @@ struct FaceOverlay: View {
                         Rectangle()
                             .stroke(boxColor, lineWidth: selected ? 2 : 1.5)
                             .overlay(alignment: .topLeading) {
-                                Text("\(index + 1)")
+                                Text(MatchMath.trackLabel(face.trackId ?? face.id))
                                     .font(.caption2.monospacedDigit())
                                     .foregroundStyle(slotColor)
                                     .padding(.horizontal, 5)
