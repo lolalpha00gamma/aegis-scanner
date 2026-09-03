@@ -1,6 +1,16 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.28 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.29 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.29 wirklich im Code
+
+2.1.28 lookOf im Live mit Pose=1, Deckel unsichtbar, Centroids jedes Gesicht, Print-Hit = lookOf.
+
+1. **`lookOfCapNote` „Print gekappt“** wenn < 70 bei Geo < 35 wirklich auf 60.
+2. **`matchLive` poseWeight**, nicht Pose 1.
+3. **Centroid/ratioSheet Cache** je Identität×Slot über den Tick.
+4. **Print-Hit Sigmoid**, `.aegis` lookOf.
+5. MARKETING_VERSION 2.1.29 (Build 57), `Models.swift` + `VERSION` gleich.
 
 ## In 2.1.28 wirklich im Code
 
@@ -151,15 +161,18 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - **Export Labor als CSV-Datei**, nicht nur Textfeld.
 - **Hold-Still-Ring** im Overlay 0,8 s, analog Peace.
 - **Pose-Meter als Balken** (F/¾/P) neben dem Namen.
-- **liveCentroid Cache** am Identity-Modell, nicht jedes Live-Frame neu mischen.
-- **ratioSheet Cache** am Identity-Modell.
+- **liveCentroid Cache am Identity-Modell** (2.1.29 cacht nur den Tick).
 - **Print-Drift-Spark.** Overlay-Linie Cosine zum Centroid über 8 Frames.
 - **Restore-Diff.** Backup vs. aktuell: welche IDs kämen zurück, bevor überschrieben wird.
 - **Track-ID `T…` in der UI.** intern `trackId` gibt es, die Kiste zeigt die Snapshot-UUID.
 - **Jacobi nur Still-Labor**, Scan-Tiles sind cheap — Still-Foto-Detect ohne Tiles noch voller Graph wenn `tiles: false` und nicht live.
 - **Slot-Count in der Namensliste** (F 2 · ¾ 1 · P 0), nicht nur Statuszeile.
 - **Reject-Liste persistieren** — Hard-Negatives über Restarts, nicht nur RAM.
-- **lookOf-Deckel-Log** eine Silbe im Overlay wenn Print < 70 gekappt wurde.
+- **Print-Trail nur gleicher Slot.** ¾ nicht mit Frontal in denselben Median.
+- **Overlay zwei Zahlen.** lookOf und Print nebeneinander, wenn sie > 4 Pkt differieren.
+- **Live-Name nur bei ID-Einigkeit.** lookOf-Sieger ≠ Print-Sieger → keine Taufe.
+- **gallery.json fsync** nach atomarem Write.
+- **Enrollment AE-Lock.** `+` wartet 200 ms nach Belichtungssprung.
 
 ## Erweiterungen
 

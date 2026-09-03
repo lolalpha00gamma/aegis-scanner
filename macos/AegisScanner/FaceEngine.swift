@@ -608,17 +608,29 @@ enum FaceEngine {
             let owned = gallery.filter { ident.faceIds.contains($0.id) }
             return (ident.id, ident.name, owned)
         }
+        var centroidCache: [String: [Double]] = [:]
+        var ratioCache: [String: [[Double]]] = [:]
         return probes.map { face in
             let pv = embedding(of: face)
             let probeRatios = face.ratioSheet.filter(\.identity).map(\.value)
             let probeSlot = poseSlot(face)
             var versus: [IdentityScore] = []
             versus.reserveCapacity(models.count)
+            var printVersus: [IdentityScore] = []
+            printVersus.reserveCapacity(models.count)
             var geoVersus: [(id: UUID, percent: Double)] = []
             geoVersus.reserveCapacity(models.count)
             var modelVec: [UUID: [Double]] = [:]
+            let poseW = poseWeight(face.quality)
             for m in models {
-                let vec = liveCentroid(m.owned, slot: probeSlot)
+                let key = m.id.uuidString + ":" + probeSlot.rawValue
+                let vec: [Double]
+                if let hit = centroidCache[key] {
+                    vec = hit
+                } else {
+                    vec = liveCentroid(m.owned, slot: probeSlot)
+                    centroidCache[key] = vec
+                }
                 modelVec[m.id] = vec
                 let printPct: Double
                 let measured: Bool
@@ -629,14 +641,21 @@ enum FaceEngine {
                     printPct = 0
                     measured = false
                 }
-                let slotOwned = m.owned.filter { poseSlot($0) == probeSlot }
-                let poolSrc = slotOwned.isEmpty ? m.owned : slotOwned
-                let ratioPool = poolSrc.map { $0.ratioSheet.filter(\.identity).map(\.value) }.filter { !$0.isEmpty }
+                let ratioPool: [[Double]]
+                if let hit = ratioCache[key] {
+                    ratioPool = hit
+                } else {
+                    let slotOwned = m.owned.filter { poseSlot($0) == probeSlot }
+                    let poolSrc = slotOwned.isEmpty ? m.owned : slotOwned
+                    ratioPool = poolSrc.map { $0.ratioSheet.filter(\.identity).map(\.value) }.filter { !$0.isEmpty }
+                    ratioCache[key] = ratioPool
+                }
                 let geo = MatchMath.ratioPercent(probeRatios, MatchMath.medianComponents(ratioPool))
                 let look = measured
-                    ? MatchMath.lookOf(geo: geo, embed: printPct, pose: 1, printMeasured: true)
+                    ? MatchMath.lookOf(geo: geo, embed: printPct, pose: poseW, printMeasured: true)
                     : 0
                 versus.append(IdentityScore(identityId: m.id, percent: look))
+                printVersus.append(IdentityScore(identityId: m.id, percent: printPct))
                 geoVersus.append((m.id, geo))
             }
             versus.sort { $0.percent > $1.percent }
@@ -659,6 +678,8 @@ enum FaceEngine {
                 return MatchMath.familyBump(bestPairCosine: cosine(va, vb))
             }()
             let liveFloors = Floors(match: min(96, floors.match + bump), solo: min(96, floors.solo + bump))
+            let printBest = printVersus.first { $0.identityId == best?.identityId }
+            let capNote = MatchMath.lookOfCapNote(geo: geoMix, embed: printBest?.percent ?? 0)
             let decided = decide(
                 percent: best?.percent ?? 0,
                 margin: margin,
@@ -680,12 +701,18 @@ enum FaceEngine {
                 floors: liveFloors,
                 yawAbs: abs(face.quality.yaw)
             )
+            let note: String = {
+                guard let capNote else { return decided.note }
+                if decided.note.isEmpty { return capNote }
+                return capNote + ". " + decided.note
+            }()
+            printVersus.sort { $0.percent > $1.percent }
             let printHit = StrategyHit(
                 strategy: .featurePrint,
                 identityId: decided.id,
-                percent: best?.percent ?? 0,
-                margin: margin,
-                versus: versus,
+                percent: printBest?.percent ?? 0,
+                margin: (printVersus.first?.percent ?? 0) - (printVersus.dropFirst().first?.percent ?? 0),
+                versus: printVersus,
                 note: decided.note,
                 measured: pv.count >= 32
             )
@@ -695,7 +722,7 @@ enum FaceEngine {
                 percent: best?.percent ?? 0,
                 margin: margin,
                 versus: versus,
-                note: decided.note,
+                note: note,
                 measured: pv.count >= 32,
                 geoMix: geoAvailable ? geoMix : nil
             )

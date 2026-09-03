@@ -1,4 +1,4 @@
-# Aegis **2.1.28 alpha**
+# Aegis **2.1.29 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.29 alpha
+
+2.1.28 scored lookOf mit Pose=1 (Profil wie Frontal). Overlay zeigte den Deckel nicht. Centroids jedes Gesicht neu. Print-Hit war lookOf, nicht Sigmoid.
+
+- **lookOf mit Pose-Gewicht.** ¾/Profil stützt Geo weniger.
+- **„Print gekappt“** in der decide-Notiz, Overlay erste Klausel.
+- **Centroid/ratioSheet Cache** je Identität×Slot über alle Sonden eines Ticks.
+- **Print-Hit = Sigmoid**, `.aegis` = lookOf.
 
 ## Neu in 2.1.28 alpha
 

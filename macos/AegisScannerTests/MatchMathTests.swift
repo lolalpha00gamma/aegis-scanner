@@ -65,6 +65,12 @@ enum MatchMathTests {
 
         let weakCap = MatchMath.lookOf(geo: 20, embed: 65, pose: 1, printMeasured: true)
         near(weakCap, 60, 0.01, "schwacher Print < 70 bei Geo 20 auf 60")
+        ok(MatchMath.lookOfCapped(geo: 20, embed: 65), "65 % Print bei Geo 20 gekappt")
+        ok(!MatchMath.lookOfCapped(geo: 20, embed: 82), "82 % nicht gekappt")
+        ok(!MatchMath.lookOfCapped(geo: 20, embed: 50), "50 % schon unter 60, kein Deckel-Log")
+        ok(MatchMath.lookOfCapNote(geo: 20, embed: 65) == "Print gekappt", "Deckel-Notiz")
+        ok(MatchMath.lookOfCapNote(geo: 80, embed: 65) == nil, "einig keine Deckel-Notiz")
+        ok(MatchMath.overlayNoteFirst("Print gekappt. Beste Nähe 60%.") == "Print gekappt", "Deckel erste Overlay-Klausel")
 
         let agree = MatchMath.lookOf(geo: 90, embed: 92, pose: 1, printMeasured: true)
         ok(agree > 92 && agree <= 96, "Print führt, Geo gibt bis +4 (ist \(agree))")

@@ -517,6 +517,17 @@ enum MatchMath {
         return min(100, embed + 4.0 * agree)
     }
 
+    /// lookOf hat den Print unter 70 bei toter Geo auf 60 gekappt.
+    static func lookOfCapped(geo: Double, embed: Double) -> Bool {
+        embed < 70 && geo < 35 && embed > 60
+    }
+
+    static func lookOfCapNote() -> String { "Print gekappt" }
+
+    static func lookOfCapNote(geo: Double, embed: Double) -> String? {
+        lookOfCapped(geo: geo, embed: embed) ? lookOfCapNote() : nil
+    }
+
     /// Geschwister: Centroid-Cosine ≥ 0,80 → +4 Floor **für dieses Paar**.
     /// Keine obere Grenze — Zwillinge bei 0,91 brauchen den Bump am meisten.
     /// Nicht global: ein Geschwisterpaar darf den Rest der Galerie nicht anheben.
