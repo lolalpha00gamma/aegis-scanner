@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 
 enum ProbeState: String {
@@ -88,10 +89,18 @@ enum GalleryFile {
             try fh.synchronize()
             try fh.close()
             _ = try fm.replaceItemAt(url, withItemAt: tmp)
+            writeDigest(data)
         } catch {
             try? data.write(to: url, options: .atomic)
             try? fm.removeItem(at: tmp)
+            writeDigest(data)
         }
+    }
+
+    private static func writeDigest(_ data: Data) {
+        let hex = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+        let short = MatchMath.digestShort(hex)
+        try? short.write(to: url.appendingPathExtension("sha256"), atomically: true, encoding: .utf8)
     }
 }
 

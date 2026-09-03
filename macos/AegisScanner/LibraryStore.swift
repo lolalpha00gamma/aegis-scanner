@@ -64,6 +64,7 @@ final class LibraryStore: ObservableObject {
     private var liveDt: TimeInterval = 0.125
     private var livePrintTrail: [UUID: [[Double]]] = [:]
     private var livePrintTrailSlot: [UUID: String] = [:]
+    private var liveStillFor: [UUID: TimeInterval] = [:]
     private var lastCameraUniqueID: String = ""
     private var pendingRenameId: UUID?
     private var pendingRenameName: String?
@@ -626,9 +627,19 @@ final class LibraryStore: ObservableObject {
             liveNameHist[fid] = hist
             let voted = MatchMath.nameMajorityAgreeing(hist, window: cap, need: need)
             let holding = leftoverHold[fid] != nil
+            let lockedId = liveNameLock[fid]
+            let lockedPrint: Double? = {
+                guard let lockedId else { return nil }
+                if let row = vs.first(where: { $0.identityId == lockedId }) {
+                    return row.percent / 100
+                }
+                return nil
+            }()
+            let lockedMissing = lockedId != nil && lockedPrint == nil && !vs.isEmpty
             let keep = MatchMath.nameLockHolds(
                 voted: voted,
-                locked: MatchMath.leftoverLocked(locked: liveNameLock[fid]?.uuidString, holding: holding)
+                locked: MatchMath.leftoverLocked(locked: lockedId?.uuidString, holding: holding),
+                lockedPrint: lockedMissing ? 0 : lockedPrint
             )
             if let keep, let ident = identities.first(where: { $0.id.uuidString == keep }) {
                 leftoverHold.removeValue(forKey: fid)
@@ -921,6 +932,13 @@ final class LibraryStore: ObservableObject {
         )
     }
 
+    func stillProgress(faceId: UUID) -> Double? {
+        let t = liveStillFor[faceId] ?? 0
+        guard t > 0 else { return nil }
+        let p = MatchMath.holdStillProgress(stillFor: t)
+        return p < 1 ? p : nil
+    }
+
     func removeIdentity(_ id: UUID) {
         identities.removeAll { $0.id == id }
         persist()
@@ -1004,6 +1022,7 @@ final class LibraryStore: ObservableObject {
         liveDt = 0.125
         livePrintTrail.removeAll()
         livePrintTrailSlot.removeAll()
+        liveStillFor.removeAll()
         liveCapture.stop()
         liveActive = false
         if let id = liveMediaId {
@@ -1234,9 +1253,14 @@ final class LibraryStore: ObservableObject {
                     face.featurePrint = old.featurePrint
                     face.printVec = old.printVec.isEmpty ? FaceEngine.embedding(of: old) : old.printVec
                 } else if !old.featurePrint.isEmpty, !face.featurePrint.isEmpty {
-                    if MatchMath.holdStillSkip(iou: bestIoU, sharpness: face.quality.sharpness)
+                    let skip = MatchMath.holdStillSkip(iou: bestIoU, sharpness: face.quality.sharpness)
                         || MatchMath.skipPrint(sharpness: face.quality.sharpness, continuity: liveCapture.isContinuity)
-                    {
+                    if skip {
+                        liveStillFor[old.id] = 0
+                    } else {
+                        liveStillFor[old.id] = (liveStillFor[old.id] ?? 0) + liveDt
+                    }
+                    if skip || !MatchMath.holdStillReady(stillFor: liveStillFor[old.id] ?? 0) {
                         face.featurePrint = old.featurePrint
                         face.printVec = old.printVec.isEmpty ? FaceEngine.embedding(of: old) : old.printVec
                     } else {
@@ -1322,12 +1346,14 @@ final class LibraryStore: ObservableObject {
         boxJumpPending = boxJumpPending.filter { used.contains($0.key) }
         livePrintTrail = livePrintTrail.filter { used.contains($0.key) }
         livePrintTrailSlot = livePrintTrailSlot.filter { used.contains($0.key) }
+        liveStillFor = liveStillFor.filter { used.contains($0.key) }
         if found.isEmpty {
             for old in previous where !enrolled.contains(old.id) {
                 liveGhosts.append((old, now + 1.8))
             }
             liveHeldIds = []
             leftoverHold = [:]
+            liveStillFor = [:]
             faces.removeAll { $0.mediaId == mediaId }
         } else {
             let leftoverPinned = previous.filter {
@@ -1454,17 +1480,18 @@ final class LibraryStore: ObservableObject {
         panel.allowedContentTypes = [.commaSeparatedText]
         panel.nameFieldStringValue = "aegis-matches.csv"
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        var lines = ["face,strategy,identity,percent"]
+        var lines = [MatchMath.labCSVHeader()]
         let idNames = Dictionary(uniqueKeysWithValues: identities.map { ($0.id, $0.name) })
         for row in matches {
             for hit in row.hits {
                 let name = hit.identityId.flatMap { idNames[$0] } ?? ""
-                lines.append([
-                    csvField(row.faceId.uuidString),
-                    csvField(hit.strategy.label),
-                    csvField(name),
-                    csvField(String(format: "%.1f", hit.percent)),
-                ].joined(separator: ","))
+                lines.append(MatchMath.labCSVRow(
+                    face: row.faceId.uuidString,
+                    strategy: hit.strategy.label,
+                    identity: name,
+                    percent: hit.percent,
+                    note: hit.note
+                ))
             }
         }
         try? lines.joined(separator: "\n").write(to: url, atomically: true, encoding: .utf8)

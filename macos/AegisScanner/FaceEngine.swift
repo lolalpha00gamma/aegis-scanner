@@ -1404,10 +1404,46 @@ enum FaceEngine {
         return crop(image, box: u, pad: 0.10)
     }
 
-    /// Apple face-identity print on a natural crop. Never image-print, never warp —
-    /// Vision aligns internally. Image-print was matching jackets, not faces (4% same person).
+    /// Apple face-identity print on a natural crop. Never image-print.
+    /// Vision aligns internally; strong roll (|θ| ≥ 8°) is deskewed first so
+    /// the crop isn't sideways before Vision sees it.
     private static func identityPrint(of image: CGImage?) -> Data? {
         facePrintOnly(of: image)
+    }
+
+    private static func rotate(_ image: CGImage, radians: Double) -> CGImage? {
+        let w = image.width
+        let h = image.height
+        guard w > 2, h > 2 else { return nil }
+        let c = abs(cos(radians))
+        let s = abs(sin(radians))
+        let nw = max(w, Int((Double(w) * c + Double(h) * s).rounded(.up)))
+        let nh = max(h, Int((Double(w) * s + Double(h) * c).rounded(.up)))
+        let color = CGColorSpaceCreateDeviceRGB()
+        guard let ctx = CGContext(
+            data: nil,
+            width: nw,
+            height: nh,
+            bitsPerComponent: 8,
+            bytesPerRow: 0,
+            space: color,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
+        ctx.translateBy(x: CGFloat(nw) / 2, y: CGFloat(nh) / 2)
+        ctx.rotate(by: CGFloat(-radians))
+        ctx.translateBy(x: -CGFloat(w) / 2, y: -CGFloat(h) / 2)
+        ctx.draw(image, in: CGRect(x: 0, y: 0, width: w, height: h))
+        return ctx.makeImage()
+    }
+
+    private static func deskewIfNeeded(_ image: CGImage, face: FaceObservation) -> CGImage {
+        guard let eyes = eyeCenters(face) else { return image }
+        let roll = MatchMath.eyeRoll(
+            left: CGPoint(x: eyes.0.x, y: eyes.0.y),
+            right: CGPoint(x: eyes.1.x, y: eyes.1.y)
+        )
+        guard MatchMath.cropAligns(roll: roll), let spun = rotate(image, radians: roll) else { return image }
+        return spun
     }
 
     private static func facePrintOnly(of image: CGImage?, orientation: CGImagePropertyOrientation = .up) -> Data? {
@@ -1481,7 +1517,7 @@ enum FaceEngine {
             } else if found.isEmpty,
                orientation == .up,
                let crop = self.crop(image, box: face.box, pad: 0.55),
-               let data = facePrintOnly(of: crop, orientation: .up)
+               let data = facePrintOnly(of: deskewIfNeeded(crop, face: face), orientation: .up)
             {
                 // Crop ist aufrecht. Orientierung nicht nochmal drauf — sonst
                 // wird ein schon gedrehtes Patch nochmal rotiert.

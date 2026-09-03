@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 
 /// Schwellen und Kurven an einer Stelle. Engine, Labor, Tests, Slider.
@@ -367,6 +368,78 @@ enum MatchMath {
         return "Kopf nach links drehen (¾)"
     }
 
+    /// Pose-Balken F/¾/P neben dem Namen. Coach sagt wohin, Balken sagt wie viel.
+    static func poseMeter(frontal: Int, threeQuarter: Int, profile: Int, filled: Int = 2) -> String {
+        func bar(_ n: Int) -> String {
+            let f = min(filled, max(0, n))
+            return String(repeating: "█", count: f) + String(repeating: "░", count: max(0, filled - f))
+        }
+        return "F \(bar(frontal)) ¾ \(bar(threeQuarter)) P \(bar(profile))"
+    }
+
+    /// Pfeil auf der Kiste. ‹ Blick links, › rechts, · halten.
+    static func coachArrow(haveFrontal: Bool, haveThreeQuarter: Bool, yaw: Double) -> String? {
+        if haveFrontal && haveThreeQuarter { return nil }
+        let absY = abs(yaw)
+        if !haveFrontal {
+            if absY < 0.28 { return "·" }
+            return yaw > 0 ? "‹" : "›"
+        }
+        if absY >= 0.28 && absY < 0.70 { return "·" }
+        if absY >= 0.70 { return yaw > 0 ? "›" : "‹" }
+        return "‹"
+    }
+
+    /// Hold-Still 0,8 s bevor ein neuer Print rausgeht. Overlay-Ring 0…1.
+    static let holdStillNeed: TimeInterval = 0.80
+
+    static func holdStillProgress(stillFor: TimeInterval, need: TimeInterval = holdStillNeed) -> Double {
+        guard need > 0 else { return 1 }
+        return min(1, max(0, stillFor / need))
+    }
+
+    static func holdStillReady(stillFor: TimeInterval, need: TimeInterval = holdStillNeed) -> Bool {
+        stillFor >= need
+    }
+
+    /// SHA-256 der Galerie, 12 Hex. Sidecar, nicht im JSON (Henne-Ei).
+    static func digestShort(_ hex: String, length: Int = 12) -> String {
+        let clean = hex.lowercased().filter { $0.isHexDigit }
+        guard !clean.isEmpty else { return "" }
+        return String(clean.prefix(length))
+    }
+
+    /// Augen-Roll in Radiant. |roll| ≥ 8° → Crop drehen vor Face-Print.
+    static func eyeRoll(left: CGPoint, right: CGPoint) -> Double {
+        atan2(Double(right.y - left.y), Double(right.x - left.x))
+    }
+
+    static let cropAlignMinAbs = 8.0 * Double.pi / 180.0
+
+    static func cropAligns(roll: Double, minAbs: Double = cropAlignMinAbs) -> Bool {
+        abs(roll) >= minAbs
+    }
+
+    static func labCSVHeader() -> String {
+        "face,strategy,identity,percent,note"
+    }
+
+    static func labCSVRow(face: String, strategy: String, identity: String, percent: Double, note: String = "") -> String {
+        func field(_ raw: String) -> String {
+            if raw.contains(",") || raw.contains("\"") || raw.contains("\n") {
+                return "\"" + raw.replacingOccurrences(of: "\"", with: "\"\"") + "\""
+            }
+            return raw
+        }
+        return [
+            field(face),
+            field(strategy),
+            field(identity),
+            String(format: "%.1f", percent),
+            field(note)
+        ].joined(separator: ",")
+    }
+
     static let printAgePaleDays = 90.0
     static let restoreAgeDays = 7.0
 
@@ -696,11 +769,23 @@ enum MatchMath {
         return hist
     }
 
-    /// Nach Mehrheit: Name bleibt, bis eine andere ID die Mehrheit hat.
+    /// Nach Mehrheit: Name bleibt, bis eine andere ID die Mehrheit hat
+    /// **oder** der Print der Lock-ID unter 0,50 fällt.
     /// Kein Mehrheit ≠ nil — sonst ein Frame Uneinig = Overlay tot.
-    static func nameLockHolds(voted: String?, locked: String?) -> String? {
+    static let nameLockPrintFloor = 0.50
+
+    static func nameLockDrops(printCosine: Double?, missing: Bool = false, floor: Double = nameLockPrintFloor) -> Bool {
+        if missing { return true }
+        guard let printCosine else { return false }
+        return printCosine < floor
+    }
+
+    static func nameLockHolds(voted: String?, locked: String?, lockedPrint: Double? = nil) -> String? {
         if let voted, !voted.isEmpty { return voted }
-        if let locked, !locked.isEmpty { return locked }
+        if let locked, !locked.isEmpty {
+            if nameLockDrops(printCosine: lockedPrint) { return nil }
+            return locked
+        }
         return nil
     }
 

@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 
 /// `swiftc macos/AegisScanner/MatchMath.swift macos/AegisScannerTests/MatchMathTests.swift -o /tmp/aegismath && /tmp/aegismath`
@@ -606,6 +607,33 @@ enum MatchMathTests {
             ok(false, "tarBootstrap n=200")
         }
         ok(MatchMath.slotCountLabel(frontal: 2, threeQuarter: 1, profile: 0, upper: 0) == "F 2 · ¾ 1 · P 0 · U 0", "Slot-Count Liste")
+        ok(MatchMath.nameLockDrops(printCosine: 0.40), "Lock drop unter 0,50")
+        ok(!MatchMath.nameLockDrops(printCosine: 0.62), "Lock hält bei 0,62")
+        ok(!MatchMath.nameLockDrops(printCosine: nil), "ohne Print kein Drop")
+        ok(MatchMath.nameLockDrops(printCosine: nil, missing: true), "Lock-ID fehlt in Versus → Drop")
+        ok(MatchMath.nameLockHolds(voted: nil, locked: "A", lockedPrint: 0.40) == nil, "schwacher Print kippt Lock")
+        ok(MatchMath.nameLockHolds(voted: nil, locked: "A", lockedPrint: 0.80) == "A", "starker Print hält Lock")
+        ok(MatchMath.nameLockHolds(voted: "B", locked: "A", lockedPrint: 0.20) == "B", "Mehrheit vor Drop")
+        ok(MatchMath.poseMeter(frontal: 2, threeQuarter: 1, profile: 0) == "F ██ ¾ █░ P ░░", "Pose-Balken")
+        ok(MatchMath.poseMeter(frontal: 0, threeQuarter: 0, profile: 0) == "F ░░ ¾ ░░ P ░░", "Pose leer")
+        ok(MatchMath.coachArrow(haveFrontal: true, haveThreeQuarter: true, yaw: 0) == nil, "fertig kein Pfeil")
+        ok(MatchMath.coachArrow(haveFrontal: false, haveThreeQuarter: false, yaw: 0) == "·", "halten Frontal")
+        ok(MatchMath.coachArrow(haveFrontal: false, haveThreeQuarter: false, yaw: 0.80) == "‹", "Profil → links zur Kamera")
+        ok(MatchMath.coachArrow(haveFrontal: true, haveThreeQuarter: false, yaw: 0) == "‹", "¾ fehlt → links")
+        ok(MatchMath.coachArrow(haveFrontal: true, haveThreeQuarter: false, yaw: 0.40) == "·", "¾ halten")
+        near(MatchMath.holdStillProgress(stillFor: 0), 0, 0.01, "Hold-Still 0")
+        near(MatchMath.holdStillProgress(stillFor: 0.40), 0.5, 0.01, "Hold-Still halb")
+        near(MatchMath.holdStillProgress(stillFor: 0.80), 1, 0.01, "Hold-Still voll")
+        ok(!MatchMath.holdStillReady(stillFor: 0.40), "Hold-Still 0,4 s nicht bereit")
+        ok(MatchMath.holdStillReady(stillFor: 0.80), "Hold-Still 0,8 s bereit")
+        ok(MatchMath.digestShort("ABCDEF0123456789ffff") == "abcdef012345", "Digest 12 Hex")
+        ok(MatchMath.digestShort("") == "", "Digest leer")
+        ok(MatchMath.digestShort("xyz") == "", "Digest ohne Hex")
+        near(MatchMath.eyeRoll(left: CGPoint(x: 0, y: 0), right: CGPoint(x: 1, y: 0)), 0, 0.01, "Augen waagerecht")
+        ok(MatchMath.cropAligns(roll: 0.20), "12° roll aligned")
+        ok(!MatchMath.cropAligns(roll: 0.05), "3° bleibt")
+        ok(MatchMath.labCSVHeader().contains("percent"), "CSV Header")
+        ok(MatchMath.labCSVRow(face: "a", strategy: "Aegis Ensemble", identity: "Anna, B", percent: 82.4, note: "") == "a,Aegis Ensemble,\"Anna, B\",82.4,", "CSV Quote")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

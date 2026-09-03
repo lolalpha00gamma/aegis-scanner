@@ -147,7 +147,7 @@ struct ContentView: View {
                     VStack(alignment: .leading) {
                         IdentityNameField(store: store, identity: identity)
                         let cov = FaceEngine.poseCoverage(identity: identity, faces: store.faces)
-                        Text("\(identity.faceIds.count) Referenzen · \(MatchMath.slotCountLabel(frontal: cov.frontal, threeQuarter: cov.threeQuarter, profile: cov.profile, upper: cov.upper))")
+                        Text("\(identity.faceIds.count) Referenzen · \(MatchMath.poseMeter(frontal: cov.frontal, threeQuarter: cov.threeQuarter, profile: cov.profile))")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -684,6 +684,9 @@ struct FaceOverlay: View {
                         if let vote = store.voteProgress(faceId: face.id) {
                             base += " · \(vote)"
                         }
+                        if let still = store.stillProgress(faceId: face.id) {
+                            base += " · HALTEN \(Int((still * 100).rounded()))%"
+                        }
                         if let sib = MatchMath.siblingBadge(pairCosine: aegisHit?.pairCosine) {
                             base += " · \(sib)"
                         }
@@ -740,10 +743,23 @@ struct FaceOverlay: View {
                                             .font(.caption2.monospaced())
                                             .lineLimit(2)
                                         if selected, let coach {
-                                            Text(coach)
-                                                .font(.caption2.monospaced())
-                                                .foregroundStyle(.orange)
-                                                .lineLimit(1)
+                                            let cov = coachDest.map { FaceEngine.poseCoverage(identity: $0, faces: store.faces) }
+                                            let arrow = MatchMath.coachArrow(
+                                                haveFrontal: (cov?.frontal ?? 0) > 0,
+                                                haveThreeQuarter: (cov?.threeQuarter ?? 0) > 0,
+                                                yaw: face.quality.yaw
+                                            )
+                                            HStack(spacing: 4) {
+                                                if let arrow {
+                                                    Text(arrow)
+                                                        .font(.title3.monospaced())
+                                                        .foregroundStyle(.orange)
+                                                }
+                                                Text(coach)
+                                                    .font(.caption2.monospaced())
+                                                    .foregroundStyle(.orange)
+                                                    .lineLimit(1)
+                                            }
                                         }
                                     }
                                     .padding(.horizontal, 4)

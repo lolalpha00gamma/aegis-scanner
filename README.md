@@ -1,4 +1,4 @@
-# Aegis **2.1.43 alpha**
+# Aegis **2.1.44 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,19 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.44 alpha
+
+2.1.43 hat Yaw-Freeze und Lock-HUD — der Name klebte trotzdem, sobald der Print der Lock-ID unter 0,50 fiel (Nachbar im selben Track). Anlegen ohne Balken/Pfeil. Crops mit Roll > 8° gingen roh in Face-Print. Galerie ohne SHA.
+
+- **Lock-Drop.** `nameLockDrops` — Print der Lock-ID < 0,50 oder fehlend in Versus kippt den Namen. Mehrheit tauft weiter.
+- **Pose-Balken** `F ██ ¾ █░ P ░░` in der Namensliste.
+- **Coach-Pfeil** ‹ › · auf der Kiste.
+- **Crop-Align.** |Roll| ≥ 8° dreht das Crop vor `VNGenerateFacePrint` (Canvas wächst mit).
+- **gallery.json.sha256** 12 Hex neben dem Save, auch nach Fallback-Write.
+- **Labor-CSV** mit Note-Spalte (`labCSVRow`).
+- **Hold-Still 0,8 s** bevor ein neuer Print den alten ersetzt. Overlay `HALTEN n%`.
+- **VERSION = Models = MARKETING_VERSION 2.1.44** (Build 71).
 
 ## Neu in 2.1.43 alpha
 

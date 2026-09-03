@@ -1,6 +1,20 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.43 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.44 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.44 wirklich im Code
+
+2.1.43 Yaw-Freeze / Lock-HUD — Lock hielt Anna, obwohl der Print 0,40 war (Nachbar im Track). Anlegen ohne Balken. Roll im Crop. Galerie ohne Digest. SHA-Sidecar nur im Happy-Path. Hold-Still-Math ohne Overlay.
+
+1. **`nameLockDrops`.** Print der Lock-ID < 0,50 oder nicht in Versus → Lock weg. Mehrheit tauft weiter.
+2. **`poseMeter`.** F/¾/P-Balken in der Liste.
+3. **`coachArrow`.** ‹ › · auf der Kiste.
+4. **Crop-Align.** `eyeRoll` + Deskew |θ| ≥ 8° vor Face-Print, Canvas wächst mit (keine Ecken-Clips).
+5. **`digestShort` + sidecar** `gallery.json.sha256` auch nach Fallback-Write.
+6. **`labCSVRow`.** Export mit Note.
+7. **Hold-Still 0,8 s.** `holdStillReady` bevor ein neuer Print den alten ersetzt. Overlay `HALTEN n%`.
+8. Tests: Drop, Balken, Pfeil, Hold-Still Ready, Digest, Roll, CSV.
+9. MARKETING_VERSION 2.1.44 (Build 71), `Models.swift` + `VERSION` gleich.
 
 ## In 2.1.43 wirklich im Code
 
@@ -305,21 +319,29 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - **Lock-HUD halten.** Overlay `hält` statt `2/3` sobald Lock sitzt. **→ 2.1.43 nameLockLabel**
 - **Zwei-Gesichter-Swap-Guard.** **→ 2.1.43 boxesCrossed**
 - **Live-Name in unselektierter Kiste.** **→ 2.1.43 overlay**
-- **Export Labor als CSV-Datei**, nicht nur Textfeld.
-- **Hold-Still-Ring** im Overlay 0,8 s, analog Peace.
-- **Pose-Meter als Balken** (F/¾/P) neben dem Namen.
+- **Export Labor als CSV-Datei**, nicht nur Textfeld. **→ 2.1.44 labCSVRow**
+- **Hold-Still-Ring** im Overlay 0,8 s, analog Peace. **→ 2.1.44 holdStillReady / HALTEN n%**
+- **Pose-Meter als Balken** (F/¾/P) neben dem Namen. **→ 2.1.44 poseMeter**
 - **liveCentroid Cache am Identity-Modell** (2.1.29 cacht nur den Tick; 2.1.32 leert den Trail bei `+`).
 - **Print-Drift-Spark.** Overlay-Linie Cosine zum Centroid über 8 Frames.
 - **Restore-Diff.** Backup vs. aktuell: welche IDs kämen zurück, bevor überschrieben wird.
 - **Track-ID `T…` in der UI.** intern `trackId` gibt es, die Kiste zeigt die Snapshot-UUID.
-- **Crop-Align Augen** vor `VNGenerateFacePrint`.
+- **Crop-Align Augen** vor `VNGenerateFacePrint`. **→ 2.1.44 eyeRoll / deskewIfNeeded**
 - **Live-FAR** aus den letzten 200 Impostor-Ticks im Labor.
 - **Open-Set Unknown.** Explizite „unbekannt“-Klasse, Slider für Reject, nicht nur Floor.
 - **Platt-Skalierung** der Sigmoid auf Leave-one-out der Galerie, globaler Mid 0,55 nur Fallback.
 - **Print-Revision-Banner** wenn `VNGenerateFacePrint` nach OS-Update andere Dim liefert.
-- **Coach-Pfeil** auf der Kiste (‹ ›) statt nur Text.
-- **gallery.json SHA-256** neben schemaVersion.
+- **Coach-Pfeil** auf der Kiste (‹ ›) statt nur Text. **→ 2.1.44 coachArrow**
+- **gallery.json SHA-256** neben schemaVersion. **→ 2.1.44 digestShort + sidecar**
 - **Enrollment AE-Lock.** `+` wartet 200 ms nach Belichtungssprung.
+- **Motion-Blur nach Deskew.** Laplacian < 0,10 nach Roll-Korrektur verwerfen — sonst schiefer Crop + Unschärfe im Print.
+- **SHA-Verify beim Load.** sidecar ≠ Hash von gallery.json → Banner, Restore anbieten.
+- **3-Tick Still-Median** bevor der neue Print committed — ein scharfer Blur-Frame darf den Trail nicht kippen.
+- **Box-Aspect-Gate.** width/height < 0,38 (hartes Profil) nicht als Frontal-Print.
+- **Pale-Print droppen** aus dem Live-Centroid nach `printAgePaleDays`, bleibt in der Galerie.
+- **Identitäten mergen UI-Button**, nicht nur Anlegen-Confirm bei Centroid > 0,82.
+- **Restore-Diff mit SHA.** Backup vs. aktuell: welche IDs kämen zurück, Digest daneben.
+- **Track-ID `T…` in der Overlay-Kiste**, Snapshot-UUID bleibt intern.
 - **Ampel G-Lampe** neben C/S/Y wenn lookOfCapped (rot) vs skip (grün).
 - **Galerie kompakt:** unscharfe same-Slot-Refs droppen, sobald eine scharfe da ist.
 - **1-Euro minCutoff Slider** für Continuity vs Built-in.
