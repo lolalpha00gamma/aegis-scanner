@@ -1,4 +1,4 @@
-# Aegis **2.1.27 alpha**
+# Aegis **2.1.28 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.28 alpha
+
+Live taufte weiter falsch / gar nicht, weil `matchLive` **lookOf ignorierte** (Roh-Print) und Geo-Veto 80–87 % mit Jacke/Haar kippte. Leftover 0,72 ließ Genuine 0,62–0,71 fallen. Unschärfe wanderte in den Print-Trail.
+
+- **`matchLive` = lookOf.** Wie Still: Print führt, Geo stützt, ≥ 80 nie auf 60. Ohne gemessenes Print-Paar 0, nicht Geo.
+- **Geo-Veto skip ab 80 %** (war 88). lookOf und decide sagen dasselbe.
+- **Leftover 0,64**, scharfer Genuine 0,62 darf den Track halten. Ranking: Schärfe-Bonus, unscharf 0,73 verliert gegen scharf 0,72.
+- **Print-Trail verwirft Laplacian unter Floor** (`skipPrint`), nicht nur Hold-Still.
 
 ## Neu in 2.1.27 alpha
 

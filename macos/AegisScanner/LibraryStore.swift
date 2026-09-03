@@ -1109,7 +1109,9 @@ final class LibraryStore: ObservableObject {
                     face.featurePrint = old.featurePrint
                     face.printVec = old.printVec.isEmpty ? FaceEngine.embedding(of: old) : old.printVec
                 } else if !old.featurePrint.isEmpty, !face.featurePrint.isEmpty {
-                    if MatchMath.holdStillSkip(iou: bestIoU, sharpness: face.quality.sharpness) {
+                    if MatchMath.holdStillSkip(iou: bestIoU, sharpness: face.quality.sharpness)
+                        || MatchMath.skipPrint(sharpness: face.quality.sharpness, continuity: liveCapture.isContinuity)
+                    {
                         face.featurePrint = old.featurePrint
                         face.printVec = old.printVec.isEmpty ? FaceEngine.embedding(of: old) : old.printVec
                     } else {
@@ -1194,7 +1196,11 @@ final class LibraryStore: ObservableObject {
                         adoptedEnrolled: namedTracks.contains(face.id) || enrolled.contains(face.id)
                     ) && !used.contains(face.id)
                 }
-                guard let bestJ = MatchMath.leftoverPick(candidates: remaining) else { continue }
+                var sharp: [Int: Double] = [:]
+                for cand in remaining {
+                    sharp[cand.index] = adopted[cand.index].quality.sharpness
+                }
+                guard let bestJ = MatchMath.leftoverPick(candidates: remaining, sharpness: sharp) else { continue }
                 let old = item.old
                 used.insert(old.id)
                 adopted[bestJ].id = old.id

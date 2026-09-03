@@ -22,8 +22,11 @@ enum MatchMath {
     static let pinPrintCosine = 0.80
     /// Leftover-Pin: enrolled Track ohne IoU-Treffer darf die ID nicht unter diesem Wert stehlen.
     static let leftoverIoU = 0.28
-    /// Genuine-Print oft 0,62–0,85. 0,80 hat leftover tot gemacht.
-    static let leftoverPrintCosine = 0.72
+    /// Genuine-Print oft 0,62–0,85. 0,80 hat leftover tot gemacht. 0,72 hat 0,62–0,71 noch fallen lassen.
+    static let leftoverPrintCosine = 0.64
+    /// Scharfer Genuine unter Floor (0,62–0,63) darf leftover halten.
+    static let leftoverPrintGenuine = 0.62
+    static let leftoverPrintSharp = 0.22
     /// Enrolled-Track klebt nur bei echter Überlappung. 0,12 hat Nachbarn die UUID geklaut.
     static let trackPinIoU = 0.28
     /// Overlay „andere Person“ erst unter diesem Cosine (Genuine typisch 0,62–0,92).
@@ -38,8 +41,8 @@ enum MatchMath {
     static let liveScoreAlpha = 0.35
     /// Starker Print ist Identität. Geo unter 35 darf ihn nicht auf 60 kappen.
     static let strongPrintFloor = 84.0
-    /// Ab diesem Print-Wert vetoiert Kleidung/Haar nicht mehr.
-    static let geoVetoSkipPrint = 88.0
+    /// Ab diesem Print-Wert vetoiert Kleidung/Haar nicht mehr. lookOf kappt ≥ 80 nie — Veto muss dasselbe tun.
+    static let geoVetoSkipPrint = 80.0
     /// ¾/Profil: Maße vs. Frontal-Centroid lügen. Print ≥ 80 nicht vetoen.
     static let geoVetoYawSkip = 0.28
     static let geoVetoYawPrint = 80.0
@@ -166,12 +169,16 @@ enum MatchMath {
     /// Unter den IoU-Kandidaten den nächsten Print, nicht first-in-order.
     static func leftoverPick(
         candidates: [(index: Int, iou: Double, cosine: Double?)],
+        sharpness: [Int: Double] = [:],
         floor: Double = leftoverIoU
     ) -> Int? {
         let ok = candidates.filter { leftoverPin(iou: $0.iou, floor: floor) }
         guard !ok.isEmpty else { return nil }
-        let printable = ok.filter { leftoverPrintOk(cosine: $0.cosine) }
-        if let best = printable.max(by: { ($0.cosine ?? -1) < ($1.cosine ?? -1) }) {
+        let printable = ok.filter { leftoverPrintOk(cosine: $0.cosine, sharpness: sharpness[$0.index]) }
+        if let best = printable.max(by: {
+            leftoverScore(cosine: $0.cosine ?? -1, sharpness: sharpness[$0.index])
+                < leftoverScore(cosine: $1.cosine ?? -1, sharpness: sharpness[$1.index])
+        }) {
             return best.index
         }
         return nil
@@ -192,10 +199,21 @@ enum MatchMath {
         return count == 1 ? "Leftover-Pin 1 Track" : "Leftover-Pin \(count) Tracks"
     }
 
-    /// Leftover darf Genuine 0,72–0,79 halten. Pin-Print 0,80 bleibt für enrolled IoU-Steal.
-    static func leftoverPrintOk(cosine: Double?, floor: Double = leftoverPrintCosine) -> Bool {
+    /// Leftover darf Genuine 0,62–0,79 halten. Pin-Print 0,80 bleibt für enrolled IoU-Steal.
+    static func leftoverPrintOk(cosine: Double?, sharpness: Double? = nil, floor: Double = leftoverPrintCosine) -> Bool {
         guard let cosine else { return false }
-        return cosine >= floor
+        if cosine >= floor { return true }
+        if cosine >= leftoverPrintGenuine, let s = sharpness, s >= leftoverPrintSharp { return true }
+        return false
+    }
+
+    /// Scharfer Print gewinnt gegen leicht höheren unscharfen (0,72 scharf > 0,73 blur).
+    static let leftoverSharpBonus = 0.05
+
+    static func leftoverScore(cosine: Double, sharpness: Double?) -> Double {
+        guard let s = sharpness else { return cosine }
+        let t = min(1, max(0, (s - leftoverPrintSharp) / 0.20))
+        return cosine + leftoverSharpBonus * t
     }
 
     /// Bewegung + Unschärfe: neuen Print nicht übernehmen. Scharfes Nicken (IoU 0,75) darf.

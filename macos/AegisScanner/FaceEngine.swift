@@ -620,17 +620,23 @@ enum FaceEngine {
             for m in models {
                 let vec = liveCentroid(m.owned, slot: probeSlot)
                 modelVec[m.id] = vec
-                let pct: Double
+                let printPct: Double
+                let measured: Bool
                 if pv.count >= 32, vec.count == pv.count {
-                    pct = MatchMath.printSigmoid(cosine: cosine(pv, vec))
+                    printPct = MatchMath.printSigmoid(cosine: cosine(pv, vec))
+                    measured = true
                 } else {
-                    pct = 0
+                    printPct = 0
+                    measured = false
                 }
-                versus.append(IdentityScore(identityId: m.id, percent: pct))
                 let slotOwned = m.owned.filter { poseSlot($0) == probeSlot }
                 let poolSrc = slotOwned.isEmpty ? m.owned : slotOwned
                 let ratioPool = poolSrc.map { $0.ratioSheet.filter(\.identity).map(\.value) }.filter { !$0.isEmpty }
                 let geo = MatchMath.ratioPercent(probeRatios, MatchMath.medianComponents(ratioPool))
+                let look = measured
+                    ? MatchMath.lookOf(geo: geo, embed: printPct, pose: 1, printMeasured: true)
+                    : 0
+                versus.append(IdentityScore(identityId: m.id, percent: look))
                 geoVersus.append((m.id, geo))
             }
             versus.sort { $0.percent > $1.percent }

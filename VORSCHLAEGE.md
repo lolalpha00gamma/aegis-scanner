@@ -1,6 +1,17 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.27 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.28 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.28 wirklich im Code
+
+2.1.27 leftover 0,72 / lookOf ≥ 80 — Live nutzte lookOf **nicht**. `matchLive` scored Roh-Print, `geoVetoSkipPrint` 88 kippte Genuine 80–87 % mit Jacke. Leftover 0,72 ließ 0,62–0,71 fallen. Unschärfe ging in den Median-Trail.
+
+1. **`matchLive` lookOf.** Ohne gemessenes Print-Paar 0, nicht Geo.
+2. **`geoVetoSkipPrint` 80** — decide und lookOf gleich.
+3. **`leftoverPrintCosine` 0,64** + scharfer Genuine 0,62 (`leftoverPrintOk` + Schärfe).
+4. **Print-Trail `skipPrint`.** Laplacian unter Floor behält den alten Vektor.
+5. **`leftoverScore`.** Schärfe-Bonus 0,05 — 0,72 scharf schlägt 0,73 blur.
+6. MARKETING_VERSION 2.1.28 (Build 56), `Models.swift` + `VERSION` gleich.
 
 ## In 2.1.27 wirklich im Code
 
@@ -148,9 +159,7 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - **Jacobi nur Still-Labor**, Scan-Tiles sind cheap — Still-Foto-Detect ohne Tiles noch voller Graph wenn `tiles: false` und nicht live.
 - **Slot-Count in der Namensliste** (F 2 · ¾ 1 · P 0), nicht nur Statuszeile.
 - **Reject-Liste persistieren** — Hard-Negatives über Restarts, nicht nur RAM.
-- **leftoverPrint gewichtet mit Schärfe**, nicht nur Cosine — 0,73 unscharf verliert gegen 0,72 scharf.
 - **lookOf-Deckel-Log** eine Silbe im Overlay wenn Print < 70 gekappt wurde.
-- **Print-Trail verwerfen** wenn sharpness < 0,12, nicht nur Hold-Still den alten behalten.
 
 ## Erweiterungen
 
@@ -211,9 +220,14 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - **Pose-Meter als Balken** (F/¾/P) neben dem Namen, nicht nur Text.
 - **liveCentroid Cache** am Identity-Modell, nicht jedes Live-Frame neu mischen.
 - **Yaw-bedingtes leftover:** ¾-Sonde gegen leftover ¾-Print, nicht Frontal-Ghost.
-- **Quality-Spark der leftover-UUID** im Overlay, damit man sieht warum 0,73 hielt.
+- **Quality-Spark der leftover-UUID** im Overlay, damit man sieht warum 0,64 hielt.
 - **decide-Notiz „Print gekappt“** nur unter 70 — 2.1.27 kappt ≥80 nicht mehr, Log fehlte.
-- **Pairwise leftover vs. enrolled** eine Zeile im Labor (war der Pin zu Recht 0,72?).
+- **Pairwise leftover vs. enrolled** eine Zeile im Labor (war der Pin zu Recht 0,64?).
+- **lookOf-Delta im Overlay** (Print 82 → look 82, Geo 18) wenn Veto skippt — sonst wirkt 80 % „tot“.
+- **Centroid-Cache** am Identity (slot + printRevision), nicht jedes Live-Frame `meanPrintVector`.
+- **ratioSheet Cache** am Identity-Modell (steht schon unter Fixes, hier der Haken: matchLive mediant jedes Frame).
+- **Overlay Print vs look** (`P 82 · L 82`) wenn Geo das Look nicht kippt — sonst wirkt skip „tot“.
+- **Hard-Negativ Cosine-Floor live** aus Reject-Liste, nicht nur Labor.
 
 ## Nicht tun
 
@@ -280,3 +294,9 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - `lookOf` 80–83 % wieder auf 60 kappen.
 - Hold-Still wieder hart IoU 0,82 ohne Schärfe.
 - `liveCentroid` All-Mean rechnen, bevor der Slot trifft.
+- `matchLive` Roh-Print statt lookOf.
+- Geo-Veto skip erst ab 88 (80–87 % mit Jacke tot).
+- Leftover-Floor 0,72 (Genuine 0,62–0,71 tot).
+- Unscharfen Print in den Median-Trail.
+- Leftover-Ranking nur Cosine (unscharf 0,73 schlägt scharf 0,72).
+- `lookOf` mit `printMeasured: true` ohne Vektor-Paar (Geo tauft).

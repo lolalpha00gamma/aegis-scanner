@@ -89,16 +89,17 @@ enum MatchMathTests {
         ok(!MatchMath.geoVetoBlocks(geoAgrees: false, geoMix: 40, printPercent: 93), "93 % Print trotz Geo 40")
         ok(!MatchMath.geoVetoBlocks(geoAgrees: false, geoMix: 18, printPercent: 93), "93 % Print bleibt trotz Geo 18")
         ok(!MatchMath.geoVetoBlocks(geoAgrees: false, geoMix: 10, printPercent: 88), "88 % Print skippt Geo-Veto")
-        ok(MatchMath.geoVetoBlocks(geoAgrees: false, geoMix: 18, printPercent: 80), "80 % Print tot bei Geo 18")
-        ok(MatchMath.geoVetoBlocks(geoAgrees: false, geoMix: 30, printPercent: 80), "schwacher Print + Geo 30")
-        ok(!MatchMath.geoVetoBlocks(geoAgrees: false, geoMix: 50, printPercent: 80), "Geo 50 kein Veto")
+        ok(!MatchMath.geoVetoBlocks(geoAgrees: false, geoMix: 18, printPercent: 80), "80 % Print wie lookOf — kein Veto")
+        ok(MatchMath.geoVetoBlocks(geoAgrees: false, geoMix: 18, printPercent: 72), "72 % tot bei Geo 18")
+        ok(MatchMath.geoVetoBlocks(geoAgrees: false, geoMix: 30, printPercent: 75), "75 % + Geo 30 veto")
+        ok(!MatchMath.geoVetoBlocks(geoAgrees: false, geoMix: 50, printPercent: 75), "Geo 50 kein Veto")
         ok(
             !MatchMath.geoVetoBlocks(geoAgrees: false, geoMix: 15, printPercent: 82, yawAbs: 0.30),
             "¾ + 82 % Print: Maße vs. Frontal lügen — kein Veto"
         )
         ok(
-            MatchMath.geoVetoBlocks(geoAgrees: false, geoMix: 15, printPercent: 82, yawAbs: 0.10),
-            "frontal 82 % + Geo 15 veto"
+            !MatchMath.geoVetoBlocks(geoAgrees: false, geoMix: 15, printPercent: 82, yawAbs: 0.10),
+            "frontal 82 % wie lookOf — kein Veto"
         )
         ok(
             !MatchMath.geoVetoBlocks(geoAgrees: false, geoMix: 15, printPercent: 80, yawAbs: 0.28),
@@ -123,12 +124,31 @@ enum MatchMathTests {
         ok(MatchMath.holdStillSkip(iou: 0.75, sharpness: 0.10), "Nicken + unscharf behält alt")
         ok(MatchMath.holdStillSkip(iou: 0.50, sharpness: 0.20), "Sprung + weich skippt")
         ok(!MatchMath.holdStillSkip(iou: 0.50, sharpness: 0.40), "scharfer Reframe darf")
-        near(MatchMath.leftoverPrintCosine, 0.72, 0.001, "Leftover-Print 0,72")
+        near(MatchMath.leftoverPrintCosine, 0.64, 0.001, "Leftover-Print 0,64")
         ok(MatchMath.leftoverPrintOk(cosine: 0.75), "Genuine 0,75 leftover ok")
+        ok(MatchMath.leftoverPrintOk(cosine: 0.65), "0,65 leftover ok")
         ok(!MatchMath.leftoverPrintOk(cosine: 0.60), "0,60 leftover zu schwach")
+        ok(MatchMath.leftoverPrintOk(cosine: 0.62, sharpness: 0.30), "scharfer Genuine 0,62 leftover")
+        ok(!MatchMath.leftoverPrintOk(cosine: 0.62, sharpness: 0.10), "unscharf 0,62 kein leftover")
         ok(!MatchMath.leftoverPrintOk(cosine: nil), "nil leftover kein Print")
         let leftoverE: [(index: Int, iou: Double, cosine: Double?)] = [(0, 0.40, 0.75)]
         ok(MatchMath.leftoverPick(candidates: leftoverE) == 0, "0,75 leftover pinnt (nicht 0,80)")
+        ok(
+            MatchMath.leftoverPick(candidates: [(0, 0.40, 0.62)], sharpness: [0: 0.30]) == 0,
+            "scharf 0,62 leftover"
+        )
+        ok(
+            MatchMath.leftoverPick(candidates: [(0, 0.40, 0.62)], sharpness: [0: 0.10]) == nil,
+            "unscharf 0,62 kein leftover"
+        )
+        ok(
+            MatchMath.leftoverPick(
+                candidates: [(0, 0.40, 0.73), (1, 0.40, 0.72)],
+                sharpness: [0: 0.10, 1: 0.42]
+            ) == 1,
+            "scharf 0,72 schlägt unscharf 0,73"
+        )
+        ok(MatchMath.leftoverScore(cosine: 0.72, sharpness: 0.42) > MatchMath.leftoverScore(cosine: 0.73, sharpness: 0.10), "Score-Bonus Schärfe")
         let idOld = UUID(uuidString: "00000000-0000-0000-0000-0000000000AA")!
         let idNew = UUID(uuidString: "00000000-0000-0000-0000-0000000000BB")!
         let leftoverA: [(index: Int, iou: Double, cosine: Double?)] = [
@@ -318,7 +338,7 @@ enum MatchMathTests {
         near(MatchMath.oneEuroCutoff(base: 1.2, dt: 0.04), 1.2, 0.001, "24 fps Cutoff")
         ok(MatchMath.oneEuroCutoff(base: 1.2, dt: 0.125) > 1.8, "8 fps Cutoff höher")
         near(MatchMath.strongPrintFloor, 84, 0.01, "starker Print ab 84")
-        near(MatchMath.geoVetoSkipPrint, 88, 0.01, "Veto-Skip ab 88")
+        near(MatchMath.geoVetoSkipPrint, 80, 0.01, "Veto-Skip ab 80")
         ok(MatchMath.visionYawMissing(0), "Yaw 0 = Vision fehlend")
         ok(MatchMath.visionYawMissing(0.01), "Yaw 0,01 = fehlend")
         ok(!MatchMath.visionYawMissing(0.30), "Yaw 0,30 = ¾")
