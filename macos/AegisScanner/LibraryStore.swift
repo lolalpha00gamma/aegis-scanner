@@ -1222,7 +1222,7 @@ final class LibraryStore: ObservableObject {
             let printPin = pinByPrint(face, pool: previous + reconnectGhosts + liveGhosts.map(\.face), used: used)
             let printEnrolled = printPin.map { enrolled.contains($0.id) || namedTracks.contains($0.id) } ?? false
             let takePrint = MatchMath.boxPinTakePrint(
-                iouHold: best.map { MatchMath.boxHysteresisHold(iou: bestIoU) } ?? false,
+                iouHold: best.map { _ in MatchMath.boxHysteresisHold(iou: bestIoU) } ?? false,
                 printPinDifferent: printPin.map { $0.id != best?.id } ?? false,
                 printEnrolled: printEnrolled
             )
