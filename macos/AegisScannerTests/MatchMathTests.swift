@@ -71,6 +71,27 @@ enum MatchMathTests {
         ok(MatchMath.lookOfCapNote(geo: 20, embed: 65) == "Print gekappt", "Deckel-Notiz")
         ok(MatchMath.lookOfCapNote(geo: 80, embed: 65) == nil, "einig keine Deckel-Notiz")
         ok(MatchMath.overlayNoteFirst("Print gekappt. Beste Nähe 60%.") == "Print gekappt", "Deckel erste Overlay-Klausel")
+        ok(MatchMath.lookPrintLabel(printPercent: 82, look: 82) == "P 82 · L 82", "P/L Overlay")
+        ok(MatchMath.lookPrintLabel(printPercent: 65, look: 60) == "P 65 · L 60", "P/L gekappt")
+        ok(MatchMath.boxPinTakePrint(iouHold: true, printPinDifferent: true), "Print gewinnt Hysterese im selben Pass")
+        ok(!MatchMath.boxPinTakePrint(iouHold: true, printPinDifferent: false), "gleiche UUID bleibt IoU")
+        ok(!MatchMath.boxPinTakePrint(iouHold: false, printPinDifferent: true), "ohne Hold kein Override")
+        ok(
+            MatchMath.leftoverPick(
+                candidates: [(0, 0.40, 0.70), (1, 0.40, 0.69)],
+                sharpness: [0: 0.20, 1: 0.20],
+                sameSlot: [0: false, 1: true]
+            ) == 1,
+            "sameSlot gewinnt gegen 0,01 Cosine"
+        )
+        ok(
+            MatchMath.leftoverPick(
+                candidates: [(0, 0.40, 0.75), (1, 0.40, 0.70)],
+                sharpness: [0: 0.20, 1: 0.20],
+                sameSlot: [:]
+            ) == 0,
+            "ohne Slot-Hint bleibt höherer Print"
+        )
 
         let agree = MatchMath.lookOf(geo: 90, embed: 92, pose: 1, printMeasured: true)
         ok(agree > 92 && agree <= 96, "Print führt, Geo gibt bis +4 (ist \(agree))")

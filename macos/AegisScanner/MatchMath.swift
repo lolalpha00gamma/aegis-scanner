@@ -170,12 +170,16 @@ enum MatchMath {
     static func leftoverPick(
         candidates: [(index: Int, iou: Double, cosine: Double?)],
         sharpness: [Int: Double] = [:],
+        sameSlot: [Int: Bool] = [:],
         floor: Double = leftoverIoU
     ) -> Int? {
         let ok = candidates.filter { leftoverPin(iou: $0.iou, floor: floor) }
         guard !ok.isEmpty else { return nil }
         let printable = ok.filter { leftoverPrintOk(cosine: $0.cosine, sharpness: sharpness[$0.index]) }
-        if let best = printable.max(by: {
+        guard !printable.isEmpty else { return nil }
+        let slotted = printable.filter { sameSlot[$0.index] == true }
+        let pool = slotted.isEmpty ? printable : slotted
+        if let best = pool.max(by: {
             leftoverScore(cosine: $0.cosine ?? -1, sharpness: sharpness[$0.index])
                 < leftoverScore(cosine: $1.cosine ?? -1, sharpness: sharpness[$1.index])
         }) {
@@ -526,6 +530,16 @@ enum MatchMath {
 
     static func lookOfCapNote(geo: Double, embed: Double) -> String? {
         lookOfCapped(geo: geo, embed: embed) ? lookOfCapNote() : nil
+    }
+
+    /// Overlay: Print vs Look, wenn Geo das Look nicht kippt.
+    static func lookPrintLabel(printPercent: Double, look: Double) -> String {
+        String(format: "P %.0f · L %.0f", printPercent, look)
+    }
+
+    /// IoU-Hysterese und Print-Pin uneinig → Print gewinnt im selben Pass (kein 2-Frame-Flackern).
+    static func boxPinTakePrint(iouHold: Bool, printPinDifferent: Bool) -> Bool {
+        iouHold && printPinDifferent
     }
 
     /// Geschwister: Centroid-Cosine ≥ 0,80 → +4 Floor **für dieses Paar**.

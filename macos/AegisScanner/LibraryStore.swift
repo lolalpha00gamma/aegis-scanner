@@ -847,6 +847,16 @@ final class LibraryStore: ObservableObject {
         rematch()
     }
 
+    func renameIdentity(_ id: UUID, to raw: String) {
+        let name = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return }
+        guard let idx = identities.firstIndex(where: { $0.id == id }) else { return }
+        guard identities[idx].name != name else { return }
+        identities[idx].name = name
+        persist()
+        status = "\(name) umbenannt"
+    }
+
     func rejectGuess(_ identityId: UUID) {
         guard let face = selectedFace else { return }
         guard let idx = identities.firstIndex(where: { $0.id == identityId }) else { return }
@@ -1053,7 +1063,12 @@ final class LibraryStore: ObservableObject {
                     bestIoU = o
                 }
             }
-            if let old = best {
+            let printPin = pinByPrint(face, pool: previous + reconnectGhosts + liveGhosts.map(\.face), used: used)
+            let takePrint = MatchMath.boxPinTakePrint(
+                iouHold: best.map { MatchMath.boxHysteresisHold(iou: bestIoU) } ?? false,
+                printPinDifferent: printPin.map { $0.id != best?.id } ?? false
+            )
+            if let old = best, !takePrint {
                 used.insert(old.id)
                 face.id = old.id
                 face.trackId = old.trackId ?? old.id
@@ -1132,7 +1147,7 @@ final class LibraryStore: ObservableObject {
                 spark.append(face.quality)
                 if spark.count > 8 { spark.removeFirst(spark.count - 8) }
                 face.qualitySpark = spark
-            } else if let old = pinByPrint(face, pool: previous + reconnectGhosts + liveGhosts.map(\.face), used: used) {
+            } else if let old = printPin {
                 used.insert(old.id)
                 face.id = old.id
                 face.trackId = old.trackId ?? old.id
@@ -1197,11 +1212,14 @@ final class LibraryStore: ObservableObject {
                     ) && !used.contains(face.id)
                 }
                 var sharp: [Int: Double] = [:]
+                var sameSlot: [Int: Bool] = [:]
+                let old = item.old
+                let oldSlot = FaceEngine.poseSlot(old)
                 for cand in remaining {
                     sharp[cand.index] = adopted[cand.index].quality.sharpness
+                    sameSlot[cand.index] = FaceEngine.poseSlot(adopted[cand.index]) == oldSlot
                 }
-                guard let bestJ = MatchMath.leftoverPick(candidates: remaining, sharpness: sharp) else { continue }
-                let old = item.old
+                guard let bestJ = MatchMath.leftoverPick(candidates: remaining, sharpness: sharp, sameSlot: sameSlot) else { continue }
                 used.insert(old.id)
                 adopted[bestJ].id = old.id
                 adopted[bestJ].trackId = old.trackId ?? old.id

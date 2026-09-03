@@ -134,8 +134,7 @@ struct ContentView: View {
             List(store.identities) { identity in
                 HStack {
                     VStack(alignment: .leading) {
-                        Text(identity.name)
-                            .opacity(MatchMath.printAgePaler(enrolledAt: store.faces.first { identity.faceIds.contains($0.id) }?.enrolledAt) ? 0.55 : 1)
+                        IdentityNameField(store: store, identity: identity)
                         Text("\(identity.faceIds.count) Referenzen · \(FaceEngine.poseCoverageLabel(identity: identity, faces: store.faces))")
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -627,6 +626,7 @@ struct FaceOverlay: View {
                 ForEach(Array(faces.enumerated()), id: \.element.id) { index, face in
                     let hit = store.matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == store.strategy }
                     let printHit = store.matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == .featurePrint }
+                    let aegisHit = store.matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == .aegis }
                     let owner = store.identities.first { $0.faceIds.contains(face.id) }
                     let ident = owner ?? store.identities.first { $0.id == hit?.identityId }
                     let pct = hit?.percent ?? 0
@@ -640,9 +640,14 @@ struct FaceOverlay: View {
                     }()
                     let liveCont = store.liveContinuity && item.kind == .live
                     let hint = FaceEngine.overlayHint(face, gallery: gallery, continuity: liveCont)
-                    let printLabel = printDead
-                        ? "Print tot"
-                        : String(format: "Print %.0f%%", printHit?.percent ?? 0)
+                    let printLabel: String = {
+                        if printDead { return "Print tot" }
+                        let printPct = printHit?.percent ?? 0
+                        let lookPct = aegisHit?.percent ?? printPct
+                        let base = MatchMath.lookPrintLabel(printPercent: printPct, look: lookPct)
+                        let capped = (aegisHit?.note ?? "").contains(MatchMath.lookOfCapNote())
+                        return capped ? "\(base) · \(MatchMath.lookOfCapNote())" : base
+                    }()
                     let badge = hint.map { "\(printLabel) · \($0)" } ?? printLabel
                     Button {
                         store.selectedFaceId = face.id
@@ -737,6 +742,26 @@ struct FaceOverlay: View {
             return MatchMath.overlayNoteFirst(note)
         }
         return "nicht zugeordnet"
+    }
+}
+
+private struct IdentityNameField: View {
+    @ObservedObject var store: LibraryStore
+    var identity: Identity
+    @State private var draft: String = ""
+
+    var body: some View {
+        TextField("Name", text: $draft)
+            .textFieldStyle(.plain)
+            .font(.body)
+            .opacity(MatchMath.printAgePaler(enrolledAt: store.faces.first { identity.faceIds.contains($0.id) }?.enrolledAt) ? 0.55 : 1)
+            .onAppear { draft = identity.name }
+            .onChange(of: identity.id) { _, _ in draft = identity.name }
+            .onChange(of: identity.name) { _, name in
+                if draft != name { draft = name }
+            }
+            .onSubmit { store.renameIdentity(identity.id, to: draft) }
+            .help("Return speichert den neuen Namen.")
     }
 }
 

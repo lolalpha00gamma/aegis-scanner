@@ -1,6 +1,17 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.29 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.30 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.30 wirklich im Code
+
+2.1.29 hat Cap-Notiz, Pose-Gewicht, Tick-Cache — leftover ignorierte den Pose-Slot (¾-Ghost pinnt Frontal-Nachbarn). IoU-Hysterese und Print-Pin uneinig → zwei Frames UUID-Flackern. Overlay nur „Print 82%“, kein Look. Identität nur löschen+neu.
+
+1. **`leftoverPick sameSlot`.** Gleicher Pose-Slot zuerst, sonst Print-Score.
+2. **`boxPinTakePrint`.** IoU-Hold + anderer Print-Pin → Print im selben Pass.
+3. **`lookPrintLabel`.** Overlay `P 82 · L 82`, Cap-Silbe bleibt 2.1.29.
+4. **Identität umbenennen.** TextField Return, persist.
+5. Tests: sameSlot, lookPrintLabel, boxPinTakePrint.
+6. MARKETING_VERSION 2.1.30 (Build 58), `Models.swift` + `VERSION` gleich.
 
 ## In 2.1.29 wirklich im Code
 
@@ -157,7 +168,7 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 
 ## Nächste Fixes (klein)
 
-- **Identität umbenennen** in der Liste (jetzt nur löschen + neu).
+- **Identität umbenennen** in der Liste (jetzt nur löschen + neu). **→ 2.1.30**
 - **Export Labor als CSV-Datei**, nicht nur Textfeld.
 - **Hold-Still-Ring** im Overlay 0,8 s, analog Peace.
 - **Pose-Meter als Balken** (F/¾/P) neben dem Namen.
@@ -169,10 +180,19 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - **Slot-Count in der Namensliste** (F 2 · ¾ 1 · P 0), nicht nur Statuszeile.
 - **Reject-Liste persistieren** — Hard-Negatives über Restarts, nicht nur RAM.
 - **Print-Trail nur gleicher Slot.** ¾ nicht mit Frontal in denselben Median.
-- **Overlay zwei Zahlen.** lookOf und Print nebeneinander, wenn sie > 4 Pkt differieren.
+- **Overlay zwei Zahlen.** lookOf und Print nebeneinander, wenn sie > 4 Pkt differieren. **→ 2.1.30 lookPrintLabel immer**
 - **Live-Name nur bei ID-Einigkeit.** lookOf-Sieger ≠ Print-Sieger → keine Taufe.
 - **gallery.json fsync** nach atomarem Write.
 - **Enrollment AE-Lock.** `+` wartet 200 ms nach Belichtungssprung.
+- **Yaw-bedingtes leftover** (¾ gegen ¾-Ghost). **→ 2.1.30 sameSlot**
+- **Box-Hysterese + Print-Pin in einem Pass.** **→ 2.1.30 boxPinTakePrint**
+- **Rename-Konflikt.** Gleicher Name → Confirm wie Anlegen-Duplikat.
+- **boxPinTakePrint nur enrolled.** Namenlose IoU-Hold darf Print nicht stehlen.
+- **U-Slot leftover** nur gegen U-Refs, analog sameSlot.
+- **Leftover-Print im Overlay** Cosine 0,64 als „gehalten 0,64“.
+- **Centroid invalidieren** wenn `+` eine Ref ändert — Tick-Cache reicht nicht über Frames.
+- **Live-dt in 1-Euro** aus Frame-Stempel, nicht CACurrent (Coalesce macht dt 0).
+- **Ampel G-Lampe** neben C/S/Y wenn lookOfCapped (rot) vs skip (grün).
 
 ## Erweiterungen
 
@@ -313,3 +333,7 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - Unscharfen Print in den Median-Trail.
 - Leftover-Ranking nur Cosine (unscharf 0,73 schlägt scharf 0,72).
 - `lookOf` mit `printMeasured: true` ohne Vektor-Paar (Geo tauft).
+- leftover ohne Pose-Slot (¾ auf Frontal-Ghost).
+- IoU-Hold gegen anderen Print-Pin zwei Frames stehen lassen.
+- Identität nur über Löschen+neu umbenennen.
+- Overlay nur „Print 82%“ ohne Look.

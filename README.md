@@ -1,4 +1,4 @@
-# Aegis **2.1.29 alpha**
+# Aegis **2.1.30 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.30 alpha
+
+2.1.29 hat Cap und Cache — leftover pinnt trotzdem den Frontal-Ghost, IoU und Print-Pin flackern zwei Frames, Overlay zeigt nur Print, Rename fehlt.
+
+- **Leftover `sameSlot`.** Gleicher Yaw-Slot zuerst.
+- **Print-Pin schlägt IoU-Hold** im selben Pass.
+- Overlay **`P 82 · L 82`** (Print roh, Look lookOf).
+- **Namen umbenennen** in der Liste (Return).
 
 ## Neu in 2.1.29 alpha
 
