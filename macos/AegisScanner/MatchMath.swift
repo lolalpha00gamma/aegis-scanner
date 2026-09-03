@@ -1467,6 +1467,16 @@ enum MatchMath {
         eyes && !mouth
     }
 
+    /// Leerer Print ist nicht automatisch eine Maske. Okklusion nur bei Augen ohne Mund.
+    static func printDeadLabel(capture: Double, sharpness: Double, masked: Bool, continuity: Bool = false) -> String {
+        if skipPrint(sharpness: sharpness, continuity: continuity) {
+            return "Print tot · unscharf"
+        }
+        if masked { return "Print tot · Maske?" }
+        if capture < 0.35 { return "Print tot · Aufnahme schwach" }
+        return "Print tot"
+    }
+
     /// Unscharf unter aktivem Floor: harte Ablehnung, nicht nur Score-Dämpfung.
     /// Continuity darf 0,10 — sonst skipPrint erzeugt den Print und qualityRejects wirft ihn weg.
     static func qualityRejects(capture: Double, size: Double, sharpness: Double, continuity: Bool = false) -> Bool {

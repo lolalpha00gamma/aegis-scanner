@@ -82,9 +82,6 @@ struct ContentView: View {
                 .disabled(store.matches.isEmpty)
             Button("Labor") { store.exportLab() }
                 .disabled(store.identities.count < 1)
-            Button("Testmodus") { store.pickBenchmark() }
-                .disabled(store.busy)
-                .help("LFW oder Personen-Ordner. Galerie bleibt unberührt.")
             Slider(value: $store.threshold, in: 70 ... 96) { editing in
                 if !editing { store.rematch() }
             }
@@ -137,6 +134,12 @@ struct ContentView: View {
                     .keyboardShortcut(.defaultAction)
                     .disabled(store.selectedFace == nil || store.newPersonName.isEmpty)
             }
+            Button("Testmodus") { store.pickBenchmark() }
+                .disabled(store.busy)
+                .help("LFW-Ordner wählen. Testdaten: bench/fetch.sh → ~/AegisBench/ident20")
+            Text(store.benchHint)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
             if !store.enrollmentHint.isEmpty {
                 Text(store.enrollmentHint)
                     .font(.caption2)
@@ -681,7 +684,14 @@ struct FaceOverlay: View {
                         }
                     }()
                     let printLabel: String = {
-                        if printDead { return "Print tot" }
+                        if printDead {
+                            return MatchMath.printDeadLabel(
+                                capture: face.quality.capture,
+                                sharpness: face.quality.sharpness,
+                                masked: FaceEngine.lowerFaceOccluded(face),
+                                continuity: liveCont
+                            )
+                        }
                         let printPct = printHit?.percent ?? 0
                         let lookPct = aegisHit?.percent ?? printPct
                         let slot = MatchMath.slotLetter(slotRaw)

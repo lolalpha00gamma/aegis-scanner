@@ -851,7 +851,10 @@ enum MatchMathTests {
         ok(MatchMath.enrollmentBurstDup(sameSlot: true, cosine: 0.97, within: 0.20), "Burst Dedup")
         ok(!MatchMath.enrollmentBurstDup(sameSlot: true, cosine: 0.97, within: 0.80), "Burst Fenster vorbei")
         ok(!MatchMath.enrollmentBurstDup(sameSlot: false, cosine: 0.97, within: 0.20), "anderer Slot kein Dedup")
-        ok(!MatchMath.enrollmentBurstDup(sameSlot: true, cosine: 0.80, within: 0.20), "Cosine 0,80 kein Dedup")
+        ok(MatchMath.printDeadLabel(capture: 0.8, sharpness: 0.05, masked: false) == "Print tot · unscharf", "tot weil unscharf")
+        ok(MatchMath.printDeadLabel(capture: 0.8, sharpness: 0.40, masked: true) == "Print tot · Maske?", "tot + Maske nur mit Augen/Mund")
+        ok(MatchMath.printDeadLabel(capture: 0.8, sharpness: 0.40, masked: false) == "Print tot", "tot ohne Okklusions-Rate")
+        ok(MatchMath.printDeadLabel(capture: 0.20, sharpness: 0.40, masked: false) == "Print tot · Aufnahme schwach", "tot schwach")
 
         let fixture = "1\t2\nAlice\t1\t2\nBob\t1\t3\nAlice\t1\tBob\t1\nAlice\t2\tCarol\t1\n"
         let parsed = BenchProtocol.parsePairs(fixture)

@@ -1,4 +1,4 @@
-# Aegis **2.1.53 alpha**
+# Aegis **2.1.54 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,11 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.54 alpha
+
+- **Print tot ≠ Okklusion.** Leerer Print hat Crop-Fallback auch bei EXIF-Rotation; 1:1-Zuordnung wenn nur ein Gesicht. Overlay sagt „unscharf“ / „Maske?“ nur wenn es stimmt.
+- **Testmodus** sitzt links unter Anlegen (nicht mehr in der vollen Toolbar). Testdaten: `./bench/fetch.sh` → `~/AegisBench/ident20`.
 
 ## Neu in 2.1.53 alpha
 

@@ -203,6 +203,18 @@ final class LibraryStore: ObservableObject {
         return "Galerie \(identities.count): Floor \(Int(f.match)) · Solo \(Int(f.solo))"
     }
 
+    var benchHome: URL {
+        FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("AegisBench")
+    }
+
+    var benchHint: String {
+        let ident20 = benchHome.appendingPathComponent("ident20")
+        if FileManager.default.fileExists(atPath: ident20.path) {
+            return "Testdaten: ~/AegisBench/ident20 — Testmodus oben wählen."
+        }
+        return "Testdaten fehlen. Im Terminal: ./bench/fetch.sh (Repo aegis-scanner) → ~/AegisBench"
+    }
+
     var enrollmentHint: String {
         guard let face = selectedFace else { return "" }
         let dest = FaceEngine.identityOwning(face: face, identities: identities, faces: faces)
@@ -1870,10 +1882,12 @@ final class LibraryStore: ObservableObject {
         panel.canChooseFiles = false
         panel.allowsMultipleSelection = false
         panel.prompt = "Testmodus"
-        panel.message = "Smoke (schnell), ident20 (~62 Personen) oder ident10 (~158). pairs.txt daneben = Verifikation."
-        let home = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("AegisBench")
+        panel.message = "Ordner mit Personen-Unterordnern. Empfohlen: ~/AegisBench/ident20 nach ./bench/fetch.sh"
+        let home = benchHome
         if FileManager.default.fileExists(atPath: home.path) {
             panel.directoryURL = home
+        } else {
+            status = "Kein ~/AegisBench. Repo klonen, dann: ./bench/fetch.sh"
         }
         guard panel.runModal() == .OK, let root = panel.url else { return }
         retainAccess([root])

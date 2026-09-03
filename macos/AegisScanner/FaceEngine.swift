@@ -804,8 +804,12 @@ enum FaceEngine {
 
     static func overlayHint(_ face: FaceObservation, gallery: [FaceObservation] = [], continuity: Bool = false) -> String? {
         if face.featurePrint.isEmpty {
-            if face.quality.capture >= 0.40 { return "Print tot · Okklusion?" }
-            return "Print tot"
+            return MatchMath.printDeadLabel(
+                capture: face.quality.capture,
+                sharpness: face.quality.sharpness,
+                masked: lowerFaceOccluded(face),
+                continuity: continuity
+            )
         }
         if face.quality.capture < 0.35 && face.quality.size < 0.16 { return "z zu klein" }
         if abs(face.quality.yaw) > 0.75 { return "Profil" }
@@ -1522,7 +1526,7 @@ enum FaceEngine {
                 return next
             }
             var bestI = -1
-            var bestIoU = 0.32
+            var bestIoU = 0.12
             for (i, item) in found.enumerated() where !used.contains(i) {
                 let o = iou(item.box, face.box)
                 if o > bestIoU {
@@ -1530,20 +1534,19 @@ enum FaceEngine {
                     bestI = i
                 }
             }
+            if bestI < 0, found.count == 1, faces.count == 1, !used.contains(0) {
+                bestI = 0
+            }
             if bestI >= 0 {
                 used.insert(bestI)
                 next.featurePrint = found[bestI].data
                 next.printVec = printVector(found[bestI].data)
-            } else if found.isEmpty,
-               orientation == .up,
-               let crop = self.crop(image, box: face.box, pad: 0.55),
-               let data = facePrintOnly(of: deskewIfNeeded(crop, face: face), orientation: .up)
+            } else if let crop = self.crop(image, box: face.box, pad: 0.55),
+                      let data = facePrintOnly(of: deskewIfNeeded(crop, face: face), orientation: .up)
             {
-                // Crop ist aufrecht. Orientierung nicht nochmal drauf — sonst
-                // wird ein schon gedrehtes Patch nochmal rotiert.
                 next.featurePrint = data
                 next.printVec = printVector(data)
-            } else if bestI < 0 {
+            } else {
                 next.featurePrint = Data()
                 next.printVec = []
             }
