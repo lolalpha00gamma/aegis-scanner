@@ -894,14 +894,47 @@ enum MatchMath {
     }
 
     /// IoU-Kreuz: A und B tauschen die Box — UUIDs tauschen, nicht leftover-Adopt.
+    /// 2.1.43: nur keep < pin. IoU-Hold klebt schon bei 0,30 — Swap war tot, Nachbar erbte.
     static func boxesCrossed(
         iouSameA: Double,
         iouSameB: Double,
         iouCrossAB: Double,
         iouCrossBA: Double,
-        pin: Double = trackPinIoU
+        pin: Double = trackPinIoU,
+        better: Double = 0.15
     ) -> Bool {
-        iouCrossAB >= pin && iouCrossBA >= pin && iouSameA < pin && iouSameB < pin
+        let swap = iouCrossAB >= pin && iouCrossBA >= pin
+        let lost = iouSameA < pin && iouSameB < pin
+        let clearly = iouCrossAB >= iouSameA + better && iouCrossBA >= iouSameB + better
+        return swap && (lost || clearly)
+    }
+
+    /// Nicken ist Yaw-Drehung: |Δpitch| > 0,15 / Frame tauft sonst den Nachbarn.
+    /// Schulterzucken ist Roll.
+    static func poseVelocityFreeze(
+        yawDelta: Double,
+        pitchDelta: Double,
+        rollDelta: Double = 0,
+        perFrame: Double = yawFreezePerFrame
+    ) -> Bool {
+        yawVelocityFreeze(delta: yawDelta, perFrame: perFrame)
+            || yawVelocityFreeze(delta: pitchDelta, perFrame: perFrame)
+            || yawVelocityFreeze(delta: rollDelta, perFrame: perFrame)
+    }
+
+    /// IoU-Zuweisung klebt die UUID an die *Stelle*. Zwei Leute tauschen die Plätze:
+    /// Keep-Print niedrig, Kreuz-Print hoch — IDs tauschen, nicht leftover.
+    static func identitiesCrossed(
+        keepA: Double,
+        keepB: Double,
+        crossAB: Double,
+        crossBA: Double,
+        floor: Double = leftoverPrintCosine,
+        margin: Double = 0.08
+    ) -> Bool {
+        let swap = crossAB >= floor && crossBA >= floor
+        let clearly = crossAB >= keepA + margin && crossBA >= keepB + margin
+        return swap && clearly
     }
 
     /// Pairwise ≥ 0,80: Badge statt still taufen.

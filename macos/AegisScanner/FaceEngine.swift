@@ -191,6 +191,7 @@ enum FaceEngine {
             let bone = boneKeypoints(namedAligned)
             var yaw = face.yaw?.doubleValue ?? 0
             let pitch = face.pitch?.doubleValue ?? 0
+            let roll = face.roll?.doubleValue ?? 0
             if MatchMath.visionYawMissing(yaw), let leftEyeFull, let rightEyeFull {
                 yaw = MatchMath.yawFromLandmarks(
                     leftEye: (leftEyeFull.x, leftEyeFull.y),
@@ -219,7 +220,8 @@ enum FaceEngine {
                         frontal: frontal,
                         capture: capture,
                         yaw: yaw,
-                        pitch: pitch
+                        pitch: pitch,
+                        roll: roll
                     ),
                     trackId: nil,
                     strokes: strokes,

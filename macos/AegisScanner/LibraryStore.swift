@@ -60,6 +60,8 @@ final class LibraryStore: ObservableObject {
     private var liveNameLock: [UUID: UUID] = [:]
     private var liveScoreEma: [UUID: Double] = [:]
     private var liveYaw: [UUID: Double] = [:]
+    private var livePitch: [UUID: Double] = [:]
+    private var liveRoll: [UUID: Double] = [:]
     private var liveLastStamp: TimeInterval = 0
     private var liveDt: TimeInterval = 0.125
     private var livePrintTrail: [UUID: [[Double]]] = [:]
@@ -117,6 +119,8 @@ final class LibraryStore: ObservableObject {
         liveNameLock = [:]
         liveScoreEma = [:]
         liveYaw = [:]
+        livePitch = [:]
+        liveRoll = [:]
         liveLastStamp = 0
         liveDt = 0.125
         rematch()
@@ -589,6 +593,8 @@ final class LibraryStore: ObservableObject {
         liveNameLock = liveNameLock.filter { liveFaceIds.contains($0.key) }
         liveScoreEma = liveScoreEma.filter { liveFaceIds.contains($0.key) }
         liveYaw = liveYaw.filter { liveFaceIds.contains($0.key) }
+        livePitch = livePitch.filter { liveFaceIds.contains($0.key) }
+        liveRoll = liveRoll.filter { liveFaceIds.contains($0.key) }
         for i in matches.indices {
             let fid = matches[i].faceId
             guard liveFaceIds.contains(fid),
@@ -600,9 +606,19 @@ final class LibraryStore: ObservableObject {
             }
             let face = faces.first { $0.id == fid }
             let yaw = face?.quality.yaw ?? 0
+            let pitch = face?.quality.pitch ?? 0
+            let roll = face?.quality.roll ?? 0
             let prevYaw = liveYaw[fid]
+            let prevPitch = livePitch[fid]
+            let prevRoll = liveRoll[fid]
             liveYaw[fid] = yaw
-            let spinning = prevYaw.map { MatchMath.yawVelocityFreeze(delta: yaw - $0) } ?? false
+            livePitch[fid] = pitch
+            liveRoll[fid] = roll
+            let spinning = MatchMath.poseVelocityFreeze(
+                yawDelta: prevYaw.map { yaw - $0 } ?? 0,
+                pitchDelta: prevPitch.map { pitch - $0 } ?? 0,
+                rollDelta: prevRoll.map { roll - $0 } ?? 0
+            ) && (prevYaw != nil || prevPitch != nil || prevRoll != nil)
             let qualityOK = MatchMath.nameVoteAccepts(
                 sharpness: face?.quality.sharpness,
                 continuity: liveContinuity
@@ -1018,6 +1034,8 @@ final class LibraryStore: ObservableObject {
         liveNameLock = [:]
         liveScoreEma = [:]
         liveYaw = [:]
+        livePitch = [:]
+        liveRoll = [:]
         liveLastStamp = 0
         liveDt = 0.125
         livePrintTrail.removeAll()
@@ -1306,6 +1324,57 @@ final class LibraryStore: ObservableObject {
                 }
             }
             adopted.append(face)
+        }
+        if adopted.count == 2 {
+            let a = adopted[0]
+            let b = adopted[1]
+            if let oldA = previous.first(where: { $0.id == a.id }),
+               let oldB = previous.first(where: { $0.id == b.id }),
+               oldA.id != oldB.id
+            {
+                func vec(_ face: FaceObservation) -> [Double] {
+                    face.printVec.count >= 32 ? face.printVec : FaceEngine.embedding(of: face)
+                }
+                let va = vec(a)
+                let vb = vec(b)
+                let oa = vec(oldA)
+                let ob = vec(oldB)
+                if MatchMath.identitiesCrossed(
+                    keepA: MatchMath.cosine(va, oa),
+                    keepB: MatchMath.cosine(vb, ob),
+                    crossAB: MatchMath.cosine(va, ob),
+                    crossBA: MatchMath.cosine(vb, oa)
+                ) {
+                    adopted[0].id = oldB.id
+                    adopted[0].trackId = oldB.trackId ?? oldB.id
+                    adopted[0].enrolledAt = oldB.enrolledAt ?? adopted[0].enrolledAt
+                    adopted[1].id = oldA.id
+                    adopted[1].trackId = oldA.trackId ?? oldA.id
+                    adopted[1].enrolledAt = oldA.enrolledAt ?? adopted[1].enrolledAt
+                    boxEuro.removeValue(forKey: oldA.id)
+                    boxEuro.removeValue(forKey: oldB.id)
+                    boxJumpPending.removeValue(forKey: oldA.id)
+                    boxJumpPending.removeValue(forKey: oldB.id)
+                    livePrintTrail.removeValue(forKey: oldA.id)
+                    livePrintTrail.removeValue(forKey: oldB.id)
+                    livePrintTrailSlot.removeValue(forKey: oldA.id)
+                    livePrintTrailSlot.removeValue(forKey: oldB.id)
+                    liveNameHist.removeValue(forKey: oldA.id)
+                    liveNameHist.removeValue(forKey: oldB.id)
+                    liveNameLock.removeValue(forKey: oldA.id)
+                    liveNameLock.removeValue(forKey: oldB.id)
+                    leftoverHold.removeValue(forKey: oldA.id)
+                    leftoverHold.removeValue(forKey: oldB.id)
+                    liveScoreEma.removeValue(forKey: oldA.id)
+                    liveScoreEma.removeValue(forKey: oldB.id)
+                    liveYaw.removeValue(forKey: oldA.id)
+                    liveYaw.removeValue(forKey: oldB.id)
+                    livePitch.removeValue(forKey: oldA.id)
+                    livePitch.removeValue(forKey: oldB.id)
+                    liveRoll.removeValue(forKey: oldA.id)
+                    liveRoll.removeValue(forKey: oldB.id)
+                }
+            }
         }
         if adopted.count >= 2 {
             let unnamedIdx = adopted.indices.filter { i in

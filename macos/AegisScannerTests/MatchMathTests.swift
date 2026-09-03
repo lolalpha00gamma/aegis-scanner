@@ -282,6 +282,36 @@ enum MatchMathTests {
             !MatchMath.boxesCrossed(iouSameA: 0.05, iouSameB: 0.04, iouCrossAB: 0.10, iouCrossBA: 0.70),
             "einseitig kein Swap"
         )
+        ok(
+            MatchMath.boxesCrossed(iouSameA: 0.30, iouSameB: 0.32, iouCrossAB: 0.70, iouCrossBA: 0.68),
+            "Keep 0,30 über Pin — Kreuz klar besser = Swap"
+        )
+        ok(
+            !MatchMath.boxesCrossed(iouSameA: 0.40, iouSameB: 0.42, iouCrossAB: 0.48, iouCrossBA: 0.47),
+            "Kreuz nur knapp besser kein Swap"
+        )
+        ok(MatchMath.poseVelocityFreeze(yawDelta: 0.20, pitchDelta: 0), "Yaw friert Vote")
+        ok(MatchMath.poseVelocityFreeze(yawDelta: 0, pitchDelta: 0.20), "Pitch-Nicken friert Vote")
+        ok(!MatchMath.poseVelocityFreeze(yawDelta: 0.05, pitchDelta: -0.04), "kleines Nicken läuft")
+        ok(MatchMath.poseVelocityFreeze(yawDelta: -0.02, pitchDelta: -0.18), "Pitch Vorzeichen egal")
+        ok(MatchMath.poseVelocityFreeze(yawDelta: 0, pitchDelta: 0, rollDelta: 0.20), "Roll-Schulter friert Vote")
+        ok(!MatchMath.poseVelocityFreeze(yawDelta: 0.02, pitchDelta: 0.03, rollDelta: 0.04), "kleines Rollen läuft")
+        ok(
+            MatchMath.identitiesCrossed(keepA: 0.40, keepB: 0.38, crossAB: 0.78, crossBA: 0.80),
+            "Print-Kreuz klar besser = Swap"
+        )
+        ok(
+            !MatchMath.identitiesCrossed(keepA: 0.85, keepB: 0.82, crossAB: 0.40, crossBA: 0.42),
+            "Keep-Print hoch kein Swap"
+        )
+        ok(
+            !MatchMath.identitiesCrossed(keepA: 0.70, keepB: 0.68, crossAB: 0.72, crossBA: 0.71),
+            "Kreuz nur knapp besser kein Swap"
+        )
+        ok(
+            !MatchMath.identitiesCrossed(keepA: 0.10, keepB: 0.12, crossAB: 0.50, crossBA: 0.78),
+            "einseitig unter Floor kein Swap"
+        )
         ok(MatchMath.siblingBadge(pairCosine: 0.83) == "Geschwister?", "close Pair Badge")
         ok(MatchMath.siblingBadge(pairCosine: 0.50) == nil, "fremd kein Badge")
         ok(MatchMath.siblingBadge(pairCosine: nil) == nil, "nil kein Badge")

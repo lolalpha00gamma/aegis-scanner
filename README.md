@@ -1,4 +1,4 @@
-# Aegis **2.1.44 alpha**
+# Aegis **2.1.45 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.45 alpha
+
+2.1.44 Lock-Drop / Pose-Balken — Nicken taufte trotzdem den Nachbarn (`pitch` ignoriert). Schulterzucken (Roll) ebenso. `boxesCrossed` feuerte nur wenn Keep < Pin 0,28: IoU-Hold klebte schon bei 0,30. Swap nach Zuweisung über Box: greedy IoU klebt die UUID an die Stelle, Keep hoch, Swap nie.
+
+- **Pose-Freeze.** `poseVelocityFreeze` — |Δyaw| **oder** |Δpitch| **oder** |Δroll| > 0,15 / Frame keine neue Stimme.
+- **Swap klar besser.** Kreuz-IoU ≥ Keep + 0,15 tauscht leftover-ungenutzt auch über Pin.
+- **Print-Swap zugewiesen.** `identitiesCrossed` — Keep-Print niedrig, Kreuz-Print hoch.
+- **VERSION = Models = MARKETING_VERSION 2.1.45** (Build 72).
 
 ## Neu in 2.1.44 alpha
 

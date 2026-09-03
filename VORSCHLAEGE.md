@@ -1,6 +1,16 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.44 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.45 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.45 wirklich im Code
+
+2.1.44 Lock-Drop — Nicken taufte den Nachbarn: `liveYaw` ohne Pitch, |Δpitch| 0,20 / Frame schrieb eine neue Stimme. Roll (Schulterzucken) ebenso. `boxesCrossed` brauchte Keep < Pin 0,28. IoU-Hold klebte bei 0,30, Kreuz 0,70 blieb tot. Assigned-Swap über Box-IoU nach greedy Zuweisung ist tot: UUID klebt an der *Stelle*, Keep ≈ 0,8 — Swap nie.
+
+1. **`poseVelocityFreeze`.** Yaw **oder** Pitch **oder** Roll. `livePitch` / `liveRoll` analog `liveYaw`. `FaceQuality.roll`.
+2. **`boxesCrossed` klar besser.** Kreuz ≥ Keep + 0,15, auch wenn Keep über Pin liegt (leftover-ungenutzt).
+3. **`identitiesCrossed`.** Nach Zuweisung 2×2: Print-Kreuz, nicht Box. UUIDs tauschen, Hist/Euro/Trail/Hold/EMA/Yaw leer.
+4. Tests: Keep 0,30 Kreuz 0,70 = Swap; Pitch-Nicken friert; Roll friert; Print-Kreuz 0,78 vs Keep 0,40 = Swap.
+5. MARKETING_VERSION 2.1.45 (Build 72), `Models.swift` + `VERSION` gleich.
 
 ## In 2.1.44 wirklich im Code
 
@@ -314,10 +324,10 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - **Leftover überspringt Lock.** 0,64 tauft nicht über `nameLockHolds`. **→ 2.1.42 leftoverLocked**
 - **Leere Tokens nicht im Cap.** **→ 2.1.41 nameHistAppend**
 - **Namens-Lock nach Taufe.** **→ 2.1.41 nameLockHolds**
-- **Yaw-Velocity Freeze.** **→ 2.1.43 yawVelocityFreeze**
+- **Yaw-Velocity Freeze.** **→ 2.1.43 yawVelocityFreeze; Pitch+Roll → 2.1.45 poseVelocityFreeze**
 - **Print-Qualität vor Vote.** **→ 2.1.43 nameVoteAccepts**
 - **Lock-HUD halten.** Overlay `hält` statt `2/3` sobald Lock sitzt. **→ 2.1.43 nameLockLabel**
-- **Zwei-Gesichter-Swap-Guard.** **→ 2.1.43 boxesCrossed**
+- **Zwei-Gesichter-Swap-Guard.** **→ 2.1.43 leftover unused; 2.1.45 boxesCrossed Keep-über-Pin + identitiesCrossed Print**
 - **Live-Name in unselektierter Kiste.** **→ 2.1.43 overlay**
 - **Export Labor als CSV-Datei**, nicht nur Textfeld. **→ 2.1.44 labCSVRow**
 - **Hold-Still-Ring** im Overlay 0,8 s, analog Peace. **→ 2.1.44 holdStillReady / HALTEN n%**
@@ -347,6 +357,12 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - **1-Euro minCutoff Slider** für Continuity vs Built-in.
 - **Continuity-Print jeden 2. Frame** bei ≥ 20 fps. Trail/Median fängt den Skip.
 - **IVF / ANN ab 50 IDs.** Brute-Force Cosine wird bei Familien-Galerien langsam.
+- **3+-Gesichter Hungarian.** 2×2-Swap deckt Crowd nicht — Zuweisung min-cost über Print+IoU.
+- **Print-Swap 3×3** greedy identitiesCrossed-Paare, nicht nur 2×2.
+- **Ampel R-Lampe** wenn |Δroll| freeze (neben C/S/Y).
+- **Box-Kalman** statt 1-Euro bei 8 fps (Continuity hängt einen Frame).
+- **Match-Log JSONL** (Tick, UUID, lookOf, geoMix, decide-Notiz).
+- **Licht-Eimer.** Tag/Kunstlicht/Nacht am Face, Match bevorzugt denselben Eimer.
 - **Identitäten mergen** UI-Button, nicht nur Anlegen-Confirm bei Centroid > 0,82.
 - **Helios-Bridge.** Eine Kamera-Session, eine TCC-Freigabe.
 - **Match-Log JSONL** (Tick, UUID, lookOf, geoMix, decide-Notiz).
@@ -638,3 +654,7 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - Leere Look≠Print-Tokens in den Hist-Cap (Taufe stirbt nach 10 Uneinig).
 - `identityId = nil` sobald keine Mehrheit, trotz vorheriger Taufe.
 - `bugfix`-Branch anlegen oder fortsetzen. Nur `main`.
+- Yaw-Freeze ohne Pitch (Nicken tauft den Nachbarn).
+- Pose-Freeze ohne Roll (Schulterzucken tauft).
+- `boxesCrossed` nur Keep < Pin (IoU-Hold 0,30 macht Swap tot).
+- Assigned-Swap über Box-IoU nach greedy Zuweisung (Keep hoch, Swap tot).

@@ -2,9 +2,9 @@ import CoreGraphics
 import Foundation
 
 enum AppVersion {
-    static let marketing = "2.1.44"
+    static let marketing = "2.1.45"
     static let channel = "alpha"
-    static let display = "2.1.44 alpha"
+    static let display = "2.1.45 alpha"
 }
 
 enum StrategyTrack: String, CaseIterable, Identifiable {
@@ -133,18 +133,20 @@ struct FaceQuality: Codable, Hashable {
     var capture: Double
     var yaw: Double = 0
     var pitch: Double = 0
+    var roll: Double = 0
 
     enum CodingKeys: String, CodingKey {
-        case sharpness, size, frontal, capture, yaw, pitch
+        case sharpness, size, frontal, capture, yaw, pitch, roll
     }
 
-    init(sharpness: Double, size: Double, frontal: Double, capture: Double, yaw: Double = 0, pitch: Double = 0) {
+    init(sharpness: Double, size: Double, frontal: Double, capture: Double, yaw: Double = 0, pitch: Double = 0, roll: Double = 0) {
         self.sharpness = sharpness
         self.size = size
         self.frontal = frontal
         self.capture = capture
         self.yaw = yaw
         self.pitch = pitch
+        self.roll = roll
     }
 
     init(from decoder: Decoder) throws {
@@ -155,6 +157,7 @@ struct FaceQuality: Codable, Hashable {
         capture = try c.decode(Double.self, forKey: .capture)
         yaw = try c.decodeIfPresent(Double.self, forKey: .yaw) ?? 0
         pitch = try c.decodeIfPresent(Double.self, forKey: .pitch) ?? 0
+        roll = try c.decodeIfPresent(Double.self, forKey: .roll) ?? 0
     }
 }
 
