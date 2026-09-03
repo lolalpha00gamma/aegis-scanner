@@ -1,6 +1,20 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.46 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.47 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.47 wirklich im Code
+
+2.1.46 Pose-Freeze aus globalem `liveDt` — ein Dropout (0,40 s) maß Δyaw über 0,40 und fror **alle** Tracks. Spark war Hit-Prozent (LookOf 82), nicht Centroid-Cosine. leftover nur 2×2. `gallery.json.sha256` geschrieben, beim Load nie gelesen. Overlay zeigte `F` ohne Achse. `identitiesCrossed` ohne Blitz. Deskew-Blur (Laplacian 0,08 nach Roll) ging in den Print.
+
+1. **`trackDt` / `poseDropoutResets`.** Lücke > 2,6 × Kamera-dt setzt Pose neu. Freeze nur aus dem Track-dt.
+2. **`poseFreezeAxis`.** Overlay `FY` / `FP` / `FR` / `FYP`.
+3. **`printDriftSample`.** Spark = Centroid-Cosine × 100, nicht Hit-Prozent.
+4. **`leftoverAssign`.** Greedy + 2-opt für 3+ leftover-Tracks.
+5. **`shaSidecarStatus`.** Load prüft sidecar; mismatch → Banner.
+6. **`swapFlashHold` 0,45 s.** Overlay gelb + `SWAP`.
+7. **`motionBlurDrops`.** Align + Laplacian < 0,10 → alter Print bleibt.
+8. Tests: Dropout-dt, Achse Y/P/R, Spark 82, SHA gleich/fehlend/falsch, 2-opt schlägt greedy, Blur.
+9. MARKETING_VERSION 2.1.47 (Build 74), `Models.swift` + `VERSION` gleich.
 
 ## In 2.1.46 wirklich im Code
 
@@ -15,10 +29,6 @@ Stand: **2.1.46 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 
 ## Nächste (offen)
 
-- **Spark aus Centroid-Cosine**, nicht Hit-Prozent (2.1.46 zeigt Print-Prozent).
-- **Swap-Blitz** im Overlay wenn `identitiesCrossed` feuert.
-- **Freeze-Achse** Y/P/R neben F, nicht nur tot.
-- **3+ leftover Hungarian** — `boxesCrossed` ist noch 2×2 ungenutzt.
 - **Identitäten-Merge-Wizard** bei Centroid 0,89–0,94.
 - **Helios-Bridge.** Eine Kamera-Session, eine TCC.
 - **Enrollment AE-Lock** 200 ms nach Belichtungssprung.
@@ -31,15 +41,24 @@ Stand: **2.1.46 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 - **Pairwise-Heatmap klickbar** im Labor.
 - **liveCentroid Cache** am Identity-Modell.
 - **Box-Kalman** statt 1-Euro bei 8 fps.
-- **SHA-Verify beim Load.** sidecar ≠ Hash → Banner, Restore anbieten.
-- **Motion-Blur nach Deskew.** Laplacian < 0,10 nach Roll verwerfen.
 - **Ampel R-Lampe** wenn |Δroll| freeze (neben C/S/Y).
 - **Watch-Folder.** Neue Fotos automatisch ingestieren.
 - **Aktives Lernen.** „Ist das dieselbe Person?“ an unsicheren Rändern.
 - **Platt-Skalierung** der Sigmoid auf Leave-one-out der Galerie.
 - **Print-Revision-Banner** wenn Face-Print nach OS-Update andere Dim liefert.
 - **Pale-Print droppen** aus dem Live-Centroid nach `printAgePaleDays`.
-- **dt pro Track** statt globalem `liveDt` (ein Dropout darf nicht alle frieren).
+- **Occlusion-Skip.** Hand/Mask über Augen → keine Stimme.
+- **Pose-Slot-Centroid** getrennt F / ¾ / P, nicht ein Vektor.
+- **Multi-Frame leftover** 3 gleiche UUID bevor Adopt.
+- **Gaze-away skip.** Blick nicht zur Kamera → keine Taufe.
+- **Mouth-open freeze** analog Pose, Gähnen tauft nicht.
+- **Poster-Face reject.** Landmark-Jitter 0 über 4 Frames = Foto an der Wand.
+- **Glasses as Slot.** Brille an/aus nicht neue Identität.
+- **Track-ID in Labor-CSV.**
+- **CLAHE vor Print** bei Continuity, sonst Nacht-Print driftet.
+- **Walking-past Hysterese** 1,2 s bevor leftover pinnt.
+- **Eyes-open für Taufe.** Lid < 0,20 keine Mehrheit.
+- **Head-count Flash** wenn die Zahl der Kisten springt.
 
 ## In 2.1.45 wirklich im Code
 
@@ -372,7 +391,7 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - **Hold-Still-Ring** im Overlay 0,8 s, analog Peace. **→ 2.1.44 holdStillReady / HALTEN n%**
 - **Pose-Meter als Balken** (F/¾/P) neben dem Namen. **→ 2.1.44 poseMeter**
 - **liveCentroid Cache am Identity-Modell** (2.1.29 cacht nur den Tick; 2.1.32 leert den Trail bei `+`).
-- **Print-Drift-Spark.** Overlay-Linie Cosine zum Centroid über 8 Frames. **→ 2.1.46 printDriftSpark (Look-EMA; Centroid-Cosine bleibt)**
+- **Print-Drift-Spark.** Overlay-Linie Cosine zum Centroid über 8 Frames. **→ 2.1.46 printDriftSpark; 2.1.47 printDriftSample Centroid**
 - **Restore-Diff.** Backup vs. aktuell: welche IDs kämen zurück, bevor überschrieben wird.
 - **Track-ID `T…` in der UI.** intern `trackId` gibt es, die Kiste zeigt die Snapshot-UUID. **→ 2.1.46 trackLabel**
 - **Crop-Align Augen** vor `VNGenerateFacePrint`. **→ 2.1.44 eyeRoll / deskewIfNeeded**
@@ -381,10 +400,10 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - **Platt-Skalierung** der Sigmoid auf Leave-one-out der Galerie, globaler Mid 0,55 nur Fallback.
 - **Print-Revision-Banner** wenn `VNGenerateFacePrint` nach OS-Update andere Dim liefert.
 - **Coach-Pfeil** auf der Kiste (‹ ›) statt nur Text. **→ 2.1.44 coachArrow**
-- **gallery.json SHA-256** neben schemaVersion. **→ 2.1.44 digestShort + sidecar**
+- **gallery.json SHA-256** neben schemaVersion. **→ 2.1.44 digestShort + sidecar; 2.1.47 shaSidecarStatus Verify**
 - **Enrollment AE-Lock.** `+` wartet 200 ms nach Belichtungssprung.
-- **Motion-Blur nach Deskew.** Laplacian < 0,10 nach Roll-Korrektur verwerfen — sonst schiefer Crop + Unschärfe im Print.
-- **SHA-Verify beim Load.** sidecar ≠ Hash von gallery.json → Banner, Restore anbieten.
+- **Motion-Blur nach Deskew.** Laplacian < 0,10 nach Roll-Korrektur verwerfen — sonst schiefer Crop + Unschärfe im Print. **→ 2.1.47 motionBlurDrops**
+- **SHA-Verify beim Load.** sidecar ≠ Hash von gallery.json → Banner, Restore anbieten. **→ 2.1.47 shaVerifyNote**
 - **3-Tick Still-Median** bevor der neue Print committed — ein scharfer Blur-Frame darf den Trail nicht kippen.
 - **Box-Aspect-Gate.** width/height < 0,38 (hartes Profil) nicht als Frontal-Print.
 - **Pale-Print droppen** aus dem Live-Centroid nach `printAgePaleDays`, bleibt in der Galerie.
@@ -396,7 +415,7 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - **1-Euro minCutoff Slider** für Continuity vs Built-in.
 - **Continuity-Print jeden 2. Frame** bei ≥ 20 fps. Trail/Median fängt den Skip.
 - **IVF / ANN ab 50 IDs.** Brute-Force Cosine wird bei Familien-Galerien langsam.
-- **3+-Gesichter Hungarian.** 2×2-Swap deckt Crowd nicht — Zuweisung min-cost über Print+IoU.
+- **3+-Gesichter Hungarian.** 2×2-Swap deckt Crowd nicht — Zuweisung min-cost über Print+IoU. **→ 2.1.47 leftoverAssign greedy+2-opt**
 - **Print-Swap 3×3** greedy identitiesCrossed-Paare, nicht nur 2×2. **→ 2.1.46 pairSwapIndices (Hungarian bleibt)**
 - **Ampel R-Lampe** wenn |Δroll| freeze (neben C/S/Y).
 - **Box-Kalman** statt 1-Euro bei 8 fps (Continuity hängt einen Frame).

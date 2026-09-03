@@ -102,6 +102,18 @@ enum GalleryFile {
         let short = MatchMath.digestShort(hex)
         try? short.write(to: url.appendingPathExtension("sha256"), atomically: true, encoding: .utf8)
     }
+
+    static var sidecarURL: URL {
+        url.appendingPathExtension("sha256")
+    }
+
+    static func digestStatus() -> (ok: Bool, missing: Bool) {
+        guard let data = try? Data(contentsOf: url) else { return (true, true) }
+        let hex = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+        let computed = MatchMath.digestShort(hex)
+        let sidecar = try? String(contentsOf: sidecarURL, encoding: .utf8)
+        return MatchMath.shaSidecarStatus(computed: computed, sidecar: sidecar)
+    }
 }
 
 enum IdentityDesk {

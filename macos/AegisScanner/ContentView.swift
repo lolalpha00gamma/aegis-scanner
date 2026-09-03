@@ -657,6 +657,7 @@ struct FaceOverlay: View {
                     let coachDest = owner ?? (store.identities.count == 1 ? store.identities.first : ident)
                     let coach = selected ? FaceEngine.enrollmentCoach(face: face, identity: coachDest, faces: store.faces) : nil
                     let boxColor: Color = {
+                        if store.swapFlashing() { return Color.yellow.opacity(0.95) }
                         switch kind {
                         case .selected: return .white
                         case .enrolled: return Color.green.opacity(0.85)
@@ -687,6 +688,12 @@ struct FaceOverlay: View {
                         }
                         let drift = store.printDriftSpark(faceId: face.id)
                         if !drift.isEmpty { base += " · \(drift)" }
+                        if let axis = store.freezeAxisLabel(faceId: face.id) {
+                            base += " · F\(axis)"
+                        }
+                        if store.swapFlashing() {
+                            base += " · SWAP"
+                        }
                         if let still = store.stillProgress(faceId: face.id) {
                             base += " · HALTEN \(Int((still * 100).rounded()))%"
                         }

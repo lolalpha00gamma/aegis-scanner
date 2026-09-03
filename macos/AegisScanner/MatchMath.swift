@@ -970,6 +970,121 @@ enum MatchMath {
         return swap && clearly
     }
 
+    /// Dropout: Lücke >> Kamera-dt → Pose neu, nicht Freeze aller Tracks.
+    static func poseDropoutResets(gap: TimeInterval, cameraDt: TimeInterval) -> Bool {
+        let step = max(0.04, cameraDt <= 0 ? 0.125 : cameraDt)
+        return gap > step * 2.6
+    }
+
+    static func trackDt(now: TimeInterval, last: TimeInterval?, cameraDt: TimeInterval) -> TimeInterval {
+        let cam = max(0.04, min(0.50, cameraDt <= 0 ? 0.125 : cameraDt))
+        guard let last, last > 0, now > last else { return cam }
+        let gap = now - last
+        if poseDropoutResets(gap: gap, cameraDt: cam) { return cam }
+        return min(0.50, max(0.04, gap))
+    }
+
+    /// Welche Achse freeze. nil = läuft.
+    static func poseFreezeAxis(
+        yawDelta: Double,
+        pitchDelta: Double,
+        rollDelta: Double = 0,
+        dt: TimeInterval = 0.125
+    ) -> String? {
+        guard poseVelocityFreeze(
+            yawDelta: yawDelta,
+            pitchDelta: pitchDelta,
+            rollDelta: rollDelta,
+            dt: dt
+        ) else { return nil }
+        let step = max(0.04, min(0.20, dt <= 0 ? 0.125 : dt))
+        let yawLim = max(0.06, yawFreezePerFrame * (step / 0.125))
+        let prLim = max(0.10, 0.18 * (step / 0.125))
+        var parts: [String] = []
+        if abs(yawDelta) >= yawLim { parts.append("Y") }
+        if abs(pitchDelta) >= prLim { parts.append("P") }
+        if abs(rollDelta) >= prLim { parts.append("R") }
+        return parts.isEmpty ? nil : parts.joined()
+    }
+
+    /// Spark aus Centroid-Cosine 0,50–0,95, nicht Hit-Prozent (LookOf 82 ≠ Drift).
+    static func printDriftSample(centroidCosine: Double?) -> Double? {
+        guard let centroidCosine, centroidCosine.isFinite else { return nil }
+        return max(0, min(100, centroidCosine * 100))
+    }
+
+    /// gallery.json.sha256. Fehlend = alte Galerie, ok. Falsch = Banner.
+    static func shaSidecarStatus(computed: String, sidecar: String?) -> (ok: Bool, missing: Bool) {
+        let have = sidecar?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if have.isEmpty { return (true, true) }
+        let a = computed.lowercased()
+        let b = have.lowercased()
+        return (a == b || b.hasPrefix(a) || a.hasPrefix(b), false)
+    }
+
+    static func shaVerifyNote(ok: Bool, missing: Bool) -> String? {
+        if missing || ok { return nil }
+        return "gallery.json.sha256 passt nicht — Backup laden?"
+    }
+
+    /// 3+ leftover: greedy + 2-opt. scores[row][col] höher besser, nil ungültig.
+    static func leftoverAssign(scores: [[Double?]]) -> [Int?] {
+        let n = scores.count
+        guard n > 0 else { return [] }
+        let m = scores[0].count
+        guard m > 0 else { return Array(repeating: nil, count: n) }
+        var result = [Int?](repeating: nil, count: n)
+        var pairs: [(r: Int, c: Int, s: Double)] = []
+        for r in 0..<n {
+            guard r < scores.count, scores[r].count == m else { continue }
+            for c in 0..<m {
+                if let s = scores[r][c] { pairs.append((r, c, s)) }
+            }
+        }
+        pairs.sort { $0.s > $1.s }
+        var usedRows = Set<Int>()
+        var usedCols = Set<Int>()
+        for p in pairs {
+            if usedRows.contains(p.r) || usedCols.contains(p.c) { continue }
+            result[p.r] = p.c
+            usedRows.insert(p.r)
+            usedCols.insert(p.c)
+        }
+        var improved = true
+        var guardN = 0
+        while improved, guardN < 16 {
+            improved = false
+            guardN += 1
+            let assigned = result.enumerated().compactMap { item -> (r: Int, c: Int)? in
+                guard let c = item.element else { return nil }
+                return (item.offset, c)
+            }
+            for i in 0..<assigned.count {
+                for j in (i + 1)..<assigned.count {
+                    let a = assigned[i]
+                    let b = assigned[j]
+                    let cur = (scores[a.r][a.c] ?? -1) + (scores[b.r][b.c] ?? -1)
+                    guard let swA = scores[a.r][b.c], let swB = scores[b.r][a.c] else { continue }
+                    if swA + swB > cur + 1e-9 {
+                        result[a.r] = b.c
+                        result[b.r] = a.c
+                        improved = true
+                    }
+                }
+            }
+        }
+        return result
+    }
+
+    /// Nach Deskew: Laplacian < 0,10 = Motion-Blur, Print verwerfen.
+    static let motionBlurFloor = 0.10
+
+    static func motionBlurDrops(aligned: Bool, sharpness: Double, floor: Double = motionBlurFloor) -> Bool {
+        aligned && sharpness < floor
+    }
+
+    static func swapFlashHold() -> TimeInterval { 0.45 }
+
     /// Pairwise ≥ 0,80: Badge statt still taufen.
     static func siblingBadge(pairCosine: Double?) -> String? {
         guard let pairCosine, pairCosine >= familyCosineLo else { return nil }

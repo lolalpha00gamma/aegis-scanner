@@ -1,4 +1,4 @@
-# Aegis **2.1.46 alpha**
+# Aegis **2.1.47 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,20 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.47 alpha
+
+2.1.46 Freeze aus globalem `liveDt` — ein Dropout fror alle Stimmen. Spark war Hit-Prozent, nicht Centroid. leftover 2×2. SHA geschrieben, nie gelesen. Freeze ohne Achse. Swap unsichtbar. Deskew-Blur ging in den Print.
+
+- **dt pro Track.** `trackDt` / `poseDropoutResets` — Lücke >> Kamera setzt Pose neu, nicht Freeze.
+- **Freeze-Achse `FY`/`FP`/`FR`.** Overlay neben F.
+- **Spark aus Centroid-Cosine.** `printDriftSample`, nicht LookOf.
+- **leftover 3+.** `leftoverAssign` greedy + 2-opt.
+- **SHA-Verify beim Load.** Sidecar ≠ Hash → Banner.
+- **Swap-Blitz** 0,45 s gelb + `SWAP`.
+- **Motion-Blur nach Deskew.** Laplacian < 0,10 kein neuer Print.
+- Tests: Dropout, Achse, Spark, SHA, 2-opt, Blur.
+- VERSION = Models = MARKETING_VERSION 2.1.47 (Build 74).
 
 ## Neu in 2.1.46 alpha
 

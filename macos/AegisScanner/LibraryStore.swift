@@ -38,6 +38,8 @@ final class LibraryStore: ObservableObject {
     @Published var liveHeldIds: Set<UUID> = []
     @Published var leftoverHold: [UUID: Double] = [:]
     @Published var cameraChoice: CameraChoice = .auto
+    @Published var freezeAxis: [UUID: String] = [:]
+    @Published var swapFlashUntil: TimeInterval = 0
 
     private let liveCapture = LiveCapture()
     private var liveMediaId: UUID?
@@ -68,6 +70,7 @@ final class LibraryStore: ObservableObject {
     private var livePrintTrailSlot: [UUID: String] = [:]
     private var liveStillFor: [UUID: TimeInterval] = [:]
     private var livePrintDrift: [UUID: [Double]] = [:]
+    private var livePoseAt: [UUID: TimeInterval] = [:]
     private var lastCameraUniqueID: String = ""
     private var pendingRenameId: UUID?
     private var pendingRenameName: String?
@@ -101,6 +104,15 @@ final class LibraryStore: ObservableObject {
             cameraChoice = c
         }
         liveCapture.choice = cameraChoice
+        let digest = GalleryFile.digestStatus()
+        if let note = MatchMath.shaVerifyNote(ok: digest.ok, missing: digest.missing) {
+            revisionWarning = revisionWarning.isEmpty ? note : revisionWarning + " · " + note
+            if identities.isEmpty {
+                status = note
+            } else if revisionWarning == note {
+                status = note
+            }
+        }
     }
 
     private func persist() {
@@ -597,6 +609,9 @@ final class LibraryStore: ObservableObject {
         livePitch = livePitch.filter { liveFaceIds.contains($0.key) }
         liveRoll = liveRoll.filter { liveFaceIds.contains($0.key) }
         livePrintDrift = livePrintDrift.filter { liveFaceIds.contains($0.key) }
+        livePoseAt = livePoseAt.filter { liveFaceIds.contains($0.key) }
+        freezeAxis = freezeAxis.filter { liveFaceIds.contains($0.key) }
+        let frameNow = liveLastStamp > 0 ? liveLastStamp : Date().timeIntervalSince1970
         for i in matches.indices {
             let fid = matches[i].faceId
             guard liveFaceIds.contains(fid),
@@ -613,15 +628,28 @@ final class LibraryStore: ObservableObject {
             let prevYaw = liveYaw[fid]
             let prevPitch = livePitch[fid]
             let prevRoll = liveRoll[fid]
+            let gap = livePoseAt[fid].map { frameNow - $0 } ?? 0
+            let dt = MatchMath.trackDt(now: frameNow, last: livePoseAt[fid], cameraDt: liveDt)
+            let dropped = MatchMath.poseDropoutResets(gap: gap, cameraDt: liveDt) && livePoseAt[fid] != nil
             liveYaw[fid] = yaw
             livePitch[fid] = pitch
             liveRoll[fid] = roll
-            let spinning = MatchMath.poseVelocityFreeze(
+            livePoseAt[fid] = frameNow
+            let spinning = !dropped && MatchMath.poseVelocityFreeze(
                 yawDelta: prevYaw.map { yaw - $0 } ?? 0,
                 pitchDelta: prevPitch.map { pitch - $0 } ?? 0,
                 rollDelta: prevRoll.map { roll - $0 } ?? 0,
-                dt: liveDt
+                dt: dt
             ) && (prevYaw != nil || prevPitch != nil || prevRoll != nil)
+            freezeAxis.removeValue(forKey: fid)
+            if spinning, let axis = MatchMath.poseFreezeAxis(
+                yawDelta: prevYaw.map { yaw - $0 } ?? 0,
+                pitchDelta: prevPitch.map { pitch - $0 } ?? 0,
+                rollDelta: prevRoll.map { roll - $0 } ?? 0,
+                dt: dt
+            ) {
+                freezeAxis[fid] = axis
+            }
             let qualityOK = MatchMath.nameVoteAccepts(
                 sharpness: face?.quality.sharpness,
                 continuity: liveContinuity
@@ -640,7 +668,7 @@ final class LibraryStore: ObservableObject {
                 second: vs.dropFirst().first?.percent,
                 pairCosine: hit.pairCosine
             )
-            let need = MatchMath.nameAgreeNeed(family: close, dt: liveDt)
+            let need = MatchMath.nameAgreeNeed(family: close, dt: dt)
             let cap = MatchMath.nameHistCap(need: need)
             let hist = MatchMath.nameHistAppend(liveNameHist[fid] ?? [], token: token, cap: cap)
             liveNameHist[fid] = hist
@@ -677,9 +705,21 @@ final class LibraryStore: ObservableObject {
             liveScoreEma[fid] = ema
             hit.percent = ema
             matches[i].hits[hi] = hit
-            let printPct = matches[i].hits.first(where: { $0.strategy == .featurePrint })?.percent ?? hit.percent
             var spark = livePrintDrift[fid] ?? []
-            spark.append(printPct)
+            let identId = hit.identityId ?? liveNameLock[fid]
+            if let identId,
+               let ident = identities.first(where: { $0.id == identId }),
+               let face
+            {
+                let owned = faces.filter { ident.faceIds.contains($0.id) }
+                let centroid = FaceEngine.liveCentroid(owned, slot: FaceEngine.poseSlot(face))
+                let pv = face.printVec.count >= 32 ? face.printVec : FaceEngine.embedding(of: face)
+                if pv.count >= 32, centroid.count == pv.count,
+                   let sample = MatchMath.printDriftSample(centroidCosine: MatchMath.cosine(pv, centroid))
+                {
+                    spark.append(sample)
+                }
+            }
             if spark.count > 8 { spark.removeFirst(spark.count - 8) }
             livePrintDrift[fid] = spark
         }
@@ -967,6 +1007,14 @@ final class LibraryStore: ObservableObject {
         MatchMath.printDriftSpark(livePrintDrift[faceId] ?? [])
     }
 
+    func freezeAxisLabel(faceId: UUID) -> String? {
+        freezeAxis[faceId]
+    }
+
+    func swapFlashing(now: TimeInterval = Date().timeIntervalSince1970) -> Bool {
+        now < swapFlashUntil
+    }
+
     func removeIdentity(_ id: UUID) {
         identities.removeAll { $0.id == id }
         persist()
@@ -1050,6 +1098,9 @@ final class LibraryStore: ObservableObject {
         liveRoll = [:]
         liveLastStamp = 0
         liveDt = 0.125
+        livePoseAt.removeAll()
+        freezeAxis = [:]
+        swapFlashUntil = 0
         livePrintTrail.removeAll()
         livePrintTrailSlot.removeAll()
         liveStillFor.removeAll()
@@ -1285,6 +1336,10 @@ final class LibraryStore: ObservableObject {
                 } else if !old.featurePrint.isEmpty, !face.featurePrint.isEmpty {
                     let skip = MatchMath.holdStillSkip(iou: bestIoU, sharpness: face.quality.sharpness)
                         || MatchMath.skipPrint(sharpness: face.quality.sharpness, continuity: liveCapture.isContinuity)
+                        || MatchMath.motionBlurDrops(
+                            aligned: MatchMath.cropAligns(roll: face.quality.roll),
+                            sharpness: face.quality.sharpness
+                        )
                     if skip {
                         liveStillFor[old.id] = 0
                     } else {
@@ -1368,6 +1423,7 @@ final class LibraryStore: ObservableObject {
                     adopted[j].enrolledAt = oldA.enrolledAt ?? adopted[j].enrolledAt
                     swapped.insert(oldA.id)
                     swapped.insert(oldB.id)
+                    swapFlashUntil = now + MatchMath.swapFlashHold()
                     for id in [oldA.id, oldB.id] {
                         boxEuro.removeValue(forKey: id)
                         boxJumpPending.removeValue(forKey: id)
@@ -1416,6 +1472,43 @@ final class LibraryStore: ObservableObject {
                     boxEuro.removeValue(forKey: b.id)
                     boxJumpPending.removeValue(forKey: a.id)
                     boxJumpPending.removeValue(forKey: b.id)
+                }
+            }
+            let unnamedLeft = unnamedIdx.filter { i in
+                !used.contains(adopted[i].id)
+            }
+            let unusedLeft = unusedNamed.filter { !used.contains($0.id) }
+            if unnamedLeft.count >= 2, unusedLeft.count >= 2 {
+                var scores: [[Double?]] = []
+                scores.reserveCapacity(unusedLeft.count)
+                for old in unusedLeft {
+                    let ov = old.printVec.count >= 32 ? old.printVec : FaceEngine.embedding(of: old)
+                    var row: [Double?] = []
+                    row.reserveCapacity(unnamedLeft.count)
+                    for i in unnamedLeft {
+                        let face = adopted[i]
+                        let v = face.printVec.count >= 32 ? face.printVec : FaceEngine.embedding(of: face)
+                        if v.count >= 32, ov.count == v.count {
+                            let c = MatchMath.cosine(v, ov)
+                            row.append(MatchMath.leftoverPrintOk(cosine: c, sharpness: face.quality.sharpness) ? c : nil)
+                        } else {
+                            row.append(nil)
+                        }
+                    }
+                    scores.append(row)
+                }
+                let assigned = MatchMath.leftoverAssign(scores: scores)
+                for (r, col) in assigned.enumerated() {
+                    guard let col, r < unusedLeft.count, col < unnamedLeft.count else { continue }
+                    let old = unusedLeft[r]
+                    let i = unnamedLeft[col]
+                    guard !used.contains(old.id) else { continue }
+                    used.insert(old.id)
+                    adopted[i].id = old.id
+                    adopted[i].trackId = old.trackId ?? old.id
+                    adopted[i].enrolledAt = old.enrolledAt ?? adopted[i].enrolledAt
+                    boxEuro.removeValue(forKey: old.id)
+                    boxJumpPending.removeValue(forKey: old.id)
                 }
             }
         }

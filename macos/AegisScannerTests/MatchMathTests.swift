@@ -677,6 +677,47 @@ enum MatchMathTests {
         ok(!MatchMath.cropAligns(roll: 0.05), "3° bleibt")
         ok(MatchMath.labCSVHeader().contains("percent"), "CSV Header")
         ok(MatchMath.labCSVRow(face: "a", strategy: "Aegis Ensemble", identity: "Anna, B", percent: 82.4, note: "") == "a,Aegis Ensemble,\"Anna, B\",82.4,", "CSV Quote")
+        ok(MatchMath.poseDropoutResets(gap: 0.40, cameraDt: 0.125), "3 Frames Dropout reset")
+        ok(!MatchMath.poseDropoutResets(gap: 0.125, cameraDt: 0.125), "ein Frame kein Reset")
+        near(MatchMath.trackDt(now: 1.0, last: nil, cameraDt: 0.125), 0.125, 0.001, "ohne last = Kamera-dt")
+        near(MatchMath.trackDt(now: 1.125, last: 1.0, cameraDt: 0.125), 0.125, 0.001, "stetiger Track")
+        near(MatchMath.trackDt(now: 1.50, last: 1.0, cameraDt: 0.125), 0.125, 0.001, "Dropout-dt = Kamera, nicht 0,50")
+        ok(MatchMath.poseFreezeAxis(yawDelta: 0.20, pitchDelta: 0, rollDelta: 0, dt: 0.125) == "Y", "Freeze-Achse Y")
+        ok(MatchMath.poseFreezeAxis(yawDelta: 0, pitchDelta: 0.25, rollDelta: 0, dt: 0.125) == "P", "Freeze-Achse P")
+        ok(MatchMath.poseFreezeAxis(yawDelta: 0, pitchDelta: 0, rollDelta: 0.25, dt: 0.125) == "R", "Freeze-Achse R")
+        ok(MatchMath.poseFreezeAxis(yawDelta: 0.02, pitchDelta: 0.02, rollDelta: 0.02, dt: 0.125) == nil, "Rauschen keine Achse")
+        near(MatchMath.printDriftSample(centroidCosine: 0.82) ?? -1, 82, 0.01, "Spark aus Cosine")
+        ok(MatchMath.printDriftSample(centroidCosine: nil) == nil, "ohne Cosine kein Spark")
+        let shaOk = MatchMath.shaSidecarStatus(computed: "abcdef012345", sidecar: "abcdef012345")
+        ok(shaOk.ok && !shaOk.missing, "SHA gleich")
+        let shaMiss = MatchMath.shaSidecarStatus(computed: "abcdef012345", sidecar: nil)
+        ok(shaMiss.ok && shaMiss.missing, "SHA fehlend = alte Galerie")
+        let shaBad = MatchMath.shaSidecarStatus(computed: "abcdef012345", sidecar: "deadbeef0000")
+        ok(!shaBad.ok && !shaBad.missing, "SHA falsch")
+        ok(MatchMath.shaVerifyNote(ok: false, missing: false) != nil, "SHA-Banner")
+        ok(MatchMath.shaVerifyNote(ok: true, missing: true) == nil, "ohne Sidecar kein Banner")
+        let assign2 = MatchMath.leftoverAssign(scores: [
+            [0.40, 0.90],
+            [0.85, 0.30]
+        ])
+        ok(assign2[0] == 1 && assign2[1] == 0, "2×2 Kreuz-Assign")
+        let assign3 = MatchMath.leftoverAssign(scores: [
+            [0.70, 0.68, nil],
+            [0.69, 0.40, 0.20],
+            [0.10, 0.15, 0.88]
+        ])
+        ok(assign3[2] == 2, "C nimmt Box 2")
+        ok(assign3[0] == 1 && assign3[1] == 0, "2-opt tauscht A/B")
+        let greedyTrap = MatchMath.leftoverAssign(scores: [
+            [0.70, 0.68],
+            [0.69, 0.40]
+        ])
+        ok(greedyTrap[0] == 1 && greedyTrap[1] == 0, "2-opt schlägt greedy 0,70+0,40")
+        ok(MatchMath.leftoverAssign(scores: []).isEmpty, "Assign leer")
+        ok(MatchMath.motionBlurDrops(aligned: true, sharpness: 0.08), "Deskew-Blur drop")
+        ok(!MatchMath.motionBlurDrops(aligned: true, sharpness: 0.18), "scharf nach Roll bleibt")
+        ok(!MatchMath.motionBlurDrops(aligned: false, sharpness: 0.08), "ohne Align kein extra Drop")
+        near(MatchMath.swapFlashHold(), 0.45, 0.001, "Swap-Blitz 0,45 s")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

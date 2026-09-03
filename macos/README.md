@@ -1,7 +1,7 @@
 # Aegis
 
 Lokaler Image- & Video-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**  
-Version **2.1.43 alpha**.
+Version **2.1.47 alpha**.
 
 ## Image-Datei
 
@@ -12,6 +12,10 @@ Version **2.1.43 alpha**.
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Die Datei ist ad-hoc signiert (kein Apple-Developer-Account) — deshalb der Rechtsklick beim ersten Start.
+
+## Neu in 2.1.47 alpha
+
+dt pro Track, Freeze-Achse, Spark aus Centroid, leftover 3+ 2-opt, SHA-Verify, Swap-Blitz, Motion-Blur nach Deskew. VERSION = Models = MARKETING 2.1.47 (Build 74).
 
 ## Neu in 2.1.43 alpha
 
