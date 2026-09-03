@@ -238,11 +238,15 @@ enum MatchMath {
         candidates: [(index: Int, iou: Double, cosine: Double?)],
         sharpness: [Int: Double] = [:],
         sameSlot: [Int: Bool] = [:],
-        floor: Double = leftoverIoU
+        floor: Double = leftoverIoU,
+        twinPair: Double? = nil
     ) -> Int? {
         let ok = candidates.filter { leftoverPin(iou: $0.iou, floor: floor) }
         guard !ok.isEmpty else { return nil }
-        let printable = ok.filter { leftoverPrintOk(cosine: $0.cosine, sharpness: sharpness[$0.index]) }
+        var printable = ok.filter { leftoverPrintOk(cosine: $0.cosine, sharpness: sharpness[$0.index]) }
+        if leftoverTwinBlocksBox(pairCosine: twinPair, printCosine: nil) {
+            printable = printable.filter { leftoverBaptize(cosine: $0.cosine) }
+        }
         guard !printable.isEmpty else { return nil }
         let slotted = printable.filter { sameSlot[$0.index] == true }
         let pool: [(index: Int, iou: Double, cosine: Double?)]
@@ -254,13 +258,45 @@ enum MatchMath {
             // Slot-Info da, kein gleicher Pose-Slot → ¾-Ghost pinnt keinen Frontal-Nachbarn.
             return nil
         }
-        if let best = pool.max(by: {
-            leftoverScore(cosine: $0.cosine ?? -1, sharpness: sharpness[$0.index])
-                < leftoverScore(cosine: $1.cosine ?? -1, sharpness: sharpness[$1.index])
-        }) {
-            return best.index
+        let scored = pool.map { leftoverScore(cosine: $0.cosine ?? -1, sharpness: sharpness[$0.index]) }
+        let raw = pool.map { $0.cosine ?? -1 }
+        if leftoverAmbiguousBlocks(raw: raw, scored: scored) { return nil }
+        if let i = scored.enumerated().max(by: { $0.element < $1.element })?.offset {
+            return pool[i].index
         }
         return nil
+    }
+
+    /// Zwillinge: Top-2 Print < 0,08 Spread — kein Adopt, Overlay statt still taufen.
+    static let leftoverAmbiguousSpread = 0.08
+
+    static func leftoverAmbiguous(scores: [Double], spread: Double = leftoverAmbiguousSpread) -> Bool {
+        let ok = scores.filter { $0.isFinite }
+        guard ok.count >= 2 else { return false }
+        let sorted = ok.sorted(by: >)
+        return sorted[0] - sorted[1] < spread
+    }
+
+    /// Spread < 0,08 blockt, außer Schärfe dreht den Sieger (0,72 scharf > 0,73 blur).
+    static func leftoverAmbiguousBlocks(raw: [Double], scored: [Double]) -> Bool {
+        guard leftoverAmbiguous(scores: raw) else { return false }
+        guard raw.count == scored.count, raw.count >= 2 else { return true }
+        let rawBest = raw.enumerated().max(by: { $0.element < $1.element })?.offset
+        let scoreBest = scored.enumerated().max(by: { $0.element < $1.element })?.offset
+        return rawBest == scoreBest
+    }
+
+    static let twinPairCosine = 0.90
+
+    /// pairCosine ≥ 0,90: leftover nie über Box, nur Print ≥ 0,80.
+    static func leftoverTwinBlocksBox(
+        pairCosine: Double?,
+        printCosine: Double?,
+        twin: Double = twinPairCosine,
+        printNeed: Double = pinPrintCosine
+    ) -> Bool {
+        guard let pair = pairCosine, pair >= twin else { return false }
+        return (printCosine ?? -1) < printNeed
     }
 
     /// Leftover-Tracks: höchster Print zuerst, nicht die ältere UUID.
@@ -907,11 +943,20 @@ enum MatchMath {
         continuity: Bool,
         occluded: Bool = false,
         gazeAway: Bool = false,
-        eyesClosed: Bool = false
+        eyesClosed: Bool = false,
+        mouthOpen: Bool = false
     ) -> Bool {
-        if occluded || gazeAway || eyesClosed { return false }
+        if occluded || gazeAway || eyesClosed || mouthOpen { return false }
         guard let sharpness else { return true }
         return sharpness >= activeSharpnessFloor(continuity: continuity)
+    }
+
+    /// Gähnen / weites Mund: Mimik, keine Taufe. mouthH_iod.
+    static let mouthOpenFloor = 0.42
+
+    static func mouthOpen(heightIod: Double?, floor: Double = mouthOpenFloor) -> Bool {
+        guard let heightIod else { return false }
+        return heightIod >= floor
     }
 
     /// Lid / IOD unter Floor = zu. Gähnen/Blinzeln tauft nicht.
@@ -1159,6 +1204,37 @@ enum MatchMath {
             }
         }
         return result
+    }
+
+    /// Nach leftover-Wipe 800 ms stumm — Genuine 0,64 tauft den Nachbarn sonst sofort.
+    static let leftoverWipeMuteSec: TimeInterval = 0.80
+
+    static func leftoverWipeMuteUntil(now: TimeInterval, mute: TimeInterval = leftoverWipeMuteSec) -> TimeInterval {
+        now + mute
+    }
+
+    static func leftoverWipeMutes(until: TimeInterval?, now: TimeInterval) -> Bool {
+        guard let until else { return false }
+        return now < until
+    }
+
+    /// Nicken F→¾: 2 Frames halten, sonst ¾-Centroid auf Frontal-Sonde.
+    static let poseSlotHoldNeed = 2
+
+    static func poseSlotSticky(prev: String?, raw: String, hold: Int, need: Int = poseSlotHoldNeed) -> (slot: String, hold: Int) {
+        if raw == "upper" { return ("upper", 0) }
+        guard let prev, !prev.isEmpty, prev != "upper" else { return (raw, 0) }
+        if raw == prev { return (prev, 0) }
+        let n = hold + 1
+        if n >= need { return (raw, 0) }
+        return (prev, n)
+    }
+
+    /// Dropout > 0,40 s: IoU ist Müll, Print hält den Track.
+    static let reconnectGapSec: TimeInterval = 0.40
+
+    static func reconnectPrefersPrint(gap: TimeInterval, fromGhost: Bool = false, need: TimeInterval = reconnectGapSec) -> Bool {
+        fromGhost || gap >= need
     }
 
     /// Nach Deskew: Laplacian < 0,10 = Motion-Blur, Print verwerfen.

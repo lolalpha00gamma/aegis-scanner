@@ -47,6 +47,8 @@ final class LibraryStore: ObservableObject {
     private var liveMediaId: UUID?
     private var leftoverStreak: [UUID: Int] = [:]
     private var leftoverStreakBox: [UUID: FaceBox] = [:]
+    private var leftoverWipeUntil: [UUID: TimeInterval] = [:]
+    private var liveSlotHold: [UUID: (slot: String, n: Int)] = [:]
     private var lastLiveHeadCount: Int = 0
     private var lastHeadCountLabel: String?
     private var scopedRoots: [URL] = []
@@ -663,12 +665,17 @@ final class LibraryStore: ObservableObject {
                 gazeAway: MatchMath.gazeAway(yaw: face?.quality.yaw ?? 0, pitch: face?.quality.pitch ?? 0),
                 eyesClosed: MatchMath.eyesClosed(
                     openIod: face?.ratioSheet.first { $0.id == "eyeOpen_iod" }?.value
+                ),
+                mouthOpen: MatchMath.mouthOpen(
+                    heightIod: face?.ratioSheet.first { $0.id == "mouthH_iod" }?.value
                 )
             )
+            let muted = MatchMath.leftoverWipeMutes(until: leftoverWipeUntil[fid], now: frameNow)
             // leftover wischt Hist einmal am Pin (applyLiveFaces). Hier nicht jeden Tick
             // leere Tokens füttern — sonst tauft Genuine 0,64–0,79 nie.
-            // Drehung / Unschärfe: Token leer = Skip, Lock hält.
+            // Drehung / Unschärfe / Gähnen / Wipe-Mute: Token leer = Skip, Lock hält.
             let token: String = {
+                if muted { return "" }
                 if MatchMath.leftoverStarvesVote() && leftoverHold[fid] != nil { return "" }
                 if spinning || !qualityOK { return "" }
                 return hit.identityId?.uuidString ?? ""
@@ -1008,7 +1015,10 @@ final class LibraryStore: ObservableObject {
     }
 
     func leftoverAdoptProgress(faceId: UUID) -> String? {
-        leftoverPending[faceId]
+        if MatchMath.leftoverWipeMutes(until: leftoverWipeUntil[faceId], now: liveLastStamp) {
+            return leftoverPending[faceId] ?? "STUMM"
+        }
+        return leftoverPending[faceId]
     }
 
     func stillProgress(faceId: UUID) -> Double? {
@@ -1134,6 +1144,8 @@ final class LibraryStore: ObservableObject {
         leftoverStreakBox = [:]
         leftoverPending = [:]
         leftoverHold = [:]
+        leftoverWipeUntil = [:]
+        liveSlotHold = [:]
         liveCapture.stop()
         liveActive = false
         if let id = liveMediaId {
@@ -1272,6 +1284,7 @@ final class LibraryStore: ObservableObject {
     private func leftoverClearStreak(_ id: UUID) {
         leftoverStreak.removeValue(forKey: id)
         leftoverStreakBox.removeValue(forKey: id)
+        leftoverWipeUntil.removeValue(forKey: id)
     }
 
     private func applyLiveFaces(_ found: [FaceObservation], image: CGImage, mediaId: UUID, stamp: TimeInterval) {
@@ -1326,11 +1339,18 @@ final class LibraryStore: ObservableObject {
             }
             let printPin = pinByPrint(face, pool: previous + reconnectGhosts + liveGhosts.map(\.face), used: used)
             let printEnrolled = printPin.map { enrolled.contains($0.id) || namedTracks.contains($0.id) } ?? false
-            let takePrint = MatchMath.boxPinTakePrint(
+            var takePrint = MatchMath.boxPinTakePrint(
                 iouHold: best.map { _ in MatchMath.boxHysteresisHold(iou: bestIoU) } ?? false,
                 printPinDifferent: printPin.map { $0.id != best?.id } ?? false,
                 printEnrolled: printEnrolled
             )
+            let pinGhost = printPin.map { pin in
+                reconnectGhosts.contains { $0.id == pin.id }
+                    || liveGhosts.contains { $0.face.id == pin.id }
+            } ?? false
+            if printPin != nil, MatchMath.reconnectPrefersPrint(gap: liveDt, fromGhost: pinGhost) {
+                takePrint = true
+            }
             if let old = best, !takePrint {
                 used.insert(old.id)
                 face.id = old.id
@@ -1593,6 +1613,8 @@ final class LibraryStore: ObservableObject {
             leftoverPending = [:]
             leftoverStreak = [:]
             leftoverStreakBox = [:]
+            leftoverWipeUntil = [:]
+            liveSlotHold = [:]
             liveStillFor = [:]
             faces.removeAll { $0.mediaId == mediaId }
             if let label = MatchMath.headCountFlashLabel(prev: lastLiveHeadCount, next: 0) {
@@ -1638,12 +1660,24 @@ final class LibraryStore: ObservableObject {
                 var sameSlot: [Int: Bool] = [:]
                 let old = item.old
                 if leftoverTried.contains(old.id) { continue }
-                let oldSlot = FaceEngine.poseSlot(old)
+                let oldRaw = FaceEngine.poseSlot(old).rawValue
+                let oldHeld = liveSlotHold[old.id]
+                let oldSticky = MatchMath.poseSlotSticky(prev: oldHeld?.slot ?? oldRaw, raw: oldRaw, hold: oldHeld?.n ?? 0)
+                liveSlotHold[old.id] = oldSticky
                 for cand in remaining {
                     sharp[cand.index] = adopted[cand.index].quality.sharpness
-                    sameSlot[cand.index] = FaceEngine.poseSlot(adopted[cand.index]) == oldSlot
+                    let raw = FaceEngine.poseSlot(adopted[cand.index]).rawValue
+                    let held = liveSlotHold[adopted[cand.index].id]
+                    let sticky = MatchMath.poseSlotSticky(prev: held?.slot ?? oldSticky.slot, raw: raw, hold: held?.n ?? 0)
+                    liveSlotHold[adopted[cand.index].id] = sticky
+                    sameSlot[cand.index] = sticky.slot == oldSticky.slot
                 }
-                guard let bestJ = MatchMath.leftoverPick(candidates: remaining, sharpness: sharp, sameSlot: sameSlot) else {
+                guard let bestJ = MatchMath.leftoverPick(
+                    candidates: remaining,
+                    sharpness: sharp,
+                    sameSlot: sameSlot,
+                    twinPair: matches.first { $0.faceId == old.id }?.hits.first { $0.strategy == .aegis }?.pairCosine
+                ) else {
                     leftoverClearStreak(old.id)
                     continue
                 }
@@ -1671,6 +1705,7 @@ final class LibraryStore: ObservableObject {
                 if let cos = remaining.first(where: { $0.index == bestJ })?.cosine ?? item.bestCos {
                     if MatchMath.leftoverWipeHist(cosine: cos) {
                         leftoverHold[adopted[bestJ].id] = cos
+                        leftoverWipeUntil[adopted[bestJ].id] = MatchMath.leftoverWipeMuteUntil(now: now)
                         liveNameHist.removeValue(forKey: old.id)
                         liveNameLock.removeValue(forKey: old.id)
                         liveScoreEma.removeValue(forKey: old.id)
@@ -1686,6 +1721,8 @@ final class LibraryStore: ObservableObject {
             let leftoverIds = Set(leftoverPinned.map(\.id))
             leftoverStreak = leftoverStreak.filter { leftoverIds.contains($0.key) && !used.contains($0.key) }
             leftoverStreakBox = leftoverStreakBox.filter { leftoverIds.contains($0.key) && !used.contains($0.key) }
+            leftoverWipeUntil = leftoverWipeUntil.filter { liveIds.contains($0.key) }
+            liveSlotHold = liveSlotHold.filter { liveIds.contains($0.key) }
             if leftoverPins > 0, let line = MatchMath.leftoverPinStatus(
                 count: leftoverPins,
                 cosine: leftoverHold.values.max()

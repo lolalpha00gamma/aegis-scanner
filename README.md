@@ -1,4 +1,4 @@
-# Aegis **2.1.49 alpha**
+# Aegis **2.1.50 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,18 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.50 alpha
+
+2.1.49 leftover 1,2 s — Zwillinge 0,70/0,69 wurden getauft. Wipe → sofort neue Stimme. Nicken F→¾. IoU nach Dropout. Gähnen als Vote. Reconnect-Print sah nur Kamera-dt.
+
+- **leftover Ambiguity.** Spread < 0,08 kein Adopt, Schärfe darf trennen.
+- **Twin-Veto.** pairCosine ≥ 0,90 nur Print ≥ 0,80.
+- **Wipe-Mute 800 ms** Overlay `STUMM`.
+- **Slot-Sticky** F→¾ zwei Frames. **Mund** mouthH_iod ≥ 0,42 keine Stimme.
+- **Reconnect-Print** aus Ghost oder Lücke ≥ 0,40 s.
+- Tests: Spread, Twin, Sticky, Mute, Mund, Ghost.
+- VERSION = Models = MARKETING_VERSION 2.1.50 (Build 77).
 
 ## Neu in 2.1.49 alpha
 

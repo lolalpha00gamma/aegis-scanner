@@ -1,6 +1,19 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.49 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.50 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.50 wirklich im Code
+
+2.1.49 leftover 1,2 s — Zwillinge/Walker mit Print 0,70/0,69 wurden trotzdem getauft. Wipe → sofort neue Stimme. Nicken F→¾ zog den ¾-Centroid. IoU nach Dropout. Gähnen zählte als Vote. `reconnectPrefersPrint(liveDt)` feuerte nie (Kamera-dt 125 ms < 0,40 s).
+
+1. **`leftoverAmbiguous` / `leftoverAmbiguousBlocks`.** Top-2 Spread < 0,08 kein Adopt, außer Schärfe dreht den Sieger.
+2. **`leftoverTwinBlocksBox`.** pairCosine ≥ 0,90: leftover nur Print ≥ 0,80. `leftoverPick(twinPair:)` aus Match.
+3. **`leftoverWipeMute` 800 ms + Overlay STUMM.** Genuine 0,64 tauft den Nachbarn nicht sofort.
+4. **`poseSlotSticky`.** F→¾ zwei Frames, Maske (`upper`) sofort.
+5. **`mouthOpen`.** mouthH_iod ≥ 0,42 keine Namensstimme.
+6. **`reconnectPrefersPrint(fromGhost:)`.** Ghost oder Lücke ≥ 0,40 s → Print vor IoU.
+7. Tests: Spread, Twin-Veto, Sticky, Mute, Mund, Ghost-Print, Schärfe-Unblock.
+8. MARKETING_VERSION 2.1.50 (Build 77), `Models.swift` + `VERSION` gleich.
 
 ## In 2.1.49 wirklich im Code
 
@@ -12,6 +25,10 @@ Stand: **2.1.49 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 4. **`liveCentroidCacheKey`.** IDs sortiert + Slot + Pale.
 5. Tests: Need 10/75, Pale, Key, Flash.
 6. MARKETING_VERSION 2.1.49 (Build 76), `Models.swift` + `VERSION` gleich.
+
+## Nächste (offen, 2.1.49 — erledigt in 2.1.50)
+
+Die Punkte leftover Ambiguity, Twin-Veto, Mouth-open, Reconnect-Ghost, Slot-Hysterese, Wipe-Mute sitzen in 2.1.50.
 
 ## In 2.1.48 wirklich im Code
 
@@ -67,17 +84,17 @@ Stand: **2.1.49 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 - **Aktives Lernen.** „Ist das dieselbe Person?“ an unsicheren Rändern.
 - **Platt-Skalierung** der Sigmoid auf Leave-one-out der Galerie.
 - **Print-Revision-Banner** wenn Face-Print nach OS-Update andere Dim liefert.
-- **Mouth-open freeze** analog Pose, Gähnen tauft nicht.
 - **Poster-Face reject.** Landmark-Jitter 0 über 4 Frames = Foto an der Wand.
 - **Glasses as Slot.** Brille an/aus nicht neue Identität.
 - **Track-ID in Labor-CSV.**
 - **CLAHE vor Print** bei Continuity, sonst Nacht-Print driftet.
-- **leftoverAssign Ambiguity.** Cosine-Spread < 0,08 (Zwillinge) kein Adopt, nur Overlay.
-- **Twin-IoU-Veto.** pairCosine > 0,90: leftover nie über Box, nur Print ≥ 0,80.
 - **Enrollment-Burst Dedup nach Pose.** gleicher Slot + Cosine 0,95 in 400 ms = ein Ref.
-- **Reconnect-Ghost Print-Pin zuerst.** IoU nach Dropout 0,40 s ist Müll, Print hält.
-- **Yaw-Slot Hysterese 2 Frames** bevor F→¾ wechselt — Nicken tauft den ¾-Centroid nicht.
-- **Live-Name-Lock nach leftover-Wipe 800 ms stumm.** Sonst tauft Genuine 0,64 den Nachbarn sofort neu.
+- **leftoverAssign Spalte** mit Top-2 Spread < 0,08 nicht zuweisen (2-opt Kreuz bleibt, Twin-Spalte nicht).
+- **leftover-Streak in Sekunden** wenn dt springt, nicht nur Frames.
+- **Ghost-TTL = leftoverAdoptSec** (1,8 vs 1,2 — Ghost überlebt Walk).
+- **Print-Pin aus Ghost braucht leftoverBaptize.** Sonst Walker-Print 0,64 stiehlt UUID.
+- **Name-Lock nach Wipe nur wenn Hist < 4.** Starke Locks nicht 800 ms stumm.
+- **Unknown-Reject** wenn alle Gallery-Scores < 0,50, Overlay statt Taufe.
 - **Partial-Print bei Maske.** `meanPartialVector` statt Vote-Skip wenn U-Slot-Refs da sind.
 - **Enrollment-Radar** F/¾/P als Ring, nicht nur Balken.
 - **Gallery-Compact.** gleiche Pose Cosine 0,97 mergen, Confirm.

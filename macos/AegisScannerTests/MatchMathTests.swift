@@ -95,7 +95,7 @@ enum MatchMathTests {
         )
         ok(
             MatchMath.leftoverPick(
-                candidates: [(0, 0.40, 0.75), (1, 0.40, 0.70)],
+                candidates: [(0, 0.40, 0.82), (1, 0.40, 0.64)],
                 sharpness: [0: 0.20, 1: 0.20],
                 sameSlot: [:]
             ) == 0,
@@ -768,6 +768,75 @@ enum MatchMathTests {
         ok(!MatchMath.motionBlurDrops(aligned: true, sharpness: 0.18), "scharf nach Roll bleibt")
         ok(!MatchMath.motionBlurDrops(aligned: false, sharpness: 0.08), "ohne Align kein extra Drop")
         near(MatchMath.swapFlashHold(), 0.45, 0.001, "Swap-Blitz 0,45 s")
+
+        ok(MatchMath.leftoverAmbiguous(scores: [0.70, 0.69]), "0,01 Spread = Zwilling")
+        ok(!MatchMath.leftoverAmbiguous(scores: [0.82, 0.64]), "0,18 Spread klar")
+        ok(!MatchMath.leftoverAmbiguous(scores: [0.80]), "ein Score nicht ambiguous")
+        ok(
+            MatchMath.leftoverPick(
+                candidates: [(0, 0.40, 0.70), (1, 0.40, 0.69)],
+                sharpness: [0: 0.20, 1: 0.20],
+                sameSlot: [:]
+            ) == nil,
+            "Twin-Spread leftover kein Adopt"
+        )
+        ok(MatchMath.leftoverTwinBlocksBox(pairCosine: 0.92, printCosine: 0.70), "Twin + 0,70 kein Box")
+        ok(!MatchMath.leftoverTwinBlocksBox(pairCosine: 0.92, printCosine: 0.81), "Twin + Print 0,80 darf")
+        ok(!MatchMath.leftoverTwinBlocksBox(pairCosine: 0.70, printCosine: 0.50), "kein Twin-Paar")
+        ok(
+            MatchMath.leftoverPick(
+                candidates: [(0, 0.50, 0.70)],
+                sharpness: [0: 0.20],
+                sameSlot: [:],
+                twinPair: 0.93
+            ) == nil,
+            "Twin-Veto leftover 0,70 tot"
+        )
+        ok(
+            MatchMath.leftoverPick(
+                candidates: [(0, 0.50, 0.82)],
+                sharpness: [0: 0.20],
+                sameSlot: [:],
+                twinPair: 0.93
+            ) == 0,
+            "Twin + Print 0,82 Adopt"
+        )
+        let sticky0 = MatchMath.poseSlotSticky(prev: "frontal", raw: "threeQuarter", hold: 0)
+        ok(sticky0.slot == "frontal" && sticky0.hold == 1, "F→¾ Frame 1 hält F")
+        let sticky1 = MatchMath.poseSlotSticky(prev: "frontal", raw: "threeQuarter", hold: 1)
+        ok(sticky1.slot == "threeQuarter" && sticky1.hold == 0, "F→¾ Frame 2 wechselt")
+        let stickySame = MatchMath.poseSlotSticky(prev: "frontal", raw: "frontal", hold: 1)
+        ok(stickySame.slot == "frontal" && stickySame.hold == 0, "gleicher Slot reset")
+        let stickyU = MatchMath.poseSlotSticky(prev: "frontal", raw: "upper", hold: 0)
+        ok(stickyU.slot == "upper", "Maske sofort U")
+        ok(MatchMath.leftoverWipeMutes(until: 10.8, now: 10.4), "Wipe-Mute 400 ms")
+        ok(!MatchMath.leftoverWipeMutes(until: 10.8, now: 10.9), "Mute vorbei")
+        ok(!MatchMath.leftoverWipeMutes(until: nil, now: 10), "ohne Wipe kein Mute")
+        near(MatchMath.leftoverWipeMuteUntil(now: 5) - 5, 0.80, 0.001, "Mute 800 ms")
+        ok(MatchMath.mouthOpen(heightIod: 0.50), "Mund 0,50 Gähnen")
+        ok(!MatchMath.mouthOpen(heightIod: 0.20), "Mund 0,20 zu")
+        ok(!MatchMath.mouthOpen(heightIod: nil), "ohne Mund-Ratio")
+        ok(!MatchMath.nameVoteAccepts(sharpness: 0.50, continuity: false, mouthOpen: true), "Gähnen keine Stimme")
+        ok(MatchMath.reconnectPrefersPrint(gap: 0.45), "Dropout 450 ms Print zuerst")
+        ok(!MatchMath.reconnectPrefersPrint(gap: 0.12), "8 fps IoU ok")
+        ok(MatchMath.reconnectPrefersPrint(gap: 0.12, fromGhost: true), "Ghost-Print vor IoU")
+        ok(!MatchMath.reconnectPrefersPrint(gap: 0.12, fromGhost: false), "ohne Ghost 8 fps IoU")
+        near(MatchMath.reconnectGapSec, 0.40, 0.001, "Reconnect 0,40 s")
+        near(MatchMath.leftoverAmbiguousSpread, 0.08, 0.001, "Spread 0,08")
+        near(MatchMath.twinPairCosine, 0.90, 0.001, "Twin 0,90")
+        near(MatchMath.mouthOpenFloor, 0.42, 0.001, "Mund-Floor")
+        ok(
+            MatchMath.leftoverAmbiguousBlocks(raw: [0.73, 0.72], scored: [0.73, 0.77]) == false,
+            "Schärfe dreht Sieger → kein Twin-Block"
+        )
+        ok(
+            MatchMath.leftoverAmbiguousBlocks(raw: [0.70, 0.69], scored: [0.70, 0.69]),
+            "gleicher Sieger + Spread = Block"
+        )
+        ok(
+            !MatchMath.leftoverAmbiguousBlocks(raw: [0.82, 0.64], scored: [0.82, 0.64]),
+            "klarer Spread kein Block"
+        )
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)
