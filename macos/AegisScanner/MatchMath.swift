@@ -39,8 +39,24 @@ enum MatchMath {
     static let pruneCosine = 0.98
     static let nameVoteFrames = 5
     static let liveScoreAlpha = 0.35
-    /// Ein Look=Print-Tick tauft nicht. Zwei agreeing Stimmen.
+    /// Ein Look=Print-Tick tauft nicht. Zwei agreeing Stimmen. Geschwister: fünf.
     static let nameAgreeNeed = 2
+    static let nameFamilyNeed = 5
+
+    static func nameAgreeNeed(family: Bool) -> Int {
+        family ? nameFamilyNeed : nameAgreeNeed
+    }
+
+    /// Look-Scores enger als 8 Punkte: Geschwister oder Unsicher — länger halten.
+    static func nameClosePair(best: Double, second: Double?) -> Bool {
+        guard let second else { return false }
+        return best - second < 8
+    }
+
+    /// Leere Look≠Print-Tokens dürfen die Familien-Taufe nicht aushungern.
+    static func nameHistCap(need: Int) -> Int {
+        max(nameVoteFrames, need + 3)
+    }
     /// Rename-Confirm klebt sonst an der nächsten Person.
     static let renameConfirmHold: TimeInterval = 8
     /// Starker Print ist Identität. Geo unter 35 darf ihn nicht auf 60 kappen.
@@ -146,6 +162,11 @@ enum MatchMath {
         return now - since >= hold
     }
 
+    /// Confirm gilt nur derselben UUID — Return in einer anderen Zeile ist tot.
+    static func renameConfirmSameId(pending: UUID?, target: UUID) -> Bool {
+        pending == target
+    }
+
     /// Live-Percent: erster Tick roh, danach EMA. Sonst flackert der Badge.
     static func liveScoreEMA(prev: Double?, next: Double, alpha: Double = liveScoreAlpha) -> Double {
         guard let prev else { return next }
@@ -233,9 +254,23 @@ enum MatchMath {
         }.map(\.id)
     }
 
-    static func leftoverPinStatus(count: Int) -> String? {
+    static func leftoverPinStatus(count: Int, cosine: Double? = nil) -> String? {
         guard count > 0 else { return nil }
-        return count == 1 ? "Leftover-Pin 1 Track" : "Leftover-Pin \(count) Tracks"
+        let base = count == 1 ? "Leftover-Pin 1 Track" : "Leftover-Pin \(count) Tracks"
+        if let hold = leftoverHoldLabel(cosine: cosine) {
+            return "\(base) · \(hold)"
+        }
+        return base
+    }
+
+    /// Overlay: leftover-Print sichtbar, sonst wirkt 0,64 „tot“. Komma wie die restliche UI.
+    static func leftoverHoldLabel(cosine: Double?) -> String? {
+        guard leftoverPrintOk(cosine: cosine), let cosine else { return nil }
+        let hundredths = Int((cosine * 100).rounded())
+        let whole = hundredths / 100
+        let frac = abs(hundredths % 100)
+        let fracStr = frac < 10 ? "0\(frac)" : "\(frac)"
+        return "gehalten \(whole),\(fracStr)"
     }
 
     /// Leftover darf Genuine 0,62–0,79 halten. Pin-Print 0,80 bleibt für enrolled IoU-Steal.

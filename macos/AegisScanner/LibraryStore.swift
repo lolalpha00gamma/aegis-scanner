@@ -36,6 +36,7 @@ final class LibraryStore: ObservableObject {
     @Published var cameraOrient: String = "auto"
     @Published var cameraUniqueID: String = ""
     @Published var liveHeldIds: Set<UUID> = []
+    @Published var leftoverHold: [UUID: Double] = [:]
 
     private let liveCapture = LiveCapture()
     private var liveMediaId: UUID?
@@ -579,11 +580,18 @@ final class LibraryStore: ObservableObject {
             let token = hit.identityId?.uuidString ?? ""
             var hist = liveNameHist[fid] ?? []
             hist.append(token)
-            if hist.count > MatchMath.nameVoteFrames {
-                hist.removeFirst(hist.count - MatchMath.nameVoteFrames)
+            let vs = hit.versus
+            let close = MatchMath.nameClosePair(
+                best: vs.first?.percent ?? 0,
+                second: vs.dropFirst().first?.percent
+            )
+            let need = MatchMath.nameAgreeNeed(family: close)
+            let cap = MatchMath.nameHistCap(need: need)
+            if hist.count > cap {
+                hist.removeFirst(hist.count - cap)
             }
             liveNameHist[fid] = hist
-            if let voted = MatchMath.nameMajorityAgreeing(hist) {
+            if let voted = MatchMath.nameMajorityAgreeing(hist, need: need) {
                 if voted.isEmpty {
                     hit.identityId = nil
                 } else if let ident = identities.first(where: { $0.id.uuidString == voted }) {
@@ -862,7 +870,8 @@ final class LibraryStore: ObservableObject {
         guard identities[idx].name != name else { return }
         if MatchMath.renameConflict(newName: name, existing: identities.map(\.name), selfName: identities[idx].name) {
             let now = Date().timeIntervalSince1970
-            if pendingRenameName != name || pendingRenameId != id
+            if pendingRenameName != name
+                || !MatchMath.renameConfirmSameId(pending: pendingRenameId, target: id)
                 || MatchMath.renameConfirmExpired(since: pendingRenameAt, now: now)
             {
                 pendingRenameName = name
@@ -1211,6 +1220,7 @@ final class LibraryStore: ObservableObject {
                 liveGhosts.append((old, now + 1.8))
             }
             liveHeldIds = []
+            leftoverHold = [:]
             faces.removeAll { $0.mediaId == mediaId }
         } else {
             let leftoverPinned = previous.filter {
@@ -1238,6 +1248,7 @@ final class LibraryStore: ObservableObject {
             }
             let order = MatchMath.leftoverRank(leftoverItems.map { ($0.old.id, $0.bestCos) })
             var leftoverPins = 0
+            leftoverHold = [:]
             for id in order {
                 guard let item = leftoverItems.first(where: { $0.old.id == id }) else { continue }
                 let remaining = item.cands.filter { cand in
@@ -1268,8 +1279,14 @@ final class LibraryStore: ObservableObject {
                     adopted[bestJ].printVec = old.printVec
                 }
                 leftoverPins += 1
+                if let cos = remaining.first(where: { $0.index == bestJ })?.cosine ?? item.bestCos {
+                    leftoverHold[adopted[bestJ].id] = cos
+                }
             }
-            if leftoverPins > 0, let line = MatchMath.leftoverPinStatus(count: leftoverPins) {
+            if leftoverPins > 0, let line = MatchMath.leftoverPinStatus(
+                count: leftoverPins,
+                cosine: leftoverHold.values.max()
+            ) {
                 status = "Live · \(line)"
             } else if status.hasPrefix("Live · Leftover") {
                 status = "Live"

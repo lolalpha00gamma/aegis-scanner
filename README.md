@@ -1,4 +1,4 @@
-# Aegis **2.1.33 alpha**
+# Aegis **2.1.35 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.35 alpha
+
+2.1.34 hat VERSION auf 2.1.34 gestellt, Models/pbxproj blieben 2.1.33. Taufe war 2 Ticks auch bei Geschwistern. Leftover-Pin unsichtbar. 2.1.34-Commit behauptete die Fixes, der Code nicht.
+
+- **Familien-Taufe 5 Ticks.** `nameAgreeNeed(family:)` wenn Look-Scores enger als 8 Punkte. Fremde bleiben 2.
+- **Hist-Cap `need+3`.** Leere Look≠Print-Tokens hungern die Mehrheit nicht.
+- **Leftover-Hold im Overlay** `gehalten 0.64`. Statuszeile denselben Cosine.
+- **Rename-Confirm nur gleiche UUID.**
+- **VERSION = Models = MARKETING_VERSION 2.1.35** (Build 62).
 
 ## Neu in 2.1.33 alpha
 

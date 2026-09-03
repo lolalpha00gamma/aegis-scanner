@@ -653,6 +653,9 @@ struct FaceOverlay: View {
                             let printName = store.identities.first { $0.id == printHit?.versus.first?.identityId }?.name
                             return "\(base) · \(MatchMath.liveNameDisagreeLabel(lookName: lookName, printName: printName))"
                         }
+                        if let hold = MatchMath.leftoverHoldLabel(cosine: store.leftoverHold[face.id]) {
+                            return "\(base) · \(hold)"
+                        }
                         let capped = note.contains(MatchMath.lookOfCapNote())
                         return capped ? "\(base) · \(MatchMath.lookOfCapNote())" : base
                     }()
@@ -738,6 +741,9 @@ struct FaceOverlay: View {
     ) -> String {
         if pinned, let owner {
             let held = store.liveHeldIds.contains(faceId)
+            if let hold = MatchMath.leftoverHoldLabel(cosine: store.leftoverHold[faceId]) {
+                return "\(owner.name) \(Int(pct))% · \(hold)"
+            }
             return "\(owner.name) \(Int(pct))% · \(MatchMath.trackHoldLabel(held: held))"
         }
         if near, let ident {

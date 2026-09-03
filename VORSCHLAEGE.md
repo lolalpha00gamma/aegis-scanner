@@ -1,6 +1,20 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.33 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.35 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.35 wirklich im Code
+
+2.1.34 war ein Versionsstempel ohne Code: Models 2.1.33, pbxproj Build 61, Taufe 2 Ticks, leftover unsichtbar. Commit-Text log.
+
+1. **`nameAgreeNeed(family:)` 5 Ticks** bei close Pair (< 8 Punkte), sonst 2.
+2. **`nameHistCap(need+3)`.** Leere Tokens zählen nicht und kürzen das Fenster nicht auf unter Need.
+3. **`leftoverHoldLabel`** Overlay + Status `gehalten 0.64`.
+4. **`renameConfirmSameId`.** Confirm einer anderen Zeile tot.
+5. MARKETING_VERSION 2.1.35 (Build 62), `Models.swift` + `VERSION` gleich.
+
+## In 2.1.34 nicht im Code
+
+VERSION-Datei 2.1.34, Commit-Text Familien-Taufe/Hold-Label — Models 2.1.33, pbxproj Build 61, `nameAgreeNeed` 2. Die Fixes sitzen in 2.1.35.
 
 ## In 2.1.33 wirklich im Code
 
@@ -212,18 +226,19 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - **Track-ID `T…` in der UI.** intern `trackId` gibt es, die Kiste zeigt die Snapshot-UUID.
 - **Jacobi nur Still-Labor**, Scan-Tiles sind cheap — Still-Foto-Detect ohne Tiles noch voller Graph wenn `tiles: false` und nicht live.
 - **Enrollment AE-Lock.** `+` wartet 200 ms nach Belichtungssprung.
-- **Leftover-Print im Overlay** Cosine 0,64 als „gehalten 0,64“.
 - **Ampel G-Lampe** neben C/S/Y wenn lookOfCapped (rot) vs skip (grün).
 - **gallery.json SHA-256** neben schemaVersion, Restore warnt bei Drift.
 - **Enrollment-Coach.** „Kopf nach links“ wenn ¾ fehlt, nicht nur Statuszeile.
 - **Crop-Align Augen** vor `VNGenerateFacePrint`.
 - **Live-FAR** aus den letzten 200 Impostor-Ticks im Labor.
 - **Galerie kompakt:** unscharfe same-Slot-Refs droppen, sobald eine scharfe da ist.
-- **3-Tick-Taufe bei familyBump** — Geschwister brauchen länger als Fremde (2.1.33 ist 2 für alle).
-- **pendingRename nur dieselbe UUID** — Confirm einer anderen Zeile ist tot (Timeout deckt 8 s).
 - **1-Euro minCutoff Slider** für Continuity vs Built-in, Fläche bleibt Bias.
 - **Uneinig-Namen nur Live**, Still-Fotos nicht mit Look/Print-Ghosts.
 - **Slot-Letter Farbe** (F grün, ¾ amber, P rot) analog Quality-Ampel.
+- **Leftover nicht taufen** bis Print ≥ 0,80 — Hold darf die Overlay-Kiste, nicht die Galerie.
+- **nameHist in Sekunden** (8 fps × 5 Ticks = 0,6 s), nicht Frame-Count.
+- **Pairwise close Pair aus Centroid-Cosine**, nicht nur Look-Delta 8.
+- **Overlay leftover vs enrolled** verschiedene Kistenfarbe, nicht nur Text.
 
 ## Erweiterungen
 
@@ -261,7 +276,6 @@ Warum Live sich tot/falsch anfühlte: eingeschriebene Live-UUIDs klebten als Gei
 - **Export Labor als CSV-Datei**, nicht nur Textfeld.
 - **Live-Quality an Frame-dt.** 8 fps vs 24 fps: Spark-Fenster in Sekunden, nicht Frames.
 - **Score-Kalibrierung live.** Platt auf den letzten 200 Live-Ticks, Slider nur Bias.
-- **Geschwister-Hold.** Wenn familyBump greift, Mehrheit bleibt 5 Ticks (jetzt default).
 - **Cheap-Graph auch Still**, wenn graphBio aus ist — Detect soll die Spur nicht trotzdem rechnen.
 - **Restore-Diff.** Backup vs. aktuell: welche IDs kämen zurück, bevor überschrieben wird.
 - **Enrollment-Wizard.** Pose-Coverage-Meter vor „fertig“ bleibt UI-Ring, Statuszeile ist 2.1.25.

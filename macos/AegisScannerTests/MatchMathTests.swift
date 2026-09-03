@@ -141,6 +141,27 @@ enum MatchMathTests {
         ok(MatchMath.nameMajorityAgreeing(["", "", "A", "A"]) == "A", "leere Look≠Print zählen nicht")
         ok(MatchMath.nameMajorityAgreeing(["A", "B", "A"]) == "A", "Mehrheit unter agreeing")
         ok(MatchMath.nameMajorityAgreeing(["A", "B"]) == nil, "Gleichstand unter need")
+        ok(MatchMath.nameAgreeNeed(family: false) == 2, "Fremde 2 Ticks")
+        ok(MatchMath.nameAgreeNeed(family: true) == 5, "Geschwister 5 Ticks")
+        ok(MatchMath.nameClosePair(best: 84, second: 80), "Abstand 4 = close")
+        ok(!MatchMath.nameClosePair(best: 90, second: 70), "Abstand 20 nicht close")
+        ok(!MatchMath.nameClosePair(best: 90, second: nil), "ohne Zweit keinen close")
+        ok(MatchMath.nameHistCap(need: 5) >= 8, "Hist länger als Familien-Need")
+        ok(MatchMath.nameMajorityAgreeing(["A", "A", "A", "A"], need: 5) == nil, "4 Familien-Ticks taufen nicht")
+        ok(MatchMath.nameMajorityAgreeing(["A", "A", "A", "A", "A"], need: 5) == "A", "5 Familien-Ticks taufen")
+        ok(MatchMath.nameMajorityAgreeing(["", "A", "A", "A", "A", "A"], need: 5) == "A", "leere Tokens hungern Familie nicht")
+        ok(MatchMath.leftoverHoldLabel(cosine: 0.64) == "gehalten 0,64", "Leftover-Hold Overlay")
+        ok(MatchMath.leftoverHoldLabel(cosine: 0.50) == nil, "unter Floor kein Hold-Label")
+        ok(MatchMath.leftoverHoldLabel(cosine: nil) == nil, "nil kein Hold-Label")
+        ok(
+            MatchMath.leftoverPinStatus(count: 1, cosine: 0.64) == "Leftover-Pin 1 Track · gehalten 0,64",
+            "Status mit Hold-Cosine"
+        )
+        let idRenA = UUID(uuidString: "00000000-0000-0000-0000-0000000000A1")!
+        let idRenB = UUID(uuidString: "00000000-0000-0000-0000-0000000000B1")!
+        ok(MatchMath.renameConfirmSameId(pending: idRenA, target: idRenA), "Confirm gleiche UUID")
+        ok(!MatchMath.renameConfirmSameId(pending: idRenA, target: idRenB), "Confirm andere UUID tot")
+        ok(!MatchMath.renameConfirmSameId(pending: nil, target: idRenA), "ohne pending kein Confirm")
         ok(MatchMath.renameConfirmExpired(since: nil, now: 10), "ohne Stempel expired")
         ok(!MatchMath.renameConfirmExpired(since: 10, now: 14, hold: 8), "4 s noch gültig")
         ok(MatchMath.renameConfirmExpired(since: 10, now: 19, hold: 8), "9 s tot")
