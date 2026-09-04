@@ -1,25 +1,24 @@
-# Helios + Aegis — Analyse 2026-09-04 (2.1.79)
+# Helios + Aegis — Analyse 2026-09-04 (2.1.80)
 
-Helios **1.5.63** (Build 83). Aegis **2.1.79 alpha** (Build 105). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`.
+Helios **1.5.64** (Build 84). Aegis **2.1.80 alpha** (Build 106). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`.
 
-## Warum Namen nach 2.1.78 noch sprangen / tot wirkten
+## Warum Namen nach 2.1.79 noch sprangen / tot wirkten
 
-2.1.78 hat leeren-Frame-Streak, Yaw-Floor, Same-shot Twin 0,88. Drei Löcher blieben:
+2.1.79 hat Overlay-Namen am Ghost, Ghost-TTL 4 s, Profil-Yaw 0,45, emptyKeeps. Drei Löcher blieben:
 
-1. **`leftoverPending = [:]` auf jedem leeren Frame.** Streak/Kalman blieben, Overlay-Namen nicht. Ghost-Kiste ohne Chip = tot.
-2. **`liveGhostHold` 1,6 s bei 8 fps.** Continuity-AE 2–3 s: Ghosts tot, faces schon gewischt, leftoverPool leer. Nächster Frame = Gast n+1.
-3. **Profil-Floor an Lookaway 0,28 rad (~16°).** Leichte Drehung 0,62 scharf wurde tot, obwohl noch frontal.
+1. **`keepBoxes = used.union(dropped)`.** Erster leerer Frame: dropped = previous, Kalman bleibt. `faces.removeAll`. Zweiter leerer Frame: previous = [], dropped = [], keepBoxes = [] → Kalman tot. Nächster Live-Frame hasht Roh-Box → Gast n+1.
+2. **`leftoverHoldSurvive(emptyKeeps: true)` ohne Zeit.** Tasche im Dunkeln hielt Hold ewig. Latch 4 s fehlte am empty-Pfad.
+3. **`leftoverPending = [:]` am Start von jedem Frame.** leftoverEmptyKeepsOverlay kam zu spät. Overlay-Chip weg, obwohl Ghost lebte.
 
-## Was 2.1.79 wirklich ändert
+## Was 2.1.80 wirklich ändert
 
-1. **`leftoverEmptyKeepsOverlay`.** leftoverPending / liveHeldIds bleiben. Auswahl bleibt.
-2. **`leftoverLatch` 4 s.** dropoutTTL / liveGhostHold 8 fps = 4 s, 24 fps 1,2 s.
-3. **`leftoverPrintProfileYaw` 0,45.** Floor 0,70 erst ab ~26°, nicht 16°.
-4. **`leftoverHoldSurvive(emptyKeeps:)`.** Leerer keep-Set hält Hold.
-5. VERSION = Models = MARKETING_VERSION 2.1.79 (Build 105).
+1. **`leftoverKeepBoxes(used, dropped, ghosts, hold)`.** Zweiter leerer Frame hält Kalman am Ghost.
+2. **`leftoverLatchKeeps(emptyFor:)` + `leftoverEmptySince`.** emptyKeeps / Overlay / Streak 4 s, dann Wipe.
+3. **leftoverPending bleibt** solange Latch. Wipe erst nach Latch oder Live.
+4. Tests + VERSION = Models = MARKETING_VERSION 2.1.80 (Build 106).
 
-Was Masse noch bringen würde: Frame-Pump mit Helios, CLAHE auf den Buffer, Live-ROI Crop, Drop-in `.mlmodel`, DBSCAN vor Merge, temporal print bank, Quality-weighted Centroid.
+Was Masse noch bringen würde: Frame-Pump mit Helios, CLAHE auf den Buffer, Live-ROI Crop, Drop-in `.mlmodel`, DBSCAN vor Merge, temporal print bank, Quality-weighted Centroid, Kalman-Predict (`cx+=vx·dt`) auf leerem Frame.
 
-Helios 1.5.63: ghostHands Latch 4 s, Steal skippt Ghosts, Phantom-Tip DIP. Siehe `bpms9cmnxc-debug/Helios`.
+Helios 1.5.64: Warp Smooth, letzter Tip, Engine-Latch. Siehe `bpms9cmnxc-debug/Helios`.
 
 `bugfix` mergen oder fortsetzen: nein. Nur `main`.

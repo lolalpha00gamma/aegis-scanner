@@ -103,6 +103,7 @@ final class LibraryStore: ObservableObject {
     private var leftoverHoldTrail: [UUID: [Double]] = [:]
     private var leftoverHoldByHash: [String: (cosine: Double, at: TimeInterval)] = [:]
     private var leftoverHoldTrailByHash: [String: (samples: [Double], at: TimeInterval)] = [:]
+    private var leftoverEmptySince: TimeInterval?
     private var guestOrder: [UUID] = []
     private var guestSeenAt: [UUID: TimeInterval] = [:]
     private var lastCameraUniqueID: String = ""
@@ -1351,6 +1352,7 @@ final class LibraryStore: ObservableObject {
         leftoverHold = [:]
         leftoverHoldByHash = [:]
         leftoverHoldTrailByHash = [:]
+        leftoverEmptySince = nil
         leftoverWipeUntil = [:]
         liveSlotHold = [:]
         guestOrder = []
@@ -1404,6 +1406,7 @@ final class LibraryStore: ObservableObject {
                 self.boxJumpPending.removeAll()
                 self.livePrintTrail.removeAll()
                 self.livePrintTrailSlot.removeAll()
+                self.leftoverEmptySince = nil
             }
             self.lastCameraUniqueID = uid
             self.cameraUniqueID = uid
@@ -1562,7 +1565,16 @@ final class LibraryStore: ObservableObject {
         })
         var used = Set<UUID>()
         var leftoverTried = Set<UUID>()
-        leftoverPending = [:]
+        if found.isEmpty {
+            if leftoverEmptySince == nil { leftoverEmptySince = now }
+        } else {
+            leftoverEmptySince = nil
+        }
+        let emptyFor = leftoverEmptySince.map { now - $0 } ?? 0
+        let emptyLatch = found.isEmpty && MatchMath.leftoverLatchKeeps(emptyFor: emptyFor)
+        if !emptyLatch {
+            leftoverPending = [:]
+        }
         var adopted: [FaceObservation] = []
         adopted.reserveCapacity(found.count)
         for var face in found {
@@ -1983,7 +1995,14 @@ final class LibraryStore: ObservableObject {
             liveGhosts.removeAll { $0.face.id == old.id }
             liveGhosts.append((old, now + MatchMath.liveGhostHold(dt: liveDt)))
         }
-        let keepBoxes = used.union(dropped)
+        let ghostIds = liveGhosts.map(\.face.id)
+        let liveIds = Array(used)
+        let keepBoxes = MatchMath.leftoverKeepBoxes(
+            used: used,
+            dropped: dropped,
+            ghosts: ghostIds,
+            hold: emptyLatch ? Array(leftoverHold.keys) : []
+        )
         boxEuro = boxEuro.filter { keepBoxes.contains($0.key) }
         boxKalman = boxKalman.filter { keepBoxes.contains($0.key) }
         boxJumpPending = boxJumpPending.filter { keepBoxes.contains($0.key) }
@@ -1998,13 +2017,11 @@ final class LibraryStore: ObservableObject {
         liveLandmarkPrev = liveLandmarkPrev.filter { keepBoxes.contains($0.key) }
         liveLidClosed = liveLidClosed.filter { keepBoxes.contains($0.key) }
         liveBlinkSeen = liveBlinkSeen.filter { keepBoxes.contains($0.key) }
-        let ghostIds = liveGhosts.map(\.face.id)
-        let liveIds = Array(used)
         let holdBefore = leftoverHold.count
-        leftoverHold = MatchMath.leftoverHoldSurvive(hold: leftoverHold, ghosts: ghostIds, live: liveIds, emptyKeeps: found.isEmpty)
-        leftoverHoldTrail = MatchMath.leftoverHoldSurvive(hold: leftoverHoldTrail, ghosts: ghostIds, live: liveIds, emptyKeeps: found.isEmpty)
-        liveSlotHold = MatchMath.leftoverHoldSurvive(hold: liveSlotHold, ghosts: ghostIds, live: liveIds, emptyKeeps: found.isEmpty)
-        leftoverMissFrames = MatchMath.leftoverHoldSurvive(hold: leftoverMissFrames, ghosts: ghostIds, live: liveIds, emptyKeeps: found.isEmpty)
+        leftoverHold = MatchMath.leftoverHoldSurvive(hold: leftoverHold, ghosts: ghostIds, live: liveIds, emptyKeeps: emptyLatch, emptyFor: emptyFor)
+        leftoverHoldTrail = MatchMath.leftoverHoldSurvive(hold: leftoverHoldTrail, ghosts: ghostIds, live: liveIds, emptyKeeps: emptyLatch, emptyFor: emptyFor)
+        liveSlotHold = MatchMath.leftoverHoldSurvive(hold: liveSlotHold, ghosts: ghostIds, live: liveIds, emptyKeeps: emptyLatch, emptyFor: emptyFor)
+        leftoverMissFrames = MatchMath.leftoverHoldSurvive(hold: leftoverMissFrames, ghosts: ghostIds, live: liveIds, emptyKeeps: emptyLatch, emptyFor: emptyFor)
         leftoverHoldByHash = MatchMath.leftoverHoldPrune(leftoverHoldByHash, now: now, ttl: MatchMath.dropoutTTL(dt: liveDt))
         leftoverHoldTrailByHash = MatchMath.leftoverTrailPrune(leftoverHoldTrailByHash, now: now, ttl: MatchMath.dropoutTTL(dt: liveDt))
         if let line = MatchMath.leftoverHoldPruneLine(
@@ -2015,11 +2032,11 @@ final class LibraryStore: ObservableObject {
             status = line
         }
         if found.isEmpty {
-            if !MatchMath.leftoverEmptyKeepsOverlay(liveEmpty: true) {
+            if !MatchMath.leftoverEmptyKeepsOverlay(liveEmpty: true) || !emptyLatch {
                 liveHeldIds = []
                 leftoverPending = [:]
             }
-            if !MatchMath.leftoverEmptyKeepsStreak(liveEmpty: true) {
+            if !MatchMath.leftoverEmptyKeepsStreak(liveEmpty: true) || !emptyLatch {
                 leftoverStreak = [:]
                 leftoverStreakBox = [:]
                 leftoverStreakSince = [:]
@@ -2043,7 +2060,7 @@ final class LibraryStore: ObservableObject {
             liveLidClosed = [:]
             liveBlinkSeen = [:]
             faces.removeAll { $0.mediaId == mediaId }
-            if !MatchMath.leftoverEmptyKeepsOverlay(liveEmpty: true) {
+            if !MatchMath.leftoverEmptyKeepsOverlay(liveEmpty: true) || !emptyLatch {
                 if let label = MatchMath.headCountFlashLabel(prev: lastLiveHeadCount, next: 0) {
                     lastHeadCountLabel = label
                     headCountFlashUntil = now + MatchMath.headCountFlashHold
@@ -2490,7 +2507,7 @@ final class LibraryStore: ObservableObject {
         }
         if selectedMediaId == mediaId {
             if found.isEmpty {
-                if !MatchMath.leftoverEmptyKeepsOverlay(liveEmpty: true) {
+                if !MatchMath.leftoverEmptyKeepsOverlay(liveEmpty: true) || !emptyLatch {
                     selectedFaceId = nil
                 }
             } else if let cur = selectedFaceId, adopted.contains(where: { $0.id == cur }) {

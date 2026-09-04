@@ -1,4 +1,4 @@
-# Aegis **2.1.79 alpha**
+# Aegis **2.1.80 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.80 alpha
+
+2.1.79 Overlay/Latch. Kalman starb am zweiten leeren Frame. emptyKeeps ohne Zeit. leftoverPending wischte am Frame-Start.
+
+- **`leftoverKeepBoxes`.** Ghosts+Hold halten Kalman.
+- **`leftoverLatchKeeps` + `leftoverEmptySince`.** emptyKeeps 4 s.
+- **leftoverPending bleibt** am Latch.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.80 (Build 106).
 
 ## Neu in 2.1.79 alpha
 

@@ -1304,6 +1304,24 @@ enum MatchMath {
     /// Overlay-Namen und Held-IDs bleiben am Ghost. 2.1.78 wischte leftoverPending — Kiste tot.
     static func leftoverEmptyKeepsOverlay(liveEmpty: Bool) -> Bool { liveEmpty }
 
+    /// Tasche im Dunkeln: emptyKeeps nicht ewig. Latch wie Helios 4 s.
+    static func leftoverLatchKeeps(emptyFor: TimeInterval, latch: TimeInterval = leftoverLatch) -> Bool {
+        emptyFor >= 0 && emptyFor < latch
+    }
+
+    /// Zweiter leerer Frame: previous schon []. used∪dropped wischt Kalman. Ghosts+Hold halten.
+    static func leftoverKeepBoxes(
+        used: Set<UUID>,
+        dropped: Set<UUID>,
+        ghosts: [UUID] = [],
+        hold: [UUID] = []
+    ) -> Set<UUID> {
+        var keep = used.union(dropped)
+        keep.formUnion(ghosts)
+        keep.formUnion(hold)
+        return keep
+    }
+
     /// Slot leer: Frontal-only, nie 72/28 mit Profil. ¾-Sonde vs All-Mean war weich.
     static func slotCentroidFallsBackToFrontal(slotCount: Int) -> Bool {
         slotCount == 0
@@ -2055,9 +2073,19 @@ enum MatchMath {
     }
 
     /// Dropout: UUID-Hold/Trail/Slot am Ghost **und** an Live. Nur Ghosts wischte den Live-Hold.
-    static func leftoverHoldSurvive<Value>(hold: [UUID: Value], ghosts: [UUID], live: [UUID] = [], emptyKeeps: Bool = false) -> [UUID: Value] {
+    /// emptyFor begrenzt emptyKeeps — sonst Tasche-im-Dunkeln ewig Hold.
+    static func leftoverHoldSurvive<Value>(
+        hold: [UUID: Value],
+        ghosts: [UUID],
+        live: [UUID] = [],
+        emptyKeeps: Bool = false,
+        emptyFor: TimeInterval = 0
+    ) -> [UUID: Value] {
         let keep = Set(ghosts + live)
-        if keep.isEmpty { return emptyKeeps ? hold : [:] }
+        if keep.isEmpty {
+            if emptyKeeps && leftoverLatchKeeps(emptyFor: emptyFor) { return hold }
+            return [:]
+        }
         return hold.filter { keep.contains($0.key) }
     }
 

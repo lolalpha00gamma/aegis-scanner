@@ -1207,6 +1207,45 @@ enum MatchMathTests {
         )
         ok(keepLive[idHoldA] == 0.70, "Partial: Live-Hold bleibt")
         ok(keepLive[idHoldB] == 0.50, "Partial: Ghost-Hold bleibt")
+        ok(MatchMath.leftoverLatchKeeps(emptyFor: 0), "erster leerer Frame Latch")
+        ok(MatchMath.leftoverLatchKeeps(emptyFor: 2.0), "2 s empty Hold")
+        ok(!MatchMath.leftoverLatchKeeps(emptyFor: 4.1), "nach Latch empty tot")
+        ok(!MatchMath.leftoverLatchKeeps(emptyFor: -0.01), "negativ kein Latch")
+        let keepLatch = MatchMath.leftoverHoldSurvive(
+            hold: [idHoldA: 0.70],
+            ghosts: [],
+            emptyKeeps: true,
+            emptyFor: 2.0
+        )
+        ok(keepLatch[idHoldA] == 0.70, "Latch Hold 2 s")
+        ok(
+            MatchMath.leftoverHoldSurvive(
+                hold: [idHoldA: 0.70],
+                ghosts: [],
+                emptyKeeps: true,
+                emptyFor: 4.1
+            ).isEmpty,
+            "nach Latch Hold tot"
+        )
+        let keep2 = MatchMath.leftoverKeepBoxes(
+            used: [],
+            dropped: [],
+            ghosts: [idHoldA],
+            hold: [idHoldA]
+        )
+        ok(keep2.contains(idHoldA), "zweiter leerer Frame hält Kalman")
+        ok(
+            MatchMath.leftoverKeepBoxes(used: [idHoldA], dropped: [], ghosts: [], hold: []).contains(idHoldA),
+            "Live used Kalman"
+        )
+        ok(
+            MatchMath.leftoverKeepBoxes(used: [], dropped: [idHoldB], ghosts: [], hold: []).contains(idHoldB),
+            "Dropped Kalman"
+        )
+        ok(
+            MatchMath.leftoverKeepBoxes(used: [], dropped: [], ghosts: [], hold: []).isEmpty,
+            "ohne Ghost/Hold Kalman tot"
+        )
         near(MatchMath.dropoutTTL(dt: 0.016), 1.20, 0.001, "24 fps TTL 1,2 s")
         near(MatchMath.dropoutTTL(dt: 0.125), 4.0, 0.001, "8 fps TTL 4 s Latch")
         near(MatchMath.liveGhostHold(dt: 0.125), 4.0, 0.001, "8 fps Ghost 4 s")

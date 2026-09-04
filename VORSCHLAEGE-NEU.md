@@ -1,6 +1,14 @@
-# Nachtrag 2026-09-04 (2.1.79)
+# Nachtrag 2026-09-04 (2.1.80)
 
-Siehe ANALYSE.md. **2.1.79** schließt Overlay-Namen am Ghost, Ghost-TTL 4 s, Profil-Yaw 0,45 wirklich im Code.
+Siehe ANALYSE.md. **2.1.80** schließt Kalman am zweiten leeren Frame, Latch-Hold, leftoverPending wirklich im Code.
+
+## In 2.1.80 gelandet
+
+1. leftoverKeepBoxes — Ghosts+Hold halten Kalman
+2. leftoverLatchKeeps + leftoverEmptySince — emptyKeeps 4 s
+3. leftoverPending bleibt am Latch, Wipe erst danach
+4. leftoverHoldSurvive emptyFor
+5. VERSION = Models = MARKETING_VERSION 2.1.80 (Build 106)
 
 ## In 2.1.79 gelandet
 
@@ -67,8 +75,14 @@ Siehe ANALYSE.md. **2.1.79** schließt Overlay-Namen am Ghost, Ghost-TTL 4 s, Pr
 50. Kalman-Predict auf leerem Frame (cx+=vx·dt), nicht nur Hold
 51. leftoverPending an Ghost-UUID spiegeln wenn Adopt-ID schon tot
 52. Night-ISO Cap Pref, AE nicht 3 s jagen
-53. leftoverEmptyKeepsOverlay sitzt
-54. leftoverLatch 4 s sitzt
-55. leftoverPrintProfileYaw 0,45 sitzt
+53. Overlay-Chip HOLD 0,4 s nach Latch-Ende statt hartem Wipe
+54. Print-EMA nur Frames mit leftoverPrintSharp
+55. Detector-leerer Frame: Overlay an Kalman-Predict, nicht nur letzte Box
+56. leftoverKeepBoxes sitzt
+57. leftoverLatchKeeps sitzt
+58. leftoverPending Latch sitzt
+59. leftoverEmptyKeepsOverlay sitzt
+60. leftoverLatch 4 s sitzt
+61. leftoverPrintProfileYaw 0,45 sitzt
 
 Nur main.
