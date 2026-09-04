@@ -388,6 +388,11 @@ enum MatchMath {
             .max(by: { $0.iou < $1.iou })?.index
     }
 
+    /// max-IoU ohne Floor pinnt WEG auf den Fremden.
+    static func leftoverLookawayPinsStranger(iou: Double, floor: Double = leftoverLookawayIoU) -> Bool {
+        iou < floor
+    }
+
     /// EMA nicht mit Profil-Print überschreiben.
     static func leftoverHoldSkipLookaway(enrolled: Bool, yawAbs: Double?) -> Bool {
         leftoverLookawayHolds(yawAbs: yawAbs, enrolled: enrolled)
@@ -447,8 +452,11 @@ enum MatchMath {
     }
 
     /// Overlay: leftover-Print sichtbar, sonst wirkt 0,64 „tot“. Komma wie die restliche UI.
-    static func leftoverHoldLabel(cosine: Double?) -> String? {
-        guard leftoverPrintOk(cosine: cosine), let cosine else { return nil }
+    /// 0,62 scharf hält den Track — Label muss dieselbe Bandbreite zeigen, nicht nil.
+    static func leftoverHoldLabel(cosine: Double?, sharpness: Double? = nil) -> String? {
+        guard let cosine else { return nil }
+        let ok = leftoverPrintOk(cosine: cosine, sharpness: sharpness) || cosine >= leftoverPrintGenuine
+        guard ok else { return nil }
         let hundredths = Int((cosine * 100).rounded())
         let whole = hundredths / 100
         let frac = abs(hundredths % 100)
@@ -1208,8 +1216,13 @@ enum MatchMath {
 
     static func leftoverAdoptNeed(dt: TimeInterval) -> Int {
         let step = max(0.008, min(0.20, dt <= 0 ? 0.125 : dt))
-        let frames = Int(ceil(leftoverAdoptSec / step))
+        let frames = Int(ceil(leftoverAdoptNeedSec(dt: dt) / step))
         return max(leftoverAdoptFrames, min(leftoverAdoptCap, frames))
+    }
+
+    /// 8 fps: 1,2 s ist 10 Frames — Walker fällt durch. Halbe Zeit analog pinchOpenNeed.
+    static func leftoverAdoptNeedSec(dt: TimeInterval) -> TimeInterval {
+        dt >= 0.08 ? leftoverAdoptSec * 0.5 : leftoverAdoptSec
     }
 
     static func leftoverAdoptReady(streak: Int, need: Int) -> Bool {
@@ -1251,6 +1264,17 @@ enum MatchMath {
 
     static func leftoverStreakAdvance(prev: Int, sameTarget: Bool) -> Int {
         sameTarget ? prev + 1 : 1
+    }
+
+    /// Ein Twin-/Conflict-Tick löscht nicht. 3 Miss-Frames = Gast n+1.
+    static let leftoverMissNeed = 3
+
+    static func leftoverMissAdvance(prev: Int, hit: Bool) -> Int {
+        hit ? 0 : prev + 1
+    }
+
+    static func leftoverMissClears(miss: Int, need: Int = leftoverMissNeed) -> Bool {
+        miss >= need
     }
 
     /// Slot leer: Frontal-only, nie 72/28 mit Profil. ¾-Sonde vs All-Mean war weich.
@@ -2208,6 +2232,13 @@ enum MatchMath {
         let frac = abs(hundredths % 100)
         let fracStr = frac < 10 ? "0\(frac)" : "\(frac)"
         return hard ? "TWIN \(whole),\(fracStr)" : "TWIN? \(whole),\(fracStr)"
+    }
+
+    /// Overlay-Kiste: TWIN? amber, TWIN hart rot.
+    static func leftoverTwinTint(pairCosine: Double?) -> String? {
+        if leftoverTwinHardBlocks(pairCosine: pairCosine) { return "red" }
+        if leftoverTwinSuggest(pairCosine: pairCosine) { return "amber" }
+        return nil
     }
 
     /// Bei genau 2 Personen: Print und Geo müssen einig sein.

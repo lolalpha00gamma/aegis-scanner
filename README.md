@@ -1,4 +1,4 @@
-# Aegis **2.1.76 alpha**
+# Aegis **2.1.77 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.77 alpha
+
+2.1.76 TWIN?/0,62/WEG. Overlay zeigte 0,62 nicht. WEG fiel auf den Nachbarn. Ein Miss-Tick = Gast n+1. Adopt 1,2 s bei 8 fps.
+
+- **`leftoverHoldLabel(sharpness:)`.** 0,62 scharf = `gehalten 0,62`.
+- **`leftoverLookawayPinsStranger`.** WEG nur IoU ≥ 0,12.
+- **`leftoverMissClears` 3 Frames.** **`leftoverAdoptNeedSec`** 8 fps 0,6 s.
+- **`leftoverTwinTint`.** TWIN? amber, TWIN hart rot.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.77 (Build 103).
 
 ## Neu in 2.1.76 alpha
 

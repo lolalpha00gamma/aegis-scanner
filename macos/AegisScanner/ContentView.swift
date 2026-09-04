@@ -686,6 +686,9 @@ struct FaceOverlay: View {
                     let boxColor: Color = {
                         if store.swapFlashing() { return Color.yellow.opacity(0.95) }
                         if store.headCountFlashing() { return Color.cyan.opacity(0.95) }
+                        if let tint = MatchMath.leftoverTwinTint(pairCosine: aegisHit?.pairCosine) {
+                            return tint == "red" ? Color.red.opacity(0.95) : Color.orange.opacity(0.95)
+                        }
                         switch kind {
                         case .selected: return .white
                         case .enrolled: return Color.green.opacity(0.85)
@@ -745,7 +748,10 @@ struct FaceOverlay: View {
                             let printName = store.identities.first { $0.id == printHit?.versus.first?.identityId }?.name
                             return "\(base) · \(MatchMath.liveNameDisagreeLabel(lookName: lookName, printName: printName))"
                         }
-                        if let hold = MatchMath.leftoverHoldLabel(cosine: store.leftoverHold[face.id]) {
+                        if let hold = MatchMath.leftoverHoldLabel(
+                            cosine: store.leftoverHold[face.id],
+                            sharpness: face.quality.sharpness
+                        ) {
                             return "\(base) · \(hold)"
                         }
                         if let tap = store.tapLockChip(faceId: face.id) {

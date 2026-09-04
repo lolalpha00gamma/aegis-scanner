@@ -1,6 +1,15 @@
-# Nachtrag 2026-09-04 (2.1.76)
+# Nachtrag 2026-09-04 (2.1.77)
 
-Siehe ANALYSE.md. **2.1.76** schließt TWIN?-Streak, 0,62-scharf kein Gast, WEG-Pin 0,12, WEG-Countdown wirklich im Code.
+Siehe ANALYSE.md. **2.1.77** schließt 0,62-Label, WEG-Fremder, Miss-3, 8 fps Adopt 0,6 s, TWIN-Farbe wirklich im Code.
+
+## In 2.1.77 gelandet
+
+1. leftoverHoldLabel sharpness — gehalten 0,62
+2. leftoverLookawayPinsStranger — kein WEG auf Nachbar
+3. leftoverMissAdvance 3 Frames
+4. leftoverAdoptNeedSec 8 fps 0,6 s
+5. leftoverTwinTint TWIN? amber / TWIN rot
+6. VERSION = Models = MARKETING_VERSION 2.1.77 (Build 103)
 
 ## In 2.1.76 gelandet
 
@@ -9,20 +18,6 @@ Siehe ANALYSE.md. **2.1.76** schließt TWIN?-Streak, 0,62-scharf kein Gast, WEG-
 3. leftoverLookawayIoU 0,12 + max-IoU Fallback
 4. leftoverLookawayLabel WEG in 0,8 s
 5. VERSION = Models = MARKETING_VERSION 2.1.76 (Build 102)
-
-## In 2.1.75 gelandet
-
-1. leftoverLookawayPin — WEG auf Live, nicht Ghost-ID
-2. leftoverLookawayYawOf — Live-Yaw sticht Ghost
-3. leftoverHoldSkipLookaway — EMA freeze
-4. leftoverUnknownKeepsStreak — kein Gast n+1
-5. leftoverStreakKeepsLive — Blink re-adoptiert
-6. leftoverTwinPairLabel TWIN? 0,90 / TWIN 0,93
-7. VERSION = Models = MARKETING_VERSION 2.1.75 (Build 101)
-
-## In 2.1.74 gelandet
-
-1. Testdaten holen in der App (LFW → Downloads/AegisBench)
 
 ## Offen (nicht Pflaster)
 
@@ -50,51 +45,25 @@ Siehe ANALYSE.md. **2.1.76** schließt TWIN?-Streak, 0,62-scharf kein Gast, WEG-
 27. Overlay VoiceOver für Hold-Wert
 28. Partial-Print für Profil (P-Slot ohne Augen)
 29. Gallery-Centroid nur Frames mit leftoverPrintSharp
-30. Live-HUD „gehalten 0,64 · Ghost 0,8 s“ in einer Zeile
-31. PhotoKit Personen-UUID als Soft-Prior
-32. RTSP-Keyframe leftoverHoldSurvive analog Detector-Miss
-33. Burst-AE 5-Frame-Fenster Pref für Continuity-Nacht
-34. Dropout-TTL Pref (kurz/normal/lang)
-35. Capture-Hist in gallery.json Schema 5
-36. CLAHE vor Print nur wenn captureJumpBlocks
-37. Status „Hold prune n“ Pref still/eine Zeile
-38. EMA-α Pref (träge / normal / flink)
-39. Ghost-Kiste Opacity 0,35 Pref
-40. Merge-Wizard Rename-Lock
-41. Twin-Hard-Veto Pref 0,90 / 0,92 / 0,94
-42. printPin Burst-Hist der Ghost-UUID beim Adopt
-43. Detector-Score ins leftoverPick als dritter Term
-44. Continuity Desk-View: Yaw-Floor 0,36 statt 0,28
-45. Familien-Foto: leftoverTwinHard nur wenn Gallery ≥ 2 und same-shot
-46. Tap-Lock Box-Stroke amber Pref
-47. Helios-Steal-Palm: wenn Helios LOCK, Aegis leftover freeze
-48. Per-Identität Floor-Offset (±4) nach 3 False-Accepts
-49. Landmark-Jitter Poster-Streak in leftoverPick
-50. Overlay-Tap Gast Bestätigen 2. Tap sitzt — Keyboard-Return analog
-51. Lookaway leftoverHold halten sitzt — HUD WEG sitzt jetzt am Face; Countdown analog Helios IDLE in sitzt
-52. Still-Hold 0,45 s sitzt — Pref 0,30 / 0,45 / 0,70
-53. Open-Set UNBEKANNT sitzt — Gast-Index nach 8 s Pref
-54. Kalman-Streak sitzt — leftoverStreak nach Ghost-Adopt Trail übernehmen sitzt
-55. Twin-Zahl sitzt — Soft-Veto 0,90 als `TWIN? 0,90` sitzt, Streak halten sitzt
-56. Live-HUD Ghost-Countdown analog Helios IDLE in — Chip sitzt am Face, nicht Statuszeile
-57. Enrolled Lookaway: leftoverHold EMA einfrieren sitzt
-58. Partial-Print P-Slot ohne Augen als eigener leftoverPick-Term
-59. Gallery-Export verschlüsselt
-60. Brille / Maske Slot UI
-61. ByteTrack-ähnlicher leftover (Kalman + IoU + Print, nicht nur IoU-first)
-62. Quality-weighted Gallery-Centroid (Schärfe × Frontal)
-63. Shared AVCaptureSession mit Helios über XPC
-64. WEG-Countdown „WEG in 0,8 s“ analog Helios IDLE in sitzt
-65. Overlay Keyboard-Return tauft Gast analog zweitem Tap
-66. leftoverLookawayIoU Pref 0,08 / 0,12 / 0,20
-67. TWIN? Overlay-Farbe amber, TWIN hart rot
-68. 0,62-scharf Hold-Chip „gehalten 0,62“ statt UNBEKANNT
-69. leftoverClear nur nach 3 Miss-Frames, nicht ein Twin-Tick
-70. Gallery-Print nur frontal + blink, sonst P-Slot
-71. Live-HUD „TWIN? 0,90 · Streak 3“ in einer Zeile
-72. Open-Set Gast-Index Pref nach UNBEKANNT 8 s
-73. Detector-Miss leftoverHoldSurvive analog RTSP
-74. Face-ID an der Kiste (kurz, 6 Zeichen) analog Helios S1
-75. Continuity 8 fps leftoverAdoptNeed × 0,5 analog Helios pinchOpenNeed
+30. Burst-AE 5-Frame-Fenster Pref für Continuity-Nacht
+31. Dropout-TTL Pref (kurz/normal/lang)
+32. Capture-Hist in gallery.json Schema 5
+33. EMA-α Pref (träge / normal / flink)
+34. Twin-Hard-Veto Pref 0,90 / 0,92 / 0,94
+35. Detector-Score ins leftoverPick als dritter Term
+36. Continuity Desk-View: Yaw-Floor 0,36 statt 0,28
+37. Per-Identität Floor-Offset (±4) nach 3 False-Accepts
+38. Keyboard-Return tauft Gast analog zweitem Tap
+39. Face-ID an der Kiste (kurz, 6 Zeichen) analog Helios S1
+40. Quality-weighted Gallery-Centroid (Schärfe × Frontal)
+41. Temporal print bank (5 Slots) statt einer leftoverHold-EMA
+42. Yaw-bedingter Genuine-Floor (Profil 0,70, Frontal 0,62)
+43. Same-shot Twin: zwei Gesichter im Frame → leftoverTwinHard schon bei 0,88
+44. Aegis.dmg nicht ins Git — nur CI-Artefakt
+45. leftoverHoldLabel 0,62 sitzt
+46. leftoverLookawayPinsStranger sitzt — WEG nicht auf Nachbar
+47. leftoverMiss 3 Frames sitzt
+48. leftoverAdoptNeedSec 8 fps 0,6 s sitzt
+49. leftoverTwinTint sitzt
 
 Nur main.

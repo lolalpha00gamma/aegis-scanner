@@ -49,6 +49,7 @@ final class LibraryStore: ObservableObject {
     private var leftoverStreak: [UUID: Int] = [:]
     private var leftoverStreakBox: [UUID: FaceBox] = [:]
     private var leftoverStreakSince: [UUID: TimeInterval] = [:]
+    private var leftoverMissFrames: [UUID: Int] = [:]
     private var leftoverWipeUntil: [UUID: TimeInterval] = [:]
     private var leftoverPairLast: [UUID: UUID] = [:]
     private var leftoverPairStreak: [UUID: Int] = [:]
@@ -1484,7 +1485,8 @@ final class LibraryStore: ObservableObject {
         box: FaceBox,
         now: TimeInterval,
         holdPrev: Double? = nil,
-        boxId: UUID? = nil
+        boxId: UUID? = nil,
+        dt: TimeInterval = 0.016
     ) -> (ready: Bool, label: String?) {
         let hashed = MatchMath.leftoverStreakBoxWrite(
             kalmanX: boxKalman[boxId ?? oldId]?.x,
@@ -1511,9 +1513,10 @@ final class LibraryStore: ObservableObject {
         leftoverStreak[oldId] = next
         leftoverStreakBox[oldId] = hashed
         let elapsed = now - (leftoverStreakSince[oldId] ?? now)
+        let needSec = MatchMath.leftoverAdoptNeedSec(dt: dt)
         return (
-            MatchMath.leftoverAdoptReady(elapsed: elapsed, streak: next, holdPrev: holdPrev),
-            MatchMath.leftoverStreakLabel(elapsed: elapsed)
+            MatchMath.leftoverAdoptReady(elapsed: elapsed, streak: next, holdPrev: holdPrev, needSec: needSec),
+            MatchMath.leftoverStreakLabel(elapsed: elapsed, needSec: needSec)
         )
     }
 
@@ -1521,6 +1524,7 @@ final class LibraryStore: ObservableObject {
         leftoverStreak.removeValue(forKey: id)
         leftoverStreakBox.removeValue(forKey: id)
         leftoverStreakSince.removeValue(forKey: id)
+        leftoverMissFrames.removeValue(forKey: id)
         leftoverWipeUntil.removeValue(forKey: id)
         leftoverPairLast.removeValue(forKey: id)
         leftoverPairStreak.removeValue(forKey: id)
@@ -1953,7 +1957,7 @@ final class LibraryStore: ObservableObject {
                     guard maj.ready else { continue }
                     leftoverPairCommit[old.id] = maj.commit
                     leftoverDisagree[old.id] = 0
-                    let step = leftoverAdvance(oldId: old.id, box: adopted[i].box, now: now, boxId: adopted[i].id)
+                    let step = leftoverAdvance(oldId: old.id, box: adopted[i].box, now: now, boxId: adopted[i].id, dt: liveDt)
                     if let label = step.label {
                         leftoverPending[adopted[i].id] = label
                     }
@@ -2000,6 +2004,7 @@ final class LibraryStore: ObservableObject {
         leftoverHold = MatchMath.leftoverHoldSurvive(hold: leftoverHold, ghosts: ghostIds, live: liveIds)
         leftoverHoldTrail = MatchMath.leftoverHoldSurvive(hold: leftoverHoldTrail, ghosts: ghostIds, live: liveIds)
         liveSlotHold = MatchMath.leftoverHoldSurvive(hold: liveSlotHold, ghosts: ghostIds, live: liveIds)
+        leftoverMissFrames = MatchMath.leftoverHoldSurvive(hold: leftoverMissFrames, ghosts: ghostIds, live: liveIds)
         leftoverHoldByHash = MatchMath.leftoverHoldPrune(leftoverHoldByHash, now: now, ttl: MatchMath.dropoutTTL(dt: liveDt))
         leftoverHoldTrailByHash = MatchMath.leftoverTrailPrune(leftoverHoldTrailByHash, now: now, ttl: MatchMath.dropoutTTL(dt: liveDt))
         if let line = MatchMath.leftoverHoldPruneLine(
@@ -2015,6 +2020,7 @@ final class LibraryStore: ObservableObject {
             leftoverStreak = [:]
             leftoverStreakBox = [:]
             leftoverStreakSince = [:]
+            leftoverMissFrames = [:]
             leftoverPairLast = [:]
             leftoverPairStreak = [:]
             leftoverPairCommit = [:]
@@ -2140,9 +2146,14 @@ final class LibraryStore: ObservableObject {
                     let weg = MatchMath.leftoverLookawayLabel(until: ghostUntil, now: now)
                     if let pinJ = MatchMath.leftoverLookawayPin(candidates: remaining) {
                         leftoverPending[adopted[pinJ].id] = weg
-                    } else if let best = remaining.max(by: { $0.iou < $1.iou }) {
+                        leftoverTried.insert(old.id)
+                    } else if let best = remaining.max(by: { $0.iou < $1.iou }),
+                              !MatchMath.leftoverLookawayPinsStranger(iou: best.iou)
+                    {
                         leftoverPending[adopted[best.index].id] = weg
+                        leftoverTried.insert(old.id)
                     }
+                    // leftoverHoldSkipLookaway: EMA nicht mit Profil überschreiben. continue hält den Wert.
                     if leftoverHold[old.id] == nil {
                         leftoverHold[old.id] = MatchMath.leftoverHoldLookup(
                             hash: MatchMath.leftoverBoxHash(MatchMath.leftoverHashBox(
@@ -2199,26 +2210,31 @@ final class LibraryStore: ObservableObject {
                             leftoverPending[adopted[cand.index].id] = MatchMath.leftoverUnknownNote()
                         }
                         leftoverPins += 1
-                    } else if !MatchMath.conflictTickAgrees(
-                        boxId: nil,
-                        printId: aegisHit?.identityId,
-                        geoId: nil,
-                        lockId: liveIds.values.first,
-                        geoMix: aegisHit?.geoMix
-                    ) {
-                        for cand in remaining {
-                            guard !MatchMath.leftoverYieldsToLive(liveId: liveIds[cand.index], leftoverId: old.id) else {
-                                continue
-                            }
-                            leftoverPending[adopted[cand.index].id] = MatchMath.conflictTickNote()
-                        }
-                        leftoverClearStreak(old.id)
                     } else {
-                        leftoverClearStreak(old.id)
+                        let miss = MatchMath.leftoverMissAdvance(prev: leftoverMissFrames[old.id] ?? 0, hit: false)
+                        leftoverMissFrames[old.id] = miss
+                        if MatchMath.conflictTickAgrees(
+                            boxId: nil,
+                            printId: aegisHit?.identityId,
+                            geoId: nil,
+                            lockId: liveIds.values.first,
+                            geoMix: aegisHit?.geoMix
+                        ) == false {
+                            for cand in remaining {
+                                guard !MatchMath.leftoverYieldsToLive(liveId: liveIds[cand.index], leftoverId: old.id) else {
+                                    continue
+                                }
+                                leftoverPending[adopted[cand.index].id] = MatchMath.conflictTickNote()
+                            }
+                        }
+                        if MatchMath.leftoverMissClears(miss: miss) {
+                            leftoverClearStreak(old.id)
+                        }
                     }
                     continue
                 }
                 leftoverTried.insert(old.id)
+                leftoverMissFrames[old.id] = MatchMath.leftoverMissAdvance(prev: leftoverMissFrames[old.id] ?? 0, hit: true)
                 let holdHash = MatchMath.leftoverBoxHash(MatchMath.leftoverHashBox(
                     kalmanX: boxKalman[old.id]?.x,
                     kalmanY: boxKalman[old.id]?.y,
@@ -2232,7 +2248,7 @@ final class LibraryStore: ObservableObject {
                     now: now,
                     ttl: MatchMath.dropoutTTL(dt: liveDt)
                 )
-                let step = leftoverAdvance(oldId: old.id, box: adopted[bestJ].box, now: now, holdPrev: holdPrev, boxId: adopted[bestJ].id)
+                let step = leftoverAdvance(oldId: old.id, box: adopted[bestJ].box, now: now, holdPrev: holdPrev, boxId: adopted[bestJ].id, dt: liveDt)
                 if let label = step.label {
                     leftoverPending[adopted[bestJ].id] = label
                 }
@@ -2327,7 +2343,10 @@ final class LibraryStore: ObservableObject {
                     stillFor: stillFor,
                     sharpness: adopted[bestJ].quality.sharpness
                 ) {
-                    leftoverPending[adopted[bestJ].id] = MatchMath.leftoverHoldLabel(cosine: pinCos)
+                    leftoverPending[adopted[bestJ].id] = MatchMath.leftoverHoldLabel(
+                        cosine: pinCos,
+                        sharpness: adopted[bestJ].quality.sharpness
+                    )
                         ?? leftoverPending[adopted[bestJ].id]
                     leftoverPins += 1
                     if let cos = pinCos {
