@@ -1,4 +1,4 @@
-# Aegis **2.1.69 alpha**
+# Aegis **2.1.70 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -16,7 +16,19 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
 
+## Neu in 2.1.70 alpha
+
+2.1.69 leftoverDropped/Blur/Kalman. Survive nur bei leerem Frame. Trail nur `used`. printPin blendet AE-Sprung. Ghost-TTL fest 1,2 s. Tap-Name leftover tauft.
+
+- **`leftoverHoldSurvive(..., live:)`.** Keep = Ghosts ∪ Live. Partial wischt Anna nicht.
+- **Trail/Kalman/Euro für Dropped.** Median überlebt den Miss.
+- **`captureJumpBlocksPrint`.** Enrolled: Belichtungssprung hält den Gallery-Print. IoU und printPin.
+- **`dropoutTTL(dt)`.** 8 fps 1,6 s, 24 fps 1,2 s.
+- **`tapNameLock` 3 s.** Anlegen/+ — leftover tauft nicht. Chip `TAP ns`.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.70 (Build 96).
+
 ## Neu in 2.1.69 alpha
+
 
 2.1.68 Cross-Slot/Hold/Survive. Partial-Dropout ghostete nicht. Enrolled auf leerem Frame verloren Hold. Blur 0,64 war Pick. Hash auf Roh-Kiste, Radius nur Bin 0/1.
 

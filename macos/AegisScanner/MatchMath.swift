@@ -391,11 +391,15 @@ enum MatchMath {
 
     /// UUID/Print nur bei Baptize 0,80 ohne Twin-Spike und ohne MAD.
     /// Spike + 3 Baptize-Samples = echter Anstieg, nicht ein Twin-Frame.
+    /// Tap-Lock 3 s: manueller Name, leftover tauft nicht.
     static func leftoverTransfersId(
         cosine: Double?,
         holdPrev: Double? = nil,
-        trail: [Double] = []
+        trail: [Double] = [],
+        tapUntil: TimeInterval? = nil,
+        now: TimeInterval = 0
     ) -> Bool {
+        if tapNameLockBlocks(until: tapUntil, now: now) { return false }
         guard leftoverBaptize(cosine: cosine) else { return false }
         if printMADBlocks(trail) { return false }
         if leftoverBaptizeSpike(raw: cosine, prev: holdPrev) {
@@ -1082,8 +1086,17 @@ enum MatchMath {
     static let leftoverAdoptFrames = 3
     static let leftoverAdoptSec: TimeInterval = 1.20
     static let leftoverAdoptCap = 80
-    /// Ghost 1,8 s überlebte leftover 1,2 s — Walker-UUID auf den Nachbarn.
-    static var liveGhostHold: TimeInterval { leftoverAdoptSec }
+    /// 8 fps: 1,2 s = 9 Frames, Walker fällt durch. 1,6 s hält den Ghost.
+    static let leftoverAdoptSecSlow: TimeInterval = 1.60
+
+    /// Dropout-TTL folgt dem Takt. 8 fps 1,6 s, 24 fps 1,2 s.
+    static func dropoutTTL(dt: TimeInterval) -> TimeInterval {
+        dt >= 0.08 ? leftoverAdoptSecSlow : leftoverAdoptSec
+    }
+
+    static func liveGhostHold(dt: TimeInterval = 0.016) -> TimeInterval {
+        dropoutTTL(dt: dt)
+    }
 
     static func leftoverAdoptNeed(dt: TimeInterval) -> Int {
         let step = max(0.008, min(0.20, dt <= 0 ? 0.125 : dt))
@@ -1860,16 +1873,20 @@ enum MatchMath {
     static func leftoverHoldsTrack(
         cosine: Double?,
         holdPrev: Double? = nil,
-        trail: [Double] = []
+        trail: [Double] = [],
+        tapUntil: TimeInterval? = nil,
+        now: TimeInterval = 0
     ) -> Bool {
-        leftoverPrintOk(cosine: cosine) && !leftoverTransfersId(cosine: cosine, holdPrev: holdPrev, trail: trail)
+        leftoverPrintOk(cosine: cosine) && !leftoverTransfersId(
+            cosine: cosine, holdPrev: holdPrev, trail: trail, tapUntil: tapUntil, now: now
+        )
     }
 
-    /// Dropout: UUID-Hold/Trail/Slot am Ghost, nicht Wipe. Hash allein verfehlt die Kiste nach Kopfdrehen.
-    static func leftoverHoldSurvive<Value>(hold: [UUID: Value], ghosts: [UUID]) -> [UUID: Value] {
-        let g = Set(ghosts)
-        guard !g.isEmpty else { return [:] }
-        return hold.filter { g.contains($0.key) }
+    /// Dropout: UUID-Hold/Trail/Slot am Ghost **und** an Live. Nur Ghosts wischte den Live-Hold.
+    static func leftoverHoldSurvive<Value>(hold: [UUID: Value], ghosts: [UUID], live: [UUID] = []) -> [UUID: Value] {
+        let keep = Set(ghosts + live)
+        guard !keep.isEmpty else { return [:] }
+        return hold.filter { keep.contains($0.key) }
     }
 
     /// Landmark-Jitter über Paare. 0 über 4 Frames = Poster.
@@ -1897,6 +1914,29 @@ enum MatchMath {
 
     static func captureJumps(prev: Double, next: Double, delta: Double = captureJumpDelta) -> Bool {
         abs(next - prev) >= delta
+    }
+
+    /// Enrolled: AE-Sprung überschreibt den Gallery-Print nicht. holdStillSkip sitzt nur im IoU-Pfad.
+    static func captureJumpBlocksPrint(prev: Double, next: Double, enrolled: Bool) -> Bool {
+        enrolled && captureJumps(prev: prev, next: next)
+    }
+
+    /// Manueller Tap: leftover 3 s kein Steal/Taufe.
+    static let tapNameLockHold: TimeInterval = 3
+
+    static func tapNameLockUntil(now: TimeInterval, hold: TimeInterval = tapNameLockHold) -> TimeInterval {
+        now + hold
+    }
+
+    static func tapNameLockBlocks(until: TimeInterval?, now: TimeInterval) -> Bool {
+        guard let until else { return false }
+        return now < until
+    }
+
+    static func tapNameLockLabel(until: TimeInterval?, now: TimeInterval) -> String? {
+        guard tapNameLockBlocks(until: until, now: now), let until else { return nil }
+        let left = max(0, until - now)
+        return String(format: "TAP %.0fs", left)
     }
 
     static func exposureLockUntil(now: TimeInterval, hold: TimeInterval = exposureLockHold) -> TimeInterval {

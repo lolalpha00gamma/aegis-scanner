@@ -1,8 +1,20 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.69 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.70 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.70 wirklich im Code
+
+2.1.69 leftoverDropped/Blur/Kalman. Survive nur leer. Trail nur used. printPin blendet AE-Sprung. Ghost-TTL fest 1,2 s. Tap-Name leftover tauft.
+
+1. **`leftoverHoldSurvive(..., live:)`.** Keep = Ghosts ∪ Live.
+2. **Trail/Kalman für Dropped.**
+3. **`captureJumpBlocksPrint`.** Enrolled AE-Sprung hält Print.
+4. **`dropoutTTL(dt)`.** 8 fps 1,6 s.
+5. **`tapNameLock` 3 s.** leftoverTransfersId tot.
+6. Tests + VERSION = Models = MARKETING_VERSION 2.1.70 (Build 96).
 
 ## In 2.1.69 wirklich im Code
+
 
 2.1.68 Cross-Slot/Hold. Partial-Dropout ohne Ghost. Enrolled auf leerem Frame nicht geistert. Blur 0,64 war Pick.
 
