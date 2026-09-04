@@ -2,6 +2,10 @@
 
 Helios **1.5.51** (Build 71). Aegis **2.1.67 alpha** (Build 93). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`.
 
+CI war seit **2.1.26** rot: `swiftc` für MatchMathTests ohne `Models.swift` → `FaceBox`/`Point2` unbekannt. Kein DMG nach 2.1.25. Nachtrag nimmt Models in den Compile.
+
+## Warum Namen nach 2.1.66 noch sprangen
+
 ## Warum Namen nach 2.1.66 noch sprangen
 
 2.1.66 hat Nachbar-Hash (cx/cy), Hash-Prune statt Wipe, Gast n+1, Print-MAD wirklich verdrahtet. Vier Löcher blieben:

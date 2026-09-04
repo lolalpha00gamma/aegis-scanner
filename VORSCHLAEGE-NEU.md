@@ -1,6 +1,6 @@
 # Nachtrag 2026-09-04 (2.1.67)
 
-Siehe ANALYSE.md. **2.1.67** schließt Ghost-Pool, Größen-Hash, Twin-Steal und Trail-über-Dropout wirklich im Code.
+Siehe ANALYSE.md. **2.1.67** schließt Ghost-Pool, Größen-Hash, Twin-Steal und Trail-über-Dropout wirklich im Code. CI: Models.swift im MatchMath-Compile (war seit 2.1.26 tot, kein DMG).
 
 ## In 2.1.67 gelandet
 

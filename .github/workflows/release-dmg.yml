@@ -56,7 +56,7 @@ jobs:
 
       - name: Match math tests
         run: |
-          swiftc macos/AegisScanner/MatchMath.swift macos/AegisScanner/BenchProtocol.swift macos/AegisScannerTests/MatchMathTests.swift -o /tmp/aegismath
+          swiftc macos/AegisScanner/Models.swift macos/AegisScanner/MatchMath.swift macos/AegisScanner/BenchProtocol.swift macos/AegisScannerTests/MatchMathTests.swift -o /tmp/aegismath
           /tmp/aegismath
 
       - name: Build Aegis.app

@@ -1,7 +1,7 @@
 import CoreGraphics
 import Foundation
 
-/// `swiftc macos/AegisScanner/MatchMath.swift macos/AegisScannerTests/MatchMathTests.swift -o /tmp/aegismath && /tmp/aegismath`
+/// `swiftc macos/AegisScanner/Models.swift macos/AegisScanner/MatchMath.swift macos/AegisScanner/BenchProtocol.swift macos/AegisScannerTests/MatchMathTests.swift -o /tmp/aegismath && /tmp/aegismath`
 
 @main
 enum MatchMathTests {
