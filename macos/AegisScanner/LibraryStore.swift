@@ -1955,7 +1955,7 @@ final class LibraryStore: ObservableObject {
                 let oldRaw = FaceEngine.poseSlot(old).rawValue
                 let oldHeld = liveSlotHold[old.id]
                 let oldSticky = MatchMath.poseSlotSticky(prev: oldHeld?.slot ?? oldRaw, raw: oldRaw, hold: oldHeld?.n ?? 0)
-                liveSlotHold[old.id] = oldSticky
+                liveSlotHold[old.id] = (slot: oldSticky.slot, n: oldSticky.hold)
                 for cand in remaining {
                     sharp[cand.index] = adopted[cand.index].quality.sharpness
                     yawAbs[cand.index] = abs(adopted[cand.index].quality.yaw)
@@ -1964,7 +1964,7 @@ final class LibraryStore: ObservableObject {
                     let raw = FaceEngine.poseSlot(adopted[cand.index]).rawValue
                     let held = liveSlotHold[adopted[cand.index].id]
                     let sticky = MatchMath.poseSlotSticky(prev: held?.slot ?? oldSticky.slot, raw: raw, hold: held?.n ?? 0)
-                    liveSlotHold[adopted[cand.index].id] = sticky
+                    liveSlotHold[adopted[cand.index].id] = (slot: sticky.slot, n: sticky.hold)
                     sameSlot[cand.index] = sticky.slot == oldSticky.slot
                 }
                 var liveIds: [Int: UUID] = [:]
