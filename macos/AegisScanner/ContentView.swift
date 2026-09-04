@@ -134,9 +134,17 @@ struct ContentView: View {
                     .keyboardShortcut(.defaultAction)
                     .disabled(store.selectedFace == nil || store.newPersonName.isEmpty)
             }
-            Button("Testmodus") { store.pickBenchmark() }
+            HStack {
+                Button("Testdaten holen") { store.fetchBenchData() }
+                    .disabled(store.busy)
+                    .help("Lädt LFW einmalig nach Downloads/AegisBench (~170 MB). Nicht auf GitHub — Lizenz.")
+                Button("Test starten") { store.startDefaultBenchmark() }
+                    .disabled(store.busy)
+                    .help("ident20. Fehlen die Daten, wird zuerst geladen.")
+            }
+            Button("Anderer Testordner…") { store.pickBenchmark() }
                 .disabled(store.busy)
-                .help("LFW-Ordner wählen. Testdaten: bench/fetch.sh → ~/AegisBench/ident20")
+                .help("Eigenen Personen-Ordner wählen.")
             Text(store.benchHint)
                 .font(.caption2)
                 .foregroundStyle(.secondary)

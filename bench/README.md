@@ -1,6 +1,14 @@
 # Aegis Testmodus
 
-Misst, wie gut der Face-Print und die Identifikation auf **öffentlichen** Sätzen laufen. Die Bilder liegen nicht im Git (Lizenz der Originalfotografen).
+Die **Fotos liegen nicht auf GitHub.** LFW-Bilder gehören den Originalfotografen; wir dürfen sie nicht ins Repo packen. Nur das Paar-Protokoll (`pairs.txt`) ist Text und liegt hier.
+
+## In der App (einfach)
+
+1. Aegis **2.1.55** oder neuer
+2. Links: **Testdaten holen** (~170 MB, einmalig) → `Downloads/AegisBench`
+3. **Test starten**
+
+Kein Terminal, kein Git-Clone.
 
 ## Datensatz
 

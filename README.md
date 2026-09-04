@@ -1,4 +1,4 @@
-# Aegis **2.1.73 alpha**
+# Aegis **2.1.74 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,10 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.74 alpha
+
+Testdaten **in der App**: links **Testdaten holen** (LFW ~170 MB nach `Downloads/AegisBench`), dann **Test starten**. Keine Fotos auf GitHub — LFW-Lizenz.
 
 ## Neu in 2.1.73 alpha
 

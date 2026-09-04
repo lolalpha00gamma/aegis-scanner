@@ -1,7 +1,7 @@
 # Aegis
 
 Lokaler Image- & Video-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**  
-Version **2.1.70 alpha**.
+Version **2.1.74 alpha**.
 
 ## Image-Datei
 
@@ -13,7 +13,11 @@ Version **2.1.70 alpha**.
 
 macOS 14 Sonoma oder neuer. Die Datei ist ad-hoc signiert (kein Apple-Developer-Account) — deshalb der Rechtsklick beim ersten Start.
 
-## Neu in 2.1.54 alpha
+## Neu in 2.1.74 alpha
+
+Testdaten holen in der App (LFW nach Downloads/AegisBench). Keine Fotos im Git.
+
+## Neu in 2.1.55 alpha
 
 Print-Crop-Fallback unabhängig von EXIF. Testmodus-Knopf in der Identitäten-Leiste.
 

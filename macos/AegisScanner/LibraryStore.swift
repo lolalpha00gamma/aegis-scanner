@@ -276,16 +276,13 @@ final class LibraryStore: ObservableObject {
         return "Galerie \(identities.count): Floor \(Int(f.match)) · Solo \(Int(f.solo)) · Open-Set \(open)"
     }
 
-    var benchHome: URL {
-        FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("AegisBench")
-    }
+    var benchHome: URL { BenchFetch.root() }
 
     var benchHint: String {
-        let ident20 = benchHome.appendingPathComponent("ident20")
-        if FileManager.default.fileExists(atPath: ident20.path) {
-            return "Testdaten: ~/AegisBench/ident20 — Testmodus oben wählen."
+        if BenchFetch.ident20Ready() {
+            return "Testdaten bereit in Downloads/AegisBench — Test starten."
         }
-        return "Testdaten fehlen. Im Terminal: ./bench/fetch.sh (Repo aegis-scanner) → ~/AegisBench"
+        return "Fotos stehen nicht auf GitHub (Lizenz). Testdaten holen: ~170 MB, einmalig."
     }
 
     var enrollmentHint: String {
@@ -2523,6 +2520,43 @@ final class LibraryStore: ObservableObject {
             busy = false
             status = "Laborbericht gespeichert"
         }
+    }
+
+    func fetchBenchData(thenStart: Bool = false) {
+        scanGeneration += 1
+        let gen = scanGeneration
+        busy = true
+        status = "Testdaten · starte Download"
+        Task {
+            do {
+                let ident20 = try await BenchFetch.install { msg in
+                    Task { @MainActor in
+                        if gen == self.scanGeneration { self.status = msg }
+                    }
+                }
+                if gen != self.scanGeneration {
+                    self.busy = false
+                    return
+                }
+                self.status = "Testdaten in \(ident20.deletingLastPathComponent().path)"
+                self.busy = false
+                if thenStart {
+                    self.runBenchmark(root: ident20)
+                }
+            } catch {
+                self.busy = false
+                self.status = "Testdaten: \(error.localizedDescription)"
+            }
+        }
+    }
+
+    func startDefaultBenchmark() {
+        if BenchFetch.ident20Ready() {
+            retainAccess([BenchFetch.root()])
+            runBenchmark(root: BenchFetch.ident20URL())
+            return
+        }
+        fetchBenchData(thenStart: true)
     }
 
     func pickBenchmark() {
