@@ -1,4 +1,4 @@
-# Aegis **2.1.55 alpha**
+# Aegis **2.1.56 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,19 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.56 alpha
+
+Desk-View als Front gespiegelt — Zwillinge auf einem Gesicht. Ein Kamera-Dropout setzte leftover-Need auf 0,50 s. Name-Lock klebte nach Verlassen. Idle→Live 8 fps beim ersten Blinker. Print-Cache `removeAll` nach 513 Gesichtern. leftover-Hold roh 0,64/0,70 taufte. Live-NMS ignorierte `iouThresh` (duplicate 0,42 allein).
+
+- **`mirrorAsFront`.** Desk-View nie spiegeln.
+- **`medianLiveDt`.** Dropout raus, leftover-Need bleibt 8 fps.
+- **`nameLockVoteTTL` 8 s.** `nameLockHolds(lastVote:now:)`.
+- **`liveFacesLatch`.** 2 Frames Gesicht bevor 8 fps.
+- **`liveDuplicate` / `liveNmsIoU` 0,45** plus nested 0,55. Foto bleibt 0,42.
+- **`leftoverHoldEMA`.** Twin-Spike 0,70 glättet.
+- **`printCacheDropCount`.** Älteste raus, nicht kalt.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.56 (Build 83).
 
 ## Neu in 2.1.55 alpha
 

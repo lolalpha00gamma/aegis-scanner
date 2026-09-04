@@ -152,8 +152,17 @@ final class LiveCapture: NSObject {
         if let conn = out.connection(with: .video) {
             if conn.isVideoMirroringSupported {
                 conn.automaticallyAdjustsVideoMirroring = false
-                let front = device.position == .front || device.position == .unspecified
-                conn.isVideoMirrored = front
+                let desk: Bool
+                if #available(macOS 14.0, *) {
+                    desk = device.deviceType == .deskViewCamera
+                } else {
+                    desk = false
+                }
+                conn.isVideoMirrored = MatchMath.mirrorAsFront(
+                    positionFront: device.position == .front,
+                    unspecified: device.position == .unspecified,
+                    deskView: desk
+                )
             }
             if #available(macOS 14.0, *) {
                 let coord = AVCaptureDevice.RotationCoordinator(device: device, previewLayer: nil)

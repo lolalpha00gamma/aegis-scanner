@@ -843,8 +843,17 @@ enum MatchMath {
         return printCosine < floor
     }
 
-    static func nameLockHolds(voted: String?, locked: String?, lockedPrint: Double? = nil) -> String? {
+    static func nameLockHolds(
+        voted: String?,
+        locked: String?,
+        lockedPrint: Double? = nil,
+        lastVote: TimeInterval? = nil,
+        now: TimeInterval = 0
+    ) -> String? {
         if let voted, !voted.isEmpty { return voted }
+        if lastVote != nil, now > 0, nameLockExpired(lastVote: lastVote, now: now) {
+            return nil
+        }
         if let locked, !locked.isEmpty {
             if nameLockDrops(printCosine: lockedPrint) { return nil }
             return locked
@@ -1573,5 +1582,66 @@ enum MatchMath {
     }
 
     static func unknownRejectNote() -> String { "unbekannt — keine Nähe" }
+
+    /// Desk-View ist nicht FaceTime-Front. Spiegeln tauft Zwillinge auf ein Gesicht.
+    static func mirrorAsFront(positionFront: Bool, unspecified: Bool, deskView: Bool) -> Bool {
+        if deskView { return false }
+        return positionFront || unspecified
+    }
+
+    /// Ein Dropout darf leftover-Need nicht auf 0,50 s kippen.
+    static func medianLiveDt(_ dts: [TimeInterval], fallback: TimeInterval = 0.125) -> TimeInterval {
+        let ok = dts.filter { $0 > 0.02 && $0 < 0.40 }
+        guard !ok.isEmpty else { return fallback }
+        let sorted = ok.sorted()
+        return sorted[sorted.count / 2]
+    }
+
+    /// Name-Lock ohne Vote 8 s → tot. Sonst klebt Anna nach Verlassen.
+    static let nameLockVoteTTL: TimeInterval = 8
+
+    static func nameLockExpired(
+        lastVote: TimeInterval?,
+        now: TimeInterval,
+        hold: TimeInterval = nameLockVoteTTL
+    ) -> Bool {
+        guard let lastVote else { return false }
+        return now - lastVote >= hold
+    }
+
+    /// Idle→Live: 2 Frames Gesicht bevor 8 fps. Blinker am Türrahmen sonst.
+    static let liveFaceNeed = 2
+
+    static func liveFacesLatch(
+        present: Bool,
+        on: Bool,
+        streak: Int,
+        need: Int = liveFaceNeed
+    ) -> (on: Bool, streak: Int) {
+        if !present { return (false, 0) }
+        if on { return (true, 0) }
+        let n = streak + 1
+        if n >= need { return (true, 0) }
+        return (false, n)
+    }
+
+    /// Live-NMS: Tile/Equalize-Zwillinge. Höher als Foto-0,28, enger als duplicate 0,42 allein.
+    static let liveNmsIoU = 0.45
+
+    static func liveDuplicate(iou: Double, nested: Double, iouFloor: Double = liveNmsIoU) -> Bool {
+        iou >= iouFloor || nested >= 0.55
+    }
+
+    /// leftover-Hold EMA: ein scharfer Twin 0,70 tauft nicht.
+    static func leftoverHoldEMA(prev: Double?, next: Double, alpha: Double = liveScoreAlpha) -> Double {
+        liveScoreEMA(prev: prev, next: next, alpha: alpha)
+    }
+
+    static let printCacheCap = 512
+
+    /// Burst nach 513 Gesichtern nicht kalt — älteste raus, nicht removeAll.
+    static func printCacheDropCount(count: Int, cap: Int = printCacheCap) -> Int {
+        max(0, count - cap)
+    }
 }
 

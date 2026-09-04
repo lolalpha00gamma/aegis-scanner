@@ -1,6 +1,23 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.55 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.56 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.56 wirklich im Code
+
+2.1.55 Ghost=leftover — Desk-View gespiegelt, Dropout-dt 0,50 s, Name-Lock ohne TTL, Idle 8 fps beim Blinker, Print-Cache kalt, leftover-Hold roh, Live-NMS tot.
+
+1. **`mirrorAsFront`.** Desk-View nie.
+2. **`medianLiveDt`.** leftover-Need folgt Median, nicht Spike.
+3. **`nameLockVoteTTL` 8 s** in `nameLockHolds`.
+4. **`liveFacesLatch`.** 2 Frames bevor 8 fps.
+5. **`liveDuplicate` 0,45 / nested 0,55.** Foto 0,42 bleibt.
+6. **`leftoverHoldEMA`.**
+7. **`printCacheDropCount`.** LRU/FIFO, nicht removeAll.
+8. Tests + VERSION = Models = MARKETING_VERSION 2.1.56 (Build 83).
+
+## Nächste (offen, 2.1.55 — erledigt in 2.1.56)
+
+Desk-View-Spiegel, Median-dt, Name-Lock-TTL, Face-Hysterese, Live-NMS, leftover-EMA, Print-Cache sitzen in 2.1.56.
 
 ## In 2.1.55 wirklich im Code
 
@@ -129,21 +146,29 @@ Die Punkte leftover Ambiguity, Twin-Veto, Mouth-open, Reconnect-Ghost, Slot-Hyst
 - **Enrollment-Retake.** Unschärfe 3× hintereinander → Overlay „nochmal halten“.
 - **Track birth/death Log.** Overlay `+Anna` / `−Ben` 0,45 s.
 - **Voice-Print optional.** Zweite Stimme nur Confirm, nie Live-Taufe.
-- **Print-Cache LRU 512** statt `removeAll` — Burst nach 513 Gesichtern sonst kalt.
-- **Live-dt Median** analog Helios sampleDts — ein Dropout darf leftover-Need nicht auf 0,50 s kippen.
+- **Print-Cache LRU 512** statt `removeAll` — Burst nach 513 Gesichtern sonst kalt. **→ 2.1.56 printCacheDropCount**
+- **Live-dt Median** analog Helios sampleDts — ein Dropout darf leftover-Need nicht auf 0,50 s kippen. **→ 2.1.56 medianLiveDt**
 - **Enrollment-Burst 400 ms auch über `+` in der Liste**, nicht nur Kamera.
 - **Yaw-Slot-Prior im leftoverPick** bevor IoU, sonst ¾-Ghost auf Frontal-Nachbarn (Slot-hart sitzt, Pick-Reihenfolge nicht).
 - **Gallery-JSON Schema 3:** `ghostHoldSec` persistiert, Restore nach Crash.
 - **Testmodus ident20 parallel zu Live** ohne Galerie zu wischen.
 - **Continuity-Desk-View eigener Pose-Slot `desk`**, nicht Profil.
-- **Box-NMS 0,45 bei Live** — Tiles/Equalize-Zwillinge taufen zwei UUIDs auf ein Gesicht.
-- **Name-Lock TTL 8 s ohne Vote** analog Rename-Confirm — sonst klebt Anna nach Verlassen.
-- **Cosine-EMA des leftover-Hold** statt Roh-0,64, sonst ein scharfer Twin 0,70 tauft.
-- **Continuity Desk-View nicht als Front spiegeln.** `position == .unspecified` ist oft Desk-View, nicht FaceTime.
+- **Box-NMS 0,45 bei Live** — Tiles/Equalize-Zwillinge taufen zwei UUIDs auf ein Gesicht. **→ 2.1.56 liveDuplicate**
+- **Name-Lock TTL 8 s ohne Vote** analog Rename-Confirm — sonst klebt Anna nach Verlassen. **→ 2.1.56 nameLockVoteTTL**
+- **Cosine-EMA des leftover-Hold** statt Roh-0,64, sonst ein scharfer Twin 0,70 tauft. **→ 2.1.56 leftoverHoldEMA**
+- **Continuity Desk-View nicht als Front spiegeln.** `position == .unspecified` ist oft Desk-View, nicht FaceTime. **→ 2.1.56 mirrorAsFront**
 - **Unknown als Galerie-Klasse.** Reject-Centroid aus den letzten Impostor-Ticks, nicht nur Floor 50.
 - **Print jeden 2. Frame wenn visMs > 18** analog Helios AX-Budget — 24 fps Trail fängt den Skip.
 - **leftoverStreakSince in gallery.json Schema 3** — Crash mitten im Walk tauft nicht neu.
-- **Face-count Hysterese Idle→Live** 2 Frames Gesicht bevor 8 fps, sonst Blinker am Türrahmen.
+- **Face-count Hysterese Idle→Live** 2 Frames Gesicht bevor 8 fps, sonst Blinker am Türrahmen. **→ 2.1.56 liveFacesLatch**
+- **Live-ROI um letzte Boxen.** Vision nur Crop bei 8 fps, Full-Frame alle 4 Ticks.
+- **leftover-Assign 3-Frame Majority** bevor UUID wechselt, sonst ein Tick Kreuz tauft.
+- **VNDetectFaceCaptureQuality** als vierte Ampel neben C/S/Y.
+- **Per-Kamera-Centroid** Built-in vs Continuity, Cross-Cam ReID über den Split.
+- **Shared Frame-Pump mit Helios.** Bridge sitzt als Idee, eine Session-API fehlt.
+- **Name-Lock Overlay `LOCK n s`** Countdown der 8 s, sonst wirkt tot nach Verlassen.
+- **Desk-View Horizont-Linie** im Overlay, sonst wirkt ungespiegelt „falsch herum“.
+- **Print-Cache Hit-Rate im Labor**, Cap 512 sichtbar wenn Burst droppt.
 
 ## Nächste (offen, 2.1.50 — erledigt in 2.1.51)
 

@@ -11,7 +11,7 @@ enum FaceEngine {
         return _dropped
     }
 
-    static func detect(in image: CGImage, mediaId: UUID, tiles: Bool = true, orientation: CGImagePropertyOrientation = .up, minSharpness: Double = MatchMath.sharpnessFloor, continuity: Bool = false, cheapGraph: Bool = false) throws -> [FaceObservation] {
+    static func detect(in image: CGImage, mediaId: UUID, tiles: Bool = true, orientation: CGImagePropertyOrientation = .up, minSharpness: Double = MatchMath.sharpnessFloor, continuity: Bool = false, cheapGraph: Bool = false, live: Bool = false) throws -> [FaceObservation] {
         let w = Double(image.width)
         let h = Double(image.height)
         var out = try detectOnce(in: image, mediaId: mediaId, originX: 0, originY: 0, imageWidth: w, imageHeight: h, orientation: orientation, cheapGraph: cheapGraph)
@@ -67,7 +67,7 @@ enum FaceEngine {
                 out.append(contentsOf: found)
             }
         }
-        return stampPrints(nms(out), from: image, orientation: orientation, continuity: continuity, minSharpness: minSharpness)
+        return stampPrints(nms(out, live: live), from: image, orientation: orientation, continuity: continuity, minSharpness: minSharpness)
     }
 
     private static func detectOnce(
@@ -233,12 +233,12 @@ enum FaceEngine {
         return out
     }
 
-    private static func nms(_ faces: [FaceObservation], iouThresh: Double = 0.28) -> [FaceObservation] {
+    private static func nms(_ faces: [FaceObservation], iouThresh: Double = 0.28, live: Bool = false) -> [FaceObservation] {
         let ranked = faces.sorted { $0.score > $1.score }
         var kept: [FaceObservation] = []
         var dropped: [FaceBox] = []
         for face in ranked {
-            if kept.contains(where: { duplicateDetection($0.box, face.box) }) {
+            if kept.contains(where: { duplicateDetection($0.box, face.box, live: live) }) {
                 dropped.append(face.box)
                 continue
             }
@@ -267,18 +267,28 @@ enum FaceEngine {
         return hypot(acx - bcx, acy - bcy) < 0.32 * diag
     }
 
-    /// High-IoU / nested twin of the same detection. Two people standing
-    /// together overlap a bit — that is not a duplicate.
-    /// Tile-twins share a center even when IoU is modest (Vision + tile).
-    private static func duplicateDetection(_ a: FaceBox, _ b: FaceBox) -> Bool {
-        if iou(a, b) >= 0.42 { return true }
+    private static func nestedOverlap(_ a: FaceBox, _ b: FaceBox) -> Double {
         let x1 = max(a.x, b.x)
         let y1 = max(a.y, b.y)
         let x2 = min(a.x + a.width, b.x + b.width)
         let y2 = min(a.y + a.height, b.y + b.height)
         let inter = max(0, x2 - x1) * max(0, y2 - y1)
         let smaller = min(a.width * a.height, b.width * b.height)
-        if smaller > 1 && inter / smaller >= 0.7 { return true }
+        return smaller > 1 ? inter / smaller : 0
+    }
+
+    /// High-IoU / nested twin of the same detection. Two people standing
+    /// together overlap a bit — that is not a duplicate.
+    /// Tile-twins share a center even when IoU is modest (Vision + tile).
+    private static func duplicateDetection(_ a: FaceBox, _ b: FaceBox, live: Bool = false) -> Bool {
+        let iouV = iou(a, b)
+        let nested = nestedOverlap(a, b)
+        if live {
+            if MatchMath.liveDuplicate(iou: iouV, nested: nested) { return true }
+        } else {
+            if iouV >= 0.42 { return true }
+            if nested >= 0.7 { return true }
+        }
         let acx = a.x + a.width / 2
         let acy = a.y + a.height / 2
         let bcx = b.x + b.width / 2
@@ -1622,6 +1632,7 @@ enum FaceEngine {
 
     private static let printVecLock = NSLock()
     private static var printVecCache: [Data: [Double]] = [:]
+    private static var printVecOrder: [Data] = []
 
     private static func printVector(_ data: Data) -> [Double] {
         printVecLock.lock()
@@ -1632,8 +1643,16 @@ enum FaceEngine {
         printVecLock.unlock()
         let vals = decodePrintVector(data)
         printVecLock.lock()
-        if printVecCache.count > 512 { printVecCache.removeAll(keepingCapacity: true) }
+        let drop = MatchMath.printCacheDropCount(count: printVecCache.count + 1)
+        if drop > 0 {
+            let n = min(drop, printVecOrder.count)
+            for i in 0..<n {
+                printVecCache.removeValue(forKey: printVecOrder[i])
+            }
+            printVecOrder.removeFirst(n)
+        }
         printVecCache[data] = vals
+        printVecOrder.append(data)
         printVecLock.unlock()
         return vals
     }

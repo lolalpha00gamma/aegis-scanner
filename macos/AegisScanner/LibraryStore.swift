@@ -75,6 +75,9 @@ final class LibraryStore: ObservableObject {
     private var liveRoll: [UUID: Double] = [:]
     private var liveLastStamp: TimeInterval = 0
     private var liveDt: TimeInterval = 0.125
+    private var liveDtSamples: [TimeInterval] = []
+    private var liveNameVoteAt: [UUID: TimeInterval] = [:]
+    private var liveFaceStreak = 0
     private var livePrintTrail: [UUID: [[Double]]] = [:]
     private var livePrintTrailSlot: [UUID: String] = [:]
     private var liveStillFor: [UUID: TimeInterval] = [:]
@@ -145,6 +148,9 @@ final class LibraryStore: ObservableObject {
         liveRoll = [:]
         liveLastStamp = 0
         liveDt = 0.125
+        liveDtSamples = []
+        liveNameVoteAt = [:]
+        liveFaceStreak = 0
         rematch()
         persist()
         let schema = packed.schemaVersion.map { "Schema \($0)" } ?? "Schema <2"
@@ -625,6 +631,7 @@ final class LibraryStore: ObservableObject {
         let liveFaceIds = Set(faces.filter { $0.mediaId == liveId }.map(\.id))
         liveNameHist = liveNameHist.filter { liveFaceIds.contains($0.key) }
         liveNameLock = liveNameLock.filter { liveFaceIds.contains($0.key) }
+        liveNameVoteAt = liveNameVoteAt.filter { liveFaceIds.contains($0.key) }
         liveScoreEma = liveScoreEma.filter { liveFaceIds.contains($0.key) }
         liveYaw = liveYaw.filter { liveFaceIds.contains($0.key) }
         livePitch = livePitch.filter { liveFaceIds.contains($0.key) }
@@ -708,6 +715,9 @@ final class LibraryStore: ObservableObject {
             let hist = MatchMath.nameHistAppend(liveNameHist[fid] ?? [], token: token, cap: cap)
             liveNameHist[fid] = hist
             let voted = MatchMath.nameMajorityAgreeing(hist, window: cap, need: need)
+            if let voted, !voted.isEmpty {
+                liveNameVoteAt[fid] = frameNow
+            }
             let holding = leftoverHold[fid] != nil
             let lockedId = liveNameLock[fid]
             let lockedPrint: Double? = {
@@ -721,7 +731,9 @@ final class LibraryStore: ObservableObject {
             let keep = MatchMath.nameLockHolds(
                 voted: voted,
                 locked: MatchMath.leftoverLocked(locked: lockedId?.uuidString, holding: holding),
-                lockedPrint: lockedMissing ? 0 : lockedPrint
+                lockedPrint: lockedMissing ? 0 : lockedPrint,
+                lastVote: liveNameVoteAt[fid],
+                now: frameNow
             )
             if let keep, let ident = identities.first(where: { $0.id.uuidString == keep }) {
                 leftoverHold.removeValue(forKey: fid)
@@ -1163,6 +1175,9 @@ final class LibraryStore: ObservableObject {
         liveRoll = [:]
         liveLastStamp = 0
         liveDt = 0.125
+        liveDtSamples = []
+        liveNameVoteAt = [:]
+        liveFaceStreak = 0
         livePoseAt.removeAll()
         freezeAxis = [:]
         swapFlashUntil = 0
@@ -1255,7 +1270,7 @@ final class LibraryStore: ObservableObject {
     private func runLiveDetect(_ image: CGImage, mediaId: UUID, stamp: TimeInterval) {
         let cont = liveCapture.isContinuity
         Task.detached(priority: .userInitiated) {
-            let found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true)) ?? []
+            let found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true)) ?? []
             await MainActor.run { [weak self] in
                 guard let self else { return }
                 if !self.liveActive || self.liveMediaId != mediaId {
@@ -1327,14 +1342,25 @@ final class LibraryStore: ObservableObject {
     }
 
     private func applyLiveFaces(_ found: [FaceObservation], image: CGImage, mediaId: UUID, stamp: TimeInterval) {
-        liveCapture.setFacesPresent(!found.isEmpty)
+        let latch = MatchMath.liveFacesLatch(
+            present: !found.isEmpty,
+            on: liveCapture.facesPresent,
+            streak: liveFaceStreak
+        )
+        liveFaceStreak = latch.streak
+        liveCapture.setFacesPresent(latch.on)
         guard let idx = media.firstIndex(where: { $0.id == mediaId }) else { return }
         media[idx].width = image.width
         media[idx].height = image.height
         media[idx].preview = image
         let now = stamp > 0 ? stamp : Date().timeIntervalSince1970
         if liveLastStamp > 0, now > liveLastStamp {
-            liveDt = min(0.50, max(0.04, now - liveLastStamp))
+            let raw = now - liveLastStamp
+            if raw > 0.02, raw < 0.40 {
+                liveDtSamples.append(raw)
+                if liveDtSamples.count > 8 { liveDtSamples.removeFirst(liveDtSamples.count - 8) }
+            }
+            liveDt = MatchMath.medianLiveDt(liveDtSamples, fallback: liveDt)
         }
         liveLastStamp = now
         let enrolled = Set(identities.flatMap(\.faceIds))
@@ -1554,6 +1580,7 @@ final class LibraryStore: ObservableObject {
                         liveNameHist.removeValue(forKey: id)
                         liveNameLock.removeValue(forKey: id)
                         leftoverHold.removeValue(forKey: id)
+                        liveNameVoteAt.removeValue(forKey: id)
                         liveScoreEma.removeValue(forKey: id)
                         liveYaw.removeValue(forKey: id)
                         livePitch.removeValue(forKey: id)
@@ -1756,10 +1783,14 @@ final class LibraryStore: ObservableObject {
                 leftoverPins += 1
                 if let cos = remaining.first(where: { $0.index == bestJ })?.cosine ?? item.bestCos {
                     if MatchMath.leftoverWipeHist(cosine: cos) {
-                        leftoverHold[adopted[bestJ].id] = cos
+                        leftoverHold[adopted[bestJ].id] = MatchMath.leftoverHoldEMA(
+                            prev: leftoverHold[adopted[bestJ].id],
+                            next: cos
+                        )
                         leftoverWipeUntil[adopted[bestJ].id] = MatchMath.leftoverWipeMuteUntil(now: now)
                         liveNameHist.removeValue(forKey: old.id)
                         liveNameLock.removeValue(forKey: old.id)
+                        liveNameVoteAt.removeValue(forKey: old.id)
                         liveScoreEma.removeValue(forKey: old.id)
                         livePrintDrift.removeValue(forKey: old.id)
                     } else {
