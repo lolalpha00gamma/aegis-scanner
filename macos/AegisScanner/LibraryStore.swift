@@ -53,6 +53,7 @@ final class LibraryStore: ObservableObject {
     private var leftoverPairLast: [UUID: UUID] = [:]
     private var leftoverPairStreak: [UUID: Int] = [:]
     private var leftoverPairCommit: [UUID: UUID] = [:]
+    private var tapGuestPending: Set<UUID> = []
     private var lastLiveVisMs: Double = 0
     private var liveSlotHold: [UUID: (slot: String, n: Int)] = [:]
     private var lastLiveHeadCount: Int = 0
@@ -1185,8 +1186,31 @@ final class LibraryStore: ObservableObject {
         if MatchMath.tapOverlayLocksName(pinned: pinned) {
             tapNameLockUntil[faceId] = MatchMath.tapNameLockUntil(now: Date().timeIntervalSince1970)
         } else if MatchMath.tapGuestSuggests(pinned: pinned) {
-            leftoverPending[faceId] = MatchMath.tapGuestNote()
+            if tapGuestPending.contains(faceId),
+               MatchMath.guestPersistWrites(tapped: true)
+            {
+                persistGuestTap(faceId)
+            } else {
+                tapGuestPending.insert(faceId)
+                leftoverPending[faceId] = MatchMath.tapGuestNote()
+            }
         }
+    }
+
+    /// Zweiter Overlay-Tap auf Gast: Taufe persistiert, nicht nur Chip.
+    private func persistGuestTap(_ faceId: UUID) {
+        guard let face = faces.first(where: { $0.id == faceId }) else { return }
+        guard identities.allSatisfy({ !$0.faceIds.contains(faceId) }) else { return }
+        let name = guestName(for: faceId)
+        identities.append(Identity(id: UUID(), name: name, faceIds: [face.id]))
+        stampEnrolled(face.id)
+        let lockAt = Date().timeIntervalSince1970
+        tapNameLockUntil[faceId] = MatchMath.tapNameLockUntil(now: lockAt)
+        leftoverPending.removeValue(forKey: faceId)
+        tapGuestPending.remove(faceId)
+        persist()
+        rematch()
+        status = "\(name) getauft"
     }
 
     func stillProgress(faceId: UUID) -> Double? {
@@ -1325,6 +1349,7 @@ final class LibraryStore: ObservableObject {
         leftoverPairStreak = [:]
         leftoverPairCommit = [:]
         leftoverPending = [:]
+        tapGuestPending = []
         leftoverHold = [:]
         leftoverHoldByHash = [:]
         leftoverHoldTrailByHash = [:]
@@ -1461,11 +1486,19 @@ final class LibraryStore: ObservableObject {
         oldId: UUID,
         box: FaceBox,
         now: TimeInterval,
-        holdPrev: Double? = nil
+        holdPrev: Double? = nil,
+        boxId: UUID? = nil
     ) -> (ready: Bool, label: String?) {
+        let hashed = MatchMath.leftoverStreakBoxWrite(
+            kalmanX: boxKalman[boxId ?? oldId]?.x,
+            kalmanY: boxKalman[boxId ?? oldId]?.y,
+            kalmanW: boxKalman[boxId ?? oldId]?.w,
+            kalmanH: boxKalman[boxId ?? oldId]?.h,
+            fallback: box
+        )
         let same: Bool
         if let prev = leftoverStreakBox[oldId] {
-            same = MatchMath.leftoverSameTarget(iou: FaceEngine.iou(prev, box))
+            same = MatchMath.leftoverSameTarget(iou: FaceEngine.iou(prev, hashed))
         } else {
             same = false
         }
@@ -1479,7 +1512,7 @@ final class LibraryStore: ObservableObject {
         }
         let next = MatchMath.leftoverStreakAdvance(prev: leftoverStreak[oldId] ?? 0, sameTarget: same)
         leftoverStreak[oldId] = next
-        leftoverStreakBox[oldId] = box
+        leftoverStreakBox[oldId] = hashed
         let elapsed = now - (leftoverStreakSince[oldId] ?? now)
         return (
             MatchMath.leftoverAdoptReady(elapsed: elapsed, streak: next, holdPrev: holdPrev),
@@ -1923,7 +1956,7 @@ final class LibraryStore: ObservableObject {
                     guard maj.ready else { continue }
                     leftoverPairCommit[old.id] = maj.commit
                     leftoverDisagree[old.id] = 0
-                    let step = leftoverAdvance(oldId: old.id, box: adopted[i].box, now: now)
+                    let step = leftoverAdvance(oldId: old.id, box: adopted[i].box, now: now, boxId: adopted[i].id)
                     if let label = step.label {
                         leftoverPending[adopted[i].id] = label
                     }
@@ -2036,7 +2069,22 @@ final class LibraryStore: ObservableObject {
                         adoptedEnrolled: namedTracks.contains(face.id) || enrolled.contains(face.id)
                     ) else { continue }
                     guard !used.contains(face.id) else { continue }
-                    let o = FaceEngine.iou(old.box, face.box)
+                    let o = FaceEngine.iou(
+                        MatchMath.leftoverStreakBoxWrite(
+                            kalmanX: boxKalman[old.id]?.x,
+                            kalmanY: boxKalman[old.id]?.y,
+                            kalmanW: boxKalman[old.id]?.w,
+                            kalmanH: boxKalman[old.id]?.h,
+                            fallback: old.box
+                        ),
+                        MatchMath.leftoverStreakBoxWrite(
+                            kalmanX: boxKalman[face.id]?.x,
+                            kalmanY: boxKalman[face.id]?.y,
+                            kalmanW: boxKalman[face.id]?.w,
+                            kalmanH: boxKalman[face.id]?.h,
+                            fallback: face.box
+                        )
+                    )
                     let v = FaceEngine.embedding(of: face)
                     let cosine: Double? = {
                         if v.count >= 32, ov.count == v.count { return MatchMath.cosine(v, ov) }
@@ -2086,6 +2134,13 @@ final class LibraryStore: ObservableObject {
                     }
                 }
                 let aegisHit = matches.first { $0.faceId == old.id }?.hits.first { $0.strategy == .aegis }
+                let lookYaw = abs(old.quality.yaw)
+                let lookEnrolled = namedTracks.contains(old.id) || enrolled.contains(old.id)
+                if MatchMath.leftoverLookawayHolds(yawAbs: lookYaw, enrolled: lookEnrolled) {
+                    leftoverPending[old.id] = MatchMath.leftoverLookawayLabel()
+                    leftoverPins += 1
+                    continue
+                }
                 guard let bestJ = MatchMath.leftoverPick(
                     candidates: remaining,
                     sharpness: sharp,
@@ -2114,9 +2169,13 @@ final class LibraryStore: ObservableObject {
                     lookawayYaw: abs(old.quality.yaw)
                 ) else {
                     let twin = aegisHit?.pairCosine
-                    if MatchMath.leftoverTwinSuggest(pairCosine: twin) {
+                    if let twinLabel = MatchMath.leftoverTwinPairLabel(pairCosine: twin) {
                         for cand in remaining {
-                            leftoverPending[adopted[cand.index].id] = MatchMath.leftoverTwinNote()
+                            leftoverPending[adopted[cand.index].id] = twinLabel
+                        }
+                    } else if remaining.contains(where: { MatchMath.leftoverUnknownHard(cosine: $0.cosine) }) {
+                        for cand in remaining where MatchMath.leftoverUnknownHard(cosine: cand.cosine) {
+                            leftoverPending[adopted[cand.index].id] = MatchMath.leftoverUnknownNote()
                         }
                     } else if !MatchMath.conflictTickAgrees(
                         boxId: nil,
@@ -2149,7 +2208,7 @@ final class LibraryStore: ObservableObject {
                     now: now,
                     ttl: MatchMath.dropoutTTL(dt: liveDt)
                 )
-                let step = leftoverAdvance(oldId: old.id, box: adopted[bestJ].box, now: now, holdPrev: holdPrev)
+                let step = leftoverAdvance(oldId: old.id, box: adopted[bestJ].box, now: now, holdPrev: holdPrev, boxId: adopted[bestJ].id)
                 if let label = step.label {
                     leftoverPending[adopted[bestJ].id] = label
                 }
@@ -2226,19 +2285,22 @@ final class LibraryStore: ObservableObject {
                 if let tap = MatchMath.tapNameLockLabel(until: tapUntil, now: now) {
                     leftoverPending[adopted[bestJ].id] = tap
                 }
+                let stillFor = liveStillFor[old.id] ?? liveStillFor[adopted[bestJ].id] ?? 0
                 let transfer = MatchMath.leftoverTransfersId(
                     cosine: pinCos,
                     holdPrev: holdNow,
                     trail: trailNow,
                     tapUntil: tapUntil,
-                    now: now
+                    now: now,
+                    stillFor: stillFor
                 )
                 if MatchMath.leftoverHoldsTrack(
                     cosine: pinCos,
                     holdPrev: holdNow,
                     trail: trailNow,
                     tapUntil: tapUntil,
-                    now: now
+                    now: now,
+                    stillFor: stillFor
                 ) {
                     leftoverPending[adopted[bestJ].id] = MatchMath.leftoverHoldLabel(cosine: pinCos)
                         ?? leftoverPending[adopted[bestJ].id]
@@ -2321,6 +2383,12 @@ final class LibraryStore: ObservableObject {
             leftoverHoldByHash = MatchMath.leftoverHoldPrune(leftoverHoldByHash, now: now)
             leftoverHoldTrailByHash = MatchMath.leftoverTrailPrune(leftoverHoldTrailByHash, now: now)
             leftoverPending = leftoverPending.filter { liveIds.contains($0.key) }
+            tapGuestPending = tapGuestPending.filter { liveIds.contains($0) }
+            for id in tapGuestPending {
+                if leftoverPending[id] == nil {
+                    leftoverPending[id] = MatchMath.tapGuestNote()
+                }
+            }
             let liveList = Array(liveIds)
             guestOrder = guestOrder.filter {
                 MatchMath.guestOrderKeeps(id: $0, live: liveList, lastSeen: guestSeenAt[$0], now: now)

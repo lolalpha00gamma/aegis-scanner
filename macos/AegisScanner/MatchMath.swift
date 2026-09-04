@@ -360,6 +360,23 @@ enum MatchMath {
         enrolled && (yawAbs ?? 0) >= floor
     }
 
+    /// Lookaway freeze: Hold/Streak behalten, nicht leftoverClear.
+    static func leftoverLookawayHolds(yawAbs: Double?, enrolled: Bool) -> Bool {
+        leftoverLookawayBlocks(yawAbs: yawAbs, enrolled: enrolled)
+    }
+
+    static func leftoverLookawayLabel() -> String { "WEG" }
+
+    /// Open-Set 0,50–0,62: hart UNBEKANNT, kein Gast-Index-Sprung.
+    static let leftoverUnknownLo = 0.50
+
+    static func leftoverUnknownHard(cosine: Double?) -> Bool {
+        guard let c = cosine else { return false }
+        return c >= leftoverUnknownLo && unknownCentroid(bestCosine: c)
+    }
+
+    static func leftoverUnknownNote() -> String { "UNBEKANNT" }
+
     /// pairCosine ≥ 0,90: leftover nie über Box, nur Print ≥ 0,80.
     static func leftoverTwinBlocksBox(
         pairCosine: Double?,
@@ -419,20 +436,36 @@ enum MatchMath {
     /// UUID/Print nur bei Baptize 0,80 ohne Twin-Spike und ohne MAD.
     /// Spike + 3 Baptize-Samples = echter Anstieg, nicht ein Twin-Frame.
     /// Tap-Lock 3 s: manueller Name, leftover tauft nicht.
+    /// Erste Begegnung: 0,45 s still, sonst Vorbeigehen tauft.
     static func leftoverTransfersId(
         cosine: Double?,
         holdPrev: Double? = nil,
         trail: [Double] = [],
         tapUntil: TimeInterval? = nil,
-        now: TimeInterval = 0
+        now: TimeInterval = 0,
+        stillFor: TimeInterval = 1
     ) -> Bool {
         if tapNameLockBlocks(until: tapUntil, now: now) { return false }
+        if leftoverBaptizeStillBlocks(stillFor: stillFor, cosine: cosine, holdPrev: holdPrev) { return false }
         guard leftoverBaptize(cosine: cosine) else { return false }
         if printMADBlocks(trail) { return false }
         if leftoverBaptizeSpike(raw: cosine, prev: holdPrev) {
             return trail.filter { leftoverBaptize(cosine: $0) }.count >= 3
         }
         return true
+    }
+
+    static let leftoverBaptizeStillNeed: TimeInterval = 0.45
+
+    /// Erste Begegnung ohne Hold: 0,45 s still bevor Taufe. Hold 0,64 skippt.
+    static func leftoverBaptizeStillBlocks(
+        stillFor: TimeInterval,
+        cosine: Double?,
+        holdPrev: Double?
+    ) -> Bool {
+        guard leftoverBaptize(cosine: cosine) else { return false }
+        if leftoverPrintOk(cosine: holdPrev) { return false }
+        return stillFor < leftoverBaptizeStillNeed
     }
 
     static func leftoverWipeHist(cosine: Double?) -> Bool {
@@ -1922,10 +1955,11 @@ enum MatchMath {
         holdPrev: Double? = nil,
         trail: [Double] = [],
         tapUntil: TimeInterval? = nil,
-        now: TimeInterval = 0
+        now: TimeInterval = 0,
+        stillFor: TimeInterval = 1
     ) -> Bool {
         leftoverPrintOk(cosine: cosine) && !leftoverTransfersId(
-            cosine: cosine, holdPrev: holdPrev, trail: trail, tapUntil: tapUntil, now: now
+            cosine: cosine, holdPrev: holdPrev, trail: trail, tapUntil: tapUntil, now: now, stillFor: stillFor
         )
     }
 
@@ -2122,6 +2156,17 @@ enum MatchMath {
     }
 
     static func leftoverTwinNote() -> String { "TWIN" }
+
+    /// Overlay `TWIN 0,93` neben dem Veto, nicht nur das Wort.
+    static func leftoverTwinPairLabel(pairCosine: Double?) -> String? {
+        guard let p = pairCosine else { return nil }
+        guard leftoverTwinHardBlocks(pairCosine: p) || leftoverTwinSuggest(pairCosine: p) else { return nil }
+        let hundredths = Int((p * 100).rounded())
+        let whole = hundredths / 100
+        let frac = abs(hundredths % 100)
+        let fracStr = frac < 10 ? "0\(frac)" : "\(frac)"
+        return "TWIN \(whole),\(fracStr)"
+    }
 
     /// Bei genau 2 Personen: Print und Geo müssen einig sein.
     static func twoPersonAnd(printAgree: Bool, geoAgree: Bool, gallery: Int) -> Bool {
@@ -2341,6 +2386,18 @@ enum MatchMath {
             return fallback
         }
         return FaceBox(x: x, y: y, width: w, height: h)
+    }
+
+    static func leftoverStreakBoxWrite(
+        kalmanX: Double?,
+        kalmanY: Double?,
+        kalmanW: Double?,
+        kalmanH: Double?,
+        fallback: FaceBox
+    ) -> FaceBox {
+        leftoverHashBox(
+            kalmanX: kalmanX, kalmanY: kalmanY, kalmanW: kalmanW, kalmanH: kalmanH, fallback: fallback
+        )
     }
 
     /// Put und Lookup dieselbe Kiste. Write auf Roh-Box der adopted Kiste verfehlte den Bin.

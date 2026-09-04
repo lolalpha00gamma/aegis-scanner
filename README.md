@@ -1,4 +1,4 @@
-# Aegis **2.1.72 alpha**
+# Aegis **2.1.73 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,17 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.73 alpha
+
+2.1.72 Trail-Kalman/EMA/Twin/Lookaway. Streak-Box roh. Lookaway wischte Hold. TAUFEN? schrieb nicht. 0,82 tauft ohne Still. Open-Set Gast-Index.
+
+- **`leftoverStreakBoxWrite`.** Streak- und Pick-IoU Kalman.
+- **`leftoverLookawayHolds` + `WEG`.** Freeze ohne Clear.
+- **`persistGuestTap`.** Zweiter Overlay-Tap tauft.
+- **`leftoverBaptizeStillBlocks` 0,45 s.** Vorbeigehen tauft nicht.
+- **`leftoverUnknownHard` UNBEKANNT. `leftoverTwinPairLabel` TWIN 0,93.**
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.73 (Build 99).
 
 ## Neu in 2.1.72 alpha
 
