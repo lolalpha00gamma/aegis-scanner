@@ -2001,10 +2001,10 @@ final class LibraryStore: ObservableObject {
         let ghostIds = liveGhosts.map(\.face.id)
         let liveIds = Array(used)
         let holdBefore = leftoverHold.count
-        leftoverHold = MatchMath.leftoverHoldSurvive(hold: leftoverHold, ghosts: ghostIds, live: liveIds)
-        leftoverHoldTrail = MatchMath.leftoverHoldSurvive(hold: leftoverHoldTrail, ghosts: ghostIds, live: liveIds)
-        liveSlotHold = MatchMath.leftoverHoldSurvive(hold: liveSlotHold, ghosts: ghostIds, live: liveIds)
-        leftoverMissFrames = MatchMath.leftoverHoldSurvive(hold: leftoverMissFrames, ghosts: ghostIds, live: liveIds)
+        leftoverHold = MatchMath.leftoverHoldSurvive(hold: leftoverHold, ghosts: ghostIds, live: liveIds, emptyKeeps: found.isEmpty)
+        leftoverHoldTrail = MatchMath.leftoverHoldSurvive(hold: leftoverHoldTrail, ghosts: ghostIds, live: liveIds, emptyKeeps: found.isEmpty)
+        liveSlotHold = MatchMath.leftoverHoldSurvive(hold: liveSlotHold, ghosts: ghostIds, live: liveIds, emptyKeeps: found.isEmpty)
+        leftoverMissFrames = MatchMath.leftoverHoldSurvive(hold: leftoverMissFrames, ghosts: ghostIds, live: liveIds, emptyKeeps: found.isEmpty)
         leftoverHoldByHash = MatchMath.leftoverHoldPrune(leftoverHoldByHash, now: now, ttl: MatchMath.dropoutTTL(dt: liveDt))
         leftoverHoldTrailByHash = MatchMath.leftoverTrailPrune(leftoverHoldTrailByHash, now: now, ttl: MatchMath.dropoutTTL(dt: liveDt))
         if let line = MatchMath.leftoverHoldPruneLine(
@@ -2015,8 +2015,10 @@ final class LibraryStore: ObservableObject {
             status = line
         }
         if found.isEmpty {
-            liveHeldIds = []
-            leftoverPending = [:]
+            if !MatchMath.leftoverEmptyKeepsOverlay(liveEmpty: true) {
+                liveHeldIds = []
+                leftoverPending = [:]
+            }
             if !MatchMath.leftoverEmptyKeepsStreak(liveEmpty: true) {
                 leftoverStreak = [:]
                 leftoverStreakBox = [:]
@@ -2041,11 +2043,13 @@ final class LibraryStore: ObservableObject {
             liveLidClosed = [:]
             liveBlinkSeen = [:]
             faces.removeAll { $0.mediaId == mediaId }
-            if let label = MatchMath.headCountFlashLabel(prev: lastLiveHeadCount, next: 0) {
-                lastHeadCountLabel = label
-                headCountFlashUntil = now + MatchMath.headCountFlashHold
+            if !MatchMath.leftoverEmptyKeepsOverlay(liveEmpty: true) {
+                if let label = MatchMath.headCountFlashLabel(prev: lastLiveHeadCount, next: 0) {
+                    lastHeadCountLabel = label
+                    headCountFlashUntil = now + MatchMath.headCountFlashHold
+                }
+                lastLiveHeadCount = 0
             }
-            lastLiveHeadCount = 0
         } else {
             let ghostFaces = liveGhosts.map(\.face).filter { $0.mediaId == mediaId }
             let leftoverPool: [FaceObservation] = {
@@ -2486,7 +2490,9 @@ final class LibraryStore: ObservableObject {
         }
         if selectedMediaId == mediaId {
             if found.isEmpty {
-                selectedFaceId = nil
+                if !MatchMath.leftoverEmptyKeepsOverlay(liveEmpty: true) {
+                    selectedFaceId = nil
+                }
             } else if let cur = selectedFaceId, adopted.contains(where: { $0.id == cur }) {
                 // Auswahl halten, solange der Track da ist.
             } else {

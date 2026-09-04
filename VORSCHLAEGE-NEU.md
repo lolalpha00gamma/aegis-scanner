@@ -1,6 +1,14 @@
-# Nachtrag 2026-09-04 (2.1.78)
+# Nachtrag 2026-09-04 (2.1.79)
 
-Siehe ANALYSE.md. **2.1.78** schließt leeren-Frame-Streak, Yaw-Floor 0,70, Same-shot Twin 0,88 wirklich im Code.
+Siehe ANALYSE.md. **2.1.79** schließt Overlay-Namen am Ghost, Ghost-TTL 4 s, Profil-Yaw 0,45 wirklich im Code.
+
+## In 2.1.79 gelandet
+
+1. leftoverEmptyKeepsOverlay — Namen/Held am Ghost
+2. leftoverLatch 4 s — 8 fps Ghost/TTL
+3. leftoverPrintProfileYaw 0,45
+4. leftoverHoldSurvive emptyKeeps
+5. VERSION = Models = MARKETING_VERSION 2.1.79 (Build 105)
 
 ## In 2.1.78 gelandet
 
@@ -9,15 +17,6 @@ Siehe ANALYSE.md. **2.1.78** schließt leeren-Frame-Streak, Yaw-Floor 0,70, Same
 3. leftoverTwinHardVetoNow — zwei Gesichter 0,88
 4. leftoverPick facesInFrame
 5. VERSION = Models = MARKETING_VERSION 2.1.78 (Build 104)
-
-## In 2.1.77 gelandet
-
-1. leftoverHoldLabel sharpness — gehalten 0,62
-2. leftoverLookawayPinsStranger — kein WEG auf Nachbar
-3. leftoverMissAdvance 3 Frames
-4. leftoverAdoptNeedSec 8 fps 0,6 s
-5. leftoverTwinTint TWIN? amber / TWIN rot
-6. VERSION = Models = MARKETING_VERSION 2.1.77 (Build 103)
 
 ## Offen (nicht Pflaster)
 
@@ -65,8 +64,11 @@ Siehe ANALYSE.md. **2.1.78** schließt leeren-Frame-Streak, Yaw-Floor 0,70, Same
 47. Multi-Cam-Triangulation für 3D-Slot
 48. Watch-Haptik bei UNBEKANNT
 49. Face-Clustering nach Burst (Galerie aufräumen)
-50. leftoverEmptyKeepsStreak sitzt
-51. leftoverPrintFloor Profil 0,70 sitzt
-52. leftoverTwinHardVetoNow 0,88 sitzt
+50. Kalman-Predict auf leerem Frame (cx+=vx·dt), nicht nur Hold
+51. leftoverPending an Ghost-UUID spiegeln wenn Adopt-ID schon tot
+52. Night-ISO Cap Pref, AE nicht 3 s jagen
+53. leftoverEmptyKeepsOverlay sitzt
+54. leftoverLatch 4 s sitzt
+55. leftoverPrintProfileYaw 0,45 sitzt
 
 Nur main.

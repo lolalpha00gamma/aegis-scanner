@@ -1194,6 +1194,12 @@ enum MatchMathTests {
         ok(survive[idHoldA] == 0.70, "Ghost-Hold überlebt Dropout")
         ok(survive[idHoldB] == nil, "ohne Ghost Wipe")
         ok(MatchMath.leftoverHoldSurvive(hold: [idHoldA: 0.70], ghosts: []).isEmpty, "ohne Ghosts leer")
+        let keepEmpty = MatchMath.leftoverHoldSurvive(
+            hold: [idHoldA: 0.70],
+            ghosts: [],
+            emptyKeeps: true
+        )
+        ok(keepEmpty[idHoldA] == 0.70, "leerer Frame hält Hold")
         let keepLive = MatchMath.leftoverHoldSurvive(
             hold: [idHoldA: 0.70, idHoldB: 0.50],
             ghosts: [idHoldB],
@@ -1202,8 +1208,8 @@ enum MatchMathTests {
         ok(keepLive[idHoldA] == 0.70, "Partial: Live-Hold bleibt")
         ok(keepLive[idHoldB] == 0.50, "Partial: Ghost-Hold bleibt")
         near(MatchMath.dropoutTTL(dt: 0.016), 1.20, 0.001, "24 fps TTL 1,2 s")
-        near(MatchMath.dropoutTTL(dt: 0.125), 1.60, 0.001, "8 fps TTL 1,6 s")
-        near(MatchMath.liveGhostHold(dt: 0.125), 1.60, 0.001, "8 fps Ghost 1,6 s")
+        near(MatchMath.dropoutTTL(dt: 0.125), 4.0, 0.001, "8 fps TTL 4 s Latch")
+        near(MatchMath.liveGhostHold(dt: 0.125), 4.0, 0.001, "8 fps Ghost 4 s")
         ok(MatchMath.captureJumpBlocksPrint(prev: 0.40, next: 0.70, enrolled: true), "Enrolled Capture-Jump blockt Print")
         ok(!MatchMath.captureJumpBlocksPrint(prev: 0.40, next: 0.70, enrolled: false), "Gast Capture-Jump darf")
         ok(!MatchMath.captureJumpBlocksPrint(prev: 0.40, next: 0.45, enrolled: true), "kleines Delta kein Block")
@@ -1325,16 +1331,20 @@ enum MatchMathTests {
         ok(MatchMath.leftoverTwinTint(pairCosine: 0.93) == "red", "TWIN hart rot")
         ok(MatchMath.leftoverTwinTint(pairCosine: 0.50) == nil, "fremd kein Twin-Tint")
         ok(abs(MatchMath.leftoverPrintFloor(yawAbs: 0.10) - 0.62) < 0.001, "frontal Genuine 0,62")
-        ok(abs(MatchMath.leftoverPrintFloor(yawAbs: 0.40) - 0.70) < 0.001, "Profil Genuine 0,70")
+        ok(abs(MatchMath.leftoverPrintFloor(yawAbs: 0.30) - 0.62) < 0.001, "leichte Drehung 0,62")
+        ok(abs(MatchMath.leftoverPrintFloor(yawAbs: 0.50) - 0.70) < 0.001, "Profil Genuine 0,70")
         ok(MatchMath.leftoverPrintOk(cosine: 0.62, sharpness: 0.30), "frontal 0,62 scharf")
-        ok(!MatchMath.leftoverPrintOk(cosine: 0.62, sharpness: 0.30, yawAbs: 0.40), "Profil 0,62 tot")
-        ok(MatchMath.leftoverPrintOk(cosine: 0.71, sharpness: 0.30, yawAbs: 0.40), "Profil 0,71 scharf")
+        ok(MatchMath.leftoverPrintOk(cosine: 0.62, sharpness: 0.30, yawAbs: 0.30), "0,30 rad 0,62 scharf")
+        ok(!MatchMath.leftoverPrintOk(cosine: 0.62, sharpness: 0.30, yawAbs: 0.50), "Profil 0,62 tot")
+        ok(MatchMath.leftoverPrintOk(cosine: 0.71, sharpness: 0.30, yawAbs: 0.50), "Profil 0,71 scharf")
         ok(abs(MatchMath.leftoverTwinHardVetoNow(facesInFrame: 1) - 0.92) < 0.001, "ein Gesicht 0,92")
         ok(abs(MatchMath.leftoverTwinHardVetoNow(facesInFrame: 2) - 0.88) < 0.001, "zwei Gesichter 0,88")
         ok(MatchMath.leftoverTwinHardBlocks(pairCosine: 0.90, veto: MatchMath.leftoverTwinHardVetoNow(facesInFrame: 2)), "Same-shot 0,90 hart")
         ok(!MatchMath.leftoverTwinHardBlocks(pairCosine: 0.90), "ein Gesicht 0,90 weich")
         ok(MatchMath.leftoverEmptyKeepsStreak(liveEmpty: true), "leerer Frame hält Streak")
         ok(!MatchMath.leftoverEmptyKeepsStreak(liveEmpty: false), "Live wischt nicht über den Helfer")
+        ok(MatchMath.leftoverEmptyKeepsOverlay(liveEmpty: true), "leerer Frame hält Overlay")
+        ok(!MatchMath.leftoverEmptyKeepsOverlay(liveEmpty: false), "Live Overlay-Helfer tot")
         let twinPick = MatchMath.leftoverPick(
             candidates: [(index: 0, iou: 0.50, cosine: 0.82)],
             sharpness: [0: 0.40],

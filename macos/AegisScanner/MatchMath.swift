@@ -28,6 +28,8 @@ enum MatchMath {
     /// Scharfer Genuine. Profil braucht mehr — sonst Twin im ¾ tauft.
     static let leftoverPrintGenuine = 0.62
     static let leftoverPrintProfile = 0.70
+    /// 0,28 rad (~16°) war Lookaway UND Profil-Floor — leichte Drehung 0,62 tot.
+    static let leftoverPrintProfileYaw = 0.45
     static let leftoverPrintSharp = 0.22
     /// Enrolled-Track klebt nur bei echter Überlappung. 0,12 hat Nachbarn die UUID geklaut.
     static let trackPinIoU = 0.28
@@ -532,8 +534,9 @@ enum MatchMath {
     /// Leftover darf Genuine 0,62–0,79 halten. Pin-Print 0,80 bleibt für enrolled IoU-Steal.
     /// Blur unter leftoverPrintSharp sperrt Hold-Pick, nicht Baptize 0,80.
     /// Profil: Floor 0,70 — sonst Twin im ¾ mit 0,62 scharf.
+    /// Schwelle 0,45 rad, nicht Lookaway 0,28 — sonst 16° schon Profil.
     static func leftoverPrintFloor(yawAbs: Double?) -> Double {
-        (yawAbs ?? 0) >= leftoverLookawayYaw ? leftoverPrintProfile : leftoverPrintGenuine
+        (yawAbs ?? 0) >= leftoverPrintProfileYaw ? leftoverPrintProfile : leftoverPrintGenuine
     }
 
     static func leftoverPrintOk(cosine: Double?, sharpness: Double? = nil, floor: Double = leftoverPrintCosine, yawAbs: Double? = nil) -> Bool {
@@ -1220,10 +1223,12 @@ enum MatchMath {
     static let leftoverAdoptCap = 80
     /// 8 fps: 1,2 s = 9 Frames, Walker fällt durch. 1,6 s hält den Ghost.
     static let leftoverAdoptSecSlow: TimeInterval = 1.60
+    /// Continuity-AE oft 2–3 s. 1,6 s Ghost = Gast n+1. Latch wie Helios 4 s.
+    static let leftoverLatch: TimeInterval = 4.0
 
-    /// Dropout-TTL folgt dem Takt. 8 fps 1,6 s, 24 fps 1,2 s.
+    /// Dropout-TTL folgt dem Takt. 8 fps Latch 4 s, 24 fps 1,2 s.
     static func dropoutTTL(dt: TimeInterval) -> TimeInterval {
-        dt >= 0.08 ? leftoverAdoptSecSlow : leftoverAdoptSec
+        dt >= 0.08 ? leftoverLatch : leftoverAdoptSec
     }
 
     static func liveGhostHold(dt: TimeInterval = 0.016) -> TimeInterval {
@@ -1295,6 +1300,9 @@ enum MatchMath {
 
     /// Leerer Detector-Frame wischt Streak/Kalman nicht. 8 fps Dropout = Gast n+1 sonst.
     static func leftoverEmptyKeepsStreak(liveEmpty: Bool) -> Bool { liveEmpty }
+
+    /// Overlay-Namen und Held-IDs bleiben am Ghost. 2.1.78 wischte leftoverPending — Kiste tot.
+    static func leftoverEmptyKeepsOverlay(liveEmpty: Bool) -> Bool { liveEmpty }
 
     /// Slot leer: Frontal-only, nie 72/28 mit Profil. ¾-Sonde vs All-Mean war weich.
     static func slotCentroidFallsBackToFrontal(slotCount: Int) -> Bool {
@@ -2047,9 +2055,9 @@ enum MatchMath {
     }
 
     /// Dropout: UUID-Hold/Trail/Slot am Ghost **und** an Live. Nur Ghosts wischte den Live-Hold.
-    static func leftoverHoldSurvive<Value>(hold: [UUID: Value], ghosts: [UUID], live: [UUID] = []) -> [UUID: Value] {
+    static func leftoverHoldSurvive<Value>(hold: [UUID: Value], ghosts: [UUID], live: [UUID] = [], emptyKeeps: Bool = false) -> [UUID: Value] {
         let keep = Set(ghosts + live)
-        guard !keep.isEmpty else { return [:] }
+        if keep.isEmpty { return emptyKeeps ? hold : [:] }
         return hold.filter { keep.contains($0.key) }
     }
 

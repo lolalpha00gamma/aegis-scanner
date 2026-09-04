@@ -1,4 +1,4 @@
-# Aegis **2.1.78 alpha**
+# Aegis **2.1.79 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.79 alpha
+
+2.1.78 Streak/Kalman. Overlay-Namen wischten trotzdem. Ghost 1,6 s kürzer als Continuity-AE. Profil-Floor schon bei 16°.
+
+- **`leftoverEmptyKeepsOverlay`.** leftoverPending / Held / Auswahl bleiben am Ghost.
+- **`leftoverLatch` 4 s.** 8 fps Ghost/TTL 4 s, 24 fps 1,2 s.
+- **`leftoverPrintProfileYaw` 0,45.** Floor 0,70 erst ab ~26°.
+- **`leftoverHoldSurvive(emptyKeeps:)`.**
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.79 (Build 105).
 
 ## Neu in 2.1.78 alpha
 
