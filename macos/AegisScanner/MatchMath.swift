@@ -373,9 +373,30 @@ enum MatchMath {
         pinByPrint(cosine: cosine ?? -1)
     }
 
-    /// UUID/Print nur bei Baptize 0,80. leftoverPrintOk 0,64 hält die Kiste, stiehlt keine Identität.
-    static func leftoverTransfersId(cosine: Double?) -> Bool {
-        leftoverBaptize(cosine: cosine)
+    /// Twin 0,80 nach Hold 0,64: Spike, kein Steal. 0,80 nach 0,80 bleibt Taufe.
+    static func leftoverBaptizeSpike(
+        raw: Double?,
+        prev: Double?,
+        spike: Double = leftoverHoldSpike
+    ) -> Bool {
+        guard leftoverBaptize(cosine: raw), let prev else { return false }
+        if leftoverBaptize(cosine: prev) { return false }
+        return raw! - prev >= spike
+    }
+
+    /// UUID/Print nur bei Baptize 0,80 ohne Twin-Spike und ohne MAD.
+    /// Spike + 3 Baptize-Samples = echter Anstieg, nicht ein Twin-Frame.
+    static func leftoverTransfersId(
+        cosine: Double?,
+        holdPrev: Double? = nil,
+        trail: [Double] = []
+    ) -> Bool {
+        guard leftoverBaptize(cosine: cosine) else { return false }
+        if printMADBlocks(trail) { return false }
+        if leftoverBaptizeSpike(raw: cosine, prev: holdPrev) {
+            return trail.filter { leftoverBaptize(cosine: $0) }.count >= 3
+        }
+        return true
     }
 
     static func leftoverWipeHist(cosine: Double?) -> Bool {
@@ -1065,9 +1086,12 @@ enum MatchMath {
         elapsed: TimeInterval,
         streak: Int,
         needSec: TimeInterval = leftoverAdoptSec,
-        minFrames: Int = leftoverAdoptFrames
+        minFrames: Int = leftoverAdoptFrames,
+        holdPrev: Double? = nil
     ) -> Bool {
-        elapsed >= needSec && streak >= minFrames
+        // Hash-Hold überlebte Dropout: die 1,2 s waren schon da.
+        if holdPrev != nil { return streak >= 1 }
+        return elapsed >= needSec && streak >= minFrames
     }
 
     /// Overlay während Streak: `1/10` in Zehnteln der 1,2 s, nicht Frames (24 fps wäre 1/75).
@@ -2086,22 +2110,74 @@ enum MatchMath {
         return "\(q(cx)).\(q(cy)).\(q(box.width)).\(q(box.height))"
     }
 
-    /// cx/cy ±1, Breite/Höhe fest. Bin-Kante tötet Hold nicht.
+    /// cx/cy/w/h ±1. Detector-Jitter auf der Größe tötet Hold nicht.
     static func leftoverBoxHashNeighbors(_ hash: String, bins: Int = 12) -> [String] {
         let parts = hash.split(separator: ".").compactMap { Int($0) }
         guard parts.count == 4 else { return [hash] }
         let cx = parts[0], cy = parts[1], w = parts[2], h = parts[3]
         var out: [String] = []
-        out.reserveCapacity(9)
+        out.reserveCapacity(81)
         for dx in -1...1 {
             for dy in -1...1 {
-                let x = cx + dx
-                let y = cy + dy
-                guard x >= 0, x < bins, y >= 0, y < bins else { continue }
-                out.append("\(x).\(y).\(w).\(h)")
+                for dw in -1...1 {
+                    for dh in -1...1 {
+                        let x = cx + dx
+                        let y = cy + dy
+                        let ww = w + dw
+                        let hh = h + dh
+                        guard x >= 0, x < bins, y >= 0, y < bins else { continue }
+                        guard ww >= 0, ww < bins, hh >= 0, hh < bins else { continue }
+                        out.append("\(x).\(y).\(ww).\(hh)")
+                    }
+                }
             }
         }
         return out
+    }
+
+    /// Ghosts nach Dropout: leftover braucht die letzte Kiste, nicht nur live previous.
+    static func leftoverGhostIds(previous: [UUID], ghosts: [UUID]) -> [UUID] {
+        var seen = Set<UUID>()
+        return (previous + ghosts).filter { seen.insert($0).inserted }
+    }
+
+    static func leftoverTrailPut(
+        hash: String,
+        sample: Double,
+        onto table: [String: (samples: [Double], at: TimeInterval)],
+        now: TimeInterval,
+        cap: Int = 5
+    ) -> [String: (samples: [Double], at: TimeInterval)] {
+        var next = leftoverTrailPrune(table, now: now)
+        var row = leftoverTrailLookup(hash: hash, table: next, now: now)
+        row.append(sample)
+        if row.count > cap { row.removeFirst(row.count - cap) }
+        next[hash] = (row, now)
+        return next
+    }
+
+    static func leftoverTrailLookup(
+        hash: String,
+        table: [String: (samples: [Double], at: TimeInterval)],
+        now: TimeInterval,
+        ttl: TimeInterval = leftoverAdoptSec
+    ) -> [Double] {
+        var best: (samples: [Double], at: TimeInterval)?
+        for h in leftoverBoxHashNeighbors(hash) {
+            guard let row = table[h], now - row.at <= ttl else { continue }
+            if best == nil || row.at > best!.at {
+                best = row
+            }
+        }
+        return best?.samples ?? []
+    }
+
+    static func leftoverTrailPrune(
+        _ table: [String: (samples: [Double], at: TimeInterval)],
+        now: TimeInterval,
+        ttl: TimeInterval = leftoverAdoptSec
+    ) -> [String: (samples: [Double], at: TimeInterval)] {
+        table.filter { now - $0.value.at <= ttl }
     }
 
     static func leftoverHoldLookup(

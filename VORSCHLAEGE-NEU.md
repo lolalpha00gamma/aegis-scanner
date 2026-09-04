@@ -1,6 +1,15 @@
-# Nachtrag 2026-09-04
+# Nachtrag 2026-09-04 (2.1.67)
 
-Siehe ANALYSE.md. **2.1.66** schließt Hash-Kantensprung, leeren-Frame-Wipe, Gast n+1 und Print-MAD wirklich im Code. 2.1.65 war Docs.
+Siehe ANALYSE.md. **2.1.67** schließt Ghost-Pool, Größen-Hash, Twin-Steal und Trail-über-Dropout wirklich im Code.
+
+## In 2.1.67 gelandet
+
+1. leftoverPinned aus liveGhosts nach Dropout
+2. leftoverBoxHashNeighbors cx/cy/w/h ±1
+3. leftoverBaptizeSpike — 0,80 nach 0,64 kein UUID-Steal
+4. leftoverHoldTrailByHash, Put seeded von Nachbarn
+5. leftoverAdoptReady(holdPrev) skippt 1,2 s
+6. VERSION = Models = MARKETING_VERSION 2.1.67 (Build 93)
 
 ## In 2.1.66 gelandet
 
@@ -9,20 +18,6 @@ Siehe ANALYSE.md. **2.1.66** schließt Hash-Kantensprung, leeren-Frame-Wipe, Gas
 3. guestOrderKeeps 8 s, unbekannt = Gast n+1
 4. printMAD > 0,04 blockt Adopt, Overlay MAD
 5. VERSION = Models = MARKETING_VERSION 2.1.66 (Build 92)
-
-## In 2.1.64 gelandet
-
-1. leftoverHold keyed by Box-Hash ueber Dropout
-2. leftoverStreakSince in gallery.json Schema 4
-3. Gast nur nach Tauf-Button, nie 8 s silent
-4. Farbenblind Ampel-Glyphen + VoiceOver-Pattern
-5. CLAHE-Banner Continuity-Nacht, liveROI Math
-
-## In 2.1.63 gelandet
-
-1. leftoverTransfersId — UUID/Print nur Baptize 0,80
-2. Gast 1 / Gast 2 ueber guestOrder
-3. CI macos-26, Tests zuerst, arm64
 
 ## Offen (nicht Pflaster)
 
@@ -41,13 +36,13 @@ Siehe ANALYSE.md. **2.1.66** schließt Hash-Kantensprung, leeren-Frame-Wipe, Gas
 18. Identity-Graph als Soft-Prior, nie Taufe
 19. PnP 6DoF, Slot folgt der Nase
 20. Family-Bump UI neben Open-Set
-21. Print-MAD > 0,04 wirft Spike — 2.1.66
-22. Gallery-at-rest FileVault-Hinweis
-23. Temporal ReID ueber Hold-Trail
-24. Quality-weighted Centroid
-25. Encrypted gallery export
-26. Hash-Bins adaptiv an Box-Groesse
-27. leftoverHold auch auf Slot F/3-4/P
-28. Detector-NMS nach Kalman-Box
-29. Helios-Palm als Attention-Kegel
-30. Merge-Wizard Undo 30 s
+21. Gallery-at-rest FileVault-Hinweis
+22. Quality-weighted Centroid
+23. Encrypted gallery export
+24. leftoverHold auch auf Slot F/3-4/P
+25. Detector-NMS nach Kalman-Box
+26. Helios-Palm als Attention-Kegel
+27. Merge-Wizard Undo 30 s
+28. Temporal ReID über Hold-Trail — 2.1.67 Hash-Trail, Graph fehlt
+29. Hash-Bins adaptiv an Box-Größe — 2.1.67 ±1, nicht adaptiv
+30. Print-Crop Align nach OS-Vision-Revision

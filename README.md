@@ -1,4 +1,4 @@
-# Aegis **2.1.66 alpha**
+# Aegis **2.1.67 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,17 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.67 alpha
+
+2.1.66 Hash überlebte Dropout, leftover las ihn nicht. Ghosts nur in pinByPrint 0,80. Größe wechselte Bin. Transfer stahl 0,82 nach Hold 0,64. Trail UUID-keyed, MAD nach Miss tot.
+
+- **Ghost-Pool.** leftoverPinned nimmt liveGhosts.
+- **Hash w/h ±1.** Hold über Größen-Kante.
+- **`leftoverBaptizeSpike`.** Twin 0,80 nach 0,64 kein UUID-Steal.
+- **Trail by Hash.** MAD überlebt leere Frames.
+- **Adopt mit holdPrev.** Hash-Hold skippt 1,2 s.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.67 (Build 93).
 
 ## Neu in 2.1.66 alpha
 

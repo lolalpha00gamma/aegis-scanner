@@ -1,33 +1,27 @@
-# Helios + Aegis — Analyse 2026-09-04 (2.1.66)
+# Helios + Aegis — Analyse 2026-09-04 (2.1.67)
 
-Helios **1.5.50** (Build 70). Aegis **2.1.66 alpha** (Build 92). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`.
+Helios **1.5.51** (Build 71). Aegis **2.1.67 alpha** (Build 93). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`.
 
-## Warum Namen sprangen
+## Warum Namen nach 2.1.66 noch sprangen
 
-Matching ist nicht „Cosine > 0,78“. Live-ReID ist:
+2.1.66 hat Nachbar-Hash (cx/cy), Hash-Prune statt Wipe, Gast n+1, Print-MAD wirklich verdrahtet. Vier Löcher blieben:
 
-```
-Box → NMS → Print (manchmal skip) → Geo → leftover-Assign
-    → Majority 3 → Name-Lock 8 s → Ghost-TTL → Open-Set Floor
-```
+1. **Leftover nach Dropout tot.** Leerer Frame macht `faces.removeAll`. Nächster Frame: `previous` leer, `leftoverPinned` leer. Hash-Hold lag in der Tabelle und niemand las sie. Ghosts gingen nur in `pinByPrint` (Floor 0,80). Genuine 0,64–0,79 wurde Gast.
+2. **Größe tötet Hash.** Neighbors nur cx/cy ±1. Box-Breite 0,15→0,20 wechselt Bin. Person lehnt sich vor: Hold tot.
+3. **`leftoverTransfersId` ignoriert Hold.** Pick lässt Baptize 0,80 durch (Kiste halten). Transfer stahl die UUID bei 0,82 nach Hold 0,64. printMAD braucht ≥ 3 Samples — Trail war UUID-keyed und nach Dropout leer.
+4. **Adopt 1,2 s nach jedem Miss.** Streak-Wipe. Hash-Hold bedeutete „die 1,2 s waren schon da“. Trotzdem neu warten → Overlay Gast, dann Sprung.
 
-2.1.64 hat leftoverHold per Box-Hash und Schema 4. **2.1.65 hat Nachbar-Hash und Print-MAD nur in ANALYSE.md behauptet** — MatchMath blieb Exact-Lookup, Models.swift war kurz ein Placeholder (275ce66 Restore). MARKETING_VERSION blieb 2.1.64. Drei Löcher im Binary:
+## Was 2.1.67 wirklich ändert
 
-1. **Exact-Hash.** `leftoverBoxHash` rastert 12×12. Ein Schritt über die Bin-Kante wechselt `1.2.3.4` → `1.3.3.4`. Hold tot, Spike-Gatter tot, 0,70 tauft.
-2. **Leerer Frame wischt die Hash-Tabelle.** Detector-Miss: `leftoverHoldByHash = [:]`. TTL 1,2 s war egal. Wiedereintritt: `holdPrev == nil`.
-3. **`guestOrder.filter { liveIds }`.** Leerer Frame löscht die Liste. `guestIndex` unbekannt → immer Gast 1. Zwei leftover-Kisten = zwei „Gast 1“.
-4. **Print-Trail ohne MAD.** Median 0,64 neben einem Twin-Frame 0,80: `leftoverHoldBlocks` lässt Baptize 0,80 durch, MED-Gatter sieht den Median über Floor.
-
-## Was 2.1.66 wirklich ändert
-
-1. **`leftoverBoxHashNeighbors`.** cx/cy ±1, Lookup nimmt den jüngsten gültigen Nachbarn. Ferne Bins (`9.9.9.9`) bleiben leer. Breite/Höhe fest.
-2. **Leerer Frame: Prune nach TTL, kein Wipe.** UUID-Hold stirbt (Track tot), Hash überlebt den Dropout.
-3. **`guestOrderKeeps` 8 s.** Unbekannte ID ist Gast n+1. Overlay nicht mehr zwei „Gast 1“.
-4. **`printMAD` / `printMADBlocks`.** ≥ 3 Samples. Peak−Median oder MAD > 0,04 → Overlay `MAD`, keine Taufe.
-5. **VERSION = Models = MARKETING_VERSION 2.1.66** (Build 92). 2.1.65 war Docs plus Placeholder.
+1. **Ghost-Pool.** `leftoverPinned` nimmt `liveGhosts` plus previous. Named aus matches, nicht nur live previous.
+2. **`leftoverBoxHashNeighbors` w/h ±1.** Größe-Jitter hält Hold. Ferne Bins (`9.9.9.9`) bleiben leer.
+3. **`leftoverBaptizeSpike`.** 0,80 nach 0,64 = Twin, kein UUID-Steal. 0,80 nach 0,80 bleibt Taufe. `leftoverTransfersId` nimmt holdPrev + Trail.
+4. **`leftoverHoldTrailByHash`.** Trail überlebt leere Frames. Put seeded von Nachbarn.
+5. **`leftoverAdoptReady(holdPrev:)`.** Hash-Hold: 1 Frame reicht, nicht nochmal 1,2 s.
+6. VERSION = Models = MARKETING_VERSION 2.1.67 (Build 93).
 
 Was Masse noch bringen würde: Frame-Pump mit Helios, CLAHE auf den Buffer, Live-ROI Crop, Drop-in `.mlmodel`.
 
-Helios 1.5.50: Phase blockt Scharf, Homographie ohne Laptop-Fallback, Display-Link-Cap aus Velocity. Siehe `bpms9cmnxc-debug/Helios`.
+Helios 1.5.51: Clamshell lebt, Legacy-dest, destClamp, Game-Exempt. Siehe `bpms9cmnxc-debug/Helios`.
 
 `bugfix` mergen oder fortsetzen: nein. Nur `main`.

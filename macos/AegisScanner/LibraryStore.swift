@@ -98,6 +98,7 @@ final class LibraryStore: ObservableObject {
     private var boxKalman: [UUID: (x: Double, y: Double, w: Double, h: Double, px: Double, py: Double, pw: Double, ph: Double)] = [:]
     private var leftoverHoldTrail: [UUID: [Double]] = [:]
     private var leftoverHoldByHash: [String: (cosine: Double, at: TimeInterval)] = [:]
+    private var leftoverHoldTrailByHash: [String: (samples: [Double], at: TimeInterval)] = [:]
     private var guestOrder: [UUID] = []
     private var guestSeenAt: [UUID: TimeInterval] = [:]
     private var lastCameraUniqueID: String = ""
@@ -1274,6 +1275,7 @@ final class LibraryStore: ObservableObject {
         leftoverPending = [:]
         leftoverHold = [:]
         leftoverHoldByHash = [:]
+        leftoverHoldTrailByHash = [:]
         leftoverWipeUntil = [:]
         liveSlotHold = [:]
         guestOrder = []
@@ -1403,7 +1405,12 @@ final class LibraryStore: ObservableObject {
         return best
     }
 
-    private func leftoverAdvance(oldId: UUID, box: FaceBox, now: TimeInterval) -> (ready: Bool, label: String?) {
+    private func leftoverAdvance(
+        oldId: UUID,
+        box: FaceBox,
+        now: TimeInterval,
+        holdPrev: Double? = nil
+    ) -> (ready: Bool, label: String?) {
         let same: Bool
         if let prev = leftoverStreakBox[oldId] {
             same = MatchMath.leftoverSameTarget(iou: FaceEngine.iou(prev, box))
@@ -1423,7 +1430,7 @@ final class LibraryStore: ObservableObject {
         leftoverStreakBox[oldId] = box
         let elapsed = now - (leftoverStreakSince[oldId] ?? now)
         return (
-            MatchMath.leftoverAdoptReady(elapsed: elapsed, streak: next),
+            MatchMath.leftoverAdoptReady(elapsed: elapsed, streak: next, holdPrev: holdPrev),
             MatchMath.leftoverStreakLabel(elapsed: elapsed)
         )
     }
@@ -1861,6 +1868,7 @@ final class LibraryStore: ObservableObject {
             liveHeldIds = []
             leftoverHold = [:]
             leftoverHoldByHash = MatchMath.leftoverHoldPrune(leftoverHoldByHash, now: now)
+            leftoverHoldTrailByHash = MatchMath.leftoverTrailPrune(leftoverHoldTrailByHash, now: now)
             leftoverPending = [:]
             leftoverStreak = [:]
             leftoverStreakBox = [:]
@@ -1891,8 +1899,22 @@ final class LibraryStore: ObservableObject {
             }
             lastLiveHeadCount = 0
         } else {
-            let leftoverPinned = previous.filter {
-                MatchMath.leftoverNamedTrack(hadName: namedTracks.contains($0.id)) && !used.contains($0.id)
+            let ghostFaces = liveGhosts.map(\.face).filter { $0.mediaId == mediaId }
+            let leftoverPool: [FaceObservation] = {
+                var seen = Set<UUID>()
+                var out: [FaceObservation] = []
+                for f in previous + ghostFaces where seen.insert(f.id).inserted {
+                    out.append(f)
+                }
+                return out
+            }()
+            let leftoverNamed = Set(leftoverPool.compactMap { old -> UUID? in
+                if namedTracks.contains(old.id) { return old.id }
+                let hit = matches.first { $0.faceId == old.id }?.hits.first { $0.strategy == .aegis }
+                return hit?.identityId != nil ? old.id : nil
+            })
+            let leftoverPinned = leftoverPool.filter {
+                MatchMath.leftoverNamedTrack(hadName: leftoverNamed.contains($0.id)) && !used.contains($0.id)
             }
             var leftoverItems: [(old: FaceObservation, bestCos: Double?, cands: [(index: Int, iou: Double, cosine: Double?)])] = []
             leftoverItems.reserveCapacity(leftoverPinned.count)
@@ -1994,16 +2016,32 @@ final class LibraryStore: ObservableObject {
                     continue
                 }
                 leftoverTried.insert(old.id)
-                let step = leftoverAdvance(oldId: old.id, box: adopted[bestJ].box, now: now)
+                let holdPrev = leftoverHold[old.id] ?? MatchMath.leftoverHoldLookup(
+                    hash: MatchMath.leftoverBoxHash(old.box),
+                    table: leftoverHoldByHash,
+                    now: now
+                )
+                let step = leftoverAdvance(oldId: old.id, box: adopted[bestJ].box, now: now, holdPrev: holdPrev)
                 if let label = step.label {
                     leftoverPending[adopted[bestJ].id] = label
                 }
                 guard step.ready else { continue }
                 if let cos = remaining.first(where: { $0.index == bestJ })?.cosine {
-                    var trail = leftoverHoldTrail[old.id] ?? []
+                    let boxHash = MatchMath.leftoverBoxHash(adopted[bestJ].box)
+                    var trail = leftoverHoldTrail[old.id] ?? MatchMath.leftoverTrailLookup(
+                        hash: boxHash,
+                        table: leftoverHoldTrailByHash,
+                        now: now
+                    )
                     trail.append(cos)
                     if trail.count > 5 { trail.removeFirst(trail.count - 5) }
                     leftoverHoldTrail[old.id] = trail
+                    leftoverHoldTrailByHash = MatchMath.leftoverTrailPut(
+                        hash: boxHash,
+                        sample: cos,
+                        onto: leftoverHoldTrailByHash,
+                        now: now
+                    )
                     if MatchMath.printMADBlocks(trail) {
                         leftoverPending[adopted[bestJ].id] = MatchMath.printMADNote()
                         continue
@@ -2033,7 +2071,19 @@ final class LibraryStore: ObservableObject {
                 leftoverPending.removeValue(forKey: adopted[bestJ].id)
                 used.insert(old.id)
                 let pinCos = remaining.first(where: { $0.index == bestJ })?.cosine ?? item.bestCos
-                let transfer = MatchMath.leftoverTransfersId(cosine: pinCos)
+                let transfer = MatchMath.leftoverTransfersId(
+                    cosine: pinCos,
+                    holdPrev: leftoverHold[old.id] ?? MatchMath.leftoverHoldLookup(
+                        hash: MatchMath.leftoverBoxHash(old.box),
+                        table: leftoverHoldByHash,
+                        now: now
+                    ),
+                    trail: leftoverHoldTrail[old.id] ?? MatchMath.leftoverTrailLookup(
+                        hash: MatchMath.leftoverBoxHash(adopted[bestJ].box),
+                        table: leftoverHoldTrailByHash,
+                        now: now
+                    )
+                )
                 if transfer {
                     adopted[bestJ].id = old.id
                     adopted[bestJ].trackId = old.trackId ?? old.id
@@ -2053,12 +2103,15 @@ final class LibraryStore: ObservableObject {
                 boxJumpPending.removeValue(forKey: old.id)
                 leftoverPins += 1
                 if let cos = pinCos {
-                    leftoverHoldByHash = MatchMath.leftoverHoldPut(
-                        hash: MatchMath.leftoverBoxHash(adopted[bestJ].box),
-                        cosine: cos,
-                        onto: leftoverHoldByHash,
-                        now: now
-                    )
+                    let spike = MatchMath.leftoverBaptizeSpike(raw: cos, prev: holdPrev)
+                    if !spike {
+                        leftoverHoldByHash = MatchMath.leftoverHoldPut(
+                            hash: MatchMath.leftoverBoxHash(adopted[bestJ].box),
+                            cosine: cos,
+                            onto: leftoverHoldByHash,
+                            now: now
+                        )
+                    }
                     if MatchMath.leftoverWipeHist(cosine: cos) {
                         leftoverHold[adopted[bestJ].id] = MatchMath.leftoverHoldEMA(
                             prev: leftoverHold[adopted[bestJ].id] ?? leftoverHold[old.id],
@@ -2080,6 +2133,7 @@ final class LibraryStore: ObservableObject {
             let liveIds = Set(adopted.map(\.id))
             leftoverHold = leftoverHold.filter { liveIds.contains($0.key) }
             leftoverHoldByHash = MatchMath.leftoverHoldPrune(leftoverHoldByHash, now: now)
+            leftoverHoldTrailByHash = MatchMath.leftoverTrailPrune(leftoverHoldTrailByHash, now: now)
             leftoverPending = leftoverPending.filter { liveIds.contains($0.key) }
             let liveList = Array(liveIds)
             guestOrder = guestOrder.filter {

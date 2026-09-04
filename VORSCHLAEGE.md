@@ -1,6 +1,17 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.66 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.67 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.67 wirklich im Code
+
+2.1.66 Hash überlebte Dropout, leftover las ihn nicht: previous leer, Ghosts nur in pinByPrint 0,80. Größe wechselte Bin. Transfer stahl UUID bei 0,82 nach 0,64. Trail UUID-keyed.
+
+1. **Ghost-Pool.** leftoverPinned = previous + liveGhosts.
+2. **Hash w/h ±1.** Größe-Jitter hält Hold.
+3. **`leftoverBaptizeSpike`.** Twin 0,80 nach 0,64 kein Steal.
+4. **Trail by Hash.** MAD überlebt Dropout.
+5. **Adopt mit holdPrev.** 1 Frame, nicht 1,2 s extra.
+6. Tests + VERSION = Models = MARKETING_VERSION 2.1.67 (Build 93).
 
 ## In 2.1.66 wirklich im Code
 
