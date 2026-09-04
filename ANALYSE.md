@@ -1,6 +1,6 @@
 # Helios + Aegis — Analyse 2026-09-04
 
-Helios **1.5.48** (Build 68). Aegis **2.1.63 alpha** (Build 90). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26.
+Helios **1.5.49** (Build 69). Aegis **2.1.64 alpha** (Build 91). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26.
 
 ## Warum Namen sprangen
 
@@ -13,24 +13,26 @@ Box → NMS → Print (manchmal skip) → Geo → leftover-Assign
 
 Widersprachen sich zwei Stufen, taufte die dritte trotzdem. Twin 0,91 still Anna, Ghost 0,64 stahl UUID, Poster ohne Blink. `MatchMath` war ein Katalog von Pflastern; Tests grün, Overlay eine Version später.
 
-2.1.62 hat Konflikt-Tick und leftoverYieldsToLive. leftoverPick blieb bei 0,64 erlaubt und `LibraryStore` kopierte danach immer `old.id` plus PrintVec. Overlay-Pflaster `Gast 1` hing an der gestohlenen UUID — zwei Ghosts beide „Gast 1“, Name-Lock weiter Anna.
+2.1.63 hat leftoverTransfersId und Gast 1/2. leftoverHold hing an der UUID — Dropout warf Hold. Streak-Since lebte nur im RAM. Gast hätte nach 8 s leftover still in gallery.json landen können. Ampel nur Farbe. Continuity-Nacht ohne Hinweis.
 
-## Was 2.1.63 wirklich ändert
+## Was 2.1.64 wirklich ändert
 
-1. **`leftoverTransfersId`.** UUID, Track-ID, PrintVec nur bei Baptize 0,80. 0,64 hält leftoverHold, tauft nicht.
-2. **Gast 1 / Gast 2.** `guestOrder` in der Store-Schicht, `guestName` liest nur. Overlay zeigt Gast bevor pinned Owner.
-3. **CI macos-26.** Tests vor xcodebuild, arm64, Signing wie Helios. macos-14 hat den SDK-Stand der Math nicht.
+1. **`leftoverHold` keyed by Box-Hash.** UUID stirbt beim Dropout, die Kiste bleibt. Lookup TTL = leftoverAdoptSec (1,2 s). Prune am Tick.
+2. **`leftoverStreakSince` in gallery.json.** Schema 4. Restore lädt die Uhr, nicht bei 0 neu.
+3. **Gast nie silent.** `guestPersistWrites` nur nach Tauf-Button. `guestPersistSilent` immer false.
+4. **Farbenblind Ampel.** Grün ●, Amber ◐, Rot ✕ — nicht nur Hue. VoiceOver `solid`/`half`/`cross`.
+5. **CLAHE-Banner.** Continuity + dunkle Schärfe → Overlay `CLAHE`. Ausgleich selbst nächste.
+6. **`liveROI` Math.** Pad + Clamp. Draht in den Detector nächste.
 
 Was Masse noch bringen würde:
 
-- Gast als persistente Klasse nur nach Tauf-Button, nicht 8 s silent.
 - Helios Frame-Pump, eine TCC.
-- Brille-Slot, Live-ROI Crop, CLAHE-Banner.
-- Drop-in `.mlmodel`, DBSCAN vor Merge, Zwei-Kamera-Live.
-- leftoverStreakSince in gallery.json.
-- VoiceOver + farbenblind Ampel.
-- leftoverHold keyed by Box-Hash über Dropout.
+- CLAHE wirklich auf den PixelBuffer, nicht nur Banner.
+- Brille-Slot, Drop-in `.mlmodel`, DBSCAN vor Merge, Zwei-Kamera-Live.
+- VoiceOver spricht den Namen, nicht nur Lampen-Pattern.
+- Print-MAD > 0,04 wirft Spike.
+- Identity-Graph als Soft-Prior, nie Taufe.
 
-Helios 1.5.48: Phase-Gatter, Homographie je Display, Klick-Haptik. Siehe `bpms9cmnxc-debug/Helios`.
+Helios 1.5.49: Tip-Z verdrahtet, Display-Link, KALIB HIER, Homographie-Warmup, Per-App Gain. Siehe `bpms9cmnxc-debug/Helios`.
 
 `bugfix` mergen oder fortsetzen: nein. Nur `main`.

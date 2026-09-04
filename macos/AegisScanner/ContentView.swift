@@ -914,6 +914,16 @@ private struct QualityAmpel: View {
                     .font(.system(size: 8, weight: .bold, design: .monospaced))
                     .foregroundStyle(.white.opacity(0.9))
             }
+            if let clahe = MatchMath.claheBanner(
+                MatchMath.claheNeeded(luma: sharps.min() ?? 1, continuity: continuity, floor: 0.12)
+            ) {
+                Text(clahe)
+                    .font(.system(size: 8, weight: .bold, design: .monospaced))
+                    .foregroundStyle(.black)
+                    .padding(.horizontal, 3)
+                    .background(Color.orange)
+                    .accessibilityLabel("Nacht-Ausgleich")
+            }
         }
         .padding(.horizontal, 4)
         .padding(.vertical, 2)
@@ -928,9 +938,10 @@ private struct QualityAmpel: View {
 
     private func lamp(_ value: MatchMath.Lamp, label: String) -> some View {
         HStack(spacing: 1) {
-            Circle()
-                .fill(color(value))
-                .frame(width: 7, height: 7)
+            Text(MatchMath.lampGlyph(value))
+                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                .foregroundStyle(color(value))
+                .accessibilityLabel(MatchMath.lampPattern(value))
             Text(label)
                 .font(.system(size: 8, weight: .bold, design: .monospaced))
                 .foregroundStyle(.white.opacity(0.85))

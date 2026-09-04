@@ -84,7 +84,7 @@ enum MatchMath {
     static let geoVetoYawSkip = 0.28
     static let geoVetoYawPrint = 80.0
     /// gallery.json Schema neben printRevision. 3 = Gast als persistente Klasse.
-    static let gallerySchema = 3
+    static let gallerySchema = 4
     /// Box-IoU unter dem Wert: Bewegung. Mit Schärfe: kleines Nicken darf den Print.
     static let holdStillIoU = 0.70
     static let holdStillSharp = 0.18
@@ -2052,6 +2052,95 @@ enum MatchMath {
 
     static func leftoverStreakSincePersist(since: TimeInterval?, now: TimeInterval) -> TimeInterval {
         since ?? now
+    }
+
+    /// Box-Hash über Dropout. UUID stirbt, die Kiste bleibt.
+    static func leftoverBoxHash(_ box: FaceBox, bins: Int = 12) -> String {
+        func q(_ v: Double) -> Int {
+            let t = min(1, max(0, v))
+            return min(bins - 1, Int((t * Double(bins)).rounded(.down)))
+        }
+        let cx = box.x + box.width / 2
+        let cy = box.y + box.height / 2
+        return "\(q(cx)).\(q(cy)).\(q(box.width)).\(q(box.height))"
+    }
+
+    static func leftoverHoldLookup(
+        hash: String,
+        table: [String: (cosine: Double, at: TimeInterval)],
+        now: TimeInterval,
+        ttl: TimeInterval = leftoverAdoptSec
+    ) -> Double? {
+        guard let row = table[hash], now - row.at <= ttl else { return nil }
+        return row.cosine
+    }
+
+    static func leftoverHoldPrune(
+        _ table: [String: (cosine: Double, at: TimeInterval)],
+        now: TimeInterval,
+        ttl: TimeInterval = leftoverAdoptSec
+    ) -> [String: (cosine: Double, at: TimeInterval)] {
+        table.filter { now - $0.value.at <= ttl }
+    }
+
+    static func leftoverHoldPut(
+        hash: String,
+        cosine: Double,
+        onto table: [String: (cosine: Double, at: TimeInterval)],
+        now: TimeInterval
+    ) -> [String: (cosine: Double, at: TimeInterval)] {
+        var next = leftoverHoldPrune(table, now: now)
+        next[hash] = (cosine, now)
+        return next
+    }
+
+    /// Gast wird nur nach Tauf-Button persistiert. Nie 8 s silent.
+    static func guestPersistWrites(tapped: Bool) -> Bool { tapped }
+
+    static func guestPersistSilent(_: TimeInterval) -> Bool { false }
+
+    static func leftoverStreakSinceEncode(_ table: [UUID: TimeInterval]) -> [String: Double] {
+        Dictionary(uniqueKeysWithValues: table.map { ($0.key.uuidString, $0.value) })
+    }
+
+    static func leftoverStreakSinceDecode(_ raw: [String: Double]?) -> [UUID: TimeInterval] {
+        guard let raw else { return [:] }
+        var out: [UUID: TimeInterval] = [:]
+        for (k, v) in raw {
+            if let id = UUID(uuidString: k) { out[id] = v }
+        }
+        return out
+    }
+
+    /// Farbenblind Ampel: Form, nicht nur Farbe.
+    static func lampGlyph(_ lamp: Lamp) -> String {
+        switch lamp {
+        case .green: return "●"
+        case .amber: return "◐"
+        case .red: return "✕"
+        }
+    }
+
+    static func lampPattern(_ lamp: Lamp) -> String {
+        switch lamp {
+        case .green: return "solid"
+        case .amber: return "half"
+        case .red: return "cross"
+        }
+    }
+
+    static func claheNeeded(luma: Double, continuity: Bool, floor: Double = 0.18) -> Bool {
+        continuity && luma < floor
+    }
+
+    static func claheBanner(_ needed: Bool) -> String? { needed ? "CLAHE" : nil }
+
+    static func liveROI(_ box: FaceBox, pad: Double = 0.18) -> FaceBox {
+        let x = max(0, box.x - box.width * pad)
+        let y = max(0, box.y - box.height * pad)
+        let w = min(1 - x, box.width * (1 + 2 * pad))
+        let h = min(1 - y, box.height * (1 + 2 * pad))
+        return FaceBox(x: x, y: y, width: w, height: h)
     }
 }
 

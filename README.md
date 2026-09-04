@@ -1,4 +1,4 @@
-# Aegis **2.1.63 alpha**
+# Aegis **2.1.64 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,17 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.64 alpha
+
+2.1.63 leftover stiehlt keine UUID, Overlay Gast 1/2. leftoverHold hing an der UUID — Dropout warf Hold. Streak-Since nur RAM. Gast hätte nach 8 s leftover still in gallery.json landen können. Ampel nur Farbe.
+
+- **`leftoverHold` per Box-Hash.** UUID stirbt, die Kiste bleibt. TTL 1,2 s.
+- **gallery.json Schema 4.** `leftoverStreakSince` überlebt Restore.
+- **Gast nie silent.** Nur Tauf-Button schreibt. Overlay bleibt Gast.
+- **Farbenblind Ampel.** ● ◐ ✕ plus VoiceOver.
+- **CLAHE-Banner.** Continuity-Nacht. `liveROI` Math.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.64 (Build 91).
 
 ## Neu in 2.1.63 alpha
 

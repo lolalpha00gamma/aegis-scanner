@@ -14,6 +14,7 @@ struct GalleryPayload: Codable {
     var faces: [FaceObservation]
     var printRevision: String?
     var schemaVersion: Int?
+    var leftoverStreakSince: [String: Double]?
 }
 
 enum GalleryFile {
@@ -32,15 +33,15 @@ enum GalleryFile {
         directory.appendingPathComponent("gallery.json.bak")
     }
 
-    static func load() -> (identities: [Identity], faces: [FaceObservation], printRevision: String?, schemaVersion: Int?) {
-        decode(url) ?? ([], [], nil, nil)
+    static func load() -> (identities: [Identity], faces: [FaceObservation], printRevision: String?, schemaVersion: Int?, leftoverStreakSince: [String: Double]?) {
+        decode(url) ?? ([], [], nil, nil, nil)
     }
 
     static var backupExists: Bool {
         FileManager.default.fileExists(atPath: backupURL.path)
     }
 
-    static func loadBackup() -> (identities: [Identity], faces: [FaceObservation], printRevision: String?, schemaVersion: Int?)? {
+    static func loadBackup() -> (identities: [Identity], faces: [FaceObservation], printRevision: String?, schemaVersion: Int?, leftoverStreakSince: [String: Double]?)? {
         decode(backupURL)
     }
 
@@ -51,24 +52,25 @@ enum GalleryFile {
         return now.timeIntervalSince(date) / 86_400
     }
 
-    private static func decode(_ file: URL) -> (identities: [Identity], faces: [FaceObservation], printRevision: String?, schemaVersion: Int?)? {
+    private static func decode(_ file: URL) -> (identities: [Identity], faces: [FaceObservation], printRevision: String?, schemaVersion: Int?, leftoverStreakSince: [String: Double]?)? {
         guard let data = try? Data(contentsOf: file) else { return nil }
         if let payload = try? JSONDecoder().decode(GalleryPayload.self, from: data) {
-            return (payload.identities, payload.faces, payload.printRevision, payload.schemaVersion)
+            return (payload.identities, payload.faces, payload.printRevision, payload.schemaVersion, payload.leftoverStreakSince)
         }
         if let identities = try? JSONDecoder().decode([Identity].self, from: data) {
-            return (identities, [], nil, nil)
+            return (identities, [], nil, nil, nil)
         }
         return nil
     }
 
-    static func save(identities: [Identity], faces: [FaceObservation]) {
+    static func save(identities: [Identity], faces: [FaceObservation], leftoverStreakSince: [String: Double]? = nil) {
         let enrolled = Set(identities.flatMap(\.faceIds))
         let payload = GalleryPayload(
             identities: identities,
             faces: faces.filter { enrolled.contains($0.id) },
             printRevision: MatchMath.printRevision,
-            schemaVersion: MatchMath.gallerySchema
+            schemaVersion: MatchMath.gallerySchema,
+            leftoverStreakSince: leftoverStreakSince
         )
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]

@@ -97,6 +97,7 @@ final class LibraryStore: ObservableObject {
     private var leftoverDisagree: [UUID: Int] = [:]
     private var boxKalman: [UUID: (x: Double, y: Double, w: Double, h: Double, px: Double, py: Double, pw: Double, ph: Double)] = [:]
     private var leftoverHoldTrail: [UUID: [Double]] = [:]
+    private var leftoverHoldByHash: [String: (cosine: Double, at: TimeInterval)] = [:]
     private var guestOrder: [UUID] = []
     private var lastCameraUniqueID: String = ""
     private var pendingRenameId: UUID?
@@ -107,6 +108,7 @@ final class LibraryStore: ObservableObject {
         let packed = GalleryFile.load()
         identities = packed.identities
         faces = packed.faces
+        leftoverStreakSince = MatchMath.leftoverStreakSinceDecode(packed.leftoverStreakSince)
         if let stored = packed.printRevision, stored != MatchMath.printRevision {
             revisionWarning = "Galerie-Print \(stored), App \(MatchMath.printRevision) — Scores können springen. Neu scannen."
         }
@@ -143,7 +145,11 @@ final class LibraryStore: ObservableObject {
     }
 
     private func persist() {
-        GalleryFile.save(identities: identities, faces: faces)
+        GalleryFile.save(
+            identities: identities,
+            faces: faces,
+            leftoverStreakSince: MatchMath.leftoverStreakSinceEncode(leftoverStreakSince)
+        )
         refreshMergeHint()
     }
 
@@ -186,6 +192,7 @@ final class LibraryStore: ObservableObject {
         }
         identities = packed.identities
         faces = packed.faces
+        leftoverStreakSince = MatchMath.leftoverStreakSinceDecode(packed.leftoverStreakSince)
         liveNameHist = [:]
         liveNameLock = [:]
         liveScoreEma = [:]
@@ -1265,6 +1272,7 @@ final class LibraryStore: ObservableObject {
         leftoverPairCommit = [:]
         leftoverPending = [:]
         leftoverHold = [:]
+        leftoverHoldByHash = [:]
         leftoverWipeUntil = [:]
         liveSlotHold = [:]
         guestOrder = []
@@ -1850,6 +1858,7 @@ final class LibraryStore: ObservableObject {
             }
             liveHeldIds = []
             leftoverHold = [:]
+            leftoverHoldByHash = [:]
             leftoverPending = [:]
             leftoverStreak = [:]
             leftoverStreakBox = [:]
@@ -1947,7 +1956,11 @@ final class LibraryStore: ObservableObject {
                     yawAbs: yawAbs,
                     aspectOk: aspectOk,
                     twinPair: aegisHit?.pairCosine,
-                    holdPrev: leftoverHold[old.id],
+                    holdPrev: leftoverHold[old.id] ?? MatchMath.leftoverHoldLookup(
+                        hash: MatchMath.leftoverBoxHash(old.box),
+                        table: leftoverHoldByHash,
+                        now: now
+                    ),
                     liveIds: liveIds,
                     leftoverId: old.id,
                     printId: aegisHit?.identityId,
@@ -2030,6 +2043,12 @@ final class LibraryStore: ObservableObject {
                 boxJumpPending.removeValue(forKey: old.id)
                 leftoverPins += 1
                 if let cos = pinCos {
+                    leftoverHoldByHash = MatchMath.leftoverHoldPut(
+                        hash: MatchMath.leftoverBoxHash(adopted[bestJ].box),
+                        cosine: cos,
+                        onto: leftoverHoldByHash,
+                        now: now
+                    )
                     if MatchMath.leftoverWipeHist(cosine: cos) {
                         leftoverHold[adopted[bestJ].id] = MatchMath.leftoverHoldEMA(
                             prev: leftoverHold[adopted[bestJ].id] ?? leftoverHold[old.id],
@@ -2050,6 +2069,7 @@ final class LibraryStore: ObservableObject {
             }
             let liveIds = Set(adopted.map(\.id))
             leftoverHold = leftoverHold.filter { liveIds.contains($0.key) }
+            leftoverHoldByHash = MatchMath.leftoverHoldPrune(leftoverHoldByHash, now: now)
             leftoverPending = leftoverPending.filter { liveIds.contains($0.key) }
             guestOrder = guestOrder.filter { liveIds.contains($0) }
             let leftoverIds = Set(leftoverPinned.map(\.id))

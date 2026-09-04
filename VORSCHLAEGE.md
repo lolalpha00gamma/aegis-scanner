@@ -1,6 +1,44 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.63 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.64 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.64 wirklich im Code
+
+2.1.63 leftover stiehlt keine UUID, Gast 1/2. leftoverHold hing an der UUID — Dropout warf Hold. Streak-Since nur RAM. Gast hätte nach 8 s leftover still in gallery.json landen können. Ampel nur Farbe.
+
+1. **`leftoverBoxHash` / `leftoverHoldLookup`.** Hold über Dropout, keyed by quantisierter Box, TTL 1,2 s.
+2. **gallery.json Schema 4.** `leftoverStreakSince` Encode/Decode, Restore lädt die Uhr.
+3. **`guestPersistWrites`.** Nur Tauf-Button. Nie 8 s silent.
+4. **Ampel-Glyphen.** ● ◐ ✕ plus VoiceOver-Pattern.
+5. **CLAHE-Banner + `liveROI` Math.** Continuity-Nacht Overlay. Crop-Draht nächste.
+6. Tests + VERSION = Models = MARKETING_VERSION 2.1.64 (Build 91).
+
+## Nächste (offen)
+
+- Helios Frame-Pump, eine TCC. Gemeinsamer Buffer, eine Kamera-Session.
+- CLAHE wirklich auf den PixelBuffer (Metal), nicht nur Banner.
+- Brille-/Hut-Slot: eigener Centroid, Print ohne Augenbrauen-Band.
+- Live-ROI Crop im Detector, nicht nur Math — 8 fps Continuity auf dem Gesicht.
+- Drop-in `.mlmodel` neben Apple Print (ONNX/CoreML Slot).
+- DBSCAN vor Merge statt nur Centroid 0,89–0,94.
+- Zwei-Kamera-Live: Built-in + Continuity, IoU-Fusion nicht OR.
+- Print-Revision-Banner nach OS-Update (Schema warnt, UI fordert Neu-Scan).
+- VoiceOver spricht den Overlay-Namen, nicht nur Lampen-Pattern.
+- Watch-Folder PhotoKit: neuer Shot → Enroll-Queue.
+- Aktives Lernen nur 0,86–0,94, nie Open-Set-Müll.
+- Identity-Graph als Soft-Prior (Familie), nie Taufe.
+- PnP 6DoF, Slot folgt der Nase bei Yaw.
+- Family-Bump UI neben Open-Set Slider.
+- Print-MAD > 0,04 wirft Spike, Overlay `MAD`.
+- Gallery-at-rest FileVault-Hinweis beim ersten Persist.
+- Temporal ReID über leftoverHold-Trail (3 Ticks, nicht 1 Cosine).
+- Quality-weighted Gallery-Centroid (scharf 2×, Blur 0,4×).
+- Enrollment aus Video-Keyframes, nicht nur Standbild.
+- Export gallery.json encrypted (CryptoKit, Geräte-gebunden).
+- Live-FAR Sparkline statt nur Floor-Hint.
+- Unknown-Reject mit Open-Set-Energy, nicht nur Cosine-Floor.
+- Alter/Geschlecht nur Prior, nie ID.
+- Masken-Partial-Print aggressiver (untere Hälfte droppen).
 
 ## In 2.1.63 wirklich im Code
 
