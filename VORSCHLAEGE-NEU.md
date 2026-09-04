@@ -1,10 +1,16 @@
 # Nachtrag 2026-09-04
 
-Siehe ANALYSE.md. **2.1.64** schließt leftoverHold-Dropout, Streak-Since und stilles Gast-Persist, die 2.1.63 offen ließ.
+Siehe ANALYSE.md. **2.1.65** schliesst Hash-Kantensprung und Print-MAD.
+
+## In 2.1.65 gelandet
+
+1. leftoverHoldLookup ueber Box-Hash-Nachbarn (cx/cy +/-1)
+2. printMAD > 0,04 blockt Adopt, Overlay MAD
+3. Build 92 (Math lokal + Tests; Engine-Push folgt CI)
 
 ## In 2.1.64 gelandet
 
-1. leftoverHold keyed by Box-Hash über Dropout
+1. leftoverHold keyed by Box-Hash ueber Dropout
 2. leftoverStreakSince in gallery.json Schema 4
 3. Gast nur nach Tauf-Button, nie 8 s silent
 4. Farbenblind Ampel-Glyphen + VoiceOver-Pattern
@@ -13,16 +19,8 @@ Siehe ANALYSE.md. **2.1.64** schließt leftoverHold-Dropout, Streak-Since und st
 ## In 2.1.63 gelandet
 
 1. leftoverTransfersId — UUID/Print nur Baptize 0,80
-2. Gast 1 / Gast 2 über guestOrder, Overlay vor pinned Name
+2. Gast 1 / Gast 2 ueber guestOrder
 3. CI macos-26, Tests zuerst, arm64
-
-## In 2.1.62 gelandet
-
-1. ReID-Konflikt-Tick (BOX|PRINT|GEO|LOCK einig) — `matchLive` + leftoverPick, Overlay `KONFLIKT`
-2. Per-Kamera-Centroid — Cache-Key `builtin` / `continuity`
-3. Enrollment-Burst schärfstes Ref — `enrollBurstReplace` statt Drop
-4. Live-FAR Ticker — Floor-Hint
-5. Guest persist Schema 3 — Restore-Gate + Helpers; Identity-Write nach 8 s leftover **→ 2.1.64 nie silent**. Overlay Gast 1/2 **→ 2.1.63**.
 
 ## Offen (nicht Pflaster)
 
@@ -32,7 +30,7 @@ Siehe ANALYSE.md. **2.1.64** schließt leftoverHold-Dropout, Streak-Since und st
 9. CLAHE auf den Buffer, nicht nur Banner
 10. Print-Revision-Banner nach OS-Update
 11. Zwei-Kamera-Live
-12. Drop-in `.mlmodel`
+12. Drop-in .mlmodel
 13. Platt-Skalierung der Sigmoid
 14. DBSCAN vor Merge
 15. VoiceOver spricht den Namen
@@ -41,8 +39,13 @@ Siehe ANALYSE.md. **2.1.64** schließt leftoverHold-Dropout, Streak-Since und st
 18. Identity-Graph als Soft-Prior, nie Taufe
 19. PnP 6DoF, Slot folgt der Nase
 20. Family-Bump UI neben Open-Set
-21. Print-MAD > 0,04 wirft Spike
+21. Print-MAD > 0,04 wirft Spike — 2.1.65 Math
 22. Gallery-at-rest FileVault-Hinweis
-23. Temporal ReID über Hold-Trail
+23. Temporal ReID ueber Hold-Trail
 24. Quality-weighted Centroid
 25. Encrypted gallery export
+26. Hash-Bins adaptiv an Box-Groesse
+27. leftoverHold auch auf Slot F/3-4/P
+28. Detector-NMS nach Kalman-Box
+29. Helios-Palm als Attention-Kegel
+30. Merge-Wizard Undo 30 s
