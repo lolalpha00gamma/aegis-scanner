@@ -240,11 +240,15 @@ enum MatchMath {
         sameSlot: [Int: Bool] = [:],
         yawAbs: [Int: Double] = [:],
         floor: Double = leftoverIoU,
-        twinPair: Double? = nil
+        twinPair: Double? = nil,
+        holdPrev: Double? = nil
     ) -> Int? {
-        let ok = candidates.filter { leftoverPin(iou: $0.iou, floor: floor) }
-        guard !ok.isEmpty else { return nil }
-        var printable = ok.filter { leftoverPrintOk(cosine: $0.cosine, sharpness: sharpness[$0.index]) }
+        var ok = candidates.filter { leftoverPin(iou: $0.iou, floor: floor) }
+        ok = ok.filter { !leftoverHoldBlocks(raw: $0.cosine, prev: holdPrev) }
+        let smoothed: [(index: Int, iou: Double, cosine: Double?)] = ok.map {
+            (index: $0.index, iou: $0.iou, cosine: leftoverHoldSmooth(raw: $0.cosine, prev: holdPrev))
+        }
+        var printable = smoothed.filter { leftoverPrintOk(cosine: $0.cosine, sharpness: sharpness[$0.index]) }
         if leftoverTwinBlocksBox(pairCosine: twinPair, printCosine: nil) {
             printable = printable.filter { leftoverBaptize(cosine: $0.cosine) }
         }
@@ -1590,6 +1594,11 @@ enum MatchMath {
 
     static let unknownRejectFloor = 50.0
 
+    /// Slider 78 → 50. 70 → 42. 96 → 68. Open-Set folgt der Galerie-Schwelle.
+    static func unknownRejectFloor(slider: Double) -> Double {
+        min(70, max(40, slider - 28))
+    }
+
     /// Alle Gallery-Scores unter Floor: Overlay statt Taufe (Open-Set).
     static func unknownReject(bestPercent: Double, floor: Double = unknownRejectFloor) -> Bool {
         bestPercent < floor
@@ -1651,11 +1660,45 @@ enum MatchMath {
         liveScoreEMA(prev: prev, next: next, alpha: alpha)
     }
 
+    /// Glättung vor leftoverPick. Roh 0,70 / Hold 0,64 → 0,66, nicht 0,70.
+    static func leftoverHoldSmooth(raw: Double?, prev: Double?) -> Double? {
+        guard let raw else { return nil }
+        return leftoverHoldEMA(prev: prev, next: raw)
+    }
+
+    /// Twin-Spike ≥ 0,04 ohne Baptize 0,80: leftover nicht taufen.
+    static let leftoverHoldSpike = 0.04
+
+    static func leftoverHoldBlocks(
+        raw: Double?,
+        prev: Double?,
+        spike: Double = leftoverHoldSpike,
+        baptize: Double = pinPrintCosine
+    ) -> Bool {
+        guard let raw else { return false }
+        if leftoverBaptize(cosine: raw) { return false }
+        guard let prev else { return false }
+        return raw - prev >= spike
+    }
+
+    /// Centroid 0,89–0,94: Merge-Wizard, nie still taufen.
+    static func mergeSuggest(pairCosine: Double, lo: Double = 0.89, hi: Double = 0.94) -> Bool {
+        pairCosine >= lo && pairCosine < hi
+    }
+
     static let printCacheCap = 512
 
     /// Burst nach 513 Gesichtern nicht kalt — älteste raus, nicht removeAll.
     static func printCacheDropCount(count: Int, cap: Int = printCacheCap) -> Int {
         max(0, count - cap)
+    }
+
+    /// Cache-Hit ans Ende. Sonst FIFO trotz LRU-Claim.
+    static func printCacheTouch(order: inout [Data], key: Data) {
+        if let i = order.firstIndex(of: key) {
+            order.remove(at: i)
+        }
+        order.append(key)
     }
 
     /// 3 Frames gleiche Zuordnung, dann UUID-Switch. Ein 2-opt-Tick tauft sonst den Twin.

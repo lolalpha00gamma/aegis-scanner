@@ -1,4 +1,4 @@
-# Aegis **2.1.57 alpha**
+# Aegis **2.1.58 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.58 alpha
+
+2.1.56 leftoverHoldEMA saß nach leftoverPick — Twin-Spike 0,70 taufte (EMA 0,66 ≥ Floor 0,64). Print-Cache FIFO. Open-Set Floor 50 ignorierte den Slider. 2.1.57 hat Yaw/Majority, nicht den Hold-vor-Pick.
+
+- **`leftoverHoldSmooth` / `leftoverHoldBlocks`.** Spike ≥ 0,04 ohne Baptize 0,80 vor Pick.
+- **`printCacheTouch`.** Hit ans Ende — echter LRU 512.
+- **`unknownRejectFloor(slider:)`.** Slider 78 → 50. matchLive nutzt ihn.
+- **`mergeSuggest` 0,89–0,94.**
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.58 (Build 85).
 
 ## Neu in 2.1.57 alpha
 

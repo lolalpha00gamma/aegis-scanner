@@ -764,7 +764,10 @@ enum FaceEngine {
                 return capNote + ". " + decided.note
             }()
             var decidedId = decided.id
-            if MatchMath.unknownReject(bestPercent: best?.percent ?? 0) {
+            if MatchMath.unknownReject(
+                bestPercent: best?.percent ?? 0,
+                floor: MatchMath.unknownRejectFloor(slider: threshold)
+            ) {
                 decidedId = nil
                 let unk = MatchMath.unknownRejectNote()
                 note = note.isEmpty ? unk : unk + ". " + note
@@ -1639,6 +1642,7 @@ enum FaceEngine {
     private static func printVector(_ data: Data) -> [Double] {
         printVecLock.lock()
         if let hit = printVecCache[data] {
+            MatchMath.printCacheTouch(order: &printVecOrder, key: data)
             printVecLock.unlock()
             return hit
         }

@@ -1,6 +1,20 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.57 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.58 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.58 wirklich im Code
+
+2.1.56 leftover-EMA nach Pick, Cache FIFO, Open-Set Floor tot. 2.1.57 Yaw/Majority, Hold blieb Display.
+
+1. **`leftoverHoldSmooth` / `leftoverHoldBlocks`.** Spike ≥ 0,04 ohne 0,80 vor leftoverPick.
+2. **`printCacheTouch`.** LRU-Hit ans Ende.
+3. **`unknownRejectFloor(slider:)`.** Slider-28, Clamp 40–70. matchLive.
+4. **`mergeSuggest` 0,89–0,94.**
+5. Tests + VERSION = Models = MARKETING_VERSION 2.1.58 (Build 85).
+
+## Nächste (offen, 2.1.57 — erledigt in 2.1.58)
+
+leftover-Hold vor Pick, echter LRU, Open-Set-Slider, Merge-Schwelle sitzen in 2.1.58.
 
 ## In 2.1.57 wirklich im Code
 
@@ -126,13 +140,18 @@ Die Punkte leftover Ambiguity, Twin-Veto, Mouth-open, Reconnect-Ghost, Slot-Hyst
 
 ## Nächste (offen)
 
-- **Identitäten-Merge-Wizard** bei Centroid 0,89–0,94. Confirm, nie still.
+- **Identitäten-Merge-Wizard UI** bei Centroid 0,89–0,94. Schwelle `mergeSuggest` sitzt in 2.1.58. Confirm, nie still.
 - **Helios-Bridge.** Eine Kamera-Session, eine TCC.
-- **Enrollment AE-Lock** 200 ms nach Belichtungssprung. **Math → 2.1.57 exposureLock.** Wiring fehlt.
+- **Enrollment AE-Lock** 200 ms nach Belichtungssprung. Math sitzt in 2.1.57.
 - **Zwei-Kamera-Live.** Built-in + Continuity, Track über Print.
 - **PhotoKit-Scan** nur mit expliziter Foto-Berechtigung.
 - **Live-FAR** letzte 200 Impostor-Ticks im Labor, Overlay-Ticker.
-- **Open-Set Slider** um unknownRejectFloor (50 sitzt in 2.1.55).
+- **Open-Set Slider UI** um unknownRejectFloor. Math sitzt in 2.1.58; Prefs-Label fehlt.
+- **Quality-weighted Centroid.** sharpness × print.
+- **Unknown sticky UUID.** „Stranger 1“ ohne Namen.
+- **Print+Geo AND bei 2 Personen**, nicht OR.
+- **3-Frame Enrollment Burst** auto-pick schärfstes.
+- **DBSCAN Gallery-Cluster** vor Merge-Wizard.
 - **Drop-in `.mlmodel`.** FaceEmbedder-Protokoll, Apple-Print default.
 - **Per-Identität leftover-Log** in der Overlay-Kiste.
 - **Pairwise-Heatmap klickbar** im Labor.

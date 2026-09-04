@@ -1795,7 +1795,8 @@ final class LibraryStore: ObservableObject {
                     sharpness: sharp,
                     sameSlot: sameSlot,
                     yawAbs: yawAbs,
-                    twinPair: matches.first { $0.faceId == old.id }?.hits.first { $0.strategy == .aegis }?.pairCosine
+                    twinPair: matches.first { $0.faceId == old.id }?.hits.first { $0.strategy == .aegis }?.pairCosine,
+                    holdPrev: leftoverHold[old.id]
                 ) else {
                     leftoverClearStreak(old.id)
                     continue

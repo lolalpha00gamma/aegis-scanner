@@ -943,6 +943,31 @@ enum MatchMathTests {
         ok(MatchMath.unknownCentroid(bestCosine: 0.40), "Centroid unbekannt")
         ok(!MatchMath.unknownCentroid(bestCosine: 0.80), "Centroid bekannt")
         ok(MatchMath.unknownCentroid(bestCosine: nil), "nil unbekannt")
+        near(MatchMath.leftoverHoldSmooth(raw: 0.70, prev: 0.64) ?? -1, 0.35 * 0.70 + 0.65 * 0.64, 0.001, "Smooth vor Pick")
+        ok(MatchMath.leftoverHoldSmooth(raw: nil, prev: 0.64) == nil, "ohne Print kein Smooth")
+        ok(MatchMath.leftoverHoldBlocks(raw: 0.70, prev: 0.64), "Spike 0,06 blockt Taufe")
+        ok(!MatchMath.leftoverHoldBlocks(raw: 0.82, prev: 0.64), "Baptize 0,82 darf")
+        ok(!MatchMath.leftoverHoldBlocks(raw: 0.70, prev: nil), "erster Frame roh")
+        ok(!MatchMath.leftoverHoldBlocks(raw: 0.65, prev: 0.64), "0,01 kein Spike")
+        ok(
+            MatchMath.leftoverPick(candidates: [(0, 0.50, 0.70)], holdPrev: 0.64) == nil,
+            "Twin-Spike 0,70 nach Hold 0,64 kein Pick"
+        )
+        ok(
+            MatchMath.leftoverPick(candidates: [(0, 0.50, 0.82)], holdPrev: 0.64) == 0,
+            "Baptize 0,82 trotz Spike"
+        )
+        ok(MatchMath.mergeSuggest(pairCosine: 0.91), "0,91 Merge-Vorschlag")
+        ok(!MatchMath.mergeSuggest(pairCosine: 0.88), "unter 0,89 still")
+        ok(!MatchMath.mergeSuggest(pairCosine: 0.95), "0,95 Twin, kein Wizard")
+        near(MatchMath.unknownRejectFloor(slider: 78), 50, 0.01, "Slider 78 → Floor 50")
+        near(MatchMath.unknownRejectFloor(slider: 70), 42, 0.01, "Slider 70 → 42")
+        near(MatchMath.unknownRejectFloor(slider: 96), 68, 0.01, "Slider 96 → 68")
+        ok(MatchMath.unknownReject(bestPercent: 49, floor: MatchMath.unknownRejectFloor(slider: 78)), "Open-Set Slider")
+        var order = [Data([1]), Data([2]), Data([3])]
+        MatchMath.printCacheTouch(order: &order, key: Data([1]))
+        ok(order.last == Data([1]), "LRU hit ans Ende")
+        ok(order.first == Data([2]), "älteste bleibt vorn")
 
         let fixture = "1\t2\nAlice\t1\t2\nBob\t1\t3\nAlice\t1\tBob\t1\nAlice\t2\tCarol\t1\n"
         let parsed = BenchProtocol.parsePairs(fixture)
