@@ -1,6 +1,13 @@
-# Nachtrag 2026-09-04 (2.1.83)
+# Nachtrag 2026-09-04 (2.1.84)
 
-Siehe ANALYSE.md. **2.1.83** schließt Adopt-Blend, Predict bei Fremder Kiste, Trail-Schärfe, Kalman-NMS, Live-ROI, AE-Reconnect wirklich im Code.
+Siehe ANALYSE.md. **2.1.84** schließt leftoverBoxHash Pixel durch Bildmaß. 2.1.83 hatte Adopt-Blend, Predict, Trail-Schärfe, Live-ROI — Hold/Trail landeten trotzdem alle im selben Bin.
+
+## In 2.1.84 gelandet
+
+1. leftoverBoxUnit / Hash imageW/H — Pixel nicht ein Bin
+2. leftoverLiveHash — Hold/Trail dieselbe Normierung
+3. leftoverTrailPut(sharpness:) — Blur kein Append
+4. VERSION = Models = MARKETING_VERSION 2.1.84 (Build 110)
 
 ## In 2.1.83 gelandet
 
@@ -78,5 +85,13 @@ Siehe ANALYSE.md. **2.1.83** schließt Adopt-Blend, Predict bei Fremder Kiste, T
 60. CLAHE nur im ROI, nicht Full-Frame
 61. Print-Bank 5 Pose-Slots (front/left/right/up/down) gewichtet
 62. Overlay Ghost-Opacity = leftoverEmptySince / latch
+63. leftoverBoxHash Pixel-Norm — sitzt
+64. Hold-Hash 16 Bins wenn imageW≥1920 — sonst zwei Köpfe ein Bin auf 4K
+65. Ghost-Box Aspect-Lock: Predict ändert cx/cy, nicht w/h
+66. Unbekannte zweite Kiste: ROI aus, Full-Frame ein Tick
+67. leftoverKalman-Q aus Capture analog Helios luma-Q
+68. Quality-weighted Live-Centroid (Schärfe × Frontal × 1−|yaw|)
+69. Detector-Score als dritter leftoverPick-Term
 
 Nur main.
+

@@ -1559,6 +1559,22 @@ final class LibraryStore: ObservableObject {
         face.box = FaceBox(x: b.x, y: b.y, width: b.w, height: b.h)
     }
 
+    private func leftoverLiveHash(
+        kalmanX: Double?,
+        kalmanY: Double?,
+        kalmanW: Double?,
+        kalmanH: Double?,
+        fallback: FaceBox,
+        image: CGImage
+    ) -> String {
+        MatchMath.leftoverHoldWriteHash(
+            kalmanX: kalmanX, kalmanY: kalmanY, kalmanW: kalmanW, kalmanH: kalmanH,
+            fallback: fallback,
+            imageW: Double(image.width),
+            imageH: Double(image.height)
+        )
+    }
+
     private func leftoverPredictHeld(keep: Set<UUID>, skip: Set<UUID>) {
         for id in keep where !skip.contains(id) {
             guard let k = boxKalman[id] else { continue }
@@ -2280,13 +2296,14 @@ final class LibraryStore: ObservableObject {
                     // leftoverHoldSkipLookaway: EMA nicht mit Profil überschreiben. continue hält den Wert.
                     if leftoverHold[old.id] == nil {
                         leftoverHold[old.id] = MatchMath.leftoverHoldLookup(
-                            hash: MatchMath.leftoverBoxHash(MatchMath.leftoverHashBox(
+                            hash: leftoverLiveHash(
                                 kalmanX: boxKalman[old.id]?.x,
                                 kalmanY: boxKalman[old.id]?.y,
                                 kalmanW: boxKalman[old.id]?.w,
                                 kalmanH: boxKalman[old.id]?.h,
-                                fallback: old.box
-                            )),
+                                fallback: old.box,
+                                image: image
+                            ),
                             table: leftoverHoldByHash,
                             now: now,
                             ttl: MatchMath.dropoutTTL(dt: liveDt)
@@ -2302,13 +2319,14 @@ final class LibraryStore: ObservableObject {
                     aspectOk: aspectOk,
                     twinPair: aegisHit?.pairCosine,
                     holdPrev: leftoverHold[old.id] ?? MatchMath.leftoverHoldLookup(
-                        hash: MatchMath.leftoverBoxHash(MatchMath.leftoverHashBox(
+                        hash: leftoverLiveHash(
                             kalmanX: boxKalman[old.id]?.x,
                             kalmanY: boxKalman[old.id]?.y,
                             kalmanW: boxKalman[old.id]?.w,
                             kalmanH: boxKalman[old.id]?.h,
-                            fallback: old.box
-                        )),
+                            fallback: old.box,
+                            image: image
+                        ),
                         table: leftoverHoldByHash,
                         now: now,
                         ttl: MatchMath.dropoutTTL(dt: liveDt)
@@ -2360,13 +2378,14 @@ final class LibraryStore: ObservableObject {
                 }
                 leftoverTried.insert(old.id)
                 leftoverMissFrames[old.id] = MatchMath.leftoverMissAdvance(prev: leftoverMissFrames[old.id] ?? 0, hit: true)
-                let holdHash = MatchMath.leftoverBoxHash(MatchMath.leftoverHashBox(
+                let holdHash = leftoverLiveHash(
                     kalmanX: boxKalman[old.id]?.x,
                     kalmanY: boxKalman[old.id]?.y,
                     kalmanW: boxKalman[old.id]?.w,
                     kalmanH: boxKalman[old.id]?.h,
-                    fallback: old.box
-                ))
+                    fallback: old.box,
+                    image: image
+                )
                 let holdPrev = leftoverHold[old.id] ?? MatchMath.leftoverHoldLookup(
                     hash: holdHash,
                     table: leftoverHoldByHash,
@@ -2379,12 +2398,13 @@ final class LibraryStore: ObservableObject {
                 }
                 guard step.ready else { continue }
                 if let cos = remaining.first(where: { $0.index == bestJ })?.cosine {
-                    let boxHash = MatchMath.leftoverTrailWriteHash(
+                    let boxHash = leftoverLiveHash(
                         kalmanX: boxKalman[adopted[bestJ].id]?.x,
                         kalmanY: boxKalman[adopted[bestJ].id]?.y,
                         kalmanW: boxKalman[adopted[bestJ].id]?.w,
                         kalmanH: boxKalman[adopted[bestJ].id]?.h,
-                        fallback: adopted[bestJ].box
+                        fallback: adopted[bestJ].box,
+                        image: image
                     )
                     var trail = leftoverHoldTrail[old.id] ?? MatchMath.leftoverTrailLookup(
                         hash: boxHash,
@@ -2400,7 +2420,8 @@ final class LibraryStore: ObservableObject {
                             hash: boxHash,
                             sample: cos,
                             onto: leftoverHoldTrailByHash,
-                            now: now
+                            now: now,
+                            sharpness: adopted[bestJ].quality.sharpness
                         )
                     }
                     if MatchMath.printMADBlocks(trail) {
@@ -2437,12 +2458,13 @@ final class LibraryStore: ObservableObject {
                     ttl: MatchMath.dropoutTTL(dt: liveDt)
                 )
                 let trailNow = leftoverHoldTrail[old.id] ?? MatchMath.leftoverTrailLookup(
-                    hash: MatchMath.leftoverTrailWriteHash(
+                    hash: leftoverLiveHash(
                         kalmanX: boxKalman[adopted[bestJ].id]?.x,
                         kalmanY: boxKalman[adopted[bestJ].id]?.y,
                         kalmanW: boxKalman[adopted[bestJ].id]?.w,
                         kalmanH: boxKalman[adopted[bestJ].id]?.h,
-                        fallback: adopted[bestJ].box
+                        fallback: adopted[bestJ].box,
+                        image: image
                     ),
                     table: leftoverHoldTrailByHash,
                     now: now,
@@ -2478,12 +2500,13 @@ final class LibraryStore: ObservableObject {
                     leftoverPins += 1
                     if let cos = pinCos, MatchMath.leftoverHoldWriteOk(sharpness: adopted[bestJ].quality.sharpness) {
                         leftoverHoldByHash = MatchMath.leftoverHoldPut(
-                            hash: MatchMath.leftoverHoldWriteHash(
+                            hash: leftoverLiveHash(
                                 kalmanX: boxKalman[adopted[bestJ].id]?.x,
                                 kalmanY: boxKalman[adopted[bestJ].id]?.y,
                                 kalmanW: boxKalman[adopted[bestJ].id]?.w,
                                 kalmanH: boxKalman[adopted[bestJ].id]?.h,
-                                fallback: adopted[bestJ].box
+                                fallback: adopted[bestJ].box,
+                                image: image
                             ),
                             cosine: cos,
                             onto: leftoverHoldByHash,
@@ -2522,12 +2545,13 @@ final class LibraryStore: ObservableObject {
                     guestOrder = MatchMath.guestOrderAppend(id: adopted[bestJ].id, onto: guestOrder)
                     guestSeenAt[adopted[bestJ].id] = now
                 }
-                let putHash = MatchMath.leftoverHoldWriteHash(
+                let putHash = leftoverLiveHash(
                     kalmanX: boxKalman[adopted[bestJ].id]?.x ?? boxKalman[old.id]?.x,
                     kalmanY: boxKalman[adopted[bestJ].id]?.y ?? boxKalman[old.id]?.y,
                     kalmanW: boxKalman[adopted[bestJ].id]?.w ?? boxKalman[old.id]?.w,
                     kalmanH: boxKalman[adopted[bestJ].id]?.h ?? boxKalman[old.id]?.h,
-                    fallback: adopted[bestJ].box
+                    fallback: adopted[bestJ].box,
+                    image: image
                 )
                 boxEuro.removeValue(forKey: old.id)
                 if !MatchMath.leftoverAdoptKeepsKalman() {

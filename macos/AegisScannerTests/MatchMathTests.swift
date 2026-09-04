@@ -1149,6 +1149,24 @@ enum MatchMathTests {
         let boxFar = FaceBox(x: 0.80, y: 0.80, width: 0.15, height: 0.20)
         ok(MatchMath.leftoverBoxHash(boxA) == MatchMath.leftoverBoxHash(boxB), "nahe Box gleicher Hash")
         ok(MatchMath.leftoverBoxHash(boxA) != MatchMath.leftoverBoxHash(boxFar), "ferne Box anderer Hash")
+        let pxA = FaceBox(x: 200, y: 180, width: 120, height: 140)
+        let pxB = FaceBox(x: 900, y: 400, width: 120, height: 140)
+        ok(MatchMath.leftoverBoxHash(pxA) == MatchMath.leftoverBoxHash(pxB), "Pixel ohne Bildmaß ein Bin")
+        ok(MatchMath.leftoverBoxHash(pxA, imageW: 1280, imageH: 720) != MatchMath.leftoverBoxHash(pxB, imageW: 1280, imageH: 720), "Pixel mit Bildmaß getrennt")
+        let uA = MatchMath.leftoverBoxUnit(pxA, imageW: 1280, imageH: 720)
+        ok(uA.cx > 0.1 && uA.cx < 0.3, "Pixel-Unit cx")
+        let hashPx = MatchMath.leftoverHoldWriteHash(
+            kalmanX: 200, kalmanY: 180, kalmanW: 120, kalmanH: 140,
+            fallback: pxA, imageW: 1280, imageH: 720
+        )
+        let hashFar = MatchMath.leftoverHoldWriteHash(
+            kalmanX: 900, kalmanY: 400, kalmanW: 120, kalmanH: 140,
+            fallback: pxB, imageW: 1280, imageH: 720
+        )
+        ok(hashPx != hashFar, "Hold-Write Pixel getrennt")
+        var blurTab: [String: (samples: [Double], at: TimeInterval)] = [:]
+        blurTab = MatchMath.leftoverTrailPut(hash: "9.9.9.9", sample: 0.70, onto: blurTab, now: 1, sharpness: 0.10)
+        ok(MatchMath.leftoverTrailLookup(hash: "9.9.9.9", table: blurTab, now: 1.1).isEmpty, "Blur-Trail kein Append")
         var holdTab: [String: (cosine: Double, at: TimeInterval)] = [:]
         holdTab = MatchMath.leftoverHoldPut(hash: "1.2.3.4", cosine: 0.64, onto: holdTab, now: 10)
         ok(abs((MatchMath.leftoverHoldLookup(hash: "1.2.3.4", table: holdTab, now: 10.5) ?? -1) - 0.64) < 0.001, "Hold überlebt Dropout")

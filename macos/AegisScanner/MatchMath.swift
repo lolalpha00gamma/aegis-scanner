@@ -2602,14 +2602,29 @@ enum MatchMath {
     }
 
     /// Box-Hash über Dropout. UUID stirbt, die Kiste bleibt.
-    static func leftoverBoxHash(_ box: FaceBox, bins: Int = 12) -> String {
+    /// Live-Box ist Pixel. Ohne imageW/H fällt alles >1 in denselben Bin.
+    static func leftoverBoxHash(_ box: FaceBox, bins: Int = 12, imageW: Double = 0, imageH: Double = 0) -> String {
+        let u = leftoverBoxUnit(box, imageW: imageW, imageH: imageH)
         func q(_ v: Double) -> Int {
             let t = min(1, max(0, v))
             return min(bins - 1, Int((t * Double(bins)).rounded(.down)))
         }
-        let cx = box.x + box.width / 2
-        let cy = box.y + box.height / 2
-        return "\(q(cx)).\(q(cy)).\(q(box.width)).\(q(box.height))"
+        return "\(q(u.cx)).\(q(u.cy)).\(q(u.w)).\(q(u.h))"
+    }
+
+    /// 0–1 bleibt. Pixel durch Bildmaß. Sonst Clamp-auf-1 = ein Bin für alle.
+    static func leftoverBoxUnit(_ box: FaceBox, imageW: Double = 0, imageH: Double = 0) -> (cx: Double, cy: Double, w: Double, h: Double) {
+        var cx = box.x + box.width / 2
+        var cy = box.y + box.height / 2
+        var w = box.width
+        var h = box.height
+        if imageW > 1, imageH > 1 {
+            cx /= imageW
+            cy /= imageH
+            w /= imageW
+            h /= imageH
+        }
+        return (cx, cy, w, h)
     }
 
     /// cx/cy/w/h ±1. Detector-Jitter auf der Größe tötet Hold nicht.
@@ -2683,11 +2698,13 @@ enum MatchMath {
         kalmanY: Double?,
         kalmanW: Double?,
         kalmanH: Double?,
-        fallback: FaceBox
+        fallback: FaceBox,
+        imageW: Double = 0,
+        imageH: Double = 0
     ) -> String {
         leftoverBoxHash(leftoverHashBox(
             kalmanX: kalmanX, kalmanY: kalmanY, kalmanW: kalmanW, kalmanH: kalmanH, fallback: fallback
-        ))
+        ), imageW: imageW, imageH: imageH)
     }
 
     /// Trail-Write = Hold-Write. Roh-Box verfehlte den Bin nach Kalman-Put.
@@ -2696,10 +2713,13 @@ enum MatchMath {
         kalmanY: Double?,
         kalmanW: Double?,
         kalmanH: Double?,
-        fallback: FaceBox
+        fallback: FaceBox,
+        imageW: Double = 0,
+        imageH: Double = 0
     ) -> String {
         leftoverHoldWriteHash(
-            kalmanX: kalmanX, kalmanY: kalmanY, kalmanW: kalmanW, kalmanH: kalmanH, fallback: fallback
+            kalmanX: kalmanX, kalmanY: kalmanY, kalmanW: kalmanW, kalmanH: kalmanH, fallback: fallback,
+            imageW: imageW, imageH: imageH
         )
     }
 
@@ -2708,9 +2728,11 @@ enum MatchMath {
         sample: Double,
         onto table: [String: (samples: [Double], at: TimeInterval)],
         now: TimeInterval,
-        cap: Int = 5
+        cap: Int = 5,
+        sharpness: Double? = nil
     ) -> [String: (samples: [Double], at: TimeInterval)] {
         var next = leftoverTrailPrune(table, now: now)
+        if !leftoverTrailWriteOk(sharpness: sharpness) { return next }
         var row = leftoverTrailLookup(hash: hash, table: next, now: now)
         row.append(sample)
         if row.count > cap { row.removeFirst(row.count - cap) }

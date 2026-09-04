@@ -1,10 +1,20 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.83 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.84 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 
-Neu in 2.1.83: Adopt blendet Live-Box durch Kalman, Predict bei Fremder Kiste, Trail nur scharf, Kalman-NMS, Live-ROI, AE-Reconnect 0,80 s.
+Neu in 2.1.84: leftoverBoxHash Pixel durch Bildmaß. Hold/Trail nicht mehr ein Bin für alle Köpfe.
+
+## In 2.1.84 wirklich im Code
+
+2.1.83 Adopt-Blend, Predict, Trail-Schärfe, Live-ROI. leftoverBoxHash Clamp-auf-1.
+
+1. **`leftoverBoxUnit` / Hash imageW/H.**
+2. **`leftoverLiveHash`.**
+3. **`leftoverTrailPut(sharpness:)`.**
+4. Tests + VERSION = Models = MARKETING_VERSION 2.1.84 (Build 110).
 
 ## In 2.1.83 wirklich im Code
+
 
 2.1.82 Kalman am Adopt. Overlay nahm Live roh. Predict nur found.isEmpty. Trail ohne Schärfe. Detector volles Bild.
 
