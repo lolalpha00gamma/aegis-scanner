@@ -1,4 +1,4 @@
-# Aegis **2.1.82 alpha**
+# Aegis **2.1.83 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.83 alpha
+
+2.1.82 Adopt-Kalman. Overlay sprang trotzdem: Live-Box roh. Kalman-Predict nur bei found.isEmpty — Poster fror Walker. Trail-Append ohne Schärfe. Detector volles Bild. Walker-Doppelkiste.
+
+- **`leftoverAdoptBlend`.** Live-Box durch Kalman, k=0,55.
+- **`leftoverPredictOnEmptyLike`.** Fremde Kiste = Predict wie leer.
+- **`leftoverTrailWriteOk`.** Blur kein Trail. **`kalmanNmsDrops`.** Twin auf Predict weg.
+- **`liveRoiBox`.** Detector Crop um Kalman. **`exposureLockHold(reconnect)`** 8 fps 0,80 s.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.83 (Build 109).
 
 ## Neu in 2.1.82 alpha
 

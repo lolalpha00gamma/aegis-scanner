@@ -1,24 +1,27 @@
-# Helios + Aegis — Analyse 2026-09-04 (2.1.82)
+# Helios + Aegis — Analyse 2026-09-04 (2.1.83)
 
-Helios **1.5.66** (Build 86). Aegis **2.1.82 alpha** (Build 108). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`. `bugfix` geprüft: hinter main, nichts nachziehen.
+Helios **1.5.67** (Build 87). Aegis **2.1.83 alpha** (Build 109). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`. `bugfix` geprüft: hinter main, nichts nachziehen.
 
-## Warum Namen nach 2.1.81 noch sprangen / tot wirkten
+## Warum Namen nach 2.1.82 noch sprangen / tot wirkten
 
-2.1.81 hat Kalman-Predict, Pending-Mirror, HOLD-Chip. Drei Löcher blieben:
+2.1.82 hält Kalman am Adopt, Latch trotz Poster, Hold-EMA an dt. Vier Löcher blieben:
 
-1. **leftover Adopt droppte Kalman+vx.** ID bleibt, Filter tot. Erster Live-Frame roh → Overlay-Sprung, IoU tot, Gast n+1.
-2. **`leftoverEmptySince` global.** Poster/Gast im Frame wischte Annas Latch. 4 s Ghost nur wenn *gar keine* Kiste da.
-3. **Hold-EMA ohne dt.** 8 fps Spike 0,06 in einem Tick. Blur unter leftoverPrintSharp schrieb trotzdem Hold.
+1. **Adopt droppte Kalman nicht, Overlay nahm die Live-Box roh.** Erster Reconnect-Frame = Teleport, IoU tot, Gast n+1.
+2. **`boxKalmanPredict` nur bei `found.isEmpty`.** emptyLike (Poster IoU < 0,18) ließ vx liegen — Walker klebt, dann springt.
+3. **Trail-Append ohne Schärfe.** Hold-Write sitzt, MAD bekam Blur-0,70. Twin-Hard falsch.
+4. **Detector volles Bild, kein Kalman-NMS.** 8 fps False-Empty. Walker-Doppelkiste neben der Predict-Box.
 
-## Was 2.1.82 wirklich ändert
+## Was 2.1.83 wirklich ändert
 
-1. **`leftoverAdoptKeepsKalman`.** Adopt droppt Kalman nicht.
-2. **`leftoverEmptyIgnoresStranger`.** IoU < 0,18 = Latch wie leer.
-3. **`leftoverHoldAlpha(dt)` am Live-EMA.** **`leftoverHoldWriteOk`.** Blur kein Hold-Write.
-4. Tests + VERSION = Models = MARKETING_VERSION 2.1.82 (Build 108).
+1. **`leftoverAdoptBlend`.** Live durch Kalman, k=0,55.
+2. **`leftoverPredictOnEmptyLike`.** Predict auch bei Fremder Kiste.
+3. **`leftoverTrailWriteOk`.** dieselbe Schwelle wie Hold-Write.
+4. **`kalmanNmsDrops` + `liveRoiBox`.** Twin weg, Crop um Kalman.
+5. **`exposureLockHold(reconnect:)`.** 8 fps 0,80 s nach Ghost-Adopt.
+6. Tests + VERSION = Models = MARKETING_VERSION 2.1.83 (Build 109).
 
-Was Masse noch bringen würde: Frame-Pump mit Helios, CLAHE auf den Buffer, Live-ROI Crop, Drop-in `.mlmodel`, DBSCAN vor Merge, temporal print bank, Quality-weighted Centroid im leftover-Trail.
+Was Masse noch bringen würde: Frame-Pump mit Helios, CLAHE auf den Buffer, Drop-in `.mlmodel`, DBSCAN vor Merge, temporal print bank mit Pose-Keys, Quality-weighted Centroid im leftover-Trail (Math sitzt, Trail speichert nur Cosine).
 
-Helios 1.5.66: Engine hält Ghosts, Pool am Dropout, Sparse ohne Tips. Siehe `bpms9cmnxc-debug/Helios`.
+Helios 1.5.67: Pinch-Hold 0 wenn Gate zu, Latch max S1/S2, Vision-ROI, Palm-Vel am Tick. Siehe `bpms9cmnxc-debug/Helios`.
 
 `bugfix` mergen oder fortsetzen: nein. Nur `main`.

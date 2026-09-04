@@ -1,8 +1,18 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.82 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.83 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 
-Neu in 2.1.82: Adopt hält Kalman, Fremde Kiste ignoriert Latch, Hold-EMA an dt, Blur kein Hold-Write.
+Neu in 2.1.83: Adopt blendet Live-Box durch Kalman, Predict bei Fremder Kiste, Trail nur scharf, Kalman-NMS, Live-ROI, AE-Reconnect 0,80 s.
+
+## In 2.1.83 wirklich im Code
+
+2.1.82 Kalman am Adopt. Overlay nahm Live roh. Predict nur found.isEmpty. Trail ohne Schärfe. Detector volles Bild.
+
+1. **`leftoverAdoptBlend`.**
+2. **`leftoverPredictOnEmptyLike`.**
+3. **`leftoverTrailWriteOk` + `kalmanNmsDrops` + `liveRoiBox`.**
+4. **`exposureLockHold(reconnect:)` 8 fps 0,80 s.**
+5. Tests + VERSION = Models = MARKETING_VERSION 2.1.83 (Build 109).
 
 ## In 2.1.82 wirklich im Code
 

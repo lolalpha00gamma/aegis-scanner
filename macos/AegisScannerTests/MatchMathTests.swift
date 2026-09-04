@@ -1493,6 +1493,49 @@ enum MatchMathTests {
         let cutDense = BenchProtocol.identificationCut(counts: dense, cap: 200)
         ok(cutDense.minPhotos == 20 && cutDense.kept == 200, "250×25 → min 20, Cap 200")
 
+        ok(MatchMath.leftoverAdoptKeepsKalman(), "Adopt hält Kalman")
+        ok(MatchMath.leftoverPredictOnEmptyLike(true), "emptyLike predict")
+        ok(!MatchMath.leftoverPredictOnEmptyLike(false), "Anna zurück kein extra Predict")
+        let blended = MatchMath.leftoverAdoptBlend(
+            live: (x: 0.80, y: 0.20, w: 0.20, h: 0.20),
+            kalman: (x: 0.20, y: 0.20, w: 0.20, h: 0.20)
+        )
+        near(blended.x, 0.80 * 0.55 + 0.20 * 0.45, 0.002, "Adopt-Blend x")
+        let rawLive = MatchMath.leftoverAdoptBlend(
+            live: (x: 0.80, y: 0.20, w: 0.20, h: 0.20),
+            kalman: nil
+        )
+        near(rawLive.x, 0.80, 0.001, "ohne Kalman Live")
+        ok(MatchMath.leftoverTrailWriteOk(sharpness: 0.40), "scharf Trail")
+        ok(!MatchMath.leftoverTrailWriteOk(sharpness: 0.10), "Blur kein Trail")
+        ok(MatchMath.kalmanNmsDrops(iou: 0.50, bestIou: 0.80), "Walker-Twin drop")
+        ok(!MatchMath.kalmanNmsDrops(iou: 0.80, bestIou: 0.80), "beste Kiste bleibt")
+        ok(!MatchMath.kalmanNmsDrops(iou: 0.20, bestIou: 0.80), "fremd kein NMS")
+        ok(MatchMath.kalmanNmsKeeps(iou: 0.80, bestIou: 0.80), "Keep beste")
+        let roi = MatchMath.liveRoiBox(
+            kalman: [(x: 200, y: 150, w: 80, h: 100)],
+            imageW: 1280,
+            imageH: 720
+        )
+        ok(roi != nil && (roi?.w ?? 0) > 80, "Live-ROI um Kalman")
+        ok(MatchMath.liveRoiBox(kalman: [], imageW: 1280, imageH: 720) == nil, "ohne Kalman kein ROI")
+        let full = MatchMath.liveRoiBox(
+            kalman: [(x: 10, y: 10, w: 1260, h: 700)],
+            imageW: 1280,
+            imageH: 720
+        )
+        ok(full == nil, "fast volles Bild kein Crop")
+        near(MatchMath.exposureLockHold(dt: 0.125, reconnect: true), 0.80, 0.001, "8 fps Reconnect AE 0,80")
+        near(MatchMath.exposureLockHold(dt: 0.016, reconnect: true), 0.40, 0.001, "24 fps Reconnect AE 0,40")
+        near(MatchMath.exposureLockHold(dt: 0.125), 0.40, 0.001, "8 fps AE bleibt 0,40")
+        ok(MatchMath.printBankWeight(sharpness: 0.40) > 0, "scharf Bank-Gewicht")
+        ok(MatchMath.printBankWeight(sharpness: 0.10) == 0, "Blur Bank 0")
+        let bank = MatchMath.printBankBlend([
+            (vec: [1, 0, 0, 0] + Array(repeating: 0, count: 28), w: 1),
+            (vec: [0, 1, 0, 0] + Array(repeating: 0, count: 28), w: 0)
+        ])
+        ok(!bank.isEmpty && abs(bank[0] - 1) < 0.001, "Bank ignoriert Gewicht 0")
+
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)
             exit(1)

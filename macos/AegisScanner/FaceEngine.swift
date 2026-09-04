@@ -11,10 +11,19 @@ enum FaceEngine {
         return _dropped
     }
 
-    static func detect(in image: CGImage, mediaId: UUID, tiles: Bool = true, orientation: CGImagePropertyOrientation = .up, minSharpness: Double = MatchMath.sharpnessFloor, continuity: Bool = false, cheapGraph: Bool = false, live: Bool = false, skipPrints: Bool = false) throws -> [FaceObservation] {
+    static func detect(in image: CGImage, mediaId: UUID, tiles: Bool = true, orientation: CGImagePropertyOrientation = .up, minSharpness: Double = MatchMath.sharpnessFloor, continuity: Bool = false, cheapGraph: Bool = false, live: Bool = false, skipPrints: Bool = false, roi: FaceBox? = nil) throws -> [FaceObservation] {
         let w = Double(image.width)
         let h = Double(image.height)
-        var out = try detectOnce(in: image, mediaId: mediaId, originX: 0, originY: 0, imageWidth: w, imageHeight: h, orientation: orientation, cheapGraph: cheapGraph)
+        let cropOrigin: (x: Double, y: Double)
+        let work: CGImage
+        if let roi, let cropped = crop(image, box: roi, pad: 0) {
+            work = cropped
+            cropOrigin = (roi.x, roi.y)
+        } else {
+            work = image
+            cropOrigin = (0, 0)
+        }
+        var out = try detectOnce(in: work, mediaId: mediaId, originX: cropOrigin.x, originY: cropOrigin.y, imageWidth: w, imageHeight: h, orientation: orientation, cheapGraph: cheapGraph)
         let stats = lumaStats(image)
         if stats.dark || out.isEmpty, let lifted = equalize(image) {
             let extra = try detectOnce(

@@ -1332,6 +1332,25 @@ enum MatchMath {
     /// leftover Adopt hält Kalman+vx. Drop = Overlay-Sprung, Gast n+1.
     static func leftoverAdoptKeepsKalman() -> Bool { true }
 
+    /// Adopt blendet die Live-Box durch den alten Kalman. Sonst erster Frame roh → Sprung.
+    static func leftoverAdoptBlend(
+        live: (x: Double, y: Double, w: Double, h: Double),
+        kalman: (x: Double, y: Double, w: Double, h: Double)?,
+        k: Double = 0.55
+    ) -> (x: Double, y: Double, w: Double, h: Double) {
+        guard let kalman else { return live }
+        let a = min(1, max(0, k))
+        return (
+            x: a * live.x + (1 - a) * kalman.x,
+            y: a * live.y + (1 - a) * kalman.y,
+            w: a * live.w + (1 - a) * kalman.w,
+            h: a * live.h + (1 - a) * kalman.h
+        )
+    }
+
+    /// Predict nicht nur bei found.isEmpty — Poster/Gast ist emptyLike.
+    static func leftoverPredictOnEmptyLike(_ emptyLike: Bool) -> Bool { emptyLike }
+
     /// Fremde Kiste (Poster, Gast) ist kein Reconnect. Latch bleibt.
     /// Nur gegen existing previous — erster Frame hat IoU 0, das ist kein Stranger.
     static func leftoverEmptyIgnoresStranger(foundIouMax: Double, floor: Double = 0.18) -> Bool {
@@ -1342,6 +1361,11 @@ enum MatchMath {
     static func leftoverHoldWriteOk(sharpness: Double?) -> Bool {
         guard let s = sharpness else { return true }
         return s >= leftoverPrintSharp
+    }
+
+    /// Trail-Append dieselbe Schwelle. Roh 0,70 blur pollutet MAD.
+    static func leftoverTrailWriteOk(sharpness: Double?) -> Bool {
+        leftoverHoldWriteOk(sharpness: sharpness)
     }
 
     /// Zweiter leerer Frame: previous schon []. used∪dropped wischt Kalman. Ghosts+Hold halten.
@@ -2148,8 +2172,9 @@ enum MatchMath {
     static let captureJumpDelta = 0.15
     static let captureBurstFrames = 3
 
-    static func exposureLockHold(dt: TimeInterval) -> TimeInterval {
-        dt >= 0.08 ? 0.40 : exposureLockHold
+    static func exposureLockHold(dt: TimeInterval, reconnect: Bool = false) -> TimeInterval {
+        if reconnect { return dt >= 0.08 ? 0.80 : 0.40 }
+        return dt >= 0.08 ? 0.40 : exposureLockHold
     }
 
     static func captureJumps(prev: Double, next: Double, delta: Double = captureJumpDelta) -> Bool {
@@ -2415,6 +2440,65 @@ enum MatchMath {
             )
         }
         return out
+    }
+
+    /// Walker-Doppelkiste: Live-Box auf der Predict-Kiste, aber nicht die beste.
+    static func kalmanNmsDrops(iou: Double, bestIou: Double, floor: Double = 0.45) -> Bool {
+        iou >= floor && iou + 1e-9 < bestIou
+    }
+
+    static func kalmanNmsKeeps(iou: Double, bestIou: Double, floor: Double = 0.45) -> Bool {
+        !kalmanNmsDrops(iou: iou, bestIou: bestIou, floor: floor)
+    }
+
+    /// Live-Detector Crop um Kalman-Kisten. 8 fps False-Empty ohne ROI.
+    static func liveRoiBox(
+        kalman: [(x: Double, y: Double, w: Double, h: Double)],
+        imageW: Double,
+        imageH: Double,
+        pad: Double = 1.8
+    ) -> (x: Double, y: Double, w: Double, h: Double)? {
+        guard !kalman.isEmpty, imageW > 1, imageH > 1 else { return nil }
+        var minX = Double.infinity, minY = Double.infinity, maxX = -Double.infinity, maxY = -Double.infinity
+        for b in kalman {
+            minX = min(minX, b.x)
+            minY = min(minY, b.y)
+            maxX = max(maxX, b.x + b.w)
+            maxY = max(maxY, b.y + b.h)
+        }
+        let bw = max(1, maxX - minX)
+        let bh = max(1, maxY - minY)
+        let px = bw * (pad - 1) / 2
+        let py = bh * (pad - 1) / 2
+        let x = max(0, minX - px)
+        let y = max(0, minY - py)
+        let w = min(imageW - x, bw + 2 * px)
+        let h = min(imageH - y, bh + 2 * py)
+        if w / imageW < 0.18 || h / imageH < 0.18 { return nil }
+        if w / imageW > 0.92 && h / imageH > 0.92 { return nil }
+        return (x, y, w, h)
+    }
+
+    /// Print-Bank: Blur zählt 0, scharf nach leftoverPrintSharp.
+    static func printBankWeight(sharpness: Double?) -> Double {
+        leftoverTrailWriteOk(sharpness: sharpness) ? max(0.15, sharpness ?? 1) : 0
+    }
+
+    static func printBankBlend(_ samples: [(vec: [Double], w: Double)]) -> [Double] {
+        var acc: [Double] = []
+        var wsum = 0.0
+        for s in samples where s.w > 0 && s.vec.count >= 32 {
+            if acc.isEmpty {
+                acc = s.vec.map { $0 * s.w }
+            } else if acc.count == s.vec.count {
+                for i in acc.indices { acc[i] += s.vec[i] * s.w }
+            } else { continue }
+            wsum += s.w
+        }
+        guard wsum > 0, !acc.isEmpty else { return [] }
+        let inv = 1.0 / wsum
+        for i in acc.indices { acc[i] *= inv }
+        return acc
     }
 
     static let clusterSplitNeed = 10

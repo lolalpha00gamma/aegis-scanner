@@ -1438,10 +1438,19 @@ final class LibraryStore: ObservableObject {
         let cont = liveCapture.isContinuity
         let dt = liveDt
         let vis = lastLiveVisMs
+        let kalmanSnap: [(x: Double, y: Double, w: Double, h: Double)] = boxKalman.map { (_, v) in
+            (x: v.x, y: v.y, w: v.w, h: v.h)
+        }
+        let roiTuple = MatchMath.liveRoiBox(
+            kalman: kalmanSnap,
+            imageW: Double(image.width),
+            imageH: Double(image.height)
+        )
         Task.detached(priority: .userInitiated) {
             let skipPrints = MatchMath.printBudgetSkip(visionMs: vis, dt: dt)
             let t0 = CFAbsoluteTimeGetCurrent()
-            let found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true, skipPrints: skipPrints)) ?? []
+            let roi = roiTuple.map { FaceBox(x: $0.x, y: $0.y, width: $0.w, height: $0.h) }
+            let found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true, skipPrints: skipPrints, roi: roi)) ?? []
             let visMs = (CFAbsoluteTimeGetCurrent() - t0) * 1000
             await MainActor.run { [weak self] in
                 guard let self else { return }
@@ -1541,14 +1550,57 @@ final class LibraryStore: ObservableObject {
         leftoverPending = MatchMath.leftoverPendingMirror(pending: leftoverPending, from: from, to: to)
     }
 
+    private func leftoverBlendAdopted(_ face: inout FaceObservation, oldId: UUID) {
+        guard MatchMath.leftoverAdoptKeepsKalman() else { return }
+        let k = boxKalman[oldId]
+        let live = (x: face.box.x, y: face.box.y, w: face.box.width, h: face.box.height)
+        let kal = k.map { (x: $0.x, y: $0.y, w: $0.w, h: $0.h) }
+        let b = MatchMath.leftoverAdoptBlend(live: live, kalman: kal)
+        face.box = FaceBox(x: b.x, y: b.y, width: b.w, height: b.h)
+    }
+
+    private func leftoverPredictHeld(keep: Set<UUID>, skip: Set<UUID>) {
+        for id in keep where !skip.contains(id) {
+            guard let k = boxKalman[id] else { continue }
+            let v = boxKalmanV[id] ?? (vx: 0, vy: 0)
+            let nx = MatchMath.boxKalmanPredict(x: k.x, v: v.vx, dt: liveDt)
+            let ny = MatchMath.boxKalmanPredict(x: k.y, v: v.vy, dt: liveDt)
+            boxKalman[id] = (nx, ny, k.w, k.h, k.px, k.py, k.pw, k.ph)
+            if let i = liveGhosts.firstIndex(where: { $0.face.id == id }) {
+                var g = liveGhosts[i]
+                g.face.box = FaceBox(x: nx, y: ny, width: k.w, height: k.h)
+                liveGhosts[i] = g
+            }
+        }
+    }
+
+    private func leftoverDropKalmanTwins(_ found: [FaceObservation]) -> [FaceObservation] {
+        let pred = boxKalman.mapValues { FaceBox(x: $0.x, y: $0.y, width: $0.w, height: $0.h) }
+        guard !pred.isEmpty, found.count >= 2 else { return found }
+        var best: [UUID: Double] = [:]
+        for face in found {
+            for (id, box) in pred {
+                let o = FaceEngine.iou(face.box, box)
+                best[id] = max(best[id] ?? 0, o)
+            }
+        }
+        return found.filter { face in
+            for (id, box) in pred {
+                let o = FaceEngine.iou(face.box, box)
+                if MatchMath.kalmanNmsDrops(iou: o, bestIou: best[id] ?? 0) { return false }
+            }
+            return true
+        }
+    }
+
     private func boxKalmanDrop(_ id: UUID) {
         boxKalman.removeValue(forKey: id)
         boxKalmanV.removeValue(forKey: id)
     }
 
-    private func applyLiveFaces(_ found: [FaceObservation], image: CGImage, mediaId: UUID, stamp: TimeInterval) {
+    private func applyLiveFaces(_ incoming: [FaceObservation], image: CGImage, mediaId: UUID, stamp: TimeInterval) {
         let latch = MatchMath.liveFacesLatch(
-            present: !found.isEmpty,
+            present: !incoming.isEmpty,
             on: liveCapture.facesPresent,
             streak: liveFaceStreak
         )
@@ -1559,6 +1611,7 @@ final class LibraryStore: ObservableObject {
         media[idx].height = image.height
         media[idx].preview = image
         let now = stamp > 0 ? stamp : Date().timeIntervalSince1970
+        let found = leftoverDropKalmanTwins(incoming)
         if liveLastStamp > 0, now > liveLastStamp {
             let raw = now - liveLastStamp
             if raw > 0.02, raw < 0.40 {
@@ -1752,7 +1805,7 @@ final class LibraryStore: ObservableObject {
                     if MatchMath.captureJumps(prev: old.quality.capture, next: face.quality.capture) {
                         liveExposureUntil[old.id] = MatchMath.exposureLockUntil(
                             now: now,
-                            hold: MatchMath.exposureLockHold(dt: liveDt)
+                            hold: MatchMath.exposureLockHold(dt: liveDt, reconnect: pinGhost)
                         )
                     }
                     let aeLock = MatchMath.exposureLocks(now: now, until: liveExposureUntil[old.id] ?? 0)
@@ -1799,7 +1852,9 @@ final class LibraryStore: ObservableObject {
                     }
                     livePrintTrailSlot[old.id] = nextSlot
                     if prev.count >= 32 { trail.append(prev) }
-                    if next.count >= 32 { trail.append(next) }
+                    if next.count >= 32, MatchMath.leftoverTrailWriteOk(sharpness: face.quality.sharpness) {
+                        trail.append(next)
+                    }
                     if trail.count > 5 { trail.removeFirst(trail.count - 5) }
                     livePrintTrail[old.id] = trail
                     let median = MatchMath.medianBlend(trail)
@@ -1817,6 +1872,11 @@ final class LibraryStore: ObservableObject {
                 face.id = old.id
                 face.trackId = old.trackId ?? old.id
                 face.enrolledAt = old.enrolledAt ?? face.enrolledAt
+                leftoverBlendAdopted(&face, oldId: old.id)
+                liveExposureUntil[old.id] = MatchMath.exposureLockUntil(
+                    now: now,
+                    hold: MatchMath.exposureLockHold(dt: liveDt, reconnect: pinGhost)
+                )
                 // Ghost-Box darf nicht kleben: 1-Euro und Ampel der UUID verwerfen.
                 boxEuro.removeValue(forKey: old.id)
                 boxJumpPending.removeValue(forKey: old.id)
@@ -2013,6 +2073,7 @@ final class LibraryStore: ObservableObject {
                     leftoverMirrorPending(from: newId, to: old.id)
                     adopted[i].trackId = old.trackId ?? old.id
                     adopted[i].enrolledAt = old.enrolledAt ?? adopted[i].enrolledAt
+                    leftoverBlendAdopted(&adopted[i], oldId: old.id)
                     boxEuro.removeValue(forKey: old.id)
                     if !MatchMath.leftoverAdoptKeepsKalman() {
                         boxKalmanDrop(old.id)
@@ -2067,21 +2128,10 @@ final class LibraryStore: ObservableObject {
         ) {
             status = line
         }
+        if MatchMath.leftoverPredictOnEmptyLike(emptyLike), emptyLatch {
+            leftoverPredictHeld(keep: keepBoxes, skip: used)
+        }
         if found.isEmpty {
-            if emptyLatch {
-                for id in keepBoxes {
-                    guard let k = boxKalman[id] else { continue }
-                    let v = boxKalmanV[id] ?? (vx: 0, vy: 0)
-                    let nx = MatchMath.boxKalmanPredict(x: k.x, v: v.vx, dt: liveDt)
-                    let ny = MatchMath.boxKalmanPredict(x: k.y, v: v.vy, dt: liveDt)
-                    boxKalman[id] = (nx, ny, k.w, k.h, k.px, k.py, k.pw, k.ph)
-                    if let i = liveGhosts.firstIndex(where: { $0.face.id == id }) {
-                        var g = liveGhosts[i]
-                        g.face.box = FaceBox(x: nx, y: ny, width: k.w, height: k.h)
-                        liveGhosts[i] = g
-                    }
-                }
-            }
             if !MatchMath.leftoverEmptyKeepsOverlay(liveEmpty: true) || !emptyChip {
                 liveHeldIds = []
                 leftoverPending = [:]
@@ -2342,15 +2392,17 @@ final class LibraryStore: ObservableObject {
                         now: now,
                         ttl: MatchMath.dropoutTTL(dt: liveDt)
                     )
-                    trail.append(cos)
-                    if trail.count > 5 { trail.removeFirst(trail.count - 5) }
-                    leftoverHoldTrail[old.id] = trail
-                    leftoverHoldTrailByHash = MatchMath.leftoverTrailPut(
-                        hash: boxHash,
-                        sample: cos,
-                        onto: leftoverHoldTrailByHash,
-                        now: now
-                    )
+                    if MatchMath.leftoverTrailWriteOk(sharpness: adopted[bestJ].quality.sharpness) {
+                        trail.append(cos)
+                        if trail.count > 5 { trail.removeFirst(trail.count - 5) }
+                        leftoverHoldTrail[old.id] = trail
+                        leftoverHoldTrailByHash = MatchMath.leftoverTrailPut(
+                            hash: boxHash,
+                            sample: cos,
+                            onto: leftoverHoldTrailByHash,
+                            now: now
+                        )
+                    }
                     if MatchMath.printMADBlocks(trail) {
                         leftoverPending[adopted[bestJ].id] = MatchMath.printMADNote()
                         continue
@@ -2461,6 +2513,11 @@ final class LibraryStore: ObservableObject {
                     if adopted[bestJ].printVec.isEmpty, !old.printVec.isEmpty {
                         adopted[bestJ].printVec = old.printVec
                     }
+                    leftoverBlendAdopted(&adopted[bestJ], oldId: old.id)
+                    liveExposureUntil[old.id] = MatchMath.exposureLockUntil(
+                        now: now,
+                        hold: MatchMath.exposureLockHold(dt: liveDt, reconnect: true)
+                    )
                 } else {
                     guestOrder = MatchMath.guestOrderAppend(id: adopted[bestJ].id, onto: guestOrder)
                     guestSeenAt[adopted[bestJ].id] = now
