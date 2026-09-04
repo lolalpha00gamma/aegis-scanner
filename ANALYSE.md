@@ -1,38 +1,27 @@
-# Helios + Aegis — Analyse 2026-09-04
+# Helios + Aegis — Analyse 2026-09-04 (Pass 2.1.65)
 
-Helios **1.5.49** (Build 69). Aegis **2.1.64 alpha** (Build 91). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26.
+Helios **1.5.50** (Build 70 geplant). Aegis **2.1.65 alpha** (Build 92). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26.
 
-## Warum Namen sprangen
+## Bugfix-Protokoll
 
-Matching ist nicht „Cosine > 0,78“. Live-ReID ist:
+### Pass 1 — neu gefunden
 
-```
-Box → NMS → Print (manchmal skip) → Geo → leftover-Assign
-    → Majority 3 → Name-Lock 8 s → Ghost-TTL → Open-Set Floor
-```
+1. **leftoverHoldLookup nur Exact-Hash.** leftoverBoxHash rastert 12x12. Ein Schritt über die Bin-Kante wechselt 1.2.3.4 nach 1.3.3.4. Hold tot, obwohl dieselbe Kiste. Gleicher Klasse wie UUID-Dropout in 2.1.63.
+   Fix: leftoverBoxHashNeighbors (cx/cy +/-1), Lookup nimmt den jüngsten gültigen Nachbarn.
 
-Widersprachen sich zwei Stufen, taufte die dritte trotzdem. Twin 0,91 still Anna, Ghost 0,64 stahl UUID, Poster ohne Blink. `MatchMath` war ein Katalog von Pflastern; Tests grün, Overlay eine Version später.
+2. **Print-Trail ohne MAD.** Median 0,64 neben einem Twin-Frame 0,80 commitet trotzdem, wenn der Median über Floor liegt.
+   Fix: printMAD / printMADBlocks auf dem 5er-Trail in LibraryStore. Overlay MAD.
 
-2.1.63 hat leftoverTransfersId und Gast 1/2. leftoverHold hing an der UUID — Dropout warf Hold. Streak-Since lebte nur im RAM. Gast hätte nach 8 s leftover still in gallery.json landen können. Ampel nur Farbe. Continuity-Nacht ohne Hinweis.
+### Pass 2 — neu gefunden
 
-## Was 2.1.64 wirklich ändert
+3. **Nachbar-Lookup darf ferne Bins nicht erben.** Test 9.9.9.9 bleibt leer. Nur 8-Nachbarschaft auf Position, nicht auf Breite/Höhe.
 
-1. **`leftoverHold` keyed by Box-Hash.** UUID stirbt beim Dropout, die Kiste bleibt. Lookup TTL = leftoverAdoptSec (1,2 s). Prune am Tick.
-2. **`leftoverStreakSince` in gallery.json.** Schema 4. Restore lädt die Uhr, nicht bei 0 neu.
-3. **Gast nie silent.** `guestPersistWrites` nur nach Tauf-Button. `guestPersistSilent` immer false.
-4. **Farbenblind Ampel.** Grün ●, Amber ◐, Rot ✕ — nicht nur Hue. VoiceOver `solid`/`half`/`cross`.
-5. **CLAHE-Banner.** Continuity + dunkle Schärfe → Overlay `CLAHE`. Ausgleich selbst nächste.
-6. **`liveROI` Math.** Pad + Clamp. Draht in den Detector nächste.
+4. **MAD braucht >= 3 Samples.** Ein oder zwei Cosines haben kein MAD.
 
-Was Masse noch bringen würde:
+### Pass 3
 
-- Helios Frame-Pump, eine TCC.
-- CLAHE wirklich auf den PixelBuffer, nicht nur Banner.
-- Brille-Slot, Drop-in `.mlmodel`, DBSCAN vor Merge, Zwei-Kamera-Live.
-- VoiceOver spricht den Namen, nicht nur Lampen-Pattern.
-- Print-MAD > 0,04 wirft Spike.
-- Identity-Graph als Soft-Prior, nie Taufe.
+Keine neuen Bugs in den geänderten Pfaden. Loop für diesen Slice fertig.
 
-Helios 1.5.49: Tip-Z verdrahtet, Display-Link, KALIB HIER, Homographie-Warmup, Per-App Gain. Siehe `bpms9cmnxc-debug/Helios`.
+Matching ist Pipeline, nicht eine Zahl. 2.1.64 hat UUID-Hold und stilles Gast-Persist geschlossen. 2.1.65 schließt den Hash-Kantensprung und den Trail-Spike.
 
-`bugfix` mergen oder fortsetzen: nein. Nur `main`.
+Nur main.
