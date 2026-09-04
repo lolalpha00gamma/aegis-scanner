@@ -1,4 +1,4 @@
-# Aegis **2.1.77 alpha**
+# Aegis **2.1.78 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.78 alpha
+
+2.1.77 Label/WEG/Miss. Ein leerer Detector-Frame wischte Streak und Kalman — Continuity 8 fps = Gast n+1. Profil 0,62 scharf taufte Twins. Same-shot 0,90 blieb weich.
+
+- **`leftoverEmptyKeepsStreak`.** Dropout hält Streak/Miss/Pair/Kalman.
+- **`leftoverPrintFloor(yawAbs:)`.** Profil 0,70, Frontal 0,62.
+- **`leftoverTwinHardVetoNow`.** Zwei Gesichter Hard 0,88. **`leftoverPick(facesInFrame:)`.**
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.78 (Build 104).
 
 ## Neu in 2.1.77 alpha
 

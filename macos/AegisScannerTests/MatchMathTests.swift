@@ -1324,6 +1324,25 @@ enum MatchMathTests {
         ok(MatchMath.leftoverTwinTint(pairCosine: 0.90) == "amber", "TWIN? amber")
         ok(MatchMath.leftoverTwinTint(pairCosine: 0.93) == "red", "TWIN hart rot")
         ok(MatchMath.leftoverTwinTint(pairCosine: 0.50) == nil, "fremd kein Twin-Tint")
+        ok(abs(MatchMath.leftoverPrintFloor(yawAbs: 0.10) - 0.62) < 0.001, "frontal Genuine 0,62")
+        ok(abs(MatchMath.leftoverPrintFloor(yawAbs: 0.40) - 0.70) < 0.001, "Profil Genuine 0,70")
+        ok(MatchMath.leftoverPrintOk(cosine: 0.62, sharpness: 0.30), "frontal 0,62 scharf")
+        ok(!MatchMath.leftoverPrintOk(cosine: 0.62, sharpness: 0.30, yawAbs: 0.40), "Profil 0,62 tot")
+        ok(MatchMath.leftoverPrintOk(cosine: 0.71, sharpness: 0.30, yawAbs: 0.40), "Profil 0,71 scharf")
+        ok(abs(MatchMath.leftoverTwinHardVetoNow(facesInFrame: 1) - 0.92) < 0.001, "ein Gesicht 0,92")
+        ok(abs(MatchMath.leftoverTwinHardVetoNow(facesInFrame: 2) - 0.88) < 0.001, "zwei Gesichter 0,88")
+        ok(MatchMath.leftoverTwinHardBlocks(pairCosine: 0.90, veto: MatchMath.leftoverTwinHardVetoNow(facesInFrame: 2)), "Same-shot 0,90 hart")
+        ok(!MatchMath.leftoverTwinHardBlocks(pairCosine: 0.90), "ein Gesicht 0,90 weich")
+        ok(MatchMath.leftoverEmptyKeepsStreak(liveEmpty: true), "leerer Frame hält Streak")
+        ok(!MatchMath.leftoverEmptyKeepsStreak(liveEmpty: false), "Live wischt nicht über den Helfer")
+        let twinPick = MatchMath.leftoverPick(
+            candidates: [(index: 0, iou: 0.50, cosine: 0.82)],
+            sharpness: [0: 0.40],
+            twinPair: 0.90,
+            facesInFrame: 2
+        )
+        ok(twinPick == nil, "zwei Gesichter TWIN? 0,90 kein Adopt")
+
         ok(MatchMath.leftoverUnknownHard(cosine: 0.55), "0,55 UNBEKANNT hart")
         ok(!MatchMath.leftoverUnknownHard(cosine: 0.45), "0,45 unter Open-Set")
         ok(!MatchMath.leftoverUnknownHard(cosine: 0.70), "0,70 Hold kein UNBEKANNT")

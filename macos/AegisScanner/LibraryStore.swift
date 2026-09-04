@@ -2017,15 +2017,19 @@ final class LibraryStore: ObservableObject {
         if found.isEmpty {
             liveHeldIds = []
             leftoverPending = [:]
-            leftoverStreak = [:]
-            leftoverStreakBox = [:]
-            leftoverStreakSince = [:]
-            leftoverMissFrames = [:]
-            leftoverPairLast = [:]
-            leftoverPairStreak = [:]
-            leftoverPairCommit = [:]
-            leftoverDisagree = [:]
-            leftoverWipeUntil = [:]
+            if !MatchMath.leftoverEmptyKeepsStreak(liveEmpty: true) {
+                leftoverStreak = [:]
+                leftoverStreakBox = [:]
+                leftoverStreakSince = [:]
+                leftoverMissFrames = [:]
+                leftoverPairLast = [:]
+                leftoverPairStreak = [:]
+                leftoverPairCommit = [:]
+                leftoverDisagree = [:]
+                leftoverWipeUntil = [:]
+                boxKalman = [:]
+                liveStillFor = [:]
+            }
             guestOrder = guestOrder.filter {
                 MatchMath.guestOrderKeeps(id: $0, live: [], lastSeen: guestSeenAt[$0], now: now)
             }
@@ -2036,8 +2040,6 @@ final class LibraryStore: ObservableObject {
             liveLandmarkPrev = [:]
             liveLidClosed = [:]
             liveBlinkSeen = [:]
-            boxKalman = [:]
-            liveStillFor = [:]
             faces.removeAll { $0.mediaId == mediaId }
             if let label = MatchMath.headCountFlashLabel(prev: lastLiveHeadCount, next: 0) {
                 lastHeadCountLabel = label
@@ -2195,7 +2197,8 @@ final class LibraryStore: ObservableObject {
                     geoMix: aegisHit?.geoMix,
                     dt: liveDt,
                     lookawayEnrolled: namedTracks.contains(old.id) || enrolled.contains(old.id),
-                    lookawayYaw: lookYaw
+                    lookawayYaw: lookYaw,
+                    facesInFrame: adopted.count
                 ) else {
                     let twin = aegisHit?.pairCosine
                     if let twinLabel = MatchMath.leftoverTwinPairLabel(pairCosine: twin) {

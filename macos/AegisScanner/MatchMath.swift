@@ -25,8 +25,9 @@ enum MatchMath {
     static let leftoverIoU = 0.28
     /// Genuine-Print oft 0,62–0,85. 0,80 hat leftover tot gemacht. 0,72 hat 0,62–0,71 noch fallen lassen.
     static let leftoverPrintCosine = 0.64
-    /// Scharfer Genuine unter Floor (0,62–0,63) darf leftover halten.
+    /// Scharfer Genuine. Profil braucht mehr — sonst Twin im ¾ tauft.
     static let leftoverPrintGenuine = 0.62
+    static let leftoverPrintProfile = 0.70
     static let leftoverPrintSharp = 0.22
     /// Enrolled-Track klebt nur bei echter Überlappung. 0,12 hat Nachbarn die UUID geklaut.
     static let trackPinIoU = 0.28
@@ -251,12 +252,13 @@ enum MatchMath {
         geoMix: Double? = nil,
         dt: TimeInterval = 0.016,
         lookawayEnrolled: Bool = false,
-        lookawayYaw: Double? = nil
+        lookawayYaw: Double? = nil,
+        facesInFrame: Int = 1
     ) -> Int? {
         if leftoverLookawayBlocks(yawAbs: lookawayYaw, enrolled: lookawayEnrolled) {
             return nil
         }
-        if leftoverTwinHardBlocks(pairCosine: twinPair) {
+        if leftoverTwinHardBlocks(pairCosine: twinPair, veto: leftoverTwinHardVetoNow(facesInFrame: facesInFrame)) {
             return nil
         }
         var ok = candidates.filter { leftoverPin(iou: $0.iou, floor: floor) }
@@ -264,7 +266,9 @@ enum MatchMath {
         let smoothed: [(index: Int, iou: Double, cosine: Double?)] = ok.map {
             (index: $0.index, iou: $0.iou, cosine: leftoverHoldSmooth(raw: $0.cosine, prev: holdPrev, dt: dt))
         }
-        var printable = smoothed.filter { leftoverPrintOk(cosine: $0.cosine, sharpness: sharpness[$0.index]) }
+        var printable = smoothed.filter {
+            leftoverPrintOk(cosine: $0.cosine, sharpness: sharpness[$0.index], yawAbs: yawAbs[$0.index])
+        }
         if leftoverTwinBlocksBox(pairCosine: twinPair, printCosine: nil) {
             printable = printable.filter { leftoverBaptize(cosine: $0.cosine) }
         }
@@ -343,6 +347,12 @@ enum MatchMath {
     static let twinPairCosine = 0.90
     /// pairCosine ≥ 0,92: Hard-Veto, auch Baptize 0,80 stiehlt nicht.
     static let leftoverTwinHardVeto = 0.92
+    /// Zwei Gesichter im Frame: 0,92 lässt 0,90 durch. Same-shot schon bei 0,88 hart.
+    static let leftoverTwinSameShot = 0.88
+
+    static func leftoverTwinHardVetoNow(facesInFrame: Int, veto: Double = leftoverTwinHardVeto) -> Double {
+        facesInFrame >= 2 ? leftoverTwinSameShot : veto
+    }
 
     static func leftoverTwinHardBlocks(pairCosine: Double?, veto: Double = leftoverTwinHardVeto) -> Bool {
         guard let pair = pairCosine else { return false }
@@ -521,12 +531,18 @@ enum MatchMath {
 
     /// Leftover darf Genuine 0,62–0,79 halten. Pin-Print 0,80 bleibt für enrolled IoU-Steal.
     /// Blur unter leftoverPrintSharp sperrt Hold-Pick, nicht Baptize 0,80.
-    static func leftoverPrintOk(cosine: Double?, sharpness: Double? = nil, floor: Double = leftoverPrintCosine) -> Bool {
+    /// Profil: Floor 0,70 — sonst Twin im ¾ mit 0,62 scharf.
+    static func leftoverPrintFloor(yawAbs: Double?) -> Double {
+        (yawAbs ?? 0) >= leftoverLookawayYaw ? leftoverPrintProfile : leftoverPrintGenuine
+    }
+
+    static func leftoverPrintOk(cosine: Double?, sharpness: Double? = nil, floor: Double = leftoverPrintCosine, yawAbs: Double? = nil) -> Bool {
         guard let cosine else { return false }
         if leftoverBaptize(cosine: cosine) { return true }
         if leftoverBlurBlocks(sharpness: sharpness, cosine: cosine) { return false }
-        if cosine >= floor { return true }
-        if cosine >= leftoverPrintGenuine, let s = sharpness, s >= leftoverPrintSharp { return true }
+        let genuine = leftoverPrintFloor(yawAbs: yawAbs)
+        if cosine >= max(floor, genuine) { return true }
+        if cosine >= genuine, let s = sharpness, s >= leftoverPrintSharp { return true }
         return false
     }
 
@@ -1276,6 +1292,9 @@ enum MatchMath {
     static func leftoverMissClears(miss: Int, need: Int = leftoverMissNeed) -> Bool {
         miss >= need
     }
+
+    /// Leerer Detector-Frame wischt Streak/Kalman nicht. 8 fps Dropout = Gast n+1 sonst.
+    static func leftoverEmptyKeepsStreak(liveEmpty: Bool) -> Bool { liveEmpty }
 
     /// Slot leer: Frontal-only, nie 72/28 mit Profil. ¾-Sonde vs All-Mean war weich.
     static func slotCentroidFallsBackToFrontal(slotCount: Int) -> Bool {
