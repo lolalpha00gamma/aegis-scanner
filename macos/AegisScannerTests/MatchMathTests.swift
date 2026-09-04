@@ -885,8 +885,8 @@ enum MatchMathTests {
         ok(MatchMath.nameLockHolds(voted: nil, locked: "A") == "A", "ohne now hält Lock")
         let blink = MatchMath.liveFacesLatch(present: true, on: false, streak: 0)
         ok(!blink.on && blink.streak == 1, "1. Frame kein 8 fps")
-        let second = MatchMath.liveFacesLatch(present: true, on: false, streak: 1)
-        ok(second.on, "2. Frame 8 fps")
+        let latch2 = MatchMath.liveFacesLatch(present: true, on: false, streak: 1)
+        ok(latch2.on, "2. Frame 8 fps")
         let gone = MatchMath.liveFacesLatch(present: false, on: true, streak: 0)
         ok(!gone.on && gone.streak == 0, "weg → 5 fps")
         ok(MatchMath.liveDuplicate(iou: 0.46, nested: 0.10), "Live-IoU 0,45")
@@ -910,15 +910,15 @@ enum MatchMathTests {
             ) == 1,
             "Frontal schlägt Profil bei gleichem Print"
         )
-        let idA = UUID()
-        let idB = UUID()
-        let s1 = MatchMath.leftoverAssignMajority(committed: nil, proposed: idA, lastProposed: nil, streak: 0)
+        let majA = UUID()
+        let majB = UUID()
+        let s1 = MatchMath.leftoverAssignMajority(committed: nil, proposed: majA, lastProposed: nil, streak: 0)
         ok(!s1.ready && s1.streak == 1, "1. Tick kein Switch")
-        let s2 = MatchMath.leftoverAssignMajority(committed: nil, proposed: idA, lastProposed: s1.last, streak: s1.streak)
+        let s2 = MatchMath.leftoverAssignMajority(committed: nil, proposed: majA, lastProposed: s1.last, streak: s1.streak)
         ok(!s2.ready && s2.streak == 2, "2. Tick")
-        let s3 = MatchMath.leftoverAssignMajority(committed: nil, proposed: idA, lastProposed: s2.last, streak: s2.streak)
-        ok(s3.ready && s3.commit == idA, "3. Tick Switch")
-        let flip = MatchMath.leftoverAssignMajority(committed: nil, proposed: idB, lastProposed: idA, streak: 2)
+        let s3 = MatchMath.leftoverAssignMajority(committed: nil, proposed: majA, lastProposed: s2.last, streak: s2.streak)
+        ok(s3.ready && s3.commit == majA, "3. Tick Switch")
+        let flip = MatchMath.leftoverAssignMajority(committed: nil, proposed: majB, lastProposed: majA, streak: 2)
         ok(!flip.ready && flip.streak == 1, "Kreuz setzt Streak")
         ok(MatchMath.leftoverMajorityLabel(streak: 1) == "MAJ 1/3", "MAJ-Label")
         ok(MatchMath.leftoverMajorityLabel(streak: 3) == nil, "ready kein MAJ")
@@ -1029,8 +1029,8 @@ enum MatchMathTests {
         ok(MatchMath.posterNeedsBlink(stillFrames: 8, blinked: false), "Poster ohne Blink")
         ok(!MatchMath.posterNeedsBlink(stillFrames: 8, blinked: true), "geblinkt lebt")
         ok(MatchMath.posterBlinkNote() == "BLINK", "BLINK-Note")
-        ok(MatchMath.boxKalmanUses(0.125), "8 fps Kalman")
-        ok(!MatchMath.boxKalmanUses(0.016), "24 fps 1-Euro")
+        ok(MatchMath.boxKalmanUses(dt: 0.125), "8 fps Kalman")
+        ok(!MatchMath.boxKalmanUses(dt: 0.016), "24 fps 1-Euro")
         ok(MatchMath.clusterSplitAdvance(prev: 3, changed: true) == 4, "Split +1")
         ok(MatchMath.clusterSplitAdvance(prev: 3, changed: false) == 3, "Split hält")
         ok(MatchMath.clusterSplit(disagree: 10), "10 Ticks Split")
@@ -1057,11 +1057,11 @@ enum MatchMathTests {
         ok(MatchMath.conflictTickBaptize(boxId: anna, printId: bob, geoId: nil, lockId: nil) == nil, "Baptize tot")
         ok(MatchMath.conflictTickNote() == "KONFLIKT", "KONFLIKT-Note")
         ok(
-            MatchMath.leftoverPick(candidates: [(0, 0.50, 0.85)], leftoverId: bob, liveIds: [0: anna]) == nil,
+            MatchMath.leftoverPick(candidates: [(0, 0.50, 0.85)], liveIds: [0: anna], leftoverId: bob) == nil,
             "leftover weicht Live-Taufe"
         )
         ok(
-            MatchMath.leftoverPick(candidates: [(0, 0.50, 0.85)], leftoverId: anna, liveIds: [0: anna]) == 0,
+            MatchMath.leftoverPick(candidates: [(0, 0.50, 0.85)], liveIds: [0: anna], leftoverId: anna) == 0,
             "leftover = Live darf"
         )
         ok(
@@ -1095,7 +1095,7 @@ enum MatchMathTests {
         ok(!MatchMath.enrollBurstReplace(incomingSharp: 0.20, existingSharp: 0.40), "unschärfer bleibt")
         near(MatchMath.liveFAR(impostorAbove: 1, totalImpostor: 10), 0.10, 0.001, "FAR 10 %")
         ok(MatchMath.liveFARLabel(0.10) == "FAR 10.0%", "FAR-Label")
-        ok(MatchMath.guestPersistId(1) == "guest.1", "Gast-ID")
+        ok(MatchMath.guestPersistId(index: 1) == "guest.1", "Gast-ID")
         ok(MatchMath.guestPersistName("guest.2") == "Gast 2", "Gast-Name")
         ok(MatchMath.guestPersistKeeps(name: "Gast 1"), "Gast sticky")
         ok(MatchMath.guestPersistKeeps(name: "guest.1"), "guest sticky")
