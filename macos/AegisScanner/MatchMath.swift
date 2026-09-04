@@ -80,9 +80,9 @@ enum MatchMath {
     static let strongPrintFloor = 84.0
     /// Ab diesem Print-Wert vetoiert Kleidung/Haar nicht mehr. lookOf kappt ≥ 80 nie — Veto muss dasselbe tun.
     static let geoVetoSkipPrint = 80.0
-    /// ¾/Profil: Maße vs. Frontal-Centroid lügen. Print ≥ 80 nicht vetoen.
+    /// ¾/Profil: Maße vs. Frontal-Centroid lügen. Print ≥ 70 nicht vetoen.
     static let geoVetoYawSkip = 0.28
-    static let geoVetoYawPrint = 80.0
+    static let geoVetoYawPrint = 70.0
     /// gallery.json Schema neben printRevision. 3 = Gast als persistente Klasse.
     static let gallerySchema = 4
     /// Box-IoU unter dem Wert: Bewegung. Mit Schärfe: kleines Nicken darf den Print.
@@ -259,7 +259,9 @@ enum MatchMath {
         if leftoverTwinBlocksBox(pairCosine: twinPair, printCosine: nil) {
             printable = printable.filter { leftoverBaptize(cosine: $0.cosine) }
         }
-        if leftoverTwinSuggest(pairCosine: twinPair) {
+        if leftoverTwinSuggest(pairCosine: twinPair),
+           !printable.contains(where: { leftoverBaptize(cosine: $0.cosine) })
+        {
             return nil
         }
         if let leftoverId, !liveIds.isEmpty {
@@ -1906,7 +1908,7 @@ enum MatchMath {
     }
 
     /// Open-Set: Bester Galerie-Centroid unter leftover-Floor — Overlay, keine Taufe.
-    static func unknownCentroid(bestCosine: Double?, floor: Double = leftoverPrintCosine) -> Bool {
+    static func unknownCentroid(bestCosine: Double?, floor: Double = leftoverPrintGenuine) -> Bool {
         (bestCosine ?? -1) < floor
     }
 

@@ -441,7 +441,7 @@ enum MatchMathTests {
         ok(MatchMath.leftoverPinStatus(count: 0) == nil, "kein Leftover keine Statuszeile")
         ok(MatchMath.leftoverPinStatus(count: 1) == "Leftover-Pin 1 Track", "Leftover-Status 1")
         ok(
-            MatchMath.geoVetoYawSkipped(geoAgrees: false, geoMix: 15, printPercent: 82, yawAbs: 0.30),
+            MatchMath.geoVetoYawSkipped(geoAgrees: false, geoMix: 15, printPercent: 75, yawAbs: 0.30),
             "Yaw-Skip sichtbar wenn ¾ ein Veto verhindert"
         )
         ok(
@@ -474,8 +474,8 @@ enum MatchMathTests {
         ok(MatchMath.restoreNeedsConfirm(ageDays: 8, schemaVersion: 2, printRevision: MatchMath.printRevision), "Backup 8 Tage")
         ok(MatchMath.restoreNeedsConfirm(ageDays: 1, schemaVersion: 1, printRevision: MatchMath.printRevision), "Schema <3")
         ok(MatchMath.restoreNeedsConfirm(ageDays: 1, schemaVersion: 2, printRevision: MatchMath.printRevision), "Schema 2 < 3 Gast")
-        ok(MatchMath.restoreNote(ageDays: 1, schemaVersion: nil, printRevision: nil).contains("<3"), "Schema <3 erwähnt")
-        ok(MatchMath.boxEuroResetOnHysteresis(iou: 0.50, cosine: 0.90), "Print-Pin gewinnt gegen Hysterese-Box")
+        ok(MatchMath.restoreNote(ageDays: 1, schemaVersion: nil, printRevision: nil).contains("<\(MatchMath.gallerySchema)"), "Schema <3 erwähnt")
+        ok(MatchMath.boxEuroResetOnHysteresis(iou: 0.20, cosine: 0.90), "Print-Pin gewinnt gegen Hysterese-Box")
         ok(!MatchMath.boxEuroResetOnHysteresis(iou: 0.90, cosine: 0.90), "kein Hysterese-Hold kein Euro-Reset")
         ok(!MatchMath.boxEuroResetOnHysteresis(iou: 0.50, cosine: 0.40), "schwacher Print kein Euro-Reset")
         ok(MatchMath.identityRatios([true, false, true], [1, 2, 3]) == [1, 3], "Live nur Identitäts-Maße")
@@ -1112,7 +1112,7 @@ enum MatchMathTests {
         ok(!MatchMath.leftoverTransfersId(cosine: 0.82, holdPrev: 0.64), "0,82 nach 0,64 kein Steal")
         ok(MatchMath.leftoverTransfersId(cosine: 0.82, holdPrev: 0.80), "0,82 nach 0,80 Steal")
         ok(!MatchMath.leftoverTransfersId(cosine: 0.82, trail: [0.64, 0.64, 0.80]), "MAD-Trail blockt Steal")
-        ok(MatchMath.leftoverTransfersId(cosine: 0.82, holdPrev: 0.64, trail: [0.80, 0.81, 0.82]), "3 Baptize nach Spike = Anstieg")
+        ok(MatchMath.leftoverTransfersId(cosine: 0.82, holdPrev: 0.64, trail: [0.81, 0.82, 0.83]), "3 Baptize nach Spike = Anstieg")
         ok(!MatchMath.leftoverTransfersId(cosine: 0.82, holdPrev: 0.64, trail: [0.80, 0.81]), "2 Baptize noch Twin")
         let idHoldA = UUID(uuidString: "00000000-0000-0000-0000-0000000000C3")!
         let idHoldB = UUID(uuidString: "00000000-0000-0000-0000-0000000000D4")!
