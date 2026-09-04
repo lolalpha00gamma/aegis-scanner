@@ -1848,9 +1848,15 @@ final class LibraryStore: ObservableObject {
             }
         }
         liveGhosts.removeAll { $0.until < now }
-        boxEuro = boxEuro.filter { used.contains($0.key) }
-        boxKalman = boxKalman.filter { used.contains($0.key) }
-        boxJumpPending = boxJumpPending.filter { used.contains($0.key) }
+        let dropped = Set(MatchMath.leftoverDropped(previous: previous.map(\.id), used: used))
+        for old in previous where dropped.contains(old.id) {
+            liveGhosts.removeAll { $0.face.id == old.id }
+            liveGhosts.append((old, now + MatchMath.liveGhostHold))
+        }
+        let keepBoxes = used.union(dropped)
+        boxEuro = boxEuro.filter { keepBoxes.contains($0.key) }
+        boxKalman = boxKalman.filter { keepBoxes.contains($0.key) }
+        boxJumpPending = boxJumpPending.filter { keepBoxes.contains($0.key) }
         livePrintTrail = livePrintTrail.filter { used.contains($0.key) }
         livePrintTrailSlot = livePrintTrailSlot.filter { used.contains($0.key) }
         liveStillFor = liveStillFor.filter { used.contains($0.key) }
@@ -1862,9 +1868,6 @@ final class LibraryStore: ObservableObject {
         liveLidClosed = liveLidClosed.filter { used.contains($0.key) }
         liveBlinkSeen = liveBlinkSeen.filter { used.contains($0.key) }
         if found.isEmpty {
-            for old in previous where !enrolled.contains(old.id) {
-                liveGhosts.append((old, now + MatchMath.liveGhostHold))
-            }
             liveHeldIds = []
             let ghostIds = liveGhosts.map(\.face.id)
             leftoverHold = MatchMath.leftoverHoldSurvive(hold: leftoverHold, ghosts: ghostIds)
@@ -1985,7 +1988,13 @@ final class LibraryStore: ObservableObject {
                     aspectOk: aspectOk,
                     twinPair: aegisHit?.pairCosine,
                     holdPrev: leftoverHold[old.id] ?? MatchMath.leftoverHoldLookup(
-                        hash: MatchMath.leftoverBoxHash(old.box),
+                        hash: MatchMath.leftoverBoxHash(MatchMath.leftoverHashBox(
+                            kalmanX: boxKalman[old.id]?.x,
+                            kalmanY: boxKalman[old.id]?.y,
+                            kalmanW: boxKalman[old.id]?.w,
+                            kalmanH: boxKalman[old.id]?.h,
+                            fallback: old.box
+                        )),
                         table: leftoverHoldByHash,
                         now: now
                     ),

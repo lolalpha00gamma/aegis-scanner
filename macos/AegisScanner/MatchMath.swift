@@ -409,11 +409,20 @@ enum MatchMath {
     }
 
     /// Leftover darf Genuine 0,62–0,79 halten. Pin-Print 0,80 bleibt für enrolled IoU-Steal.
+    /// Blur unter leftoverPrintSharp sperrt Hold-Pick, nicht Baptize 0,80.
     static func leftoverPrintOk(cosine: Double?, sharpness: Double? = nil, floor: Double = leftoverPrintCosine) -> Bool {
         guard let cosine else { return false }
+        if leftoverBaptize(cosine: cosine) { return true }
+        if leftoverBlurBlocks(sharpness: sharpness, cosine: cosine) { return false }
         if cosine >= floor { return true }
         if cosine >= leftoverPrintGenuine, let s = sharpness, s >= leftoverPrintSharp { return true }
         return false
+    }
+
+    static func leftoverBlurBlocks(sharpness: Double?, cosine: Double?) -> Bool {
+        if leftoverBaptize(cosine: cosine) { return false }
+        guard let s = sharpness else { return false }
+        return s < leftoverPrintSharp
     }
 
     /// Scharfer Print gewinnt gegen leicht höheren unscharfen (0,72 scharf > 0,73 blur).
@@ -2142,7 +2151,7 @@ enum MatchMath {
         let parts = hash.split(separator: ".").compactMap { Int($0) }
         guard parts.count == 4 else { return [hash] }
         let cx = parts[0], cy = parts[1], w = parts[2], h = parts[3]
-        let far = w <= 1 || h <= 1
+        let far = w <= 2 || h <= 2
         let rPos = far ? 2 : 1
         let rSize = far ? 2 : 1
         var out: [String] = []
@@ -2169,6 +2178,25 @@ enum MatchMath {
     static func leftoverGhostIds(previous: [UUID], ghosts: [UUID]) -> [UUID] {
         var seen = Set<UUID>()
         return (previous + ghosts).filter { seen.insert($0).inserted }
+    }
+
+    /// Partial-Dropout: previous nicht in used. Auch enrolled — sonst stirbt Hold nach einem Frame mit Nachbar.
+    static func leftoverDropped(previous: [UUID], used: Set<UUID>) -> [UUID] {
+        previous.filter { !used.contains($0) }
+    }
+
+    /// Kalman-Kiste vor Hash. Roh-Box springt Bins beim Kopfdrehen.
+    static func leftoverHashBox(
+        kalmanX: Double?,
+        kalmanY: Double?,
+        kalmanW: Double?,
+        kalmanH: Double?,
+        fallback: FaceBox
+    ) -> FaceBox {
+        guard let x = kalmanX, let y = kalmanY, let w = kalmanW, let h = kalmanH, w > 0, h > 0 else {
+            return fallback
+        }
+        return FaceBox(x: x, y: y, width: w, height: h)
     }
 
     static func leftoverTrailPut(

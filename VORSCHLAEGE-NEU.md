@@ -1,25 +1,24 @@
-# Nachtrag 2026-09-04 (2.1.68)
+# Nachtrag 2026-09-04 (2.1.69)
 
-Siehe ANALYSE.md. **2.1.68** schließt Cross-Slot-Hold, Hold-ohne-Steal, leftoverHold über Dropout, kleine-Box-Radius und Centroid-Gewicht wirklich im Code.
+Siehe ANALYSE.md. **2.1.69** schließt Partial-Ghost (auch enrolled), Blur-Gate, Kalman-Hash und mittlere-Box-Radius wirklich im Code.
+
+## In 2.1.69 gelandet
+
+1. leftoverDropped — Partial- und Voll-Dropout ghosten enrolled
+2. Kalman/Euro für Dropped, leftoverHashBox vor Hash
+3. leftoverBlurBlocks — 0,64 blur kein Pick, 0,80 trotz Blur
+4. Nachbar-Radius 2 bei w/h-Bin ≤ 2
+5. VERSION = Models = MARKETING_VERSION 2.1.69 (Build 95)
 
 ## In 2.1.68 gelandet
 
 1. leftoverAllowsCrossSlot — F→¾→P mit Print ≥ 0,64
-2. leftoverHoldsTrack — 0,64 Overlay, kein Gast, kein UUID-Steal; Streak erst bei Transfer weg
+2. leftoverHoldsTrack — 0,64 Overlay, kein Gast, kein UUID-Steal
 3. leftoverAdoptReady nur bei leftoverPrintOk(holdPrev)
 4. kleine Box: Nachbar-Radius 2
 5. centroidWeight in meanPrintVector / Partial / printWeights
 6. leftoverHoldSurvive — UUID-Hold/Trail/Slot am Ghost nach Dropout
 7. VERSION = Models = MARKETING_VERSION 2.1.68 (Build 94)
-
-## In 2.1.67 gelandet
-
-1. leftoverPinned aus liveGhosts nach Dropout
-2. leftoverBoxHashNeighbors cx/cy/w/h ±1
-3. leftoverBaptizeSpike — 0,80 nach 0,64 kein UUID-Steal
-4. leftoverHoldTrailByHash, Put seeded von Nachbarn
-5. leftoverAdoptReady(holdPrev) skippt 1,2 s
-6. VERSION = Models = MARKETING_VERSION 2.1.67 (Build 93)
 
 ## Offen (nicht Pflaster)
 
@@ -44,8 +43,14 @@ Siehe ANALYSE.md. **2.1.68** schließt Cross-Slot-Hold, Hold-ohne-Steal, leftove
 24. Helios-Palm als Attention-Kegel
 25. Merge-Wizard Undo 30 s
 26. Temporal ReID-Graph über Hold-Trail
-27. Hash-Bins komplett adaptiv (Radius 2 ist der kleine Fall)
-28. Blur-Gate vor leftoverPick
-29. Kalman-Box vor Hash
-30. Partial-Print für Profil (P-Slot ohne Augen)
-31. Overlay VoiceOver für Hold-Wert
+27. Hash-Bins komplett adaptiv (Radius 2 bis Bin 2 ist der kleine+mittlere Fall)
+28. Overlay VoiceOver für Hold-Wert
+29. Partial-Print für Profil (P-Slot ohne Augen)
+30. Gallery-Centroid nur Frames mit leftoverPrintSharp
+31. Live-HUD „gehalten 0,64 · Ghost 0,8 s“
+32. Twin-Pair Cosine ins Overlay, nicht nur TWIN
+33. Dropout-TTL an liveDt: 8 fps 1,6 s, 24 fps 1,2 s
+34. Enrolled-Print nicht mit Blur-Frame überschreiben (holdStillSkip sitzt, Capture-Jump noch)
+35. PhotoKit Personen-UUID als Soft-Prior
+36. RTSP-Keyframe leftoverHoldSurvive analog Detector-Miss
+37. Name-Lock 3 s nach manuellem Tap, leftover darf nicht taufen

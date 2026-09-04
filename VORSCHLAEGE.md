@@ -1,6 +1,16 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.68 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.69 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.69 wirklich im Code
+
+2.1.68 Cross-Slot/Hold. Partial-Dropout ohne Ghost. Enrolled auf leerem Frame nicht geistert. Blur 0,64 war Pick.
+
+1. **`leftoverDropped`.** Partial + leer, auch enrolled.
+2. **Kalman/Euro für Dropped + leftoverHashBox.**
+3. **`leftoverBlurBlocks`.**
+4. **Nachbar-Radius 2 bei Bin ≤ 2.**
+5. Tests + VERSION = Models = MARKETING_VERSION 2.1.69 (Build 95).
 
 ## In 2.1.68 wirklich im Code
 

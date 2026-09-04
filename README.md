@@ -1,4 +1,4 @@
-# Aegis **2.1.68 alpha**
+# Aegis **2.1.69 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.69 alpha
+
+2.1.68 Cross-Slot/Hold/Survive. Partial-Dropout ghostete nicht. Enrolled auf leerem Frame verloren Hold. Blur 0,64 war Pick. Hash auf Roh-Kiste, Radius nur Bin 0/1.
+
+- **`leftoverDropped`.** Partial und leer ghosten enrolled.
+- **Kalman-Hash.** leftoverHashBox, Euro/Kalman bleiben für Dropped.
+- **`leftoverBlurBlocks`.** Unscharf kein Hold-Pick. Baptize 0,80 trotz Blur.
+- **Nachbar-Radius 2** bis w/h-Bin 2.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.69 (Build 95).
 
 ## Neu in 2.1.68 alpha
 
