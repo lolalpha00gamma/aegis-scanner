@@ -83,8 +83,8 @@ enum MatchMath {
     /// ¾/Profil: Maße vs. Frontal-Centroid lügen. Print ≥ 80 nicht vetoen.
     static let geoVetoYawSkip = 0.28
     static let geoVetoYawPrint = 80.0
-    /// gallery.json Schema neben printRevision.
-    static let gallerySchema = 2
+    /// gallery.json Schema neben printRevision. 3 = Gast als persistente Klasse.
+    static let gallerySchema = 3
     /// Box-IoU unter dem Wert: Bewegung. Mit Schärfe: kleines Nicken darf den Print.
     static let holdStillIoU = 0.70
     static let holdStillSharp = 0.18
@@ -242,7 +242,13 @@ enum MatchMath {
         aspectOk: [Int: Bool] = [:],
         floor: Double = leftoverIoU,
         twinPair: Double? = nil,
-        holdPrev: Double? = nil
+        holdPrev: Double? = nil,
+        liveIds: [Int: UUID] = [:],
+        leftoverId: UUID? = nil,
+        printId: UUID? = nil,
+        geoId: UUID? = nil,
+        lockId: UUID? = nil,
+        geoMix: Double? = nil
     ) -> Int? {
         var ok = candidates.filter { leftoverPin(iou: $0.iou, floor: floor) }
         ok = ok.filter { !leftoverHoldBlocks(raw: $0.cosine, prev: holdPrev) }
@@ -255,6 +261,11 @@ enum MatchMath {
         }
         if leftoverTwinSuggest(pairCosine: twinPair) {
             return nil
+        }
+        if let leftoverId, !liveIds.isEmpty {
+            printable = printable.filter {
+                !leftoverYieldsToLive(liveId: liveIds[$0.index], leftoverId: leftoverId)
+            }
         }
         if !aspectOk.isEmpty {
             printable = printable.filter {
@@ -281,7 +292,17 @@ enum MatchMath {
         let raw = pool.map { $0.cosine ?? -1 }
         if leftoverAmbiguousBlocks(raw: raw, scored: scored) { return nil }
         if let i = scored.enumerated().max(by: { $0.element < $1.element })?.offset {
-            return pool[i].index
+            let idx = pool[i].index
+            if !conflictTickAgrees(
+                boxId: nil,
+                printId: printId,
+                geoId: geoId,
+                lockId: liveIds[idx] ?? lockId,
+                geoMix: geoMix
+            ) {
+                return nil
+            }
+            return idx
         }
         return nil
     }
@@ -525,10 +546,12 @@ enum MatchMath {
         items.filter { palePrintDrops(enrolledAt: enrolledAt($0), now: now) }.count
     }
 
-    /// Cache-Key am Identity-Modell. IDs sortiert, Slot, Pale-Count — sonst 8-fps-Tick neu.
-    static func liveCentroidCacheKey(ids: [UUID], slot: String, paleDropped: Int) -> String {
+    /// Cache-Key am Identity-Modell. IDs sortiert, Slot, Pale-Count, Kamera — sonst Built-in-Centroid auf Continuity.
+    static func liveCentroidCacheKey(ids: [UUID], slot: String, paleDropped: Int, camera: String? = nil) -> String {
         let sorted = ids.map(\.uuidString).sorted().joined(separator: ",")
-        return "\(sorted)|\(slot)|\(paleDropped)"
+        let cam = camera?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if cam.isEmpty { return "\(sorted)|\(slot)|\(paleDropped)" }
+        return "\(sorted)|\(slot)|\(paleDropped)|\(cam)"
     }
 
     /// Kisten-Zahl springt: Overlay-Blitz. Erster Kopf (0→n) kein Flash.
@@ -574,7 +597,7 @@ enum MatchMath {
             bits.append(String(format: "Backup %.0f Tage alt", ageDays))
         }
         if (schemaVersion ?? 0) < gallerySchema {
-            bits.append("Schema \(schemaVersion.map(String.init) ?? "<2")")
+            bits.append("Schema \(schemaVersion.map(String.init) ?? "<\(gallerySchema)")")
         }
         if let printRevision, printRevision != MatchMath.printRevision {
             bits.append("Print \(printRevision)")
@@ -1929,6 +1952,90 @@ enum MatchMath {
 
     static func centroidWeight(capture: Double, sharpness: Double) -> Double {
         max(0.08, capture * (0.35 + 0.65 * max(0, sharpness)))
+    }
+
+    /// BOX, PRINT, GEO, LOCK: gemessene Stimmen einig, sonst keine Taufe.
+    /// Geo votet nur ab conflictGeoFloor — 20 % Maße kippen keinen 90 % Print.
+    static let conflictGeoFloor = 42.0
+
+    static func conflictTickAgrees(
+        boxId: UUID?,
+        printId: UUID?,
+        geoId: UUID?,
+        lockId: UUID?,
+        geoMix: Double? = nil
+    ) -> Bool {
+        var votes: [UUID] = []
+        if let printId { votes.append(printId) }
+        if let geoId, (geoMix ?? 100) >= conflictGeoFloor { votes.append(geoId) }
+        if let lockId { votes.append(lockId) }
+        if let boxId { votes.append(boxId) }
+        guard votes.count >= 2 else { return true }
+        return Set(votes).count == 1
+    }
+
+    static func conflictTickBaptize(
+        boxId: UUID?,
+        printId: UUID?,
+        geoId: UUID?,
+        lockId: UUID?,
+        geoMix: Double? = nil
+    ) -> UUID? {
+        guard conflictTickAgrees(boxId: boxId, printId: printId, geoId: geoId, lockId: lockId, geoMix: geoMix) else {
+            return nil
+        }
+        return printId ?? geoId ?? lockId ?? boxId
+    }
+
+    static func conflictTickNote() -> String { "KONFLIKT" }
+
+    /// Live hat die Kiste schon getauft — leftover stiehlt die UUID nicht.
+    static func leftoverYieldsToLive(liveId: UUID?, leftoverId: UUID) -> Bool {
+        guard let liveId else { return false }
+        return liveId != leftoverId
+    }
+
+    /// Burst: 3 Frames, schärfstes Ref statt erstes.
+    static let enrollBurstNeed = 3
+
+    static func enrollBurstReady(count: Int, need: Int = enrollBurstNeed) -> Bool {
+        count >= need
+    }
+
+    static func enrollBurstPick(sharpness: [Double]) -> Int? {
+        guard !sharpness.isEmpty else { return nil }
+        return sharpness.enumerated().max(by: { $0.element < $1.element })?.offset
+    }
+
+    static func enrollBurstReplace(incomingSharp: Double, existingSharp: Double, eps: Double = 0.02) -> Bool {
+        incomingSharp > existingSharp + eps
+    }
+
+    static func liveFAR(impostorAbove: Int, totalImpostor: Int) -> Double {
+        guard totalImpostor > 0 else { return 0 }
+        return Double(impostorAbove) / Double(totalImpostor)
+    }
+
+    static func liveFARLabel(_ far: Double) -> String {
+        String(format: "FAR %.1f%%", far * 100)
+    }
+
+    static func guestPersistId(index: Int) -> String {
+        "guest.\(max(1, index))"
+    }
+
+    static func guestPersistName(_ id: String) -> String? {
+        guard id.hasPrefix("guest.") else { return nil }
+        let n = id.dropFirst("guest.".count)
+        return "Gast \(n)"
+    }
+
+    static func guestPersistKeeps(name: String) -> Bool {
+        name.hasPrefix("Gast ") || name.hasPrefix("guest.")
+    }
+
+    static func leftoverStreakSincePersist(since: TimeInterval?, now: TimeInterval) -> TimeInterval {
+        since ?? now
     }
 }
 

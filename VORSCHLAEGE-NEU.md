@@ -1,24 +1,33 @@
 # Nachtrag 2026-09-04
 
-Siehe ANALYSE.md.
+Siehe ANALYSE.md. **2.1.62** hat die ersten fünf strukturellen Punkte verdrahtet, nicht nur Math.
 
-Strukturell zuerst, nicht noch ein leftover-Pflaster:
+## In 2.1.62 gelandet
 
-1. ReID-Konflikt-Tick (BOX|PRINT|GEO|LOCK einig)
-2. Per-Kamera-Centroid
-3. Enrollment-Burst 3, schaerfstes Ref
-4. Live-FAR Ticker
-5. Guest persist Schema 3
-6. Helios Frame-Pump
+1. ReID-Konflikt-Tick (BOX|PRINT|GEO|LOCK einig) — `matchLive` + leftoverPick, Overlay `KONFLIKT`
+2. Per-Kamera-Centroid — Cache-Key `builtin` / `continuity`
+3. Enrollment-Burst schärfstes Ref — `enrollBurstReplace` statt Drop
+4. Live-FAR Ticker — Floor-Hint
+5. Guest persist Schema 3 — Restore-Gate + Helpers; Identity-Write nach 8 s leftover **offen**
+
+## Offen (nicht Pflaster)
+
+6. Helios Frame-Pump, eine TCC
 7. Brille-Slot
 8. Live-ROI Crop
-9. CLAHE-Banner
-10. Print-Revision-Banner
+9. CLAHE-Banner Continuity-Nacht
+10. Print-Revision-Banner nach OS-Update
 11. Zwei-Kamera-Live
-12. Drop-in mlmodel
-13. Platt-Skalierung
+12. Drop-in `.mlmodel`
+13. Platt-Skalierung der Sigmoid
 14. DBSCAN vor Merge
-15. leftoverStreakSince persist
+15. leftoverStreakSince in gallery.json
 16. VoiceOver + farbenblind Ampel
 17. Watch-Folder PhotoKit
-18. Aktives Lernen nur 0,86-0,94
+18. Aktives Lernen nur 0,86–0,94
+19. Gast als Identity nach leftoverAdoptSec
+20. Identity-Graph als Soft-Prior, nie Taufe
+21. PnP 6DoF, Slot folgt der Nase
+22. Family-Bump UI neben Open-Set
+23. Print-MAD > 0,04 wirft Spike
+24. Gallery-at-rest FileVault-Hinweis

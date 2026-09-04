@@ -384,7 +384,7 @@ enum MatchMathTests {
         ok(!MatchMath.leftoverNamedTrack(hadName: false), "namenlos kein leftover")
         ok(MatchMath.leftoverNeedsPrint(cosine: nil), "ohne Print kein leftover-Pin")
         ok(!MatchMath.leftoverNeedsPrint(cosine: 0.90), "mit Print leftover darf")
-        ok(MatchMath.gallerySchema == 2, "gallery.json Schema 2")
+        ok(MatchMath.gallerySchema == 3, "gallery.json Schema 3")
 
         ok(MatchMath.holdStillSkip(iou: 0.50), "Bewegung 0,50 skippt neuen Print")
         ok(!MatchMath.holdStillSkip(iou: 0.90), "Stillstand 0,90 nimmt Print")
@@ -472,8 +472,9 @@ enum MatchMathTests {
         ok(MatchMath.trackHoldLabel(held: true) == "gehalten", "Track gehalten")
         ok(MatchMath.trackHoldLabel(held: false) == "neu", "Track neu")
         ok(MatchMath.restoreNeedsConfirm(ageDays: 8, schemaVersion: 2, printRevision: MatchMath.printRevision), "Backup 8 Tage")
-        ok(MatchMath.restoreNeedsConfirm(ageDays: 1, schemaVersion: 1, printRevision: MatchMath.printRevision), "Schema <2")
-        ok(MatchMath.restoreNote(ageDays: 1, schemaVersion: nil, printRevision: nil).contains("<2"), "Schema <2 erwähnt")
+        ok(MatchMath.restoreNeedsConfirm(ageDays: 1, schemaVersion: 1, printRevision: MatchMath.printRevision), "Schema <3")
+        ok(MatchMath.restoreNeedsConfirm(ageDays: 1, schemaVersion: 2, printRevision: MatchMath.printRevision), "Schema 2 < 3 Gast")
+        ok(MatchMath.restoreNote(ageDays: 1, schemaVersion: nil, printRevision: nil).contains("<3"), "Schema <3 erwähnt")
         ok(MatchMath.boxEuroResetOnHysteresis(iou: 0.50, cosine: 0.90), "Print-Pin gewinnt gegen Hysterese-Box")
         ok(!MatchMath.boxEuroResetOnHysteresis(iou: 0.90, cosine: 0.90), "kein Hysterese-Hold kein Euro-Reset")
         ok(!MatchMath.boxEuroResetOnHysteresis(iou: 0.50, cosine: 0.40), "schwacher Print kein Euro-Reset")
@@ -1042,6 +1043,65 @@ enum MatchMathTests {
         let sharpMul = MatchMath.leftoverScore(cosine: 0.72, sharpness: 0.42)
         let blurMul = MatchMath.leftoverScore(cosine: 0.73, sharpness: 0.10)
         ok(sharpMul > blurMul, "Score multiplikativ Schärfe (\(sharpMul) > \(blurMul))")
+
+        let anna = UUID(uuidString: "00000000-0000-0000-0000-0000000000A1")!
+        let bob = UUID(uuidString: "00000000-0000-0000-0000-0000000000B2")!
+        ok(MatchMath.leftoverYieldsToLive(liveId: anna, leftoverId: bob), "Live Anna, leftover Bob weicht")
+        ok(!MatchMath.leftoverYieldsToLive(liveId: anna, leftoverId: anna), "gleiche ID leftover frei")
+        ok(!MatchMath.leftoverYieldsToLive(liveId: nil, leftoverId: bob), "kein Live-Name leftover frei")
+        ok(MatchMath.conflictTickAgrees(boxId: anna, printId: anna, geoId: anna, lockId: anna), "alle einig")
+        ok(!MatchMath.conflictTickAgrees(boxId: anna, printId: bob, geoId: nil, lockId: nil), "BOX≠PRINT Konflikt")
+        ok(MatchMath.conflictTickAgrees(boxId: nil, printId: anna, geoId: bob, lockId: nil, geoMix: 20), "Geo 20 votet nicht")
+        ok(!MatchMath.conflictTickAgrees(boxId: nil, printId: anna, geoId: bob, lockId: nil, geoMix: 80), "Geo 80 ≠ Print")
+        ok(MatchMath.conflictTickBaptize(boxId: anna, printId: anna, geoId: anna, lockId: anna) == anna, "Baptize einig")
+        ok(MatchMath.conflictTickBaptize(boxId: anna, printId: bob, geoId: nil, lockId: nil) == nil, "Baptize tot")
+        ok(MatchMath.conflictTickNote() == "KONFLIKT", "KONFLIKT-Note")
+        ok(
+            MatchMath.leftoverPick(candidates: [(0, 0.50, 0.85)], leftoverId: bob, liveIds: [0: anna]) == nil,
+            "leftover weicht Live-Taufe"
+        )
+        ok(
+            MatchMath.leftoverPick(candidates: [(0, 0.50, 0.85)], leftoverId: anna, liveIds: [0: anna]) == 0,
+            "leftover = Live darf"
+        )
+        ok(
+            MatchMath.leftoverPick(candidates: [(0, 0.50, 0.85)], leftoverId: bob, printId: anna) == 0,
+            "Track-UUID ≠ Print-ID leftover darf ohne Live-Name"
+        )
+        ok(
+            MatchMath.leftoverPick(
+                candidates: [(0, 0.50, 0.85)],
+                leftoverId: bob,
+                printId: anna,
+                geoId: bob,
+                geoMix: 80
+            ) == nil,
+            "Print≠Geo leftover tot"
+        )
+        ok(
+            MatchMath.liveCentroidCacheKey(ids: [anna], slot: "frontal", paleDropped: 0, camera: "builtin")
+                != MatchMath.liveCentroidCacheKey(ids: [anna], slot: "frontal", paleDropped: 0, camera: "continuity"),
+            "Centroid je Kamera"
+        )
+        ok(
+            MatchMath.liveCentroidCacheKey(ids: [anna], slot: "frontal", paleDropped: 0)
+                == MatchMath.liveCentroidCacheKey(ids: [anna], slot: "frontal", paleDropped: 0, camera: nil),
+            "ohne Kamera alter Key"
+        )
+        ok(MatchMath.enrollBurstReady(count: 3), "Burst 3 fertig")
+        ok(!MatchMath.enrollBurstReady(count: 2), "Burst 2 zu früh")
+        ok(MatchMath.enrollBurstPick(sharpness: [0.10, 0.42, 0.20]) == 1, "schärfstes Ref")
+        ok(MatchMath.enrollBurstReplace(incomingSharp: 0.40, existingSharp: 0.20), "schärfer ersetzt")
+        ok(!MatchMath.enrollBurstReplace(incomingSharp: 0.20, existingSharp: 0.40), "unschärfer bleibt")
+        near(MatchMath.liveFAR(impostorAbove: 1, totalImpostor: 10), 0.10, 0.001, "FAR 10 %")
+        ok(MatchMath.liveFARLabel(0.10) == "FAR 10.0%", "FAR-Label")
+        ok(MatchMath.guestPersistId(1) == "guest.1", "Gast-ID")
+        ok(MatchMath.guestPersistName("guest.2") == "Gast 2", "Gast-Name")
+        ok(MatchMath.guestPersistKeeps(name: "Gast 1"), "Gast sticky")
+        ok(MatchMath.guestPersistKeeps(name: "guest.1"), "guest sticky")
+        ok(!MatchMath.guestPersistKeeps(name: "Anna"), "Anna kein Gast")
+        near(MatchMath.leftoverStreakSincePersist(since: nil, now: 4), 4, 0.001, "Streak-Since start")
+        near(MatchMath.leftoverStreakSincePersist(since: 1.5, now: 4), 1.5, 0.001, "Streak-Since hält")
 
         let fixture = "1\t2\nAlice\t1\t2\nBob\t1\t3\nAlice\t1\tBob\t1\nAlice\t2\tCarol\t1\n"
         let parsed = BenchProtocol.parsePairs(fixture)

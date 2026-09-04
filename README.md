@@ -1,4 +1,4 @@
-# Aegis **2.1.61 alpha**
+# Aegis **2.1.62 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,17 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.62 alpha
+
+2.1.61 hat Blink/Kalman/Split verdrahtet. leftover taufte trotzdem, wenn Print, Geo und Lock uneinig waren. Burst droppte das schärfere Incoming. Built-in-Centroid auf Continuity.
+
+- **Konflikt-Tick.** BOX/PRINT/GEO/LOCK einig, sonst keine Taufe. Overlay `KONFLIKT`.
+- **leftover weicht Live.** Schon getaufte Kiste wird nicht umgetauft.
+- **Centroid je Kamera.** Built-in und Continuity getrennt.
+- **Burst ersetzt unscharf.** Schärferes Ref bleibt.
+- **Live-FAR** im Floor-Hint. Schema 3 (Restore warnt).
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.62 (Build 89).
 
 ## Neu in 2.1.61 alpha
 

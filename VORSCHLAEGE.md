@@ -1,6 +1,22 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.61 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.62 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.62 wirklich im Code
+
+2.1.61 Blink/Kalman/Split verdrahtet. leftover taufte trotzdem, wenn Print, Geo und Lock uneinig waren. Twin 0,91 still Anna. Ghost 0,64 stahl UUID. Burst droppte das schärfere Incoming. Built-in-Centroid auf Continuity. Overlay `KONFLIKT` saß auf der toten leftover-UUID und verschwand.
+
+1. **`conflictTickAgrees`.** BOX/PRINT/GEO/LOCK einig, sonst keine Taufe. Geo votet erst ab Mix 42. `matchLive` nilt `decidedId`. Overlay `KONFLIKT` auf der **Live-Kiste**.
+2. **`leftoverYieldsToLive`.** leftoverPick stiehlt keine schon live-getaufte UUID.
+3. **`liveCentroidCacheKey(camera:)`.** `builtin` vs `continuity`.
+4. **`enrollBurstReplace`.** Burst-Duplikat: schärferes Incoming ersetzt, unschärferes fällt.
+5. **`liveFAR` / `liveFARLabel`.** Floor-Hint `FAR n%`.
+6. **gallerySchema 3.** Restore warnt bei < 3. `guestPersistId` / `Keeps` / `leftoverStreakSincePersist` Math+Streak-Draht. Gast-Identity-Write nächste.
+7. Tests + VERSION = Models = MARKETING_VERSION 2.1.62 (Build 89).
+
+## Nächste (offen, 2.1.61 — erledigt in 2.1.62)
+
+Konflikt-Tick, leftover-Yield, Per-Kamera-Centroid, Burst-Replace, Live-FAR, Schema 3 sitzen in 2.1.62. Gast als persistente Identity nach 8 s leftover fehlt.
 
 ## In 2.1.61 wirklich im Code
 
@@ -194,12 +210,12 @@ Die Punkte leftover Ambiguity, Twin-Veto, Mouth-open, Reconnect-Ghost, Slot-Hyst
 - **Enrollment AE-Lock** 200 ms nach Belichtungssprung. **→ 2.1.59 captureJumps + exposureLock**
 - **Zwei-Kamera-Live.** Built-in + Continuity, Track über Print.
 - **PhotoKit-Scan** nur mit expliziter Foto-Berechtigung.
-- **Live-FAR** letzte 200 Impostor-Ticks im Labor, Overlay-Ticker.
+- **Live-FAR** letzte 200 Impostor-Ticks im Labor, Overlay-Ticker. Floor-Hint **→ 2.1.62 liveFARLabel**. Labor-200 fehlt.
 - **Open-Set Slider UI** um unknownRejectFloor. **→ 2.1.59 floorHint Open-Set n**
 - **Quality-weighted Centroid.** sharpness × print.
 - **Unknown sticky UUID.** „Stranger 1“ ohne Namen.
 - **Print+Geo AND bei 2 Personen**, nicht OR.
-- **3-Frame Enrollment Burst** auto-pick schärfstes.
+- **3-Frame Enrollment Burst** auto-pick schärfstes. **→ 2.1.62 enrollBurstReplace** (Dup-Pfad). 3-Frame-Puffer fehlt.
 - **DBSCAN Gallery-Cluster** vor Merge-Wizard.
 - **Drop-in `.mlmodel`.** FaceEmbedder-Protokoll, Apple-Print default.
 - **Per-Identität leftover-Log** in der Overlay-Kiste.
@@ -249,12 +265,12 @@ Die Punkte leftover Ambiguity, Twin-Veto, Mouth-open, Reconnect-Ghost, Slot-Hyst
 - **Continuity Desk-View nicht als Front spiegeln.** `position == .unspecified` ist oft Desk-View, nicht FaceTime. **→ 2.1.56 mirrorAsFront**
 - **Unknown als Galerie-Klasse.** Reject-Centroid aus den letzten Impostor-Ticks, nicht nur Floor 50. **Math → 2.1.57 unknownCentroid.**
 - **Print jeden 2. Frame wenn visMs > 18** analog Helios AX-Budget — 24 fps Trail fängt den Skip. **→ 2.1.57 printBudgetSkip**
-- **leftoverStreakSince in gallery.json Schema 3** — Crash mitten im Walk tauft nicht neu.
+- **leftoverStreakSince in gallery.json Schema 3** — Crash mitten im Walk tauft nicht neu. Streak-Helper **→ 2.1.62 leftoverStreakSincePersist**. JSON-Write fehlt.
 - **Face-count Hysterese Idle→Live** 2 Frames Gesicht bevor 8 fps, sonst Blinker am Türrahmen. **→ 2.1.56 liveFacesLatch**
 - **Live-ROI um letzte Boxen.** Vision nur Crop bei 8 fps, Full-Frame alle 4 Ticks.
 - **leftover-Assign 3-Frame Majority** bevor UUID wechselt, sonst ein Tick Kreuz tauft. **→ 2.1.57 leftoverAssignMajority**
 - **VNDetectFaceCaptureQuality** als vierte Ampel neben C/S/Y.
-- **Per-Kamera-Centroid** Built-in vs Continuity, Cross-Cam ReID über den Split.
+- **Per-Kamera-Centroid** Built-in vs Continuity, Cross-Cam ReID über den Split. **→ 2.1.62 liveCentroidCacheKey(camera:)**
 - **Shared Frame-Pump mit Helios.** Bridge sitzt als Idee, eine Session-API fehlt.
 - **Name-Lock Overlay `LOCK n s`** Countdown der 8 s, sonst wirkt tot nach Verlassen. **→ 2.1.57 nameLockTTLLabel**
 - **Desk-View Horizont-Linie** im Overlay, sonst wirkt ungespiegelt „falsch herum“.
@@ -264,7 +280,7 @@ Die Punkte leftover Ambiguity, Twin-Veto, Mouth-open, Reconnect-Ghost, Slot-Hyst
 - **Track-Farbe sticky** nach leftover, nicht jedes Tick neu.
 - **Print-Budget HUD** visMs analog Helios, Cap 18 ms sichtbar.
 - **Box-Aspekt < 0,38 kein leftover-Frontal.** Math sitzt (`boxAspectFrontal`), Wire in leftoverPick **→ 2.1.59 leftoverPickAspect**.
-- **Guest-Identität persistieren.** `Gast n` nach 8 s leftover → eigene UUID, nicht nächste Anna.
+- **Guest-Identität persistieren.** `Gast n` nach 8 s leftover → eigene UUID, nicht nächste Anna. Helpers **→ 2.1.62**. Write fehlt.
 - **Liveness-Blink verdrahten.** `posterNeedsBlink` in leftover nach Jitter.
 - **Box-Kalman verdrahten** statt 1-Euro bei Continuity 8 fps.
 - **Cluster-Split Overlay** wenn leftover-Majority 10 Ticks uneinig — „zwei Personen?“.
@@ -280,7 +296,9 @@ Die Punkte leftover Ambiguity, Twin-Veto, Mouth-open, Reconnect-Ghost, Slot-Hyst
 - **Liveness-Blink verdrahten.** **→ 2.1.61 posterNeedsBlink**
 - **Box-Kalman verdrahten.** **→ 2.1.61 8 fps**
 - **Cluster-Split Overlay.** **→ 2.1.61 SPLIT**
-- **Guest persist Schema 3.** `Gast n` nach 8 s leftover eigene UUID.
+- **Guest persist Schema 3.** `Gast n` nach 8 s leftover eigene UUID. Restore-Gate **→ 2.1.62 gallerySchema 3**. Identity-Write fehlt.
+- **Konflikt-Tick Overlay.** Print≠Geo≠Lock keine Taufe. **→ 2.1.62 conflictTickAgrees + KONFLIKT**
+- **leftover weicht Live-Taufe.** **→ 2.1.62 leftoverYieldsToLive**
 - **Print-MAD Reject.** 5-Frame Median sitzt, MAD > 0,04 wirft den Spike.
 - **Family-Bump UI** neben Open-Set-Slider.
 - **Gallery at rest** FileVault-Hinweis, keine Extra-Crypto.

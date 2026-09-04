@@ -652,7 +652,8 @@ enum FaceEngine {
                 let key = MatchMath.liveCentroidCacheKey(
                     ids: m.owned.map(\.id),
                     slot: probeSlot.rawValue,
-                    paleDropped: pale
+                    paleDropped: pale,
+                    camera: continuity ? "continuity" : "builtin"
                 )
                 let vec: [Double]
                 if let hit = centroidCache[key] {
@@ -816,6 +817,17 @@ enum FaceEngine {
                 decidedId = nil
                 let andNote = MatchMath.twoPersonAndNote()
                 note = note.isEmpty ? andNote : andNote + ". " + note
+            }
+            if !MatchMath.conflictTickAgrees(
+                boxId: nil,
+                printId: pv.count >= 32 ? printWinner?.identityId : nil,
+                geoId: geoAvailable ? geoBest?.id : nil,
+                lockId: decidedId,
+                geoMix: geoAvailable ? geoMix : nil
+            ) {
+                decidedId = nil
+                let clash = MatchMath.conflictTickNote()
+                note = note.isEmpty ? clash : clash + ". " + note
             }
             let printHit = StrategyHit(
                 strategy: .featurePrint,

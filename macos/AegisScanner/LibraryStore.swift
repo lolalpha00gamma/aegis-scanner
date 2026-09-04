@@ -253,6 +253,12 @@ final class LibraryStore: ObservableObject {
     var floorHint: String {
         let f = FaceEngine.effectiveFloors(galleryCount: identities.count, slider: threshold)
         let open = Int(MatchMath.unknownRejectFloor(slider: threshold).rounded())
+        let unnamed = leftoverPending.values.filter { $0 == MatchMath.conflictTickNote() || $0.hasPrefix("Gast") }.count
+        let named = identities.count
+        if named + unnamed > 0, unnamed > 0 {
+            let far = MatchMath.liveFAR(impostorAbove: unnamed, totalImpostor: named + unnamed)
+            return "Galerie \(identities.count): Floor \(Int(f.match)) · Solo \(Int(f.solo)) · Open-Set \(open) · \(MatchMath.liveFARLabel(far))"
+        }
         return "Galerie \(identities.count): Floor \(Int(f.match)) · Solo \(Int(f.solo)) · Open-Set \(open)"
     }
 
@@ -936,9 +942,16 @@ final class LibraryStore: ObservableObject {
                     cosine: c,
                     within: age
                 ) {
-                    dropOrphanSnapshot(face, original: raw)
-                    status = "Burst-Duplikat — gleiche Pose in 400 ms, Referenz von \(identities[idx].name) bleibt"
-                    return
+                    if MatchMath.enrollBurstReplace(
+                        incomingSharp: face.quality.sharpness,
+                        existingSharp: old.quality.sharpness
+                    ) {
+                        identities[idx].faceIds.removeAll { $0 == old.id }
+                    } else {
+                        dropOrphanSnapshot(face, original: raw)
+                        status = "Burst-Duplikat — schärfere Referenz von \(identities[idx].name) bleibt"
+                        return
+                    }
                 }
                 if let keepNew = MatchMath.pruneKeepIncoming(
                     cosine: c,
@@ -1381,7 +1394,10 @@ final class LibraryStore: ObservableObject {
             same = false
         }
         if same {
-            if leftoverStreakSince[oldId] == nil { leftoverStreakSince[oldId] = now }
+            leftoverStreakSince[oldId] = MatchMath.leftoverStreakSincePersist(
+                since: leftoverStreakSince[oldId],
+                now: now
+            )
         } else {
             leftoverStreakSince[oldId] = now
         }
@@ -1907,18 +1923,46 @@ final class LibraryStore: ObservableObject {
                     liveSlotHold[adopted[cand.index].id] = sticky
                     sameSlot[cand.index] = sticky.slot == oldSticky.slot
                 }
+                var liveIds: [Int: UUID] = [:]
+                for cand in remaining {
+                    if let id = matches.first(where: { $0.faceId == adopted[cand.index].id })?
+                        .hits.first(where: { $0.strategy == .aegis })?.identityId
+                    {
+                        liveIds[cand.index] = id
+                    }
+                }
+                let aegisHit = matches.first { $0.faceId == old.id }?.hits.first { $0.strategy == .aegis }
                 guard let bestJ = MatchMath.leftoverPick(
                     candidates: remaining,
                     sharpness: sharp,
                     sameSlot: sameSlot,
                     yawAbs: yawAbs,
                     aspectOk: aspectOk,
-                    twinPair: matches.first { $0.faceId == old.id }?.hits.first { $0.strategy == .aegis }?.pairCosine,
-                    holdPrev: leftoverHold[old.id]
+                    twinPair: aegisHit?.pairCosine,
+                    holdPrev: leftoverHold[old.id],
+                    liveIds: liveIds,
+                    leftoverId: old.id,
+                    printId: aegisHit?.identityId,
+                    geoMix: aegisHit?.geoMix
                 ) else {
-                    let twin = matches.first { $0.faceId == old.id }?.hits.first { $0.strategy == .aegis }?.pairCosine
+                    let twin = aegisHit?.pairCosine
                     if MatchMath.leftoverTwinSuggest(pairCosine: twin) {
-                        leftoverPending[old.id] = MatchMath.leftoverTwinNote()
+                        for cand in remaining {
+                            leftoverPending[adopted[cand.index].id] = MatchMath.leftoverTwinNote()
+                        }
+                    } else if !MatchMath.conflictTickAgrees(
+                        boxId: nil,
+                        printId: aegisHit?.identityId,
+                        geoId: nil,
+                        lockId: liveIds.values.first,
+                        geoMix: aegisHit?.geoMix
+                    ) {
+                        for cand in remaining {
+                            guard !MatchMath.leftoverYieldsToLive(liveId: liveIds[cand.index], leftoverId: old.id) else {
+                                continue
+                            }
+                            leftoverPending[adopted[cand.index].id] = MatchMath.conflictTickNote()
+                        }
                     }
                     leftoverClearStreak(old.id)
                     continue
