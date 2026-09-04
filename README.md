@@ -1,4 +1,4 @@
-# Aegis **2.1.54 alpha**
+# Aegis **2.1.55 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,19 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.55 alpha
+
+Ghost 1,8 s überlebte leftover 1,2 s — Vorbeigehen taufte den Nachbarn. leftover zählte Frames, 2 fps→8 fps tauften nach 3 Ticks. Kamerabuffer plus `CIImage.oriented` war Doppel-Drehung wie Helios vor 1.5.39. Idle-Tap 2 fps verpasste das erste Gesicht. Scores unter 50 % tauften trotzdem.
+
+- **`liveGhostHold` = leftoverAdoptSec (1,2 s).**
+- **`leftoverAdoptReady(elapsed:streak:)`.** 1,2 s **und** ≥ 3 Frames. Overlay `1/10` in Zehnteln, nicht 24-fps-`1/75`.
+- **`unknownReject` 50 %.** Overlay „unbekannt“, keine Taufe.
+- **RotationCoordinator** Horizon-Level, Vision `.up` — Override bleibt.
+- **Idle-Tap 5 fps** (0,20 s), mit Gesicht 8 fps.
+- **Wipe-Mute** nur wenn Hist < 4. Starke Locks bleiben.
+- Tests: Ghost=leftover, Elapsed, Unknown, Mute-Hist.
+- VERSION = Models = MARKETING_VERSION 2.1.55 (Build 82).
 
 ## Neu in 2.1.54 alpha
 

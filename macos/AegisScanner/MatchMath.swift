@@ -980,6 +980,8 @@ enum MatchMath {
     static let leftoverAdoptFrames = 3
     static let leftoverAdoptSec: TimeInterval = 1.20
     static let leftoverAdoptCap = 80
+    /// Ghost 1,8 s überlebte leftover 1,2 s — Walker-UUID auf den Nachbarn.
+    static var liveGhostHold: TimeInterval { leftoverAdoptSec }
 
     static func leftoverAdoptNeed(dt: TimeInterval) -> Int {
         let step = max(0.008, min(0.20, dt <= 0 ? 0.125 : dt))
@@ -991,10 +993,30 @@ enum MatchMath {
         streak >= need
     }
 
-    /// Overlay während Streak: `1/3`.
+    /// dt-Sprung (2 fps → 8 fps) darf nicht nach 3 Frames taufen. Zeit + Mindestframes.
+    static func leftoverAdoptReady(
+        elapsed: TimeInterval,
+        streak: Int,
+        needSec: TimeInterval = leftoverAdoptSec,
+        minFrames: Int = leftoverAdoptFrames
+    ) -> Bool {
+        elapsed >= needSec && streak >= minFrames
+    }
+
+    /// Overlay während Streak: `1/10` in Zehnteln der 1,2 s, nicht Frames (24 fps wäre 1/75).
     static func leftoverStreakLabel(streak: Int, need: Int) -> String? {
         guard streak > 0, need > 0, streak < need else { return nil }
         return "\(streak)/\(need)"
+    }
+
+    static func leftoverStreakLabel(
+        elapsed: TimeInterval,
+        needSec: TimeInterval = leftoverAdoptSec,
+        steps: Int = 10
+    ) -> String? {
+        guard elapsed > 0, needSec > 0, elapsed < needSec, steps > 1 else { return nil }
+        let k = min(steps - 1, max(1, Int(floor(elapsed / needSec * Double(steps)))))
+        return "\(k)/\(steps)"
     }
 
     static func leftoverSameTarget(iou: Double, floor: Double = leftoverIoU) -> Bool {
@@ -1229,10 +1251,13 @@ enum MatchMath {
         now + mute
     }
 
-    static func leftoverWipeMutes(until: TimeInterval?, now: TimeInterval) -> Bool {
-        guard let until else { return false }
-        return now < until
+    static func leftoverWipeMutes(until: TimeInterval?, now: TimeInterval, histCount: Int = 0) -> Bool {
+        guard let until, now < until else { return false }
+        return histCount < leftoverWipeMuteHistFloor
     }
+
+    /// Starke Lock (≥ 4 Stimmen) nicht 800 ms stumm nach Wipe.
+    static let leftoverWipeMuteHistFloor = 4
 
     /// Nicken F→¾: 2 Frames halten, sonst ¾-Centroid auf Frontal-Sonde.
     static let poseSlotHoldNeed = 2
@@ -1539,4 +1564,14 @@ enum MatchMath {
     }
 
     private static func clamp01(_ n: Double) -> Double { min(1, max(0, n)) }
+
+    static let unknownRejectFloor = 50.0
+
+    /// Alle Gallery-Scores unter Floor: Overlay statt Taufe (Open-Set).
+    static func unknownReject(bestPercent: Double, floor: Double = unknownRejectFloor) -> Bool {
+        bestPercent < floor
+    }
+
+    static func unknownRejectNote() -> String { "unbekannt — keine Nähe" }
 }
+

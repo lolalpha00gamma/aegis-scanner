@@ -30,6 +30,7 @@ final class LiveCapture: NSObject {
     private var output: AVPlayerItemVideoOutput?
     private var playerTransform = CGAffineTransform.identity
     private var session: AVCaptureSession?
+    private var rotationCoordinator: AVCaptureDevice.RotationCoordinator?
     private var outputQueue = DispatchQueue(label: "aegis.live")
     private var timer: Timer?
     private var snapshotURL: URL?
@@ -38,7 +39,7 @@ final class LiveCapture: NSObject {
     var onFrame: ((CGImage, TimeInterval) -> Void)?
     var onError: ((String) -> Void)?
     var onReady: (() -> Void)?
-    /// Live-Tap: 2 fps ohne Gesicht, 8 fps sobald ein Track sitzt.
+    /// Live-Tap: 5 fps ohne Gesicht, 8 fps sobald ein Track sitzt.
     private(set) var facesPresent = false
     private(set) var cameraUniqueID: String = ""
     private(set) var orientOverride: String = "auto"
@@ -58,7 +59,7 @@ final class LiveCapture: NSObject {
     func setFacesPresent(_ on: Bool) {
         let changed = on != facesPresent
         facesPresent = on
-        tap?.minInterval = on ? 0.125 : 0.50
+        tap?.minInterval = on ? 0.125 : 0.20
         if changed, timer != nil {
             startTimer()
         }
@@ -84,6 +85,7 @@ final class LiveCapture: NSObject {
         snapshotURL = nil
         snapshotInFlight = false
         tap = nil
+        rotationCoordinator = nil
         isContinuity = false
         facesPresent = false
         cameraUniqueID = ""
@@ -147,6 +149,22 @@ final class LiveCapture: NSObject {
         self.tap = delegate
         out.setSampleBufferDelegate(delegate, queue: outputQueue)
         if session.canAddOutput(out) { session.addOutput(out) }
+        if let conn = out.connection(with: .video) {
+            if conn.isVideoMirroringSupported {
+                conn.automaticallyAdjustsVideoMirroring = false
+                let front = device.position == .front || device.position == .unspecified
+                conn.isVideoMirrored = front
+            }
+            if #available(macOS 14.0, *) {
+                let coord = AVCaptureDevice.RotationCoordinator(device: device, previewLayer: nil)
+                rotationCoordinator = coord
+                let angle = coord.videoRotationAngleForHorizonLevelCapture
+                if conn.isVideoRotationAngleSupported(angle) {
+                    conn.videoRotationAngle = angle
+                    delegate.horizonLevel = true
+                }
+            }
+        }
         self.session = session
         outputQueue.async { session.startRunning() }
         onReady?()
@@ -238,7 +256,7 @@ final class LiveCapture: NSObject {
 
     private func startTimer() {
         timer?.invalidate()
-        let interval: TimeInterval = facesPresent ? 0.125 : 0.50
+        let interval: TimeInterval = facesPresent ? 0.125 : 0.20
         timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
             let capture = self
             Task { @MainActor in
@@ -282,9 +300,10 @@ final class LiveCapture: NSObject {
 
 private final class FrameTap: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     private var last: TimeInterval = 0
-    var minInterval: TimeInterval = 0.50
+    var minInterval: TimeInterval = 0.20
     var uniqueID: String = ""
     var orientOverride: String = "auto"
+    var horizonLevel = false
     private let emit: (CGImage, TimeInterval) -> Void
     init(emit: @escaping (CGImage, TimeInterval) -> Void) { self.emit = emit }
     func captureOutput(
@@ -298,13 +317,13 @@ private final class FrameTap: NSObject, AVCaptureVideoDataOutputSampleBufferDele
         guard stamp - last >= minInterval else { return }
         last = stamp
         guard let pb = CMSampleBufferGetImageBuffer(sampleBuffer),
-              let image = cgImage(from: pb, orientation: visionOrientation(connection, override: orientOverride))
+              let image = cgImage(from: pb, orientation: visionOrientation(connection, override: orientOverride, horizonLevel: horizonLevel))
         else { return }
         DispatchQueue.main.async { self.emit(image, stamp) }
     }
 }
 
-private func visionOrientation(_ connection: AVCaptureConnection, override: String = "auto") -> CGImagePropertyOrientation {
+private func visionOrientation(_ connection: AVCaptureConnection, override: String = "auto", horizonLevel: Bool = false) -> CGImagePropertyOrientation {
     switch override {
     case "0": return .up
     case "90": return .right
@@ -312,6 +331,8 @@ private func visionOrientation(_ connection: AVCaptureConnection, override: Stri
     case "270": return .left
     default: break
     }
+    // Puffer steht nach RotationCoordinator. CIImage.oriented darüber wäre Doppel-Drehung.
+    if horizonLevel { return .up }
     let angle: CGFloat
     if #available(macOS 14.0, *) {
         angle = connection.videoRotationAngle

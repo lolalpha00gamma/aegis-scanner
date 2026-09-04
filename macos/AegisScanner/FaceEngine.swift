@@ -752,7 +752,11 @@ enum FaceEngine {
                 return capNote + ". " + decided.note
             }()
             var decidedId = decided.id
-            if !nameAgree {
+            if MatchMath.unknownReject(bestPercent: best?.percent ?? 0) {
+                decidedId = nil
+                let unk = MatchMath.unknownRejectNote()
+                note = note.isEmpty ? unk : unk + ". " + note
+            } else if !nameAgree {
                 decidedId = nil
                 let disagree = MatchMath.liveNameDisagreeNote()
                 note = note.isEmpty ? disagree : disagree + ". " + note

@@ -1,6 +1,21 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.51 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.55 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.55 wirklich im Code
+
+2.1.54 Print-Fallback — Ghost 1,8 > leftover 1,2. leftover in Frames. Kamera-Puffer plus CI-Rotate. 2 fps Idle. Open-Set tot.
+
+1. **`liveGhostHold` = leftoverAdoptSec.**
+2. **leftover in Sekunden.** `leftoverAdoptReady(elapsed:streak:)`. Overlay `1/10` Zehntel.
+3. **`unknownReject` 50 %.**
+4. **RotationCoordinator** + Vision `.up`.
+5. **Idle 5 fps.** Wipe-Mute nur Hist < 4. Overlay STUMM folgt derselben Hist.
+6. Tests + VERSION = Models = MARKETING_VERSION 2.1.55 (Build 82).
+
+## Nächste (offen, 2.1.51 — erledigt in 2.1.55)
+
+Ghost-TTL, leftover-Streak in Sekunden, Unknown-Reject, Name-Lock nach Wipe sitzen in 2.1.55.
 
 ## In 2.1.51 wirklich im Code
 
@@ -85,7 +100,7 @@ Die Punkte leftover Ambiguity, Twin-Veto, Mouth-open, Reconnect-Ghost, Slot-Hyst
 - **Zwei-Kamera-Live.** Built-in + Continuity, Track über Print.
 - **PhotoKit-Scan** nur mit expliziter Foto-Berechtigung.
 - **Live-FAR** letzte 200 Impostor-Ticks im Labor, Overlay-Ticker.
-- **Open-Set Unknown.** Slider für Reject.
+- **Open-Set Slider** um unknownRejectFloor (50 sitzt in 2.1.55).
 - **Drop-in `.mlmodel`.** FaceEmbedder-Protokoll, Apple-Print default.
 - **Per-Identität leftover-Log** in der Overlay-Kiste.
 - **Pairwise-Heatmap klickbar** im Labor.
@@ -99,10 +114,6 @@ Die Punkte leftover Ambiguity, Twin-Veto, Mouth-open, Reconnect-Ghost, Slot-Hyst
 - **Glasses as Slot.** Brille an/aus nicht neue Identität.
 - **Track-ID in Labor-CSV.**
 - **CLAHE vor Print** bei Continuity, sonst Nacht-Print driftet.
-- **leftover-Streak in Sekunden** wenn dt springt, nicht nur Frames.
-- **Ghost-TTL = leftoverAdoptSec** (1,8 vs 1,2 — Ghost überlebt Walk).
-- **Name-Lock nach Wipe nur wenn Hist < 4.** Starke Locks nicht 800 ms stumm.
-- **Unknown-Reject** wenn alle Gallery-Scores < 0,50, Overlay statt Taufe.
 - **Partial-Print bei Maske.** `meanPartialVector` statt Vote-Skip wenn U-Slot-Refs da sind.
 - **Enrollment-Radar** F/¾/P als Ring, nicht nur Balken.
 - **Gallery-Compact.** gleiche Pose Cosine 0,97 mergen, Confirm.
@@ -118,6 +129,21 @@ Die Punkte leftover Ambiguity, Twin-Veto, Mouth-open, Reconnect-Ghost, Slot-Hyst
 - **Enrollment-Retake.** Unschärfe 3× hintereinander → Overlay „nochmal halten“.
 - **Track birth/death Log.** Overlay `+Anna` / `−Ben` 0,45 s.
 - **Voice-Print optional.** Zweite Stimme nur Confirm, nie Live-Taufe.
+- **Print-Cache LRU 512** statt `removeAll` — Burst nach 513 Gesichtern sonst kalt.
+- **Live-dt Median** analog Helios sampleDts — ein Dropout darf leftover-Need nicht auf 0,50 s kippen.
+- **Enrollment-Burst 400 ms auch über `+` in der Liste**, nicht nur Kamera.
+- **Yaw-Slot-Prior im leftoverPick** bevor IoU, sonst ¾-Ghost auf Frontal-Nachbarn (Slot-hart sitzt, Pick-Reihenfolge nicht).
+- **Gallery-JSON Schema 3:** `ghostHoldSec` persistiert, Restore nach Crash.
+- **Testmodus ident20 parallel zu Live** ohne Galerie zu wischen.
+- **Continuity-Desk-View eigener Pose-Slot `desk`**, nicht Profil.
+- **Box-NMS 0,45 bei Live** — Tiles/Equalize-Zwillinge taufen zwei UUIDs auf ein Gesicht.
+- **Name-Lock TTL 8 s ohne Vote** analog Rename-Confirm — sonst klebt Anna nach Verlassen.
+- **Cosine-EMA des leftover-Hold** statt Roh-0,64, sonst ein scharfer Twin 0,70 tauft.
+- **Continuity Desk-View nicht als Front spiegeln.** `position == .unspecified` ist oft Desk-View, nicht FaceTime.
+- **Unknown als Galerie-Klasse.** Reject-Centroid aus den letzten Impostor-Ticks, nicht nur Floor 50.
+- **Print jeden 2. Frame wenn visMs > 18** analog Helios AX-Budget — 24 fps Trail fängt den Skip.
+- **leftoverStreakSince in gallery.json Schema 3** — Crash mitten im Walk tauft nicht neu.
+- **Face-count Hysterese Idle→Live** 2 Frames Gesicht bevor 8 fps, sonst Blinker am Türrahmen.
 
 ## Nächste (offen, 2.1.50 — erledigt in 2.1.51)
 
