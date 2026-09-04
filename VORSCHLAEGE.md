@@ -1,8 +1,21 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.67 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.68 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.68 wirklich im Code
+
+2.1.67 Ghost-Pool/Hash/Twin. Slot-Mismatch gab nil. Hold ohne Transfer machte Gast. holdPrev 0,00 skippte 1,2 s. Kleine Kiste sprang 2 Bins. centroidWeight unverdrahtet. Leerer Frame wischte UUID-Hold.
+
+1. **`leftoverAllowsCrossSlot`.** F→¾→P mit Print ≥ 0,64.
+2. **`leftoverHoldsTrack`.** Overlay halten, UUID und Live unangetastet. Streak erst bei Transfer/Gast weg.
+3. **Adopt-Skip nur Print-Hold.** 0,10 skippt nicht.
+4. **Kleine-Box-Radius 2.**
+5. **`centroidWeight` in meanPrintVector / Partial / printWeights.**
+6. **`leftoverHoldSurvive`.** Dropout: UUID-Hold, Trail, Slot am Ghost, nicht Wipe.
+7. Tests + VERSION = Models = MARKETING_VERSION 2.1.68 (Build 94).
 
 ## In 2.1.67 wirklich im Code
+
 
 2.1.66 Hash überlebte Dropout, leftover las ihn nicht: previous leer, Ghosts nur in pinByPrint 0,80. Größe wechselte Bin. Transfer stahl UUID bei 0,82 nach 0,64. Trail UUID-keyed.
 
@@ -41,18 +54,23 @@ Stand: **2.1.67 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 - Family-Bump UI neben Open-Set Slider.
 - Gallery-at-rest FileVault-Hinweis beim ersten Persist.
 - Temporal ReID über leftoverHold-Trail (3 Ticks, nicht 1 Cosine).
-- Quality-weighted Gallery-Centroid (scharf 2×, Blur 0,4×).
+- ~~Quality-weighted Gallery-Centroid (scharf 2×, Blur 0,4×).~~ — 2.1.68 `centroidWeight` in mean/partial/printWeights.
 - Enrollment aus Video-Keyframes, nicht nur Standbild.
 - Export gallery.json encrypted (CryptoKit, Geräte-gebunden).
 - Live-FAR Sparkline statt nur Floor-Hint.
 - Unknown-Reject mit Open-Set-Energy, nicht nur Cosine-Floor.
 - Alter/Geschlecht nur Prior, nie ID.
 - Masken-Partial-Print aggressiver (untere Hälfte droppen).
-- leftoverHold auch auf Slot F/3-4/P, nicht nur Box-Hash.
+- leftoverHold auch auf Slot F/3-4/P, nicht nur Box-Hash — Slot-Hold überlebt Dropout in 2.1.68, eigene Tabelle fehlt.
 - Detector-NMS nach Kalman-Box (NMS auf geglätteter Box, nicht roh).
 - Hash-Bins adaptiv an Box-Größe (große Kiste gröber).
 - Merge-Wizard Undo 30 s.
 - Gast als persistente Identity nach Tauf-Button — Math sitzt, UI-Draht nächste.
+- Blur-Gate vor leftoverPick (Schärfe < 0,12 kein Hold).
+- Kalman-Box vor Hash, nicht nur nach Track-Pin.
+- Enroll-from-video: 1 Keyframe je Slot, nicht Burst derselben Pose.
+- Overlay spricht den Hold-Wert (VoiceOver „gehalten null komma vierundsechzig“).
+- Partial-Print für Profil (P-Slot ohne Augen).
 
 ## In 2.1.64 wirklich im Code (2.1.65 war Docs)
 

@@ -1,31 +1,31 @@
-# Helios + Aegis — Analyse 2026-09-04 (2.1.67)
+# Helios + Aegis — Analyse 2026-09-04 (2.1.68)
 
-Helios **1.5.51** (Build 71). Aegis **2.1.67 alpha** (Build 93). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`.
+Helios **1.5.52** (Build 72). Aegis **2.1.68 alpha** (Build 94). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`.
 
-CI war seit **2.1.26** rot: `swiftc` für MatchMathTests ohne `Models.swift` → `FaceBox`/`Point2` unbekannt. Kein DMG nach 2.1.25. Nachtrag nimmt Models in den Compile.
+## Warum Namen nach 2.1.67 noch sprangen
 
-## Warum Namen nach 2.1.66 noch sprangen
+2.1.67 hat Ghost-Pool, Größen-Hash, Twin-Steal und Trail-über-Dropout wirklich verdrahtet. Fünf Löcher blieben — plus Dropout-Wipe, das Hold wieder tot machte:
 
-## Warum Namen nach 2.1.66 noch sprangen
+1. **Slot hart tot.** `leftoverPick` gab `nil` sobald sameSlot alle false. Kopfdrehen F→¾→P: Streak weg, Overlay Gast, dann Sprung. Hold 0,64 lag in der Tabelle und niemand las sie, weil Pick nie kam.
+2. **Hold ohne Transfer machte Gast.** `leftoverTransfersId` verweigerte Steal unter 0,80 — und der else-Zweig schrieb `guestOrder` plus `used.insert(old.id)`. Anna wurde verbraucht, Live wurde Gast. Genau der Sprung, den 2.1.67 verhindern sollte.
+3. **`holdPrev != nil` skippte 1,2 s auch bei 0,00.** Müll-Hold war Adopt.
+4. **Kleine Kiste sprang 2 Bins.** ±1 reichte nicht, wenn width-Bin 0/1 ist. Hash-Hold tot nach einem Schritt nach vorn.
+5. **`centroidWeight` war tot.** `meanPrintVector` hatte die Formel inline, nicht die Math. `printWeights` ebenfalls.
+6. **Leerer Frame wischte UUID-Hold.** Hash-TTL blieb, `leftoverHold = [:]`, `leftoverHoldTrail = [:]`, `liveSlotHold = [:]`. Kopfdrehen + Dropout: Hash verfehlt die Kiste, holdPrev nil, 1,2 s Gast-Fenster.
 
-2.1.66 hat Nachbar-Hash (cx/cy), Hash-Prune statt Wipe, Gast n+1, Print-MAD wirklich verdrahtet. Vier Löcher blieben:
+## Was 2.1.68 wirklich ändert
 
-1. **Leftover nach Dropout tot.** Leerer Frame macht `faces.removeAll`. Nächster Frame: `previous` leer, `leftoverPinned` leer. Hash-Hold lag in der Tabelle und niemand las sie. Ghosts gingen nur in `pinByPrint` (Floor 0,80). Genuine 0,64–0,79 wurde Gast.
-2. **Größe tötet Hash.** Neighbors nur cx/cy ±1. Box-Breite 0,15→0,20 wechselt Bin. Person lehnt sich vor: Hold tot.
-3. **`leftoverTransfersId` ignoriert Hold.** Pick lässt Baptize 0,80 durch (Kiste halten). Transfer stahl die UUID bei 0,82 nach Hold 0,64. printMAD braucht ≥ 3 Samples — Trail war UUID-keyed und nach Dropout leer.
-4. **Adopt 1,2 s nach jedem Miss.** Streak-Wipe. Hash-Hold bedeutete „die 1,2 s waren schon da“. Trotzdem neu warten → Overlay Gast, dann Sprung.
+1. **`leftoverAllowsCrossSlot`.** sameSlot fehlt: Print ≥ 0,64 darf picken. 0,50 bleibt tot. Same-Slot gewinnt weiter gegen 0,01.
+2. **`leftoverHoldsTrack`.** 0,64–0,79: Overlay „gehalten“, UUID bleibt, Live wird nicht Gast, leftover bleibt im Pool. Streak wird erst bei Transfer/Gast gelöscht.
+3. **`leftoverAdoptReady`.** Skip nur bei `leftoverPrintOk(holdPrev)`, nicht bei jedem non-nil.
+4. **Kleine-Box-Radius 2.** w/h-Bin ≤ 1: Nachbarn ±2 in Position und Größe.
+5. **`centroidWeight` in `meanPrintVector` / Partial / `printWeights`.** Eine Formel.
+6. **`leftoverHoldSurvive`.** Dropout: UUID-Hold, Trail und Slot-Hold am Ghost, nicht Wipe. Hash allein reicht nicht nach Kopfdrehen.
+7. leftoverHold / Slot-Hold überleben, solange leftoverPinned die UUID kennt.
+8. VERSION = Models = MARKETING_VERSION 2.1.68 (Build 94).
 
-## Was 2.1.67 wirklich ändert
+Was Masse noch bringen würde: Frame-Pump mit Helios, CLAHE auf den Buffer, Live-ROI Crop, Drop-in `.mlmodel`, DBSCAN vor Merge.
 
-1. **Ghost-Pool.** `leftoverPinned` nimmt `liveGhosts` plus previous. Named aus matches, nicht nur live previous.
-2. **`leftoverBoxHashNeighbors` w/h ±1.** Größe-Jitter hält Hold. Ferne Bins (`9.9.9.9`) bleiben leer.
-3. **`leftoverBaptizeSpike`.** 0,80 nach 0,64 = Twin, kein UUID-Steal. 0,80 nach 0,80 bleibt Taufe. `leftoverTransfersId` nimmt holdPrev + Trail.
-4. **`leftoverHoldTrailByHash`.** Trail überlebt leere Frames. Put seeded von Nachbarn.
-5. **`leftoverAdoptReady(holdPrev:)`.** Hash-Hold: 1 Frame reicht, nicht nochmal 1,2 s.
-6. VERSION = Models = MARKETING_VERSION 2.1.67 (Build 93).
-
-Was Masse noch bringen würde: Frame-Pump mit Helios, CLAHE auf den Buffer, Live-ROI Crop, Drop-in `.mlmodel`.
-
-Helios 1.5.51: Clamshell lebt, Legacy-dest, destClamp, Game-Exempt. Siehe `bpms9cmnxc-debug/Helios`.
+Helios 1.5.52: Pinch-Open, Tasche (auch dunkel), destClamp im Display-Link, Relativ-Span, Pointer-Pool. Siehe `bpms9cmnxc-debug/Helios`.
 
 `bugfix` mergen oder fortsetzen: nein. Nur `main`.

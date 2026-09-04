@@ -1,4 +1,4 @@
-# Aegis **2.1.67 alpha**
+# Aegis **2.1.68 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,18 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.68 alpha
+
+2.1.67 Hash/Ghost/Twin. Kopfdrehen F→¾→P: Pick nil, Streak tot. Hold 0,64 ohne Transfer machte Gast. holdPrev 0,00 skippte 1,2 s. Kleine Kiste sprang zwei Bins. Leerer Frame wischte UUID-Hold.
+
+- **`leftoverAllowsCrossSlot`.** Print ≥ 0,64 darf Slot wechseln. 0,50 bleibt tot.
+- **`leftoverHoldsTrack`.** 0,64–0,79 Overlay, kein Gast, kein UUID-Steal.
+- **Adopt-Skip nur Print-Hold.**
+- **Kleine-Box-Radius 2.** Hold nach Schritt nach vorn.
+- **`centroidWeight` verdrahtet** (mean / partial / printWeights).
+- **`leftoverHoldSurvive`.** Dropout: Hold/Trail/Slot am Ghost, nicht Wipe.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.68 (Build 94).
 
 ## Neu in 2.1.67 alpha
 

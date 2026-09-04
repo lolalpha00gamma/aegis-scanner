@@ -103,11 +103,19 @@ enum MatchMathTests {
         )
         ok(
             MatchMath.leftoverPick(
-                candidates: [(0, 0.40, 0.75), (1, 0.40, 0.70)],
-                sharpness: [0: 0.20, 1: 0.20],
-                sameSlot: [0: false, 1: false]
+                candidates: [(0, 0.40, 0.75)],
+                sharpness: [0: 0.20],
+                sameSlot: [0: false]
+            ) == 0,
+            "Cross-Slot 0,75 hält leftover"
+        )
+        ok(
+            MatchMath.leftoverPick(
+                candidates: [(0, 0.40, 0.50)],
+                sharpness: [0: 0.20],
+                sameSlot: [0: false]
             ) == nil,
-            "sameSlot gesetzt, kein Slot-Treffer → ¾-Ghost pinnt nicht"
+            "Cross-Slot ohne Print tot"
         )
         let idLook = UUID(uuidString: "00000000-0000-0000-0000-0000000000AA")!
         let idPrint = UUID(uuidString: "00000000-0000-0000-0000-0000000000BB")!
@@ -1156,6 +1164,23 @@ enum MatchMathTests {
         ok(!MatchMath.guestOrderKeeps(id: idHoldA, live: [], lastSeen: nil, now: 10), "ohne Seen tot")
         ok(MatchMath.leftoverAdoptReady(elapsed: 0.20, streak: 1, holdPrev: 0.64), "Hash-Hold skippt 1,2 s")
         ok(!MatchMath.leftoverAdoptReady(elapsed: 0.20, streak: 1), "ohne Hold 0,2 s tot")
+        ok(!MatchMath.leftoverAdoptReady(elapsed: 0.20, streak: 1, holdPrev: 0.10), "0,10 Hold skippt nicht")
+        ok(MatchMath.leftoverAllowsCrossSlot(sameSlot: true, cosine: 0.50), "sameSlot immer")
+        ok(MatchMath.leftoverAllowsCrossSlot(sameSlot: false, cosine: 0.70), "0,70 Cross-Slot Hold")
+        ok(!MatchMath.leftoverAllowsCrossSlot(sameSlot: false, cosine: 0.50), "0,50 Cross-Slot tot")
+        ok(MatchMath.leftoverHoldsTrack(cosine: 0.70), "0,70 Hold ohne Steal")
+        ok(!MatchMath.leftoverHoldsTrack(cosine: 0.82), "0,82 tauft, kein Hold-only")
+        ok(MatchMath.leftoverHoldsTrack(cosine: 0.82, holdPrev: 0.64), "Spike 0,82 nach 0,64 hält statt Steal")
+        let tinyN = MatchMath.leftoverBoxHashNeighbors("1.2.0.0")
+        ok(tinyN.contains("1.2.2.0"), "kleine Box w+2")
+        ok(tinyN.contains("3.2.0.0"), "kleine Box cx+2")
+        let survive = MatchMath.leftoverHoldSurvive(
+            hold: [idHoldA: 0.70, idHoldB: 0.50],
+            ghosts: [idHoldA]
+        )
+        ok(survive[idHoldA] == 0.70, "Ghost-Hold überlebt Dropout")
+        ok(survive[idHoldB] == nil, "ohne Ghost Wipe")
+        ok(MatchMath.leftoverHoldSurvive(hold: [idHoldA: 0.70], ghosts: []).isEmpty, "ohne Ghosts leer")
         let ghostIds = MatchMath.leftoverGhostIds(previous: [], ghosts: [idHoldA])
         ok(ghostIds == [idHoldA], "Ghost-Pool nach Dropout")
         ok(MatchMath.leftoverGhostIds(previous: [idHoldA], ghosts: [idHoldA]) == [idHoldA], "Ghost-Dedup")

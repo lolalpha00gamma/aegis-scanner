@@ -285,8 +285,11 @@ enum MatchMath {
         } else if sameSlot.isEmpty {
             pool = printable
         } else {
-            // Slot-Info da, kein gleicher Pose-Slot → ¾-Ghost pinnt keinen Frontal-Nachbarn.
-            return nil
+            let cross = printable.filter {
+                leftoverAllowsCrossSlot(sameSlot: sameSlot[$0.index], cosine: $0.cosine)
+            }
+            if cross.isEmpty { return nil }
+            pool = cross
         }
         let scored = pool.map {
             leftoverScore(cosine: $0.cosine ?? -1, sharpness: sharpness[$0.index], yawAbs: yawAbs[$0.index] ?? 0)
@@ -1091,8 +1094,8 @@ enum MatchMath {
         minFrames: Int = leftoverAdoptFrames,
         holdPrev: Double? = nil
     ) -> Bool {
-        // Hash-Hold überlebte Dropout: die 1,2 s waren schon da.
-        if holdPrev != nil { return streak >= 1 }
+        // Hash-Hold überlebte Dropout: die 1,2 s waren schon da. Nur echter Print, nicht 0,00.
+        if leftoverPrintOk(cosine: holdPrev) { return streak >= 1 }
         return elapsed >= needSec && streak >= minFrames
     }
 
@@ -1838,6 +1841,28 @@ enum MatchMath {
         return leftoverBaptize(cosine: cosine)
     }
 
+    /// F→¾→P: Hold 0,64 darf den Track halten. Ohne Print bleibt Slot hart.
+    static func leftoverAllowsCrossSlot(sameSlot: Bool?, cosine: Double?) -> Bool {
+        if sameSlot != false { return true }
+        return leftoverPrintOk(cosine: cosine)
+    }
+
+    /// 0,64–0,79: Overlay halten, UUID nicht stehlen, Live nicht zum Gast machen.
+    static func leftoverHoldsTrack(
+        cosine: Double?,
+        holdPrev: Double? = nil,
+        trail: [Double] = []
+    ) -> Bool {
+        leftoverPrintOk(cosine: cosine) && !leftoverTransfersId(cosine: cosine, holdPrev: holdPrev, trail: trail)
+    }
+
+    /// Dropout: UUID-Hold/Trail/Slot am Ghost, nicht Wipe. Hash allein verfehlt die Kiste nach Kopfdrehen.
+    static func leftoverHoldSurvive<Value>(hold: [UUID: Value], ghosts: [UUID]) -> [UUID: Value] {
+        let g = Set(ghosts)
+        guard !g.isEmpty else { return [:] }
+        return hold.filter { g.contains($0.key) }
+    }
+
     /// Landmark-Jitter über Paare. 0 über 4 Frames = Poster.
     static func landmarkJitter(prev: [Point2], next: [Point2]) -> Double {
         let n = min(prev.count, next.count)
@@ -2117,12 +2142,15 @@ enum MatchMath {
         let parts = hash.split(separator: ".").compactMap { Int($0) }
         guard parts.count == 4 else { return [hash] }
         let cx = parts[0], cy = parts[1], w = parts[2], h = parts[3]
+        let far = w <= 1 || h <= 1
+        let rPos = far ? 2 : 1
+        let rSize = far ? 2 : 1
         var out: [String] = []
-        out.reserveCapacity(81)
-        for dx in -1...1 {
-            for dy in -1...1 {
-                for dw in -1...1 {
-                    for dh in -1...1 {
+        out.reserveCapacity((2 * rPos + 1) * (2 * rPos + 1) * (2 * rSize + 1) * (2 * rSize + 1))
+        for dx in -rPos...rPos {
+            for dy in -rPos...rPos {
+                for dw in -rSize...rSize {
+                    for dh in -rSize...rSize {
                         let x = cx + dx
                         let y = cy + dy
                         let ww = w + dw
