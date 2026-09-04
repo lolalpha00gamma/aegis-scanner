@@ -1889,6 +1889,8 @@ enum MatchMath {
         stillFrames >= need && !blinked
     }
 
+    static func posterBlinkNote() -> String { "BLINK" }
+
     static func visionQualityLamp(_ q: Double) -> Lamp {
         if q >= 0.50 { return .green }
         if q >= 0.25 { return .amber }
@@ -1911,10 +1913,16 @@ enum MatchMath {
         return (x, (1 - k) * pPred)
     }
 
+    static func boxKalmanUses(dt: TimeInterval) -> Bool { dt >= 0.08 }
+
     static let clusterSplitNeed = 10
 
     static func clusterSplit(disagree: Int, need: Int = clusterSplitNeed) -> Bool {
         disagree >= need
+    }
+
+    static func clusterSplitAdvance(prev: Int, changed: Bool) -> Int {
+        changed ? prev + 1 : prev
     }
 
     static func clusterSplitNote() -> String { "SPLIT" }

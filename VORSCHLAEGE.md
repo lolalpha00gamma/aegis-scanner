@@ -1,6 +1,19 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.60 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.61 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.61 wirklich im Code
+
+2.1.60 Blink/Kalman/Split nur Math. Poster ohne Lid-Toggle, Continuity-Box hinter Sprung, leftover-Majority 10 Kreuz-Ticks still taufen.
+
+1. **`posterNeedsBlink` verdrahtet.** Overlay `BLINK`.
+2. **`boxKalman` 8 fps** statt 1-Euro. 24 fps bleibt 1-Euro.
+3. **`clusterSplit` Overlay `SPLIT`.**
+4. Tests + VERSION = Models = MARKETING_VERSION 2.1.61 (Build 88).
+
+## Nächste (offen, 2.1.60 — erledigt in 2.1.61)
+
+Liveness-Blink, Box-Kalman, Cluster-Split sitzen in 2.1.61.
 
 ## In 2.1.60 wirklich im Code
 
@@ -264,6 +277,20 @@ Die Punkte leftover Ambiguity, Twin-Veto, Mouth-open, Reconnect-Ghost, Slot-Hyst
 - **Aktives Lernen.** „Ist das dieselbe Person?“ an leftover 0,80–0,88.
 - **Identity-Graph.** Wer mit wem im Bild — Soft-Prior, nie Taufe.
 - **Helios Frame-Pump teilen.** Eine TCC, ein RotationCoordinator.
+- **Liveness-Blink verdrahten.** **→ 2.1.61 posterNeedsBlink**
+- **Box-Kalman verdrahten.** **→ 2.1.61 8 fps**
+- **Cluster-Split Overlay.** **→ 2.1.61 SPLIT**
+- **Guest persist Schema 3.** `Gast n` nach 8 s leftover eigene UUID.
+- **Print-MAD Reject.** 5-Frame Median sitzt, MAD > 0,04 wirft den Spike.
+- **Family-Bump UI** neben Open-Set-Slider.
+- **Gallery at rest** FileVault-Hinweis, keine Extra-Crypto.
+- **Track-Farbe sticky** nach leftover, nicht jedes Tick neu.
+- **Temporal consensus** leftover-Hold 3 gleiche Slots bevor Gast.
+- **Continuity night ISO Banner** Capture < 0,30 drei Frames + CLAHE-Vorschlag.
+- **Occlusion skip** Maske > 0,4 Fläche kein leftover-Frontal.
+- **Voice confirm leftover** 0,80–0,88 nur mit „ja“, nie still.
+- **Gallery compact Confirm** Pose 0,97 Merge-Karte statt still.
+- **PnP-Nase 6DoF** Slot-Hysterese folgt der Nase, nicht nur Yaw.
 
 ## Nächste (offen, 2.1.50 — erledigt in 2.1.51)
 

@@ -1,4 +1,4 @@
-# Aegis **2.1.60 alpha**
+# Aegis **2.1.61 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.61 alpha
+
+2.1.60 hat Blink/Kalman/Split nur als Math. Poster ohne Lid-Toggle blieb, Continuity-Box hing hinter Sprüngen, leftover-Majority taufte nach 10 Kreuz-Ticks still.
+
+- **`posterNeedsBlink` verdrahtet.** Overlay `BLINK` wenn 8 Still-Frames ohne Lid-Toggle.
+- **`boxKalman` bei 8 fps** statt 1-Euro. 24 fps bleibt 1-Euro.
+- **`clusterSplit` Overlay `SPLIT`** nach 10 uneinigen leftover-Ticks.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.61 (Build 88).
 
 ## Neu in 2.1.60 alpha
 

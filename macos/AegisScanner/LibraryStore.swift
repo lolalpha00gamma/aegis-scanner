@@ -92,6 +92,10 @@ final class LibraryStore: ObservableObject {
     private var livePosterJitter: [UUID: Double] = [:]
     private var livePosterStill: [UUID: Int] = [:]
     private var liveLandmarkPrev: [UUID: [Point2]] = [:]
+    private var liveLidClosed: [UUID: Bool] = [:]
+    private var liveBlinkSeen: [UUID: Bool] = [:]
+    private var leftoverDisagree: [UUID: Int] = [:]
+    private var boxKalman: [UUID: (x: Double, y: Double, w: Double, h: Double, px: Double, py: Double, pw: Double, ph: Double)] = [:]
     private var leftoverHoldTrail: [UUID: [Double]] = [:]
     private var lastCameraUniqueID: String = ""
     private var pendingRenameId: UUID?
@@ -1289,6 +1293,7 @@ final class LibraryStore: ObservableObject {
             let uid = self.liveCapture.cameraUniqueID
             if !self.lastCameraUniqueID.isEmpty, uid != self.lastCameraUniqueID {
                 self.boxEuro.removeAll()
+                self.boxKalman.removeAll()
                 self.boxJumpPending.removeAll()
                 self.livePrintTrail.removeAll()
                 self.livePrintTrailSlot.removeAll()
@@ -1398,6 +1403,7 @@ final class LibraryStore: ObservableObject {
         leftoverPairLast.removeValue(forKey: id)
         leftoverPairStreak.removeValue(forKey: id)
         leftoverPairCommit.removeValue(forKey: id)
+        leftoverDisagree.removeValue(forKey: id)
     }
 
     private func applyLiveFaces(_ found: [FaceObservation], image: CGImage, mediaId: UUID, stamp: TimeInterval) {
@@ -1523,16 +1529,30 @@ final class LibraryStore: ObservableObject {
                 }
                 let t = now
                 let area = face.box.width * face.box.height
-                var euro = boxEuro[old.id] ?? (
-                    MatchMath.OneEuro(), MatchMath.OneEuro(), MatchMath.OneEuro(), MatchMath.OneEuro()
-                )
-                face.box = FaceBox(
-                    x: euro.x.filter(face.box.x, now: t, boxArea: area),
-                    y: euro.y.filter(face.box.y, now: t, boxArea: area),
-                    width: euro.w.filter(face.box.width, now: t, boxArea: area),
-                    height: euro.h.filter(face.box.height, now: t, boxArea: area)
-                )
-                boxEuro[old.id] = euro
+                if MatchMath.boxKalmanUses(dt: liveDt) {
+                    let prev = boxKalman[old.id]
+                    let px0 = prev?.x ?? face.box.x
+                    let py0 = prev?.y ?? face.box.y
+                    let pw0 = prev?.w ?? face.box.width
+                    let ph0 = prev?.h ?? face.box.height
+                    let x = MatchMath.boxKalman(prev: px0, meas: face.box.x, p: prev?.px ?? 0.04, dt: liveDt)
+                    let y = MatchMath.boxKalman(prev: py0, meas: face.box.y, p: prev?.py ?? 0.04, dt: liveDt)
+                    let w = MatchMath.boxKalman(prev: pw0, meas: face.box.width, p: prev?.pw ?? 0.04, dt: liveDt)
+                    let h = MatchMath.boxKalman(prev: ph0, meas: face.box.height, p: prev?.ph ?? 0.04, dt: liveDt)
+                    face.box = FaceBox(x: x.x, y: y.x, width: w.x, height: h.x)
+                    boxKalman[old.id] = (x.x, y.x, w.x, h.x, x.p, y.p, w.p, h.p)
+                } else {
+                    var euro = boxEuro[old.id] ?? (
+                        MatchMath.OneEuro(), MatchMath.OneEuro(), MatchMath.OneEuro(), MatchMath.OneEuro()
+                    )
+                    face.box = FaceBox(
+                        x: euro.x.filter(face.box.x, now: t, boxArea: area),
+                        y: euro.y.filter(face.box.y, now: t, boxArea: area),
+                        width: euro.w.filter(face.box.width, now: t, boxArea: area),
+                        height: euro.h.filter(face.box.height, now: t, boxArea: area)
+                    )
+                    boxEuro[old.id] = euro
+                }
                 let blend = MatchMath.liveBlendAlpha(continuity: liveCapture.isContinuity)
                 if face.featurePrint.isEmpty, !old.featurePrint.isEmpty {
                     face.featurePrint = old.featurePrint
@@ -1554,6 +1574,16 @@ final class LibraryStore: ObservableObject {
                         )
                         liveLandmarkPrev[old.id] = face.landmarks
                     }
+                    let closedNow = MatchMath.eyesClosed(
+                        openIod: face.ratioSheet.first { $0.id == "eyeOpen_iod" }?.value
+                    )
+                    if MatchMath.livenessBlink(
+                        prevClosed: liveLidClosed[old.id] ?? false,
+                        nowClosed: closedNow
+                    ) {
+                        liveBlinkSeen[old.id] = true
+                    }
+                    liveLidClosed[old.id] = closedNow
                     if MatchMath.captureJumps(prev: old.quality.capture, next: face.quality.capture) {
                         liveExposureUntil[old.id] = MatchMath.exposureLockUntil(now: now)
                     }
@@ -1734,19 +1764,29 @@ final class LibraryStore: ObservableObject {
                     guard !used.contains(old.id) else { continue }
                     leftoverTried.insert(old.id)
                     let proposed = adopted[i].id
+                    let prevLast = leftoverPairLast[old.id]
                     let maj = MatchMath.leftoverAssignMajority(
                         committed: leftoverPairCommit[old.id],
                         proposed: proposed,
                         lastProposed: leftoverPairLast[old.id],
                         streak: leftoverPairStreak[old.id] ?? 0
                     )
+                    leftoverDisagree[old.id] = MatchMath.clusterSplitAdvance(
+                        prev: leftoverDisagree[old.id] ?? 0,
+                        changed: prevLast != nil && prevLast != proposed && maj.streak == 1
+                    )
                     leftoverPairLast[old.id] = maj.last
                     leftoverPairStreak[old.id] = maj.streak
+                    if MatchMath.clusterSplit(disagree: leftoverDisagree[old.id] ?? 0) {
+                        leftoverPending[adopted[i].id] = MatchMath.clusterSplitNote()
+                        continue
+                    }
                     if let majLabel = MatchMath.leftoverMajorityLabel(streak: maj.streak) {
                         leftoverPending[adopted[i].id] = majLabel
                     }
                     guard maj.ready else { continue }
                     leftoverPairCommit[old.id] = maj.commit
+                    leftoverDisagree[old.id] = 0
                     let step = leftoverAdvance(oldId: old.id, box: adopted[i].box, now: now)
                     if let label = step.label {
                         leftoverPending[adopted[i].id] = label
@@ -1759,6 +1799,7 @@ final class LibraryStore: ObservableObject {
                     adopted[i].trackId = old.trackId ?? old.id
                     adopted[i].enrolledAt = old.enrolledAt ?? adopted[i].enrolledAt
                     boxEuro.removeValue(forKey: old.id)
+                    boxKalman.removeValue(forKey: old.id)
                     boxJumpPending.removeValue(forKey: old.id)
                 }
                 for old in unusedLeft where !leftoverTried.contains(old.id) {
@@ -1768,6 +1809,7 @@ final class LibraryStore: ObservableObject {
         }
         liveGhosts.removeAll { $0.until < now }
         boxEuro = boxEuro.filter { used.contains($0.key) }
+        boxKalman = boxKalman.filter { used.contains($0.key) }
         boxJumpPending = boxJumpPending.filter { used.contains($0.key) }
         livePrintTrail = livePrintTrail.filter { used.contains($0.key) }
         livePrintTrailSlot = livePrintTrailSlot.filter { used.contains($0.key) }
@@ -1777,6 +1819,8 @@ final class LibraryStore: ObservableObject {
         livePosterJitter = livePosterJitter.filter { used.contains($0.key) }
         livePosterStill = livePosterStill.filter { used.contains($0.key) }
         liveLandmarkPrev = liveLandmarkPrev.filter { used.contains($0.key) }
+        liveLidClosed = liveLidClosed.filter { used.contains($0.key) }
+        liveBlinkSeen = liveBlinkSeen.filter { used.contains($0.key) }
         if found.isEmpty {
             for old in previous where !enrolled.contains(old.id) {
                 liveGhosts.append((old, now + MatchMath.liveGhostHold))
@@ -1790,12 +1834,16 @@ final class LibraryStore: ObservableObject {
             leftoverPairLast = [:]
             leftoverPairStreak = [:]
             leftoverPairCommit = [:]
+            leftoverDisagree = [:]
             leftoverWipeUntil = [:]
             leftoverHoldTrail = [:]
             liveExposureUntil = [:]
             livePosterJitter = [:]
             livePosterStill = [:]
             liveLandmarkPrev = [:]
+            liveLidClosed = [:]
+            liveBlinkSeen = [:]
+            boxKalman = [:]
             liveSlotHold = [:]
             liveStillFor = [:]
             faces.removeAll { $0.mediaId == mediaId }
@@ -1900,6 +1948,13 @@ final class LibraryStore: ObservableObject {
                     leftoverPending[adopted[bestJ].id] = "POSTER"
                     continue
                 }
+                if MatchMath.posterNeedsBlink(
+                    stillFrames: livePosterStill[old.id] ?? 0,
+                    blinked: liveBlinkSeen[old.id] ?? false
+                ) {
+                    leftoverPending[adopted[bestJ].id] = MatchMath.posterBlinkNote()
+                    continue
+                }
                 leftoverClearStreak(old.id)
                 leftoverPending.removeValue(forKey: adopted[bestJ].id)
                 used.insert(old.id)
@@ -1907,6 +1962,7 @@ final class LibraryStore: ObservableObject {
                 adopted[bestJ].trackId = old.trackId ?? old.id
                 adopted[bestJ].enrolledAt = old.enrolledAt ?? adopted[bestJ].enrolledAt
                 boxEuro.removeValue(forKey: old.id)
+                boxKalman.removeValue(forKey: old.id)
                 boxJumpPending.removeValue(forKey: old.id)
                 if adopted[bestJ].featurePrint.isEmpty {
                     adopted[bestJ].featurePrint = old.featurePrint
@@ -1942,6 +1998,7 @@ final class LibraryStore: ObservableObject {
             leftoverPairLast = leftoverPairLast.filter { leftoverIds.contains($0.key) && !used.contains($0.key) }
             leftoverPairStreak = leftoverPairStreak.filter { leftoverIds.contains($0.key) && !used.contains($0.key) }
             leftoverPairCommit = leftoverPairCommit.filter { leftoverIds.contains($0.key) && !used.contains($0.key) }
+            leftoverDisagree = leftoverDisagree.filter { leftoverIds.contains($0.key) && !used.contains($0.key) }
             leftoverHoldTrail = leftoverHoldTrail.filter { leftoverIds.contains($0.key) && !used.contains($0.key) }
             leftoverWipeUntil = leftoverWipeUntil.filter { liveIds.contains($0.key) }
             liveSlotHold = liveSlotHold.filter { liveIds.contains($0.key) }
