@@ -97,6 +97,7 @@ final class LibraryStore: ObservableObject {
     private var leftoverDisagree: [UUID: Int] = [:]
     private var boxKalman: [UUID: (x: Double, y: Double, w: Double, h: Double, px: Double, py: Double, pw: Double, ph: Double)] = [:]
     private var leftoverHoldTrail: [UUID: [Double]] = [:]
+    private var guestOrder: [UUID] = []
     private var lastCameraUniqueID: String = ""
     private var pendingRenameId: UUID?
     private var pendingRenameName: String?
@@ -1118,6 +1119,11 @@ final class LibraryStore: ObservableObject {
         )
     }
 
+    /// Overlay. Mutiert nicht — SwiftUI-Body darf das lesen.
+    func guestName(for id: UUID) -> String {
+        MatchMath.unknownStickyName(index: MatchMath.guestIndex(of: id, order: guestOrder))
+    }
+
     func leftoverAdoptProgress(faceId: UUID) -> String? {
         if MatchMath.leftoverWipeMutes(
             until: leftoverWipeUntil[faceId],
@@ -1261,6 +1267,7 @@ final class LibraryStore: ObservableObject {
         leftoverHold = [:]
         leftoverWipeUntil = [:]
         liveSlotHold = [:]
+        guestOrder = []
         liveCapture.stop()
         liveActive = false
         if let id = liveMediaId {
@@ -1853,6 +1860,7 @@ final class LibraryStore: ObservableObject {
             leftoverDisagree = [:]
             leftoverWipeUntil = [:]
             leftoverHoldTrail = [:]
+            guestOrder = []
             liveExposureUntil = [:]
             livePosterJitter = [:]
             livePosterStill = [:]
@@ -2002,31 +2010,39 @@ final class LibraryStore: ObservableObject {
                 leftoverClearStreak(old.id)
                 leftoverPending.removeValue(forKey: adopted[bestJ].id)
                 used.insert(old.id)
-                adopted[bestJ].id = old.id
-                adopted[bestJ].trackId = old.trackId ?? old.id
-                adopted[bestJ].enrolledAt = old.enrolledAt ?? adopted[bestJ].enrolledAt
+                let pinCos = remaining.first(where: { $0.index == bestJ })?.cosine ?? item.bestCos
+                let transfer = MatchMath.leftoverTransfersId(cosine: pinCos)
+                if transfer {
+                    adopted[bestJ].id = old.id
+                    adopted[bestJ].trackId = old.trackId ?? old.id
+                    adopted[bestJ].enrolledAt = old.enrolledAt ?? adopted[bestJ].enrolledAt
+                    if adopted[bestJ].featurePrint.isEmpty {
+                        adopted[bestJ].featurePrint = old.featurePrint
+                    }
+                    if adopted[bestJ].printVec.isEmpty, !old.printVec.isEmpty {
+                        adopted[bestJ].printVec = old.printVec
+                    }
+                } else {
+                    guestOrder = MatchMath.guestOrderAppend(id: adopted[bestJ].id, onto: guestOrder)
+                }
                 boxEuro.removeValue(forKey: old.id)
                 boxKalman.removeValue(forKey: old.id)
                 boxJumpPending.removeValue(forKey: old.id)
-                if adopted[bestJ].featurePrint.isEmpty {
-                    adopted[bestJ].featurePrint = old.featurePrint
-                }
-                if adopted[bestJ].printVec.isEmpty, !old.printVec.isEmpty {
-                    adopted[bestJ].printVec = old.printVec
-                }
                 leftoverPins += 1
-                if let cos = remaining.first(where: { $0.index == bestJ })?.cosine ?? item.bestCos {
+                if let cos = pinCos {
                     if MatchMath.leftoverWipeHist(cosine: cos) {
                         leftoverHold[adopted[bestJ].id] = MatchMath.leftoverHoldEMA(
-                            prev: leftoverHold[adopted[bestJ].id],
+                            prev: leftoverHold[adopted[bestJ].id] ?? leftoverHold[old.id],
                             next: cos
                         )
                         leftoverWipeUntil[adopted[bestJ].id] = MatchMath.leftoverWipeMuteUntil(now: now)
-                        liveNameHist.removeValue(forKey: old.id)
-                        liveNameLock.removeValue(forKey: old.id)
-                        liveNameVoteAt.removeValue(forKey: old.id)
-                        liveScoreEma.removeValue(forKey: old.id)
-                        livePrintDrift.removeValue(forKey: old.id)
+                        if transfer {
+                            liveNameHist.removeValue(forKey: old.id)
+                            liveNameLock.removeValue(forKey: old.id)
+                            liveNameVoteAt.removeValue(forKey: old.id)
+                            liveScoreEma.removeValue(forKey: old.id)
+                            livePrintDrift.removeValue(forKey: old.id)
+                        }
                     } else {
                         leftoverHold.removeValue(forKey: adopted[bestJ].id)
                     }
@@ -2035,6 +2051,7 @@ final class LibraryStore: ObservableObject {
             let liveIds = Set(adopted.map(\.id))
             leftoverHold = leftoverHold.filter { liveIds.contains($0.key) }
             leftoverPending = leftoverPending.filter { liveIds.contains($0.key) }
+            guestOrder = guestOrder.filter { liveIds.contains($0) }
             let leftoverIds = Set(leftoverPinned.map(\.id))
             leftoverStreak = leftoverStreak.filter { leftoverIds.contains($0.key) && !used.contains($0.key) }
             leftoverStreakBox = leftoverStreakBox.filter { leftoverIds.contains($0.key) && !used.contains($0.key) }

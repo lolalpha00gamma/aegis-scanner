@@ -10,9 +10,36 @@ permissions:
 
 jobs:
   package:
-    runs-on: macos-14
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
+
+      - name: Select newest Xcode
+        run: |
+          echo "Installed:"
+          ls /Applications | grep -i xcode || true
+          set +e
+          PICK=""
+          for p in \
+            /Applications/Xcode_27.app \
+            /Applications/Xcode_27.0.app \
+            /Applications/Xcode_27.0.0.app \
+            /Applications/Xcode_26.6.app \
+            /Applications/Xcode_26.5.app \
+            /Applications/Xcode_26.app \
+            /Applications/Xcode.app
+          do
+            if [ -d "$p/Contents/Developer" ]; then
+              PICK="$p"
+              break
+            fi
+          done
+          if [ -n "$PICK" ]; then
+            sudo xcode-select -s "$PICK/Contents/Developer"
+            echo "Using $PICK"
+          fi
+          xcodebuild -version
+          xcrun --show-sdk-version
 
       - name: Read version
         id: ver
@@ -27,6 +54,11 @@ jobs:
           echo "title=$TITLE" >> "$GITHUB_OUTPUT"
           echo "Publishing $TITLE as $TAG"
 
+      - name: Match math tests
+        run: |
+          swiftc macos/AegisScanner/MatchMath.swift macos/AegisScanner/BenchProtocol.swift macos/AegisScannerTests/MatchMathTests.swift -o /tmp/aegismath
+          /tmp/aegismath
+
       - name: Build Aegis.app
         run: |
           xcodebuild \
@@ -34,36 +66,46 @@ jobs:
             -scheme AegisScanner \
             -configuration Release \
             -derivedDataPath .derived \
-            ARCHS="arm64 x86_64" \
+            -destination 'platform=macOS,arch=arm64' \
+            ARCHS=arm64 \
             ONLY_ACTIVE_ARCH=NO \
+            EXCLUDED_ARCHS=x86_64 \
             CODE_SIGN_IDENTITY="-" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            ENABLE_HARDENED_RUNTIME=NO \
-            CODE_SIGN_ENTITLEMENTS="" \
+            CODE_SIGNING_REQUIRED=YES \
+            CODE_SIGNING_ALLOWED=YES \
+            ENABLE_HARDENED_RUNTIME=YES \
             build
 
-      - name: Match math tests
+      - name: Sign and make disk image
         run: |
-          swiftc macos/AegisScanner/MatchMath.swift macos/AegisScanner/BenchProtocol.swift macos/AegisScannerTests/MatchMathTests.swift -o /tmp/aegismath
-          /tmp/aegismath
-
-      - name: Make disk image
-        run: |
+          set -euo pipefail
           APP=".derived/Build/Products/Release/Aegis.app"
           test -d "$APP"
-          rm -rf dmgroot
+          rm -rf dmgroot Aegis.dmg
           mkdir dmgroot
           cp -R "$APP" dmgroot/Aegis.app
-          codesign --force --deep --sign - dmgroot/Aegis.app || true
+          codesign --force --sign - \
+            --options runtime \
+            --timestamp=none \
+            dmgroot/Aegis.app || true
           ln -s /Applications dmgroot/Applications
-          hdiutil create -volname Aegis -srcfolder dmgroot -ov -format UDZO Aegis.dmg
+          hdiutil create \
+            -volname Aegis \
+            -srcfolder dmgroot \
+            -ov \
+            -format UDZO \
+            -fs HFS+ \
+            Aegis.dmg
+          test -f Aegis.dmg
+          test ! -d Aegis.dmg
+          file Aegis.dmg
           ls -lh Aegis.dmg
 
       - name: Publish Aegis.dmg
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -euo pipefail
           TAG="${{ steps.ver.outputs.tag }}"
           TITLE="${{ steps.ver.outputs.title }}"
           NOTES="$(cat <<EOF

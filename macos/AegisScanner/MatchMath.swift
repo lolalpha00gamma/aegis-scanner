@@ -373,6 +373,11 @@ enum MatchMath {
         pinByPrint(cosine: cosine ?? -1)
     }
 
+    /// UUID/Print nur bei Baptize 0,80. leftoverPrintOk 0,64 hält die Kiste, stiehlt keine Identität.
+    static func leftoverTransfersId(cosine: Double?) -> Bool {
+        leftoverBaptize(cosine: cosine)
+    }
+
     static func leftoverWipeHist(cosine: Double?) -> Bool {
         !leftoverBaptize(cosine: cosine)
     }
@@ -1867,6 +1872,17 @@ enum MatchMath {
 
     static func unknownStickyName(index: Int) -> String {
         "Gast \(max(1, index))"
+    }
+
+    /// 1-basiert. Nicht in der Liste → Gast 1.
+    static func guestIndex(of id: UUID, order: [UUID]) -> Int {
+        guard let i = order.firstIndex(of: id) else { return 1 }
+        return i + 1
+    }
+
+    static func guestOrderAppend(id: UUID, onto order: [UUID]) -> [UUID] {
+        if order.contains(id) { return order }
+        return order + [id]
     }
 
     /// Enrolled leftover + unknown probe: UUID nicht stehlen.

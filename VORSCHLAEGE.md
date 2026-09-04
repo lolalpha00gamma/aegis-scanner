@@ -1,6 +1,19 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.62 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.63 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.63 wirklich im Code
+
+2.1.62 Konflikt-Tick und leftoverYieldsToLive. leftover taufte trotzdem bei Print 0,64: `adopted[bestJ].id = old.id` plus PrintVec. Overlay zeigte immer `Gast 1`. CI macos-14, Tests nach dem Build.
+
+1. **`leftoverTransfersId`.** UUID und Print nur bei Baptize 0,80. 0,64 hält die Kiste, stiehlt keine Identität.
+2. **`guestOrder` / `guestName`.** Overlay `Gast 1` / `Gast 2`. SwiftUI mutiert nicht.
+3. **CI macos-26.** Tests zuerst, arm64, Signing wie Helios.
+4. Tests + VERSION = Models = MARKETING_VERSION 2.1.63 (Build 90).
+
+## Nächste (offen, 2.1.62 — erledigt in 2.1.63)
+
+leftover-UUID-Steal und Gast-1-für-alle sitzen in 2.1.63. Gast als persistente Identity nach 8 s leftover fehlt (kein stilles Anlegen).
 
 ## In 2.1.62 wirklich im Code
 
@@ -296,9 +309,9 @@ Die Punkte leftover Ambiguity, Twin-Veto, Mouth-open, Reconnect-Ghost, Slot-Hyst
 - **Liveness-Blink verdrahten.** **→ 2.1.61 posterNeedsBlink**
 - **Box-Kalman verdrahten.** **→ 2.1.61 8 fps**
 - **Cluster-Split Overlay.** **→ 2.1.61 SPLIT**
-- **Guest persist Schema 3.** `Gast n` nach 8 s leftover eigene UUID. Restore-Gate **→ 2.1.62 gallerySchema 3**. Identity-Write fehlt.
+- **Guest persist Schema 3.** `Gast n` nach 8 s leftover eigene UUID. Restore-Gate **→ 2.1.62 gallerySchema 3**. Identity-Write fehlt. Overlay Gast 1/2 **→ 2.1.63 guestOrder**.
 - **Konflikt-Tick Overlay.** Print≠Geo≠Lock keine Taufe. **→ 2.1.62 conflictTickAgrees + KONFLIKT**
-- **leftover weicht Live-Taufe.** **→ 2.1.62 leftoverYieldsToLive**
+- **leftover weicht Live-Taufe.** **→ 2.1.62 leftoverYieldsToLive**. UUID-Steal 0,64 **→ 2.1.63 leftoverTransfersId**.
 - **Print-MAD Reject.** 5-Frame Median sitzt, MAD > 0,04 wirft den Spike.
 - **Family-Bump UI** neben Open-Set-Slider.
 - **Gallery at rest** FileVault-Hinweis, keine Extra-Crypto.
@@ -309,6 +322,13 @@ Die Punkte leftover Ambiguity, Twin-Veto, Mouth-open, Reconnect-Ghost, Slot-Hyst
 - **Voice confirm leftover** 0,80–0,88 nur mit „ja“, nie still.
 - **Gallery compact Confirm** Pose 0,97 Merge-Karte statt still.
 - **PnP-Nase 6DoF** Slot-Hysterese folgt der Nase, nicht nur Yaw.
+- **Tauf-Button für Gast.** 8 s leftover legt keine Identity an — Nutzer tauft explizit.
+- **Overlay-Farbe je Gast-Index**, sticky über Dropout.
+- **leftoverHold keyed by Box-Hash** 200 ms, nicht nur UUID — Dropout verliert sonst Gast 2.
+- **Open-Set FAR-Lampe** rot ab 5 % Impostor über Floor.
+- **PrintVec-Isolation.** Ghost-Print bleibt auf Ghost-UUID. **→ 2.1.63 kein Copy unter 0,80**.
+- **Live-Kiste ohne Print** Overlay `?`, nicht leftover-Name.
+- **Zwei-Box-Swap 120 ms** Animation statt UUID-Sprung.
 
 ## Nächste (offen, 2.1.50 — erledigt in 2.1.51)
 

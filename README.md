@@ -1,4 +1,4 @@
-# Aegis **2.1.62 alpha**
+# Aegis **2.1.63 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -14,7 +14,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 2. **Aegis** in den Ordner Programme ziehen
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
-macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.63 alpha
+
+2.1.62 hat Konflikt-Tick und leftover weicht Live. leftover kopierte trotzdem `old.id` plus Print bei 0,64. Overlay immer `Gast 1`. CI macos-14, Tests nach dem Build.
+
+- **`leftoverTransfersId`.** UUID/Print nur bei Baptize 0,80. 0,64 hält, tauft nicht.
+- **`Gast 1` / `Gast 2`.** `guestOrder`, Overlay vor dem Namen.
+- **CI macos-26.** Tests zuerst, arm64.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.63 (Build 90).
 
 ## Neu in 2.1.62 alpha
 
@@ -271,7 +280,7 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 2. **Aegis** in den Ordner Programme ziehen
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
-macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
 
 ## Neu in 2.1.38 alpha
 

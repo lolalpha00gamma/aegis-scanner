@@ -1102,6 +1102,19 @@ enum MatchMathTests {
         ok(!MatchMath.guestPersistKeeps(name: "Anna"), "Anna kein Gast")
         near(MatchMath.leftoverStreakSincePersist(since: nil, now: 4), 4, 0.001, "Streak-Since start")
         near(MatchMath.leftoverStreakSincePersist(since: 1.5, now: 4), 1.5, 0.001, "Streak-Since hält")
+        ok(!MatchMath.leftoverTransfersId(cosine: 0.64), "0,64 hält, stiehlt keine UUID")
+        ok(!MatchMath.leftoverTransfersId(cosine: 0.70), "0,70 leftover kein Transfer")
+        ok(MatchMath.leftoverTransfersId(cosine: 0.82), "0,82 tauft UUID")
+        ok(!MatchMath.leftoverTransfersId(cosine: nil), "nil kein Transfer")
+        let idHoldA = UUID(uuidString: "00000000-0000-0000-0000-0000000000C3")!
+        let idHoldB = UUID(uuidString: "00000000-0000-0000-0000-0000000000D4")!
+        ok(MatchMath.guestIndex(of: idHoldA, order: [idHoldA, idHoldB]) == 1, "Gast 1 Index")
+        ok(MatchMath.guestIndex(of: idHoldB, order: [idHoldA, idHoldB]) == 2, "Gast 2 Index")
+        ok(MatchMath.guestIndex(of: idHoldA, order: []) == 1, "unbekannt Gast 1")
+        ok(MatchMath.guestOrderAppend(id: idHoldA, onto: []) == [idHoldA], "Order start")
+        ok(MatchMath.guestOrderAppend(id: idHoldB, onto: [idHoldA]) == [idHoldA, idHoldB], "Order append")
+        ok(MatchMath.guestOrderAppend(id: idHoldA, onto: [idHoldA]) == [idHoldA], "Order kein Duplikat")
+        ok(MatchMath.unknownStickyName(index: MatchMath.guestIndex(of: idHoldB, order: [idHoldA, idHoldB])) == "Gast 2", "Gast 2 Name")
 
         let fixture = "1\t2\nAlice\t1\t2\nBob\t1\t3\nAlice\t1\tBob\t1\nAlice\t2\tCarol\t1\n"
         let parsed = BenchProtocol.parsePairs(fixture)

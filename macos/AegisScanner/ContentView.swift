@@ -847,12 +847,12 @@ struct FaceOverlay: View {
         pct: Double,
         hit: StrategyHit?
     ) -> String {
+        if let holdCos = store.leftoverHold[faceId], !MatchMath.leftoverShowsName(cosine: holdCos) {
+            let hold = MatchMath.leftoverHoldLabel(cosine: holdCos) ?? MatchMath.unknownRejectNote()
+            return "\(store.guestName(for: faceId)) · \(hold)"
+        }
         if pinned, let owner {
             let held = store.liveHeldIds.contains(faceId)
-            if let holdCos = store.leftoverHold[faceId], !MatchMath.leftoverShowsName(cosine: holdCos) {
-                let hold = MatchMath.leftoverHoldLabel(cosine: holdCos) ?? MatchMath.unknownRejectNote()
-                return "\(MatchMath.unknownStickyName(index: 1)) · \(hold)"
-            }
             if let hold = MatchMath.leftoverHoldLabel(cosine: store.leftoverHold[faceId]) {
                 return "\(owner.name) \(Int(pct))% · \(hold)"
             }

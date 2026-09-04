@@ -1,6 +1,12 @@
 # Nachtrag 2026-09-04
 
-Siehe ANALYSE.md. **2.1.62** hat die ersten fünf strukturellen Punkte verdrahtet, nicht nur Math.
+Siehe ANALYSE.md. **2.1.63** schließt den leftover-UUID-Steal, den 2.1.62 offen ließ.
+
+## In 2.1.63 gelandet
+
+1. leftoverTransfersId — UUID/Print nur Baptize 0,80
+2. Gast 1 / Gast 2 über guestOrder, Overlay vor pinned Name
+3. CI macos-26, Tests zuerst, arm64
 
 ## In 2.1.62 gelandet
 
@@ -8,7 +14,7 @@ Siehe ANALYSE.md. **2.1.62** hat die ersten fünf strukturellen Punkte verdrahte
 2. Per-Kamera-Centroid — Cache-Key `builtin` / `continuity`
 3. Enrollment-Burst schärfstes Ref — `enrollBurstReplace` statt Drop
 4. Live-FAR Ticker — Floor-Hint
-5. Guest persist Schema 3 — Restore-Gate + Helpers; Identity-Write nach 8 s leftover **offen**
+5. Guest persist Schema 3 — Restore-Gate + Helpers; Identity-Write nach 8 s leftover **offen**. Overlay Gast 1/2 **→ 2.1.63**.
 
 ## Offen (nicht Pflaster)
 
