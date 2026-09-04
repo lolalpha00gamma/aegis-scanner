@@ -441,8 +441,8 @@ enum MatchMathTests {
         ok(MatchMath.leftoverPinStatus(count: 0) == nil, "kein Leftover keine Statuszeile")
         ok(MatchMath.leftoverPinStatus(count: 1) == "Leftover-Pin 1 Track", "Leftover-Status 1")
         ok(
-            MatchMath.geoVetoYawSkipped(geoAgrees: false, geoMix: 15, printPercent: 75, yawAbs: 0.30),
-            "Yaw-Skip sichtbar wenn ¾ ein Veto verhindert"
+            !MatchMath.geoVetoYawSkipped(geoAgrees: false, geoMix: 15, printPercent: 82, yawAbs: 0.30),
+            "Print ≥ 80 skippt Veto schon ohne Yaw-Zweig"
         )
         ok(
             !MatchMath.geoVetoYawSkipped(geoAgrees: false, geoMix: 15, printPercent: 82, yawAbs: 0.10),
