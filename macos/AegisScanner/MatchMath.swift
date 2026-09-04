@@ -367,6 +367,25 @@ enum MatchMath {
 
     static func leftoverLookawayLabel() -> String { "WEG" }
 
+    /// Live-Yaw sticht Ghost-Yaw: Blick zurück hebt den Freeze, Blick weg setzt ihn.
+    static func leftoverLookawayYawOf(oldYaw: Double?, liveYaw: Double?) -> Double {
+        liveYaw ?? oldYaw ?? 0
+    }
+
+    /// WEG muss auf die Live-Kiste. old.id wird nachher aus leftoverPending gefiltert.
+    static func leftoverLookawayPin(
+        candidates: [(index: Int, iou: Double, cosine: Double?)],
+        floor: Double = leftoverIoU
+    ) -> Int? {
+        candidates.filter { leftoverPin(iou: $0.iou, floor: floor) }
+            .max(by: { $0.iou < $1.iou })?.index
+    }
+
+    /// EMA nicht mit Profil-Print überschreiben.
+    static func leftoverHoldSkipLookaway(enrolled: Bool, yawAbs: Double?) -> Bool {
+        leftoverLookawayHolds(yawAbs: yawAbs, enrolled: enrolled)
+    }
+
     /// Open-Set 0,50–0,62: hart UNBEKANNT, kein Gast-Index-Sprung.
     static let leftoverUnknownLo = 0.50
 
@@ -376,6 +395,14 @@ enum MatchMath {
     }
 
     static func leftoverUnknownNote() -> String { "UNBEKANNT" }
+
+    /// Open-Set-Band: Streak halten, sonst jeder Re-Entry = Gast n+1.
+    static func leftoverUnknownKeepsStreak(cosine: Double?) -> Bool {
+        leftoverUnknownHard(cosine: cosine)
+    }
+
+    /// Nach Taufe bleibt Streak auf der Live-UUID — Blink darf sofort re-adoptieren.
+    static func leftoverStreakKeepsLive(transferred: Bool) -> Bool { transferred }
 
     /// pairCosine ≥ 0,90: leftover nie über Box, nur Print ≥ 0,80.
     static func leftoverTwinBlocksBox(
@@ -2157,15 +2184,17 @@ enum MatchMath {
 
     static func leftoverTwinNote() -> String { "TWIN" }
 
-    /// Overlay `TWIN 0,93` neben dem Veto, nicht nur das Wort.
+    /// Overlay `TWIN 0,93` hart, `TWIN? 0,90` weich — sonst wirkt 0,90 wie Veto ohne Zahl.
     static func leftoverTwinPairLabel(pairCosine: Double?) -> String? {
         guard let p = pairCosine else { return nil }
-        guard leftoverTwinHardBlocks(pairCosine: p) || leftoverTwinSuggest(pairCosine: p) else { return nil }
+        let hard = leftoverTwinHardBlocks(pairCosine: p)
+        let soft = leftoverTwinSuggest(pairCosine: p)
+        guard hard || soft else { return nil }
         let hundredths = Int((p * 100).rounded())
         let whole = hundredths / 100
         let frac = abs(hundredths % 100)
         let fracStr = frac < 10 ? "0\(frac)" : "\(frac)"
-        return "TWIN \(whole),\(fracStr)"
+        return hard ? "TWIN \(whole),\(fracStr)" : "TWIN? \(whole),\(fracStr)"
     }
 
     /// Bei genau 2 Personen: Print und Geo müssen einig sein.

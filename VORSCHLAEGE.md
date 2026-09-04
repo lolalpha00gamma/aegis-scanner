@@ -1,6 +1,8 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.70 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.75 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+Neu in 2.1.75: WEG auf Live-Kiste, Live-Yaw, UNBEKANNT hält Streak, Taufe hält Streak, TWIN? 0,90.
 
 ## In 2.1.70 wirklich im Code
 

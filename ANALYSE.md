@@ -1,27 +1,27 @@
-# Helios + Aegis — Analyse 2026-09-04 (2.1.73)
+# Helios + Aegis — Analyse 2026-09-04 (2.1.75)
 
-Helios **1.5.57** (Build 77). Aegis **2.1.73 alpha** (Build 99). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`.
+Helios **1.5.59** (Build 79). Aegis **2.1.75 alpha** (Build 101). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`.
 
-## Warum Namen nach 2.1.72 noch sprangen
+## Warum Namen nach 2.1.73/74 noch sprangen
 
-2.1.72 hat Trail-Kalman, EMA-dt, Twin-Hard 0,92, Lookaway-Pick-nil, Ghost-Overlay verdrahtet. Fünf Löcher blieben:
+2.1.73 hat Kalman-Streak, Lookaway-Hold, Still, UNBEKANNT, TAUFEN?, TWIN 0,93 verdrahtet. 2.1.74 Testdaten in der App. Fünf Löcher blieben:
 
-1. **Streak-Box Roh.** leftoverAdvance IoU gegen adopted Roh-Box. Kalman-Jitter reset Streak. Walk tauft nach Dropout.
-2. **Lookaway wischte Hold.** leftoverPick nil → leftoverClearStreak. Enrolled Yaw freeze war tot nach einem Tick. Kein WEG-Chip.
-3. **TAUFEN? schrieb nicht.** Erster Tap nur Chip. `guestPersistWrites` tot. Zweiter Tap fehlte.
-4. **Erste Begegnung 0,82 tauft sofort.** Ohne leftoverHold, ohne 0,45 s still. Vorbeigehen erbt den Namen.
-5. **Open-Set 0,50–0,62 Gast-Index.** unknownCentroid nil, Clear, nächster Unbekannter = Gast n+1. Twin-Veto ohne Zahl.
+1. **WEG auf old.id, dann Filter liveIds.** leftoverPending[ghost] wurde gestrippt. Overlay zeigte nichts, Live-Kiste ohne Namen.
+2. **Lookaway las Ghost-Yaw.** Blick zurück: Freeze blieb. Blick weg: Freeze zu spät.
+3. **UNBEKANNT rief leftoverClearStreak.** Re-Entry = Gast n+1. Open-Set-Band wirkte tot.
+4. **Taufe wischte Streak.** Blink → 0,45 s + Adopt-Need, Name weg.
+5. **TWIN 0,90 ohne Fragezeichen.** Weich und hart dieselbe Label — Overlay log.
 
-## Was 2.1.73 wirklich ändert
+## Was 2.1.75 wirklich ändert
 
-1. **`leftoverStreakBoxWrite`.** Streak-IoU = Kalman, leftoverPick-IoU Kalman.
-2. **`leftoverLookawayHolds` + `WEG`.** Lookaway freeze, Streak/Hold bleiben.
-3. **`persistGuestTap`.** Zweiter Overlay-Tap tauft. `guestPersistWrites` sitzt.
-4. **`leftoverBaptizeStillBlocks` 0,45 s.** Erste Begegnung still, Hold 0,64 skippt.
-5. **`leftoverUnknownHard` UNBEKANNT. `leftoverTwinPairLabel` TWIN 0,93.** VERSION = Models = MARKETING_VERSION 2.1.73 (Build 99).
+1. **`leftoverLookawayPin`.** WEG auf die nächste Live-Kiste. EMA freeze.
+2. **`leftoverLookawayYawOf`.** Live-Yaw sticht Ghost.
+3. **`leftoverUnknownKeepsStreak`.** Open-Set hält Streak, kein Gast-Index.
+4. **`leftoverStreakKeepsLive`.** Nach Taufe Streak auf der UUID. Blink re-adoptiert.
+5. **`leftoverTwinPairLabel` TWIN? 0,90.** Hart bleibt TWIN 0,93. VERSION = Models = MARKETING_VERSION 2.1.75 (Build 101).
 
 Was Masse noch bringen würde: Frame-Pump mit Helios, CLAHE auf den Buffer, Live-ROI Crop, Drop-in `.mlmodel`, DBSCAN vor Merge, Burst-5 Pref, Dropout-TTL Pref.
 
-Helios 1.5.57: Reconnect-Palm, 24 fps Pool-leer Tick tot, Relativ destClamp, LOCK · DRAG, Tasche nicht vor Timeout. Siehe `bpms9cmnxc-debug/Helios`.
+Helios 1.5.59: 8 fps interpoliert mit Lock-Hand, Reconnect-Pool in actorMapped, pinchActor im Slot, Palm-Reach skippt Lock. Siehe `bpms9cmnxc-debug/Helios`.
 
 `bugfix` mergen oder fortsetzen: nein. Nur `main`.

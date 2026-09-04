@@ -1,6 +1,20 @@
-# Nachtrag 2026-09-04 (2.1.73)
+# Nachtrag 2026-09-04 (2.1.75)
 
-Siehe ANALYSE.md. **2.1.73** schließt Kalman-Streak-Box, Lookaway-Hold + WEG, Still 0,45 s vor Taufe, UNBEKANNT 0,50–0,62, TAUFEN? zweiter Tap, TWIN 0,93 wirklich im Code.
+Siehe ANALYSE.md. **2.1.75** schließt WEG auf Live-Kiste, Live-Yaw, UNBEKANNT-Streak, Tauf-Streak, TWIN? 0,90 wirklich im Code.
+
+## In 2.1.75 gelandet
+
+1. leftoverLookawayPin — WEG auf Live, nicht Ghost-ID
+2. leftoverLookawayYawOf — Live-Yaw sticht Ghost
+3. leftoverHoldSkipLookaway — EMA freeze
+4. leftoverUnknownKeepsStreak — kein Gast n+1
+5. leftoverStreakKeepsLive — Blink re-adoptiert
+6. leftoverTwinPairLabel TWIN? 0,90 / TWIN 0,93
+7. VERSION = Models = MARKETING_VERSION 2.1.75 (Build 101)
+
+## In 2.1.74 gelandet
+
+1. Testdaten holen in der App (LFW → Downloads/AegisBench)
 
 ## In 2.1.73 gelandet
 
@@ -12,20 +26,6 @@ Siehe ANALYSE.md. **2.1.73** schließt Kalman-Streak-Box, Lookaway-Hold + WEG, S
 6. leftoverTwinPairLabel TWIN 0,93
 7. leftoverTransfersId stillFor
 8. VERSION = Models = MARKETING_VERSION 2.1.73 (Build 99)
-
-## In 2.1.72 gelandet
-
-1. leftoverTrailWriteHash — Trail Put/Lookup Kalman
-2. leftoverHoldAlpha(dt) — 8 fps Spike 0,06 dämpft
-3. leftoverTwinHardBlocks 0,92 — auch Baptize tot
-4. leftoverLookawayBlocks — enrolled Yaw freeze
-5. renameIdentity Tap-Lock 3 s
-6. ghostFaces Overlay + GHOST n,s Chip
-7. exposureLockLabel AE n,s
-8. tapGuestSuggests TAUFEN?
-9. leftoverHoldPruneLine liveEmpty
-10. TAP nicht leftover-orange
-11. VERSION = Models = MARKETING_VERSION 2.1.72 (Build 98)
 
 ## Offen (nicht Pflaster)
 
@@ -74,15 +74,20 @@ Siehe ANALYSE.md. **2.1.73** schließt Kalman-Streak-Box, Lookaway-Hold + WEG, S
 48. Per-Identität Floor-Offset (±4) nach 3 False-Accepts
 49. Landmark-Jitter Poster-Streak in leftoverPick
 50. Overlay-Tap Gast Bestätigen 2. Tap sitzt — Keyboard-Return analog
-51. Lookaway leftoverHold halten sitzt — HUD WEG sitzt am Face, Countdown analog Helios IDLE in noch offen
+51. Lookaway leftoverHold halten sitzt — HUD WEG sitzt jetzt am Face; Countdown analog Helios IDLE in noch offen
 52. Still-Hold 0,45 s sitzt — Pref 0,30 / 0,45 / 0,70
 53. Open-Set UNBEKANNT sitzt — Gast-Index nach 8 s Pref
-54. Kalman-Streak sitzt — leftoverStreak nach Ghost-Adopt Trail übernehmen
-55. Twin-Zahl sitzt — Soft-Veto 0,90 ohne Hard als `TWIN? 0,90`
+54. Kalman-Streak sitzt — leftoverStreak nach Ghost-Adopt Trail übernehmen sitzt
+55. Twin-Zahl sitzt — Soft-Veto 0,90 als `TWIN? 0,90` sitzt
 56. Live-HUD Ghost-Countdown analog Helios IDLE in — Chip sitzt am Face, nicht Statuszeile
-57. Enrolled Lookaway: leftoverHold EMA einfrieren (nicht nur Pick skip)
+57. Enrolled Lookaway: leftoverHold EMA einfrieren sitzt
 58. Partial-Print P-Slot ohne Augen als eigener leftoverPick-Term
 59. Gallery-Export verschlüsselt
 60. Brille / Maske Slot UI
+61. ByteTrack-ähnlicher leftover (Kalman + IoU + Print, nicht nur IoU-first)
+62. Quality-weighted Gallery-Centroid (Schärfe × Frontal)
+63. Shared AVCaptureSession mit Helios über XPC
+64. WEG-Countdown „WEG in 0,8 s“ analog Helios IDLE in
+65. Overlay Keyboard-Return tauft Gast analog zweitem Tap
 
 Nur main.

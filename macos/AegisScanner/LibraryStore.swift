@@ -2131,11 +2131,28 @@ final class LibraryStore: ObservableObject {
                     }
                 }
                 let aegisHit = matches.first { $0.faceId == old.id }?.hits.first { $0.strategy == .aegis }
-                let lookYaw = abs(old.quality.yaw)
+                let liveYaw = remaining.max(by: { $0.iou < $1.iou }).flatMap { yawAbs[$0.index] }
+                let lookYaw = MatchMath.leftoverLookawayYawOf(oldYaw: abs(old.quality.yaw), liveYaw: liveYaw)
                 let lookEnrolled = namedTracks.contains(old.id) || enrolled.contains(old.id)
                 if MatchMath.leftoverLookawayHolds(yawAbs: lookYaw, enrolled: lookEnrolled) {
-                    leftoverPending[old.id] = MatchMath.leftoverLookawayLabel()
                     leftoverPins += 1
+                    if let pinJ = MatchMath.leftoverLookawayPin(candidates: remaining) {
+                        leftoverPending[adopted[pinJ].id] = MatchMath.leftoverLookawayLabel()
+                    }
+                    if leftoverHold[old.id] == nil {
+                        leftoverHold[old.id] = MatchMath.leftoverHoldLookup(
+                            hash: MatchMath.leftoverBoxHash(MatchMath.leftoverHashBox(
+                                kalmanX: boxKalman[old.id]?.x,
+                                kalmanY: boxKalman[old.id]?.y,
+                                kalmanW: boxKalman[old.id]?.w,
+                                kalmanH: boxKalman[old.id]?.h,
+                                fallback: old.box
+                            )),
+                            table: leftoverHoldByHash,
+                            now: now,
+                            ttl: MatchMath.dropoutTTL(dt: liveDt)
+                        )
+                    }
                     continue
                 }
                 guard let bestJ = MatchMath.leftoverPick(
@@ -2163,17 +2180,19 @@ final class LibraryStore: ObservableObject {
                     geoMix: aegisHit?.geoMix,
                     dt: liveDt,
                     lookawayEnrolled: namedTracks.contains(old.id) || enrolled.contains(old.id),
-                    lookawayYaw: abs(old.quality.yaw)
+                    lookawayYaw: lookYaw
                 ) else {
                     let twin = aegisHit?.pairCosine
                     if let twinLabel = MatchMath.leftoverTwinPairLabel(pairCosine: twin) {
                         for cand in remaining {
                             leftoverPending[adopted[cand.index].id] = twinLabel
                         }
-                    } else if remaining.contains(where: { MatchMath.leftoverUnknownHard(cosine: $0.cosine) }) {
+                        leftoverClearStreak(old.id)
+                    } else if remaining.contains(where: { MatchMath.leftoverUnknownKeepsStreak(cosine: $0.cosine) }) {
                         for cand in remaining where MatchMath.leftoverUnknownHard(cosine: cand.cosine) {
                             leftoverPending[adopted[cand.index].id] = MatchMath.leftoverUnknownNote()
                         }
+                        leftoverPins += 1
                     } else if !MatchMath.conflictTickAgrees(
                         boxId: nil,
                         printId: aegisHit?.identityId,
@@ -2187,8 +2206,10 @@ final class LibraryStore: ObservableObject {
                             }
                             leftoverPending[adopted[cand.index].id] = MatchMath.conflictTickNote()
                         }
+                        leftoverClearStreak(old.id)
+                    } else {
+                        leftoverClearStreak(old.id)
                     }
-                    leftoverClearStreak(old.id)
                     continue
                 }
                 leftoverTried.insert(old.id)
@@ -2319,7 +2340,9 @@ final class LibraryStore: ObservableObject {
                     }
                     continue
                 }
-                leftoverClearStreak(old.id)
+                if !MatchMath.leftoverStreakKeepsLive(transferred: transfer) {
+                    leftoverClearStreak(old.id)
+                }
                 used.insert(old.id)
                 if transfer {
                     adopted[bestJ].id = old.id
@@ -2394,14 +2417,22 @@ final class LibraryStore: ObservableObject {
                 guestSeenAt[id] = now
             }
             guestSeenAt = guestSeenAt.filter { guestOrder.contains($0.key) || liveIds.contains($0.key) }
-            leftoverStreak = leftoverStreak.filter { leftoverIds.contains($0.key) && !used.contains($0.key) }
-            leftoverStreakBox = leftoverStreakBox.filter { leftoverIds.contains($0.key) && !used.contains($0.key) }
-            leftoverStreakSince = leftoverStreakSince.filter { leftoverIds.contains($0.key) && !used.contains($0.key) }
+            leftoverStreak = leftoverStreak.filter {
+                liveIds.contains($0.key) || (leftoverIds.contains($0.key) && !used.contains($0.key))
+            }
+            leftoverStreakBox = leftoverStreakBox.filter {
+                liveIds.contains($0.key) || (leftoverIds.contains($0.key) && !used.contains($0.key))
+            }
+            leftoverStreakSince = leftoverStreakSince.filter {
+                liveIds.contains($0.key) || (leftoverIds.contains($0.key) && !used.contains($0.key))
+            }
             leftoverPairLast = leftoverPairLast.filter { leftoverIds.contains($0.key) && !used.contains($0.key) }
             leftoverPairStreak = leftoverPairStreak.filter { leftoverIds.contains($0.key) && !used.contains($0.key) }
             leftoverPairCommit = leftoverPairCommit.filter { leftoverIds.contains($0.key) && !used.contains($0.key) }
             leftoverDisagree = leftoverDisagree.filter { leftoverIds.contains($0.key) && !used.contains($0.key) }
-            leftoverHoldTrail = leftoverHoldTrail.filter { leftoverIds.contains($0.key) && !used.contains($0.key) }
+            leftoverHoldTrail = leftoverHoldTrail.filter {
+                liveIds.contains($0.key) || (leftoverIds.contains($0.key) && !used.contains($0.key))
+            }
             leftoverWipeUntil = leftoverWipeUntil.filter { liveIds.contains($0.key) || leftoverIds.contains($0.key) }
             liveSlotHold = liveSlotHold.filter { liveIds.contains($0.key) || leftoverIds.contains($0.key) }
             if leftoverPins > 0, let line = MatchMath.leftoverPinStatus(
