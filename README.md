@@ -1,4 +1,4 @@
-# Aegis **2.1.75 alpha**
+# Aegis **2.1.76 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.76 alpha
+
+2.1.75 WEG/UNBEKANNT/TWIN?. TWIN? löschte Streak. 0,62 scharf wurde Gast. WEG-Pin 0,28 tot. Kein Countdown.
+
+- **`leftoverTwinKeepsStreak`.** TWIN? hält, TWIN 0,93 löscht.
+- **`leftoverHoldsTrack(sharpness:)`.** 0,62 scharf Overlay, kein Gast.
+- **`leftoverLookawayIoU` 0,12.** Atmende Kiste pinnt. `WEG in 0,8 s`.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.76 (Build 102).
 
 ## Neu in 2.1.75 alpha
 

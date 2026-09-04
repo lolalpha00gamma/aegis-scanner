@@ -1,6 +1,14 @@
-# Nachtrag 2026-09-04 (2.1.75)
+# Nachtrag 2026-09-04 (2.1.76)
 
-Siehe ANALYSE.md. **2.1.75** schließt WEG auf Live-Kiste, Live-Yaw, UNBEKANNT-Streak, Tauf-Streak, TWIN? 0,90 wirklich im Code.
+Siehe ANALYSE.md. **2.1.76** schließt TWIN?-Streak, 0,62-scharf kein Gast, WEG-Pin 0,12, WEG-Countdown wirklich im Code.
+
+## In 2.1.76 gelandet
+
+1. leftoverTwinKeepsStreak — TWIN? hält, TWIN hart löscht
+2. leftoverHoldsTrack sharpness — 0,62 scharf Overlay
+3. leftoverLookawayIoU 0,12 + max-IoU Fallback
+4. leftoverLookawayLabel WEG in 0,8 s
+5. VERSION = Models = MARKETING_VERSION 2.1.76 (Build 102)
 
 ## In 2.1.75 gelandet
 
@@ -15,17 +23,6 @@ Siehe ANALYSE.md. **2.1.75** schließt WEG auf Live-Kiste, Live-Yaw, UNBEKANNT-S
 ## In 2.1.74 gelandet
 
 1. Testdaten holen in der App (LFW → Downloads/AegisBench)
-
-## In 2.1.73 gelandet
-
-1. leftoverStreakBoxWrite — Streak- und Pick-IoU Kalman
-2. leftoverLookawayHolds + WEG — Freeze ohne Clear
-3. persistGuestTap — zweiter Overlay-Tap schreibt
-4. leftoverBaptizeStillBlocks 0,45 s — Vorbeigehen tauft nicht
-5. leftoverUnknownHard UNBEKANNT
-6. leftoverTwinPairLabel TWIN 0,93
-7. leftoverTransfersId stillFor
-8. VERSION = Models = MARKETING_VERSION 2.1.73 (Build 99)
 
 ## Offen (nicht Pflaster)
 
@@ -74,11 +71,11 @@ Siehe ANALYSE.md. **2.1.75** schließt WEG auf Live-Kiste, Live-Yaw, UNBEKANNT-S
 48. Per-Identität Floor-Offset (±4) nach 3 False-Accepts
 49. Landmark-Jitter Poster-Streak in leftoverPick
 50. Overlay-Tap Gast Bestätigen 2. Tap sitzt — Keyboard-Return analog
-51. Lookaway leftoverHold halten sitzt — HUD WEG sitzt jetzt am Face; Countdown analog Helios IDLE in noch offen
+51. Lookaway leftoverHold halten sitzt — HUD WEG sitzt jetzt am Face; Countdown analog Helios IDLE in sitzt
 52. Still-Hold 0,45 s sitzt — Pref 0,30 / 0,45 / 0,70
 53. Open-Set UNBEKANNT sitzt — Gast-Index nach 8 s Pref
 54. Kalman-Streak sitzt — leftoverStreak nach Ghost-Adopt Trail übernehmen sitzt
-55. Twin-Zahl sitzt — Soft-Veto 0,90 als `TWIN? 0,90` sitzt
+55. Twin-Zahl sitzt — Soft-Veto 0,90 als `TWIN? 0,90` sitzt, Streak halten sitzt
 56. Live-HUD Ghost-Countdown analog Helios IDLE in — Chip sitzt am Face, nicht Statuszeile
 57. Enrolled Lookaway: leftoverHold EMA einfrieren sitzt
 58. Partial-Print P-Slot ohne Augen als eigener leftoverPick-Term
@@ -87,7 +84,17 @@ Siehe ANALYSE.md. **2.1.75** schließt WEG auf Live-Kiste, Live-Yaw, UNBEKANNT-S
 61. ByteTrack-ähnlicher leftover (Kalman + IoU + Print, nicht nur IoU-first)
 62. Quality-weighted Gallery-Centroid (Schärfe × Frontal)
 63. Shared AVCaptureSession mit Helios über XPC
-64. WEG-Countdown „WEG in 0,8 s“ analog Helios IDLE in
+64. WEG-Countdown „WEG in 0,8 s“ analog Helios IDLE in sitzt
 65. Overlay Keyboard-Return tauft Gast analog zweitem Tap
+66. leftoverLookawayIoU Pref 0,08 / 0,12 / 0,20
+67. TWIN? Overlay-Farbe amber, TWIN hart rot
+68. 0,62-scharf Hold-Chip „gehalten 0,62“ statt UNBEKANNT
+69. leftoverClear nur nach 3 Miss-Frames, nicht ein Twin-Tick
+70. Gallery-Print nur frontal + blink, sonst P-Slot
+71. Live-HUD „TWIN? 0,90 · Streak 3“ in einer Zeile
+72. Open-Set Gast-Index Pref nach UNBEKANNT 8 s
+73. Detector-Miss leftoverHoldSurvive analog RTSP
+74. Face-ID an der Kiste (kurz, 6 Zeichen) analog Helios S1
+75. Continuity 8 fps leftoverAdoptNeed × 0,5 analog Helios pinchOpenNeed
 
 Nur main.

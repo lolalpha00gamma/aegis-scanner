@@ -1,27 +1,25 @@
-# Helios + Aegis — Analyse 2026-09-04 (2.1.75)
+# Helios + Aegis — Analyse 2026-09-04 (2.1.76)
 
-Helios **1.5.59** (Build 79). Aegis **2.1.75 alpha** (Build 101). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`.
+Helios **1.5.60** (Build 80). Aegis **2.1.76 alpha** (Build 102). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`.
 
-## Warum Namen nach 2.1.73/74 noch sprangen
+## Warum Namen nach 2.1.75 noch sprangen
 
-2.1.73 hat Kalman-Streak, Lookaway-Hold, Still, UNBEKANNT, TAUFEN?, TWIN 0,93 verdrahtet. 2.1.74 Testdaten in der App. Fünf Löcher blieben:
+2.1.75 hat WEG auf Live-Kiste, Live-Yaw, UNBEKANNT-Streak, Tauf-Streak, TWIN? 0,90. Vier Löcher blieben:
 
-1. **WEG auf old.id, dann Filter liveIds.** leftoverPending[ghost] wurde gestrippt. Overlay zeigte nichts, Live-Kiste ohne Namen.
-2. **Lookaway las Ghost-Yaw.** Blick zurück: Freeze blieb. Blick weg: Freeze zu spät.
-3. **UNBEKANNT rief leftoverClearStreak.** Re-Entry = Gast n+1. Open-Set-Band wirkte tot.
-4. **Taufe wischte Streak.** Blink → 0,45 s + Adopt-Need, Name weg.
-5. **TWIN 0,90 ohne Fragezeichen.** Weich und hart dieselbe Label — Overlay log.
+1. **TWIN? 0,90 rief leftoverClearStreak.** Weich und hart dieselbe Clear. Overlay TWIN?, Streak 0 → Gast n+1.
+2. **leftoverHoldsTrack ohne Schärfe.** leftoverPick ließ 0,62 scharf durch. HoldsTrack sah 0,62 tot → Streak weg, Gast.
+3. **WEG-Pin Floor leftoverIoU 0,28.** Atmende Kiste 0,20 = kein Chip. Overlay leer trotz Freeze.
+4. **WEG ohne Countdown.** Ghost-TTL unsichtbar, wirkt tot.
 
-## Was 2.1.75 wirklich ändert
+## Was 2.1.76 wirklich ändert
 
-1. **`leftoverLookawayPin`.** WEG auf die nächste Live-Kiste. EMA freeze.
-2. **`leftoverLookawayYawOf`.** Live-Yaw sticht Ghost.
-3. **`leftoverUnknownKeepsStreak`.** Open-Set hält Streak, kein Gast-Index.
-4. **`leftoverStreakKeepsLive`.** Nach Taufe Streak auf der UUID. Blink re-adoptiert.
-5. **`leftoverTwinPairLabel` TWIN? 0,90.** Hart bleibt TWIN 0,93. VERSION = Models = MARKETING_VERSION 2.1.75 (Build 101).
+1. **`leftoverTwinKeepsStreak`.** TWIN? hält, TWIN 0,93 löscht.
+2. **`leftoverHoldsTrack(sharpness:)`.** 0,62 scharf = Overlay, kein Gast.
+3. **`leftoverLookawayIoU` 0,12.** WEG pinnt atmende Kisten. Fallback max-IoU.
+4. **`leftoverLookawayLabel(until:now:)`.** `WEG in 0,8 s`. VERSION = Models = MARKETING_VERSION 2.1.76 (Build 102).
 
 Was Masse noch bringen würde: Frame-Pump mit Helios, CLAHE auf den Buffer, Live-ROI Crop, Drop-in `.mlmodel`, DBSCAN vor Merge, Burst-5 Pref, Dropout-TTL Pref.
 
-Helios 1.5.59: 8 fps interpoliert mit Lock-Hand, Reconnect-Pool in actorMapped, pinchActor im Slot, Palm-Reach skippt Lock. Siehe `bpms9cmnxc-debug/Helios`.
+Helios 1.5.60: pinchActor nur Lock-Pool, 8 fps Bind + last-3, Pinch-Open geglättet, Slot S1/S2. Siehe `bpms9cmnxc-debug/Helios`.
 
 `bugfix` mergen oder fortsetzen: nein. Nur `main`.

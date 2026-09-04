@@ -2136,8 +2136,12 @@ final class LibraryStore: ObservableObject {
                 let lookEnrolled = namedTracks.contains(old.id) || enrolled.contains(old.id)
                 if MatchMath.leftoverLookawayHolds(yawAbs: lookYaw, enrolled: lookEnrolled) {
                     leftoverPins += 1
+                    let ghostUntil = liveGhosts.first(where: { $0.face.id == old.id })?.until
+                    let weg = MatchMath.leftoverLookawayLabel(until: ghostUntil, now: now)
                     if let pinJ = MatchMath.leftoverLookawayPin(candidates: remaining) {
-                        leftoverPending[adopted[pinJ].id] = MatchMath.leftoverLookawayLabel()
+                        leftoverPending[adopted[pinJ].id] = weg
+                    } else if let best = remaining.max(by: { $0.iou < $1.iou }) {
+                        leftoverPending[adopted[best.index].id] = weg
                     }
                     if leftoverHold[old.id] == nil {
                         leftoverHold[old.id] = MatchMath.leftoverHoldLookup(
@@ -2187,7 +2191,9 @@ final class LibraryStore: ObservableObject {
                         for cand in remaining {
                             leftoverPending[adopted[cand.index].id] = twinLabel
                         }
-                        leftoverClearStreak(old.id)
+                        if !MatchMath.leftoverTwinKeepsStreak(pairCosine: twin) {
+                            leftoverClearStreak(old.id)
+                        }
                     } else if remaining.contains(where: { MatchMath.leftoverUnknownKeepsStreak(cosine: $0.cosine) }) {
                         for cand in remaining where MatchMath.leftoverUnknownHard(cosine: cand.cosine) {
                             leftoverPending[adopted[cand.index].id] = MatchMath.leftoverUnknownNote()
@@ -2318,7 +2324,8 @@ final class LibraryStore: ObservableObject {
                     trail: trailNow,
                     tapUntil: tapUntil,
                     now: now,
-                    stillFor: stillFor
+                    stillFor: stillFor,
+                    sharpness: adopted[bestJ].quality.sharpness
                 ) {
                     leftoverPending[adopted[bestJ].id] = MatchMath.leftoverHoldLabel(cosine: pinCos)
                         ?? leftoverPending[adopted[bestJ].id]

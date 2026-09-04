@@ -351,6 +351,8 @@ enum MatchMath {
 
     /// Enrolled wegsieht (¾/Profil): leftover freeze, nicht taufen.
     static let leftoverLookawayYaw = 0.28
+    /// Lookaway-Pin weicher als leftover IoU — sonst WEG tot sobald die Kiste atmet.
+    static let leftoverLookawayIoU = 0.12
 
     static func leftoverLookawayBlocks(
         yawAbs: Double?,
@@ -365,7 +367,12 @@ enum MatchMath {
         leftoverLookawayBlocks(yawAbs: yawAbs, enrolled: enrolled)
     }
 
-    static func leftoverLookawayLabel() -> String { "WEG" }
+    static func leftoverLookawayLabel(until: TimeInterval? = nil, now: TimeInterval = 0) -> String {
+        guard let until else { return "WEG" }
+        let left = until - now
+        guard left > 0, left < 10 else { return "WEG" }
+        return "WEG in \(commaTenths(left)) s"
+    }
 
     /// Live-Yaw sticht Ghost-Yaw: Blick zurück hebt den Freeze, Blick weg setzt ihn.
     static func leftoverLookawayYawOf(oldYaw: Double?, liveYaw: Double?) -> Double {
@@ -375,7 +382,7 @@ enum MatchMath {
     /// WEG muss auf die Live-Kiste. old.id wird nachher aus leftoverPending gefiltert.
     static func leftoverLookawayPin(
         candidates: [(index: Int, iou: Double, cosine: Double?)],
-        floor: Double = leftoverIoU
+        floor: Double = leftoverLookawayIoU
     ) -> Int? {
         candidates.filter { leftoverPin(iou: $0.iou, floor: floor) }
             .max(by: { $0.iou < $1.iou })?.index
@@ -403,6 +410,11 @@ enum MatchMath {
 
     /// Nach Taufe bleibt Streak auf der Live-UUID — Blink darf sofort re-adoptieren.
     static func leftoverStreakKeepsLive(transferred: Bool) -> Bool { transferred }
+
+    /// TWIN? 0,90 hält Streak. Hartes TWIN 0,93 löscht — sonst jeder Twin-Frame = Gast n+1.
+    static func leftoverTwinKeepsStreak(pairCosine: Double?) -> Bool {
+        leftoverTwinSuggest(pairCosine: pairCosine) && !leftoverTwinHardBlocks(pairCosine: pairCosine)
+    }
 
     /// pairCosine ≥ 0,90: leftover nie über Box, nur Print ≥ 0,80.
     static func leftoverTwinBlocksBox(
@@ -1983,9 +1995,10 @@ enum MatchMath {
         trail: [Double] = [],
         tapUntil: TimeInterval? = nil,
         now: TimeInterval = 0,
-        stillFor: TimeInterval = 1
+        stillFor: TimeInterval = 1,
+        sharpness: Double? = nil
     ) -> Bool {
-        leftoverPrintOk(cosine: cosine) && !leftoverTransfersId(
+        leftoverPrintOk(cosine: cosine, sharpness: sharpness) && !leftoverTransfersId(
             cosine: cosine, holdPrev: holdPrev, trail: trail, tapUntil: tapUntil, now: now, stillFor: stillFor
         )
     }
