@@ -1570,20 +1570,30 @@ final class LibraryStore: ObservableObject {
         liveLastStamp = now
         let enrolled = Set(identities.flatMap(\.faceIds))
         let previous = faces.filter { $0.mediaId == mediaId }
+        var foundIouMax = 0.0
+        if !found.isEmpty, !previous.isEmpty {
+            for face in found {
+                for old in previous {
+                    foundIouMax = max(foundIouMax, FaceEngine.iou(old.box, face.box))
+                }
+            }
+        }
+        let emptyLike = found.isEmpty
+            || (!previous.isEmpty && MatchMath.leftoverEmptyIgnoresStranger(foundIouMax: foundIouMax))
         let namedTracks = Set(previous.compactMap { old -> UUID? in
             let hit = matches.first { $0.faceId == old.id }?.hits.first { $0.strategy == .aegis }
             return hit?.identityId != nil ? old.id : nil
         })
         var used = Set<UUID>()
         var leftoverTried = Set<UUID>()
-        if found.isEmpty {
+        if emptyLike {
             if leftoverEmptySince == nil { leftoverEmptySince = now }
         } else {
             leftoverEmptySince = nil
         }
         let emptyFor = leftoverEmptySince.map { now - $0 } ?? 0
-        let emptyLatch = found.isEmpty && MatchMath.leftoverLatchKeeps(emptyFor: emptyFor)
-        let emptyChip = found.isEmpty && MatchMath.leftoverLatchChipKeeps(emptyFor: emptyFor)
+        let emptyLatch = emptyLike && MatchMath.leftoverLatchKeeps(emptyFor: emptyFor)
+        let emptyChip = emptyLike && MatchMath.leftoverLatchChipKeeps(emptyFor: emptyFor)
         if !emptyChip {
             leftoverPending = [:]
         }
@@ -2004,7 +2014,9 @@ final class LibraryStore: ObservableObject {
                     adopted[i].trackId = old.trackId ?? old.id
                     adopted[i].enrolledAt = old.enrolledAt ?? adopted[i].enrolledAt
                     boxEuro.removeValue(forKey: old.id)
-                    boxKalmanDrop(old.id)
+                    if !MatchMath.leftoverAdoptKeepsKalman() {
+                        boxKalmanDrop(old.id)
+                    }
                     boxJumpPending.removeValue(forKey: old.id)
                 }
                 for old in unusedLeft where !leftoverTried.contains(old.id) {
@@ -2412,7 +2424,7 @@ final class LibraryStore: ObservableObject {
                     )
                         ?? leftoverPending[adopted[bestJ].id]
                     leftoverPins += 1
-                    if let cos = pinCos {
+                    if let cos = pinCos, MatchMath.leftoverHoldWriteOk(sharpness: adopted[bestJ].quality.sharpness) {
                         leftoverHoldByHash = MatchMath.leftoverHoldPut(
                             hash: MatchMath.leftoverHoldWriteHash(
                                 kalmanX: boxKalman[adopted[bestJ].id]?.x,
@@ -2425,7 +2437,11 @@ final class LibraryStore: ObservableObject {
                             onto: leftoverHoldByHash,
                             now: now
                         )
-                        leftoverHold[old.id] = MatchMath.leftoverHoldEMA(prev: leftoverHold[old.id] ?? holdNow, next: cos)
+                        leftoverHold[old.id] = MatchMath.leftoverHoldEMA(
+                            prev: leftoverHold[old.id] ?? holdNow,
+                            next: cos,
+                            alpha: MatchMath.leftoverHoldAlpha(dt: liveDt)
+                        )
                     }
                     continue
                 }
@@ -2457,12 +2473,14 @@ final class LibraryStore: ObservableObject {
                     fallback: adopted[bestJ].box
                 )
                 boxEuro.removeValue(forKey: old.id)
-                boxKalmanDrop(old.id)
+                if !MatchMath.leftoverAdoptKeepsKalman() {
+                    boxKalmanDrop(old.id)
+                }
                 boxJumpPending.removeValue(forKey: old.id)
                 leftoverPins += 1
                 if let cos = pinCos {
                     let spike = MatchMath.leftoverBaptizeSpike(raw: cos, prev: holdPrev)
-                    if !spike {
+                    if !spike, MatchMath.leftoverHoldWriteOk(sharpness: adopted[bestJ].quality.sharpness) {
                         leftoverHoldByHash = MatchMath.leftoverHoldPut(
                             hash: putHash,
                             cosine: cos,
@@ -2473,7 +2491,8 @@ final class LibraryStore: ObservableObject {
                     if MatchMath.leftoverWipeHist(cosine: cos) {
                         leftoverHold[adopted[bestJ].id] = MatchMath.leftoverHoldEMA(
                             prev: leftoverHold[adopted[bestJ].id] ?? leftoverHold[old.id],
-                            next: cos
+                            next: cos,
+                            alpha: MatchMath.leftoverHoldAlpha(dt: liveDt)
                         )
                         leftoverWipeUntil[adopted[bestJ].id] = MatchMath.leftoverWipeMuteUntil(now: now)
                         if transfer {

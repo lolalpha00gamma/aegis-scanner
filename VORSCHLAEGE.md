@@ -1,8 +1,17 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.81 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.82 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 
-Neu in 2.1.81: Kalman-Predict, Pending-Mirror, HOLD-Chip 0,4 s.
+Neu in 2.1.82: Adopt hält Kalman, Fremde Kiste ignoriert Latch, Hold-EMA an dt, Blur kein Hold-Write.
+
+## In 2.1.82 wirklich im Code
+
+2.1.81 Kalman-Predict. Adopt droppte Kalman. Poster wischte Latch. Hold-EMA ohne dt.
+
+1. **`leftoverAdoptKeepsKalman`.**
+2. **`leftoverEmptyIgnoresStranger`.**
+3. **`leftoverHoldAlpha(dt)` Live + `leftoverHoldWriteOk`.**
+4. Tests + VERSION = Models = MARKETING_VERSION 2.1.82 (Build 108).
 
 ## In 2.1.81 wirklich im Code
 

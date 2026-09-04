@@ -1269,6 +1269,11 @@ enum MatchMathTests {
         near(MatchMath.boxKalmanVelocity(prev: 0.10, next: 0.20, dt: 0.125), 0.55 * 0.8, 0.02, "vx EMA")
         near(MatchMath.boxKalmanPredict(x: 0.20, v: 0.40, dt: 0.125), 0.25, 0.001, "cx += vx·dt")
         near(MatchMath.boxKalmanPredict(x: 0.20, v: 8.0, dt: 0.125), 0.32, 0.001, "Cap 0,12")
+        ok(MatchMath.leftoverAdoptKeepsKalman(), "Adopt hält Kalman")
+        ok(MatchMath.leftoverEmptyIgnoresStranger(foundIouMax: 0.05), "Poster kein Reconnect")
+        ok(!MatchMath.leftoverEmptyIgnoresStranger(foundIouMax: 0.40), "Anna zurück")
+        ok(MatchMath.leftoverHoldWriteOk(sharpness: 0.40), "scharf Hold")
+        ok(!MatchMath.leftoverHoldWriteOk(sharpness: 0.10), "Blur kein Hold")
         let pred = MatchMath.leftoverPredictBoxes(
             boxes: [idHoldA: (x: 0.20, y: 0.30)],
             vel: [idHoldA: (vx: 0.40, vy: 0)],

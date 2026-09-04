@@ -1,6 +1,13 @@
-# Nachtrag 2026-09-04 (2.1.81)
+# Nachtrag 2026-09-04 (2.1.82)
 
-Siehe ANALYSE.md. **2.1.81** schließt Kalman-Predict, Pending-Mirror, HOLD-Chip 0,4 s wirklich im Code.
+Siehe ANALYSE.md. **2.1.82** schließt Adopt-Kalman, Fremde-Kiste-Latch, Hold-EMA an dt, Blur-Hold wirklich im Code.
+
+## In 2.1.82 gelandet
+
+1. leftoverAdoptKeepsKalman — Kalman+vx bleibt
+2. leftoverEmptyIgnoresStranger — Poster kein Latch-Wipe
+3. leftoverHoldAlpha(dt) Live-EMA + leftoverHoldWriteOk
+4. VERSION = Models = MARKETING_VERSION 2.1.82 (Build 108)
 
 ## In 2.1.81 gelandet
 
@@ -9,22 +16,6 @@ Siehe ANALYSE.md. **2.1.81** schließt Kalman-Predict, Pending-Mirror, HOLD-Chip
 3. leftoverLatchChipKeeps — Overlay 4,4 s
 4. leftoverPredictBoxes
 5. VERSION = Models = MARKETING_VERSION 2.1.81 (Build 107)
-
-## In 2.1.80 gelandet
-
-1. leftoverKeepBoxes — Ghosts+Hold halten Kalman
-2. leftoverLatchKeeps + leftoverEmptySince — emptyKeeps 4 s
-3. leftoverPending bleibt am Latch, Wipe erst danach
-4. leftoverHoldSurvive emptyFor
-5. VERSION = Models = MARKETING_VERSION 2.1.80 (Build 106)
-
-## In 2.1.79 gelandet
-
-1. leftoverEmptyKeepsOverlay — Namen/Held am Ghost
-2. leftoverLatch 4 s — 8 fps Ghost/TTL
-3. leftoverPrintProfileYaw 0,45
-4. leftoverHoldSurvive emptyKeeps
-5. VERSION = Models = MARKETING_VERSION 2.1.79 (Build 105)
 
 ## Offen (nicht Pflaster)
 
@@ -63,7 +54,7 @@ Siehe ANALYSE.md. **2.1.81** schließt Kalman-Predict, Pending-Mirror, HOLD-Chip
 38. Keyboard-Return tauft Gast analog zweitem Tap
 39. Face-ID an der Kiste (kurz, 6 Zeichen) analog Helios S1
 40. Quality-weighted Gallery-Centroid (Schärfe × Frontal)
-41. Temporal print bank (5 Slots) statt einer leftoverHold-EMA
+41. Temporal print bank (5 Slots) statt einer leftoverHold-EMA — Trail sitzt, Gewichte fehlen
 42. Same-shot Twin: zwei Gesichter im Frame → leftoverTwinHard schon bei 0,88 — sitzt
 43. Aegis.dmg nicht ins Git — nur CI-Artefakt
 44. ArcFace-Temperatur auf den Cosine (platt bei 0,70–0,90)
@@ -73,16 +64,16 @@ Siehe ANALYSE.md. **2.1.81** schließt Kalman-Predict, Pending-Mirror, HOLD-Chip
 48. Watch-Haptik bei UNBEKANNT
 49. Face-Clustering nach Burst (Galerie aufräumen)
 50. Night-ISO Cap Pref, AE nicht 3 s jagen
-51. Print-EMA nur Frames mit leftoverPrintSharp
-52. Detector-leerer Frame Overlay an Kalman-Predict — sitzt
-53. leftoverPending an Ghost-UUID spiegeln — sitzt
-54. Overlay-Chip HOLD 0,4 s nach Latch — sitzt
-55. Kalman-Predict auf leerem Frame — sitzt
-56. leftoverKeepBoxes sitzt
-57. leftoverLatchKeeps sitzt
-58. leftoverPending Latch sitzt
-59. leftoverEmptyKeepsOverlay sitzt
-60. leftoverLatch 4 s sitzt
-61. leftoverPrintProfileYaw 0,45 sitzt
+51. Print-EMA nur Frames mit leftoverPrintSharp — Hold-Write sitzt, Trail-Append noch roh
+52. Kalman-Predict auch wenn Fremde Kiste da (emptyLike, nicht nur found.isEmpty)
+53. leftover Adopt blendet die Live-Box durch den alten Kalman, nicht nur Drop skippen
+54. Detector-NMS gegen Kalman-Predict-Box (Walker-Doppelkiste)
+55. Exposure-Lock nach Latch-Reconnect 0,8 s
+56. leftoverEmptyIgnoresStranger sitzt
+57. leftoverAdoptKeepsKalman sitzt
+58. leftoverHoldWriteOk sitzt
+59. leftoverHoldAlpha Live sitzt
+60. leftoverKeepBoxes sitzt
+61. leftoverLatchKeeps sitzt
 
 Nur main.

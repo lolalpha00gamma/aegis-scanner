@@ -1,4 +1,4 @@
-# Aegis **2.1.81 alpha**
+# Aegis **2.1.82 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.82 alpha
+
+2.1.81 Kalman-Predict. Adopt droppte Kalman+vx — Overlay sprang, Gast n+1. Poster im Frame wischte Annas Latch. Hold-EMA ohne dt, Blur schrieb Hold.
+
+- **`leftoverAdoptKeepsKalman`.** Adopt hält Filter.
+- **`leftoverEmptyIgnoresStranger`.** IoU < 0,18 = Latch wie leer.
+- **`leftoverHoldAlpha(dt)` + `leftoverHoldWriteOk`.** 8 fps kein Spike, Blur kein Hold.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.82 (Build 108).
 
 ## Neu in 2.1.81 alpha
 

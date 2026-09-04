@@ -1329,6 +1329,21 @@ enum MatchMath {
         return out
     }
 
+    /// leftover Adopt hält Kalman+vx. Drop = Overlay-Sprung, Gast n+1.
+    static func leftoverAdoptKeepsKalman() -> Bool { true }
+
+    /// Fremde Kiste (Poster, Gast) ist kein Reconnect. Latch bleibt.
+    /// Nur gegen existing previous — erster Frame hat IoU 0, das ist kein Stranger.
+    static func leftoverEmptyIgnoresStranger(foundIouMax: Double, floor: Double = 0.18) -> Bool {
+        foundIouMax < floor
+    }
+
+    /// Blur darf Hold-EMA nicht schreiben — sonst Twin 0,70 klebt.
+    static func leftoverHoldWriteOk(sharpness: Double?) -> Bool {
+        guard let s = sharpness else { return true }
+        return s >= leftoverPrintSharp
+    }
+
     /// Zweiter leerer Frame: previous schon []. used∪dropped wischt Kalman. Ghosts+Hold halten.
     static func leftoverKeepBoxes(
         used: Set<UUID>,
