@@ -1,4 +1,4 @@
-# Aegis **2.1.64 alpha**
+# Aegis **2.1.66 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.66 alpha
+
+2.1.65 hat Nachbar-Hash und Print-MAD nur in ANALYSE.md behauptet. Exact-Lookup, leerer Frame wischt Hash und Gast-Liste, zwei Ghosts beide „Gast 1“, MARKETING_VERSION 2.1.64.
+
+- **`leftoverBoxHashNeighbors`.** Hold über Bin-Kante. Lookup jüngster Nachbar, ferne Bins leer.
+- **Leerer Frame: Prune, kein Wipe.** Hash-Tabelle überlebt Detector-Miss.
+- **`guestOrderKeeps`.** 8 s Dropout, unbekannt = Gast n+1.
+- **`printMADBlocks`.** Twin 0,80 neben Median 0,64 → Overlay `MAD`.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.66 (Build 92).
 
 ## Neu in 2.1.64 alpha
 

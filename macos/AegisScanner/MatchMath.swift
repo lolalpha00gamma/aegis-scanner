@@ -1855,6 +1855,27 @@ enum MatchMath {
         return sorted[sorted.count / 2]
     }
 
+    /// ≥ 3 Samples. Median der |x − Median|. Ein Sample hat kein MAD.
+    static func printMAD(_ samples: [Double]) -> Double? {
+        let ok = samples.filter(\.isFinite)
+        guard ok.count >= 3, let med = printCommitMedian(ok) else { return nil }
+        return printCommitMedian(ok.map { abs($0 - med) })
+    }
+
+    static let printMADSpike = 0.04
+
+    /// Twin-Frame 0,80 neben Median 0,64: Peak−Median oder MAD über Spike.
+    static func printMADBlocks(_ samples: [Double], spike: Double = printMADSpike) -> Bool {
+        let ok = samples.filter(\.isFinite)
+        guard ok.count >= 3, let med = printCommitMedian(ok) else { return false }
+        let peak = ok.max() ?? med
+        if peak - med > spike { return true }
+        guard let mad = printMAD(ok) else { return false }
+        return mad > spike
+    }
+
+    static func printMADNote() -> String { "MAD" }
+
     /// Maske: Partial-Print statt Vote-Skip wenn U-Slot-Refs da sind.
     static func partialPrintMasked(occluded: Bool, hasUpperRefs: Bool) -> Bool {
         occluded && hasUpperRefs
@@ -1874,9 +1895,9 @@ enum MatchMath {
         "Gast \(max(1, index))"
     }
 
-    /// 1-basiert. Nicht in der Liste → Gast 1.
+    /// 1-basiert. Nicht in der Liste → Gast n+1, nicht immer Gast 1.
     static func guestIndex(of id: UUID, order: [UUID]) -> Int {
-        guard let i = order.firstIndex(of: id) else { return 1 }
+        guard let i = order.firstIndex(of: id) else { return order.count + 1 }
         return i + 1
     }
 
@@ -2065,14 +2086,38 @@ enum MatchMath {
         return "\(q(cx)).\(q(cy)).\(q(box.width)).\(q(box.height))"
     }
 
+    /// cx/cy ±1, Breite/Höhe fest. Bin-Kante tötet Hold nicht.
+    static func leftoverBoxHashNeighbors(_ hash: String, bins: Int = 12) -> [String] {
+        let parts = hash.split(separator: ".").compactMap { Int($0) }
+        guard parts.count == 4 else { return [hash] }
+        let cx = parts[0], cy = parts[1], w = parts[2], h = parts[3]
+        var out: [String] = []
+        out.reserveCapacity(9)
+        for dx in -1...1 {
+            for dy in -1...1 {
+                let x = cx + dx
+                let y = cy + dy
+                guard x >= 0, x < bins, y >= 0, y < bins else { continue }
+                out.append("\(x).\(y).\(w).\(h)")
+            }
+        }
+        return out
+    }
+
     static func leftoverHoldLookup(
         hash: String,
         table: [String: (cosine: Double, at: TimeInterval)],
         now: TimeInterval,
         ttl: TimeInterval = leftoverAdoptSec
     ) -> Double? {
-        guard let row = table[hash], now - row.at <= ttl else { return nil }
-        return row.cosine
+        var best: (cosine: Double, at: TimeInterval)?
+        for h in leftoverBoxHashNeighbors(hash) {
+            guard let row = table[h], now - row.at <= ttl else { continue }
+            if best == nil || row.at > best!.at {
+                best = row
+            }
+        }
+        return best?.cosine
     }
 
     static func leftoverHoldPrune(
@@ -2092,6 +2137,21 @@ enum MatchMath {
         var next = leftoverHoldPrune(table, now: now)
         next[hash] = (cosine, now)
         return next
+    }
+
+    /// Gast-Liste überlebt leere Frames 8 s. Unbekannte ID fällt nicht auf Gast 1.
+    static let guestOrderHold: TimeInterval = 8
+
+    static func guestOrderKeeps(
+        id: UUID,
+        live: [UUID],
+        lastSeen: TimeInterval?,
+        now: TimeInterval,
+        hold: TimeInterval = guestOrderHold
+    ) -> Bool {
+        if live.contains(id) { return true }
+        guard let lastSeen else { return false }
+        return now - lastSeen <= hold
     }
 
     /// Gast wird nur nach Tauf-Button persistiert. Nie 8 s silent.

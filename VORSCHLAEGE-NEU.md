@@ -1,12 +1,14 @@
 # Nachtrag 2026-09-04
 
-Siehe ANALYSE.md. **2.1.65** schliesst Hash-Kantensprung und Print-MAD.
+Siehe ANALYSE.md. **2.1.66** schließt Hash-Kantensprung, leeren-Frame-Wipe, Gast n+1 und Print-MAD wirklich im Code. 2.1.65 war Docs.
 
-## In 2.1.65 gelandet
+## In 2.1.66 gelandet
 
-1. leftoverHoldLookup ueber Box-Hash-Nachbarn (cx/cy +/-1)
-2. printMAD > 0,04 blockt Adopt, Overlay MAD
-3. Build 92 (Math lokal + Tests; Engine-Push folgt CI)
+1. leftoverHoldLookup über Box-Hash-Nachbarn (cx/cy ±1)
+2. leerer Frame: leftoverHoldByHash Prune, kein Wipe
+3. guestOrderKeeps 8 s, unbekannt = Gast n+1
+4. printMAD > 0,04 blockt Adopt, Overlay MAD
+5. VERSION = Models = MARKETING_VERSION 2.1.66 (Build 92)
 
 ## In 2.1.64 gelandet
 
@@ -39,7 +41,7 @@ Siehe ANALYSE.md. **2.1.65** schliesst Hash-Kantensprung und Print-MAD.
 18. Identity-Graph als Soft-Prior, nie Taufe
 19. PnP 6DoF, Slot folgt der Nase
 20. Family-Bump UI neben Open-Set
-21. Print-MAD > 0,04 wirft Spike — 2.1.65 Math
+21. Print-MAD > 0,04 wirft Spike — 2.1.66
 22. Gallery-at-rest FileVault-Hinweis
 23. Temporal ReID ueber Hold-Trail
 24. Quality-weighted Centroid

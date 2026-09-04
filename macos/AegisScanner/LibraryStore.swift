@@ -99,6 +99,7 @@ final class LibraryStore: ObservableObject {
     private var leftoverHoldTrail: [UUID: [Double]] = [:]
     private var leftoverHoldByHash: [String: (cosine: Double, at: TimeInterval)] = [:]
     private var guestOrder: [UUID] = []
+    private var guestSeenAt: [UUID: TimeInterval] = [:]
     private var lastCameraUniqueID: String = ""
     private var pendingRenameId: UUID?
     private var pendingRenameName: String?
@@ -1276,6 +1277,7 @@ final class LibraryStore: ObservableObject {
         leftoverWipeUntil = [:]
         liveSlotHold = [:]
         guestOrder = []
+        guestSeenAt = [:]
         liveCapture.stop()
         liveActive = false
         if let id = liveMediaId {
@@ -1858,7 +1860,7 @@ final class LibraryStore: ObservableObject {
             }
             liveHeldIds = []
             leftoverHold = [:]
-            leftoverHoldByHash = [:]
+            leftoverHoldByHash = MatchMath.leftoverHoldPrune(leftoverHoldByHash, now: now)
             leftoverPending = [:]
             leftoverStreak = [:]
             leftoverStreakBox = [:]
@@ -1869,7 +1871,10 @@ final class LibraryStore: ObservableObject {
             leftoverDisagree = [:]
             leftoverWipeUntil = [:]
             leftoverHoldTrail = [:]
-            guestOrder = []
+            guestOrder = guestOrder.filter {
+                MatchMath.guestOrderKeeps(id: $0, live: [], lastSeen: guestSeenAt[$0], now: now)
+            }
+            guestSeenAt = guestSeenAt.filter { guestOrder.contains($0.key) }
             liveExposureUntil = [:]
             livePosterJitter = [:]
             livePosterStill = [:]
@@ -1999,6 +2004,10 @@ final class LibraryStore: ObservableObject {
                     trail.append(cos)
                     if trail.count > 5 { trail.removeFirst(trail.count - 5) }
                     leftoverHoldTrail[old.id] = trail
+                    if MatchMath.printMADBlocks(trail) {
+                        leftoverPending[adopted[bestJ].id] = MatchMath.printMADNote()
+                        continue
+                    }
                     if let med = MatchMath.printCommitMedian(trail),
                        MatchMath.unknownCentroid(bestCosine: med)
                     {
@@ -2037,6 +2046,7 @@ final class LibraryStore: ObservableObject {
                     }
                 } else {
                     guestOrder = MatchMath.guestOrderAppend(id: adopted[bestJ].id, onto: guestOrder)
+                    guestSeenAt[adopted[bestJ].id] = now
                 }
                 boxEuro.removeValue(forKey: old.id)
                 boxKalman.removeValue(forKey: old.id)
@@ -2071,7 +2081,14 @@ final class LibraryStore: ObservableObject {
             leftoverHold = leftoverHold.filter { liveIds.contains($0.key) }
             leftoverHoldByHash = MatchMath.leftoverHoldPrune(leftoverHoldByHash, now: now)
             leftoverPending = leftoverPending.filter { liveIds.contains($0.key) }
-            guestOrder = guestOrder.filter { liveIds.contains($0) }
+            let liveList = Array(liveIds)
+            guestOrder = guestOrder.filter {
+                MatchMath.guestOrderKeeps(id: $0, live: liveList, lastSeen: guestSeenAt[$0], now: now)
+            }
+            for id in liveIds where guestOrder.contains(id) {
+                guestSeenAt[id] = now
+            }
+            guestSeenAt = guestSeenAt.filter { guestOrder.contains($0.key) || liveIds.contains($0.key) }
             let leftoverIds = Set(leftoverPinned.map(\.id))
             leftoverStreak = leftoverStreak.filter { leftoverIds.contains($0.key) && !used.contains($0.key) }
             leftoverStreakBox = leftoverStreakBox.filter { leftoverIds.contains($0.key) && !used.contains($0.key) }
