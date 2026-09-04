@@ -625,7 +625,18 @@ enum FaceEngine {
         var centroidCache: [String: [Double]] = [:]
         var ratioCache: [String: [[Double]]] = [:]
         return probes.map { face in
-            let pv = embedding(of: face)
+            let occluded = lowerFaceOccluded(face)
+            let hasUpperRefs = models.contains { m in
+                m.owned.contains { poseSlot($0) == .upper && partialEmbedding(of: $0).count >= 32 }
+            }
+            let usePartial = MatchMath.partialPrintMasked(occluded: occluded, hasUpperRefs: hasUpperRefs)
+            let pv: [Double] = {
+                if usePartial {
+                    let part = partialEmbedding(of: face)
+                    if part.count >= 32 { return part }
+                }
+                return embedding(of: face)
+            }()
             let probeRatios = face.ratioSheet.filter(\.identity).map(\.value)
             let probeSlot = poseSlot(face)
             var versus: [IdentityScore] = []
@@ -654,7 +665,17 @@ enum FaceEngine {
                 let printPct: Double
                 let measured: Bool
                 if pv.count >= 32, vec.count == pv.count {
-                    printPct = MatchMath.printSigmoid(cosine: cosine(pv, vec))
+                    let c = cosine(pv, vec)
+                    if usePartial {
+                        let pMean = meanPartialVector(m.owned)
+                        if pMean.count == pv.count {
+                            printPct = MatchMath.printSigmoid(cosine: cosine(pv, pMean))
+                        } else {
+                            printPct = MatchMath.printSigmoid(cosine: c)
+                        }
+                    } else {
+                        printPct = MatchMath.printSigmoid(cosine: c)
+                    }
                     measured = true
                 } else {
                     printPct = 0
@@ -768,6 +789,12 @@ enum FaceEngine {
                 bestPercent: best?.percent ?? 0,
                 floor: MatchMath.unknownRejectFloor(slider: threshold)
             ) {
+                decidedId = nil
+                let unk = MatchMath.unknownRejectNote()
+                note = note.isEmpty ? unk : unk + ". " + note
+            } else if let bid = best?.identityId, let vec = modelVec[bid],
+                      MatchMath.unknownCentroid(bestCosine: pv.count == vec.count ? cosine(pv, vec) : nil)
+            {
                 decidedId = nil
                 let unk = MatchMath.unknownRejectNote()
                 note = note.isEmpty ? unk : unk + ". " + note

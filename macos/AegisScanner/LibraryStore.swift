@@ -42,6 +42,7 @@ final class LibraryStore: ObservableObject {
     @Published var freezeAxis: [UUID: String] = [:]
     @Published var swapFlashUntil: TimeInterval = 0
     @Published var headCountFlashUntil: TimeInterval = 0
+    @Published var mergeHint: String = ""
 
     private let liveCapture = LiveCapture()
     private var liveMediaId: UUID?
@@ -87,6 +88,11 @@ final class LibraryStore: ObservableObject {
     private var liveStillFor: [UUID: TimeInterval] = [:]
     private var livePrintDrift: [UUID: [Double]] = [:]
     private var livePoseAt: [UUID: TimeInterval] = [:]
+    private var liveExposureUntil: [UUID: TimeInterval] = [:]
+    private var livePosterJitter: [UUID: Double] = [:]
+    private var livePosterStill: [UUID: Int] = [:]
+    private var liveLandmarkPrev: [UUID: [Point2]] = [:]
+    private var leftoverHoldTrail: [UUID: [Double]] = [:]
     private var lastCameraUniqueID: String = ""
     private var pendingRenameId: UUID?
     private var pendingRenameName: String?
@@ -133,6 +139,37 @@ final class LibraryStore: ObservableObject {
 
     private func persist() {
         GalleryFile.save(identities: identities, faces: faces)
+        refreshMergeHint()
+    }
+
+    func refreshMergeHint() {
+        let pairs = IdentityDesk.mergePairs(identities: identities, gallery: faces)
+        if let p = pairs.first {
+            mergeHint = String(format: "%@ und %@ %.0f%% — zusammenführen?", p.keepName, p.dropName, p.cosine * 100)
+        } else {
+            mergeHint = ""
+        }
+    }
+
+    func acceptMergeHint() {
+        let pairs = IdentityDesk.mergePairs(identities: identities, gallery: faces)
+        guard let p = pairs.first else { return }
+        mergeIdentities(keep: p.keep, drop: p.drop)
+    }
+
+    func mergeIdentities(keep: UUID, drop: UUID) {
+        guard keep != drop,
+              let ki = identities.firstIndex(where: { $0.id == keep }),
+              let di = identities.firstIndex(where: { $0.id == drop })
+        else { return }
+        let extra = identities[di].faceIds
+        identities[ki].faceIds.append(contentsOf: extra.filter { !identities[ki].faceIds.contains($0) })
+        identities[ki].rejectedVecs.append(contentsOf: identities[di].rejectedVecs)
+        let name = identities[ki].name
+        identities.remove(at: di)
+        persist()
+        rematch()
+        status = "\(name) zusammengeführt"
     }
 
     var canRestoreBackup: Bool { GalleryFile.backupExists }
@@ -211,7 +248,8 @@ final class LibraryStore: ObservableObject {
 
     var floorHint: String {
         let f = FaceEngine.effectiveFloors(galleryCount: identities.count, slider: threshold)
-        return "Galerie \(identities.count): Floor \(Int(f.match)) · Solo \(Int(f.solo))"
+        let open = Int(MatchMath.unknownRejectFloor(slider: threshold).rounded())
+        return "Galerie \(identities.count): Floor \(Int(f.match)) · Solo \(Int(f.solo)) · Open-Set \(open)"
     }
 
     var benchHome: URL {
@@ -606,6 +644,7 @@ final class LibraryStore: ObservableObject {
             enabled: enabled,
             continuity: liveContinuity
         )
+        refreshMergeHint()
     }
 
     /// Live-Frame: Sonden gegen Identitäts-Centroids, nicht jedes Galerie-Foto.
@@ -1502,7 +1541,25 @@ final class LibraryStore: ObservableObject {
                     face.featurePrint = old.featurePrint
                     face.printVec = old.printVec.isEmpty ? FaceEngine.embedding(of: old) : old.printVec
                 } else if !old.featurePrint.isEmpty, !face.featurePrint.isEmpty {
-                    let skip = MatchMath.holdStillSkip(iou: bestIoU, sharpness: face.quality.sharpness)
+                    if !old.landmarks.isEmpty, !face.landmarks.isEmpty {
+                        let j = MatchMath.landmarkJitter(
+                            prev: liveLandmarkPrev[old.id] ?? old.landmarks,
+                            next: face.landmarks
+                        )
+                        let acc = MatchMath.posterJitterAccum(prev: livePosterJitter[old.id] ?? j, next: j)
+                        livePosterJitter[old.id] = acc
+                        livePosterStill[old.id] = MatchMath.posterStillAdvance(
+                            jitter: acc,
+                            streak: livePosterStill[old.id] ?? 0
+                        )
+                        liveLandmarkPrev[old.id] = face.landmarks
+                    }
+                    if MatchMath.captureJumps(prev: old.quality.capture, next: face.quality.capture) {
+                        liveExposureUntil[old.id] = MatchMath.exposureLockUntil(now: now)
+                    }
+                    let aeLock = MatchMath.exposureLocks(now: now, until: liveExposureUntil[old.id] ?? 0)
+                    let skip = aeLock
+                        || MatchMath.holdStillSkip(iou: bestIoU, sharpness: face.quality.sharpness)
                         || MatchMath.skipPrint(sharpness: face.quality.sharpness, continuity: liveCapture.isContinuity)
                         || MatchMath.motionBlurDrops(
                             aligned: MatchMath.cropAligns(roll: face.quality.roll),
@@ -1716,6 +1773,10 @@ final class LibraryStore: ObservableObject {
         livePrintTrailSlot = livePrintTrailSlot.filter { used.contains($0.key) }
         liveStillFor = liveStillFor.filter { used.contains($0.key) }
         livePrintDrift = livePrintDrift.filter { used.contains($0.key) }
+        liveExposureUntil = liveExposureUntil.filter { used.contains($0.key) }
+        livePosterJitter = livePosterJitter.filter { used.contains($0.key) }
+        livePosterStill = livePosterStill.filter { used.contains($0.key) }
+        liveLandmarkPrev = liveLandmarkPrev.filter { used.contains($0.key) }
         if found.isEmpty {
             for old in previous where !enrolled.contains(old.id) {
                 liveGhosts.append((old, now + MatchMath.liveGhostHold))
@@ -1730,6 +1791,11 @@ final class LibraryStore: ObservableObject {
             leftoverPairStreak = [:]
             leftoverPairCommit = [:]
             leftoverWipeUntil = [:]
+            leftoverHoldTrail = [:]
+            liveExposureUntil = [:]
+            livePosterJitter = [:]
+            livePosterStill = [:]
+            liveLandmarkPrev = [:]
             liveSlotHold = [:]
             liveStillFor = [:]
             faces.removeAll { $0.mediaId == mediaId }
@@ -1775,6 +1841,7 @@ final class LibraryStore: ObservableObject {
                 var sharp: [Int: Double] = [:]
                 var sameSlot: [Int: Bool] = [:]
                 var yawAbs: [Int: Double] = [:]
+                var aspectOk: [Int: Bool] = [:]
                 let old = item.old
                 if leftoverTried.contains(old.id) { continue }
                 let oldRaw = FaceEngine.poseSlot(old).rawValue
@@ -1784,6 +1851,8 @@ final class LibraryStore: ObservableObject {
                 for cand in remaining {
                     sharp[cand.index] = adopted[cand.index].quality.sharpness
                     yawAbs[cand.index] = abs(adopted[cand.index].quality.yaw)
+                    let box = adopted[cand.index].box
+                    aspectOk[cand.index] = MatchMath.boxAspectFrontal(width: box.width, height: box.height)
                     let raw = FaceEngine.poseSlot(adopted[cand.index]).rawValue
                     let held = liveSlotHold[adopted[cand.index].id]
                     let sticky = MatchMath.poseSlotSticky(prev: held?.slot ?? oldSticky.slot, raw: raw, hold: held?.n ?? 0)
@@ -1795,6 +1864,7 @@ final class LibraryStore: ObservableObject {
                     sharpness: sharp,
                     sameSlot: sameSlot,
                     yawAbs: yawAbs,
+                    aspectOk: aspectOk,
                     twinPair: matches.first { $0.faceId == old.id }?.hits.first { $0.strategy == .aegis }?.pairCosine,
                     holdPrev: leftoverHold[old.id]
                 ) else {
@@ -1807,6 +1877,25 @@ final class LibraryStore: ObservableObject {
                     leftoverPending[adopted[bestJ].id] = label
                 }
                 guard step.ready else { continue }
+                if let cos = remaining.first(where: { $0.index == bestJ })?.cosine {
+                    var trail = leftoverHoldTrail[old.id] ?? []
+                    trail.append(cos)
+                    if trail.count > 5 { trail.removeFirst(trail.count - 5) }
+                    leftoverHoldTrail[old.id] = trail
+                    if let med = MatchMath.printCommitMedian(trail),
+                       MatchMath.unknownCentroid(bestCosine: med)
+                    {
+                        leftoverPending[adopted[bestJ].id] = "MED"
+                        continue
+                    }
+                }
+                if MatchMath.posterFaceReject(
+                    jitter: livePosterJitter[old.id] ?? 1,
+                    frames: livePosterStill[old.id] ?? 0
+                ) {
+                    leftoverPending[adopted[bestJ].id] = "POSTER"
+                    continue
+                }
                 leftoverClearStreak(old.id)
                 leftoverPending.removeValue(forKey: adopted[bestJ].id)
                 used.insert(old.id)
@@ -1849,6 +1938,7 @@ final class LibraryStore: ObservableObject {
             leftoverPairLast = leftoverPairLast.filter { leftoverIds.contains($0.key) && !used.contains($0.key) }
             leftoverPairStreak = leftoverPairStreak.filter { leftoverIds.contains($0.key) && !used.contains($0.key) }
             leftoverPairCommit = leftoverPairCommit.filter { leftoverIds.contains($0.key) && !used.contains($0.key) }
+            leftoverHoldTrail = leftoverHoldTrail.filter { leftoverIds.contains($0.key) && !used.contains($0.key) }
             leftoverWipeUntil = leftoverWipeUntil.filter { liveIds.contains($0.key) }
             liveSlotHold = liveSlotHold.filter { liveIds.contains($0.key) }
             if leftoverPins > 0, let line = MatchMath.leftoverPinStatus(

@@ -943,6 +943,32 @@ enum MatchMathTests {
         ok(MatchMath.unknownCentroid(bestCosine: 0.40), "Centroid unbekannt")
         ok(!MatchMath.unknownCentroid(bestCosine: 0.80), "Centroid bekannt")
         ok(MatchMath.unknownCentroid(bestCosine: nil), "nil unbekannt")
+        ok(MatchMath.leftoverPickAspect(ok: false, cosine: 0.70) == false, "schmal ohne Baptize tot")
+        ok(MatchMath.leftoverPickAspect(ok: false, cosine: 0.82), "schmal + Baptize darf")
+        ok(MatchMath.leftoverPickAspect(ok: true, cosine: 0.66), "Frontal-Aspekt frei")
+        ok(
+            MatchMath.leftoverPick(
+                candidates: [(0, 0.50, 0.70)],
+                aspectOk: [0: false]
+            ) == nil,
+            "Profil-schmal 0,70 kein leftover"
+        )
+        ok(
+            MatchMath.leftoverPick(
+                candidates: [(0, 0.50, 0.82)],
+                aspectOk: [0: false]
+            ) == 0,
+            "Profil-schmal 0,82 Baptize"
+        )
+        let j0 = MatchMath.landmarkJitter(
+            prev: [Point2(x: 0, y: 0), Point2(x: 1, y: 0), Point2(x: 0, y: 1), Point2(x: 1, y: 1)],
+            next: [Point2(x: 0, y: 0), Point2(x: 1, y: 0), Point2(x: 0, y: 1), Point2(x: 1, y: 1)]
+        )
+        ok(j0 < 1e-9, "Poster-Jitter 0")
+        ok(MatchMath.posterStillAdvance(jitter: 0, streak: 3) == 4, "Poster-Streak")
+        ok(MatchMath.posterStillAdvance(jitter: 0.01, streak: 3) == 0, "Leben setzt Streak")
+        ok(MatchMath.captureJumps(prev: 0.40, next: 0.60), "AE-Sprung 0,20")
+        ok(!MatchMath.captureJumps(prev: 0.40, next: 0.45), "0,05 kein AE-Sprung")
         near(MatchMath.leftoverHoldSmooth(raw: 0.70, prev: 0.64) ?? -1, 0.35 * 0.70 + 0.65 * 0.64, 0.001, "Smooth vor Pick")
         ok(MatchMath.leftoverHoldSmooth(raw: nil, prev: 0.64) == nil, "ohne Print kein Smooth")
         ok(MatchMath.leftoverHoldBlocks(raw: 0.70, prev: 0.64), "Spike 0,06 blockt Taufe")

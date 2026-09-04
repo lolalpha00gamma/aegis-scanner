@@ -145,6 +145,16 @@ struct ContentView: View {
                     .font(.caption2)
                     .foregroundStyle(.orange)
             }
+            if !store.mergeHint.isEmpty {
+                HStack(alignment: .top, spacing: 8) {
+                    Text(store.mergeHint)
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
+                    Button("Zusammenführen") { store.acceptMergeHint() }
+                        .controlSize(.small)
+                }
+                .help("Centroid 0,89–0,94. Bestätigen, nie still taufen.")
+            }
             Text("Anlegen = neue Person (zweites Mal bestätigt, wenn Cosine ≥ 0,82). + = extra Foto derselben Person. Dritter gleicher Slot blockt, solange Frontal oder ¾ fehlt. Live speichert eine Kopie.")
                 .font(.caption2)
                 .foregroundStyle(.secondary)

@@ -1,4 +1,4 @@
-# Aegis **2.1.58 alpha**
+# Aegis **2.1.59 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,20 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.59 alpha
+
+2.1.58 hat Merge-Schwelle und Open-Set-Math, aber leftover taufte schmale Profil-Kisten, Poster an der Wand, AE-Sprünge und Masken-Full-Print. Merge-Wizard fehlte.
+
+- **`leftoverPick aspectOk` / `leftoverPickAspect`.** Box-Aspekt < 0,38 nur mit Baptize 0,80.
+- **`unknownCentroid` in matchLive + leftoverPick.** Open-Set Cosine-Floor, nicht nur Prozent.
+- **`partialPrintMasked`.** Maske + U-Slot-Refs → Teil-Print gegen meanPartialVector.
+- **Poster.** Landmark-Jitter 0 über 4 Frames blockt leftover (`POSTER`).
+- **AE-Lock 200 ms** nach Capture-Sprung ≥ 0,15 — kein Print-Commit.
+- **`printCommitMedian`** auf leftover-Hold-Trail vor Taufe (`MED`).
+- **Merge-Banner** Centroid 0,89–0,94 + Button Zusammenführen.
+- **Open-Set im Floor-Hint** (Slider 78 → 50).
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.59 (Build 86).
 
 ## Neu in 2.1.58 alpha
 

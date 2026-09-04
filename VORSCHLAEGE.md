@@ -1,6 +1,24 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.58 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.59 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.59 wirklich im Code
+
+2.1.58 Merge-Schwelle / Open-Set-Math — leftover taufte Profil-Ghosts, Poster, AE-Sprünge, Maske-Full-Print. Wizard fehlte.
+
+1. **`leftoverPickAspect` / aspectOk.** Schmal nur Baptize 0,80.
+2. **`unknownCentroid`** in matchLive und leftoverPick.
+3. **`partialPrintMasked`** Match gegen meanPartialVector.
+4. **Poster-Jitter** 4 Frames, leftover `POSTER`.
+5. **`captureJumps` + AE-Lock 200 ms.**
+6. **`printCommitMedian`** leftover-Trail, Overlay `MED`.
+7. **Merge-Banner + `mergeIdentities`.**
+8. **Open-Set im `floorHint`.**
+9. Tests + VERSION = Models = MARKETING_VERSION 2.1.59 (Build 86).
+
+## Nächste (offen, 2.1.58 — erledigt in 2.1.59)
+
+Poster/AE/Partial/Unknown-Centroid/Aspekt/Merge-UI/Open-Set-Label sitzen in 2.1.59.
 
 ## In 2.1.58 wirklich im Code
 
@@ -140,13 +158,13 @@ Die Punkte leftover Ambiguity, Twin-Veto, Mouth-open, Reconnect-Ghost, Slot-Hyst
 
 ## Nächste (offen)
 
-- **Identitäten-Merge-Wizard UI** bei Centroid 0,89–0,94. Schwelle `mergeSuggest` sitzt in 2.1.58. Confirm, nie still.
+- **Identitäten-Merge-Wizard UI** bei Centroid 0,89–0,94. **→ 2.1.59 Merge-Banner + Button**
 - **Helios-Bridge.** Eine Kamera-Session, eine TCC.
-- **Enrollment AE-Lock** 200 ms nach Belichtungssprung. Math sitzt in 2.1.57.
+- **Enrollment AE-Lock** 200 ms nach Belichtungssprung. **→ 2.1.59 captureJumps + exposureLock**
 - **Zwei-Kamera-Live.** Built-in + Continuity, Track über Print.
 - **PhotoKit-Scan** nur mit expliziter Foto-Berechtigung.
 - **Live-FAR** letzte 200 Impostor-Ticks im Labor, Overlay-Ticker.
-- **Open-Set Slider UI** um unknownRejectFloor. Math sitzt in 2.1.58; Prefs-Label fehlt.
+- **Open-Set Slider UI** um unknownRejectFloor. **→ 2.1.59 floorHint Open-Set n**
 - **Quality-weighted Centroid.** sharpness × print.
 - **Unknown sticky UUID.** „Stranger 1“ ohne Namen.
 - **Print+Geo AND bei 2 Personen**, nicht OR.
@@ -161,19 +179,19 @@ Die Punkte leftover Ambiguity, Twin-Veto, Mouth-open, Reconnect-Ghost, Slot-Hyst
 - **Aktives Lernen.** „Ist das dieselbe Person?“ an unsicheren Rändern.
 - **Platt-Skalierung** der Sigmoid auf Leave-one-out der Galerie.
 - **Print-Revision-Banner** wenn Face-Print nach OS-Update andere Dim liefert.
-- **Poster-Face reject.** Landmark-Jitter 0 über 4 Frames = Foto an der Wand. **Math → 2.1.57 posterFaceReject.** Landmark-Hist fehlt.
+- **Poster-Face reject.** **→ 2.1.59 landmarkJitter + leftover POSTER**
 - **Glasses as Slot.** Brille an/aus nicht neue Identität.
 - **Track-ID in Labor-CSV.**
 - **CLAHE vor Print** bei Continuity, sonst Nacht-Print driftet.
-- **Partial-Print bei Maske.** `meanPartialVector` statt Vote-Skip wenn U-Slot-Refs da sind. **Math → 2.1.57 partialPrintMasked.**
+- **Partial-Print bei Maske.** **→ 2.1.59 partialPrintMasked in matchLive**
 - **Enrollment-Radar** F/¾/P als Ring, nicht nur Balken.
 - **Gallery-Compact.** gleiche Pose Cosine 0,97 mergen, Confirm.
 - **Name-Farbe sticky** nach Lock, nicht jedes Tick neu.
 - **Nacht-ISO Banner** wenn Capture < 0,30 drei Frames — CLAHE vorschlagen.
-- **Twin-Wizard.** pairCosine 0,89–0,94 → „dieselbe Person?“ statt still taufen.
-- **Ransac-1 Print.** Outlier-Frame nicht in den Median-Trail. **Math → 2.1.57 printCommitMedian.**
+- **Twin-Wizard.** pairCosine 0,89–0,94 → „dieselbe Person?“ statt still taufen. Merge-Banner 2.1.59 deckt Centroid, nicht leftover-Twin.
+- **Ransac-1 Print.** **→ 2.1.59 printCommitMedian leftover-Trail**
 - **Identity-Graph.** Wer mit wem im Bild — Soft-Prior, nie Taufe.
-- **Liveness-Blink.** 1 Lid-Toggle in 2 s sonst Poster.
+- **Liveness-Blink.** 1 Lid-Toggle in 2 s sonst Poster. Jitter-Poster sitzt.
 - **Cross-Cam ReID.** Built-in → Continuity gleiche UUID über Print, nicht IoU.
 - **Hard-Negatives aus leftover-Miss.** Labor-CSV automatisch.
 - **PnP-Pose.** 6DoF statt nur Yaw, Slot-Hysterese folgt der Nase.
@@ -184,6 +202,13 @@ Die Punkte leftover Ambiguity, Twin-Veto, Mouth-open, Reconnect-Ghost, Slot-Hyst
 - **Live-dt Median** analog Helios sampleDts — ein Dropout darf leftover-Need nicht auf 0,50 s kippen. **→ 2.1.56 medianLiveDt**
 - **Enrollment-Burst 400 ms auch über `+` in der Liste**, nicht nur Kamera.
 - **Yaw-Slot-Prior im leftoverPick** bevor IoU, sonst ¾-Ghost auf Frontal-Nachbarn (Slot-hart sitzt, Pick-Reihenfolge nicht). **→ 2.1.57 leftoverPick yawAbs**
+- **Box-Aspekt < 0,38 kein leftover-Frontal.** **→ 2.1.59 leftoverPickAspect**
+- **Merge-Liste mehr als ein Paar.** Banner zeigt Top-1; Wizard mit Confirm je Paar fehlt.
+- **Poster-Liveness Blink** als zweite Spur neben Jitter.
+- **Unknown sticky „Gast 1“** nach Open-Set, damit leftover nicht die nächste UUID stiehlt.
+- **Quality-weighted leftoverScore** sharpness × print, Bonus sitzt, Gewicht in Centroid nicht.
+- **CLAHE Continuity-Nacht** vor Print, Capture < 0,30 Banner.
+- **Helios Frame-Pump teilen** — eine TCC, ein RotationCoordinator.
 - **Gallery-JSON Schema 3:** `ghostHoldSec` persistiert, Restore nach Crash.
 - **Testmodus ident20 parallel zu Live** ohne Galerie zu wischen.
 - **Continuity-Desk-View eigener Pose-Slot `desk`**, nicht Profil.

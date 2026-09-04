@@ -148,4 +148,35 @@ enum IdentityDesk {
         let row = hits.first { $0.strategy == .aegis } ?? hits.first { $0.strategy == .featurePrint }
         return Array((row?.versus ?? []).prefix(3))
     }
+
+    /// Centroid 0,89–0,94: Merge-Vorschlag, nie still taufen.
+    static func mergePairs(
+        identities: [Identity],
+        gallery: [FaceObservation]
+    ) -> [(keep: UUID, drop: UUID, cosine: Double, keepName: String, dropName: String)] {
+        var out: [(keep: UUID, drop: UUID, cosine: Double, keepName: String, dropName: String)] = []
+        guard identities.count >= 2 else { return out }
+        var cents: [UUID: [Double]] = [:]
+        for ident in identities {
+            let owned = gallery.filter { ident.faceIds.contains($0.id) }
+            let v = FaceEngine.liveCentroid(owned)
+            if v.count >= 32 { cents[ident.id] = v }
+        }
+        for i in 0..<identities.count {
+            for j in (i + 1)..<identities.count {
+                let a = identities[i]
+                let b = identities[j]
+                guard let va = cents[a.id], let vb = cents[b.id], va.count == vb.count else { continue }
+                let c = MatchMath.cosine(va, vb)
+                guard MatchMath.mergeSuggest(pairCosine: c) else { continue }
+                if a.faceIds.count >= b.faceIds.count {
+                    out.append((a.id, b.id, c, a.name, b.name))
+                } else {
+                    out.append((b.id, a.id, c, b.name, a.name))
+                }
+            }
+        }
+        out.sort { $0.cosine > $1.cosine }
+        return out
+    }
 }

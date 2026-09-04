@@ -239,6 +239,7 @@ enum MatchMath {
         sharpness: [Int: Double] = [:],
         sameSlot: [Int: Bool] = [:],
         yawAbs: [Int: Double] = [:],
+        aspectOk: [Int: Bool] = [:],
         floor: Double = leftoverIoU,
         twinPair: Double? = nil,
         holdPrev: Double? = nil
@@ -252,7 +253,15 @@ enum MatchMath {
         if leftoverTwinBlocksBox(pairCosine: twinPair, printCosine: nil) {
             printable = printable.filter { leftoverBaptize(cosine: $0.cosine) }
         }
+        if !aspectOk.isEmpty {
+            printable = printable.filter {
+                leftoverPickAspect(ok: aspectOk[$0.index], cosine: $0.cosine)
+            }
+        }
         guard !printable.isEmpty else { return nil }
+        if printable.allSatisfy({ unknownCentroid(bestCosine: $0.cosine) }) {
+            return nil
+        }
         let slotted = printable.filter { sameSlot[$0.index] == true }
         let pool: [(index: Int, iou: Double, cosine: Double?)]
         if !slotted.isEmpty {
@@ -1766,16 +1775,38 @@ enum MatchMath {
         return (width / height) >= minAspect
     }
 
-    /// Median-Trail Commit, nicht Mittel — ein Outlier-Frame tauft nicht.
-    static func printCommitMedian(_ samples: [Double]) -> Double? {
-        let ok = samples.filter { $0.isFinite }
-        guard !ok.isEmpty else { return nil }
-        let sorted = ok.sorted()
-        return sorted[sorted.count / 2]
+    /// Schmale Kiste nur mit Baptize-Print, sonst Profil-Ghost.
+    static func leftoverPickAspect(ok: Bool?, cosine: Double?) -> Bool {
+        if ok != false { return true }
+        return leftoverBaptize(cosine: cosine)
+    }
+
+    /// Landmark-Jitter über Paare. 0 über 4 Frames = Poster.
+    static func landmarkJitter(prev: [Point2], next: [Point2]) -> Double {
+        let n = min(prev.count, next.count)
+        guard n >= 4 else { return 1 }
+        var s = 0.0
+        for i in 0..<n {
+            s += hypot(prev[i].x - next[i].x, prev[i].y - next[i].y)
+        }
+        return s / Double(n)
+    }
+
+    static func posterJitterAccum(prev: Double, next: Double, alpha: Double = 0.45) -> Double {
+        prev * (1 - alpha) + next * alpha
+    }
+
+    static func posterStillAdvance(jitter: Double, streak: Int, floor: Double = 1e-4) -> Int {
+        jitter < floor ? streak + 1 : 0
     }
 
     /// Enrollment: 200 ms nach Belichtungssprung kein Print.
     static let exposureLockHold: TimeInterval = 0.20
+    static let captureJumpDelta = 0.15
+
+    static func captureJumps(prev: Double, next: Double, delta: Double = captureJumpDelta) -> Bool {
+        abs(next - prev) >= delta
+    }
 
     static func exposureLockUntil(now: TimeInterval, hold: TimeInterval = exposureLockHold) -> TimeInterval {
         now + hold
@@ -1783,6 +1814,14 @@ enum MatchMath {
 
     static func exposureLocks(now: TimeInterval, until: TimeInterval) -> Bool {
         until > 0 && now < until
+    }
+
+    /// Median-Trail Commit, nicht Mittel — ein Outlier-Frame tauft nicht.
+    static func printCommitMedian(_ samples: [Double]) -> Double? {
+        let ok = samples.filter { $0.isFinite }
+        guard !ok.isEmpty else { return nil }
+        let sorted = ok.sorted()
+        return sorted[sorted.count / 2]
     }
 
     /// Maske: Partial-Print statt Vote-Skip wenn U-Slot-Refs da sind.
