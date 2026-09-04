@@ -90,6 +90,7 @@ final class LibraryStore: ObservableObject {
     private var livePrintDrift: [UUID: [Double]] = [:]
     private var livePoseAt: [UUID: TimeInterval] = [:]
     private var liveExposureUntil: [UUID: TimeInterval] = [:]
+    private var liveCaptureHist: [UUID: [Double]] = [:]
     private var livePosterJitter: [UUID: Double] = [:]
     private var livePosterStill: [UUID: Int] = [:]
     private var liveLandmarkPrev: [UUID: [Point2]] = [:]
@@ -1150,6 +1151,26 @@ final class LibraryStore: ObservableObject {
         return leftoverPending[faceId]
     }
 
+    func tapLockChip(faceId: UUID) -> String? {
+        MatchMath.tapNameLockLabel(
+            until: tapNameLockUntil[faceId],
+            now: Date().timeIntervalSince1970
+        )
+    }
+
+    func ghostFaceIds() -> Set<UUID> {
+        Set(liveGhosts.map(\.face.id))
+    }
+
+    func tapOverlay(faceId: UUID, mediaId: UUID? = nil) {
+        selectedFaceId = faceId
+        if let mediaId { selectedMediaId = mediaId }
+        let pinned = identities.contains { $0.faceIds.contains(faceId) }
+        if MatchMath.tapOverlayLocksName(pinned: pinned) {
+            tapNameLockUntil[faceId] = MatchMath.tapNameLockUntil(now: Date().timeIntervalSince1970)
+        }
+    }
+
     func stillProgress(faceId: UUID) -> Double? {
         let t = liveStillFor[faceId] ?? 0
         guard t > 0 else { return nil }
@@ -1273,6 +1294,7 @@ final class LibraryStore: ObservableObject {
         livePrintTrail.removeAll()
         livePrintTrailSlot.removeAll()
         liveStillFor.removeAll()
+        liveCaptureHist.removeAll()
         leftoverStreak = [:]
         leftoverStreakBox = [:]
         leftoverStreakSince = [:]
@@ -1632,11 +1654,26 @@ final class LibraryStore: ObservableObject {
                     }
                     liveLidClosed[old.id] = closedNow
                     if MatchMath.captureJumps(prev: old.quality.capture, next: face.quality.capture) {
-                        liveExposureUntil[old.id] = MatchMath.exposureLockUntil(now: now)
+                        liveExposureUntil[old.id] = MatchMath.exposureLockUntil(
+                            now: now,
+                            hold: MatchMath.exposureLockHold(dt: liveDt)
+                        )
                     }
                     let aeLock = MatchMath.exposureLocks(now: now, until: liveExposureUntil[old.id] ?? 0)
                     let enrolledPin = enrolled.contains(old.id) || namedTracks.contains(old.id)
+                    var capHist = liveCaptureHist[old.id] ?? [old.quality.capture]
+                    let burst = MatchMath.captureBurstBlocksPrint(
+                        history: capHist,
+                        next: face.quality.capture,
+                        enrolled: enrolledPin
+                    )
+                    capHist.append(face.quality.capture)
+                    if capHist.count > MatchMath.captureBurstFrames {
+                        capHist.removeFirst(capHist.count - MatchMath.captureBurstFrames)
+                    }
+                    liveCaptureHist[old.id] = capHist
                     let skip = aeLock
+                        || burst
                         || MatchMath.captureJumpBlocksPrint(
                             prev: old.quality.capture,
                             next: face.quality.capture,
@@ -1687,16 +1724,26 @@ final class LibraryStore: ObservableObject {
                 // Ghost-Box darf nicht kleben: 1-Euro und Ampel der UUID verwerfen.
                 boxEuro.removeValue(forKey: old.id)
                 boxJumpPending.removeValue(forKey: old.id)
-                livePrintTrail.removeValue(forKey: old.id)
-                livePrintTrailSlot.removeValue(forKey: old.id)
+                if !MatchMath.printTrailKeepsOnGhostAdopt() {
+                    livePrintTrail.removeValue(forKey: old.id)
+                    livePrintTrailSlot.removeValue(forKey: old.id)
+                }
                 face.qualitySpark = []
                 let blend = MatchMath.liveBlendAlpha(continuity: liveCapture.isContinuity)
                 let enrolledPin = enrolled.contains(old.id) || namedTracks.contains(old.id)
-                let jump = MatchMath.captureJumpBlocksPrint(
+                var hist = liveCaptureHist[old.id] ?? [old.quality.capture]
+                let jump = MatchMath.captureBurstBlocksPrint(
+                    history: hist,
+                    next: face.quality.capture,
+                    enrolled: enrolledPin
+                ) || MatchMath.captureJumpBlocksPrint(
                     prev: old.quality.capture,
                     next: face.quality.capture,
                     enrolled: enrolledPin
                 )
+                hist.append(face.quality.capture)
+                if hist.count > MatchMath.captureBurstFrames { hist.removeFirst(hist.count - MatchMath.captureBurstFrames) }
+                liveCaptureHist[old.id] = hist
                 let blur = MatchMath.skipPrint(
                     sharpness: face.quality.sharpness,
                     continuity: liveCapture.isContinuity
@@ -1888,6 +1935,7 @@ final class LibraryStore: ObservableObject {
         liveStillFor = liveStillFor.filter { keepBoxes.contains($0.key) }
         livePrintDrift = livePrintDrift.filter { keepBoxes.contains($0.key) }
         liveExposureUntil = liveExposureUntil.filter { keepBoxes.contains($0.key) }
+        liveCaptureHist = liveCaptureHist.filter { keepBoxes.contains($0.key) }
         livePosterJitter = livePosterJitter.filter { keepBoxes.contains($0.key) }
         livePosterStill = livePosterStill.filter { keepBoxes.contains($0.key) }
         liveLandmarkPrev = liveLandmarkPrev.filter { keepBoxes.contains($0.key) }
@@ -1895,11 +1943,15 @@ final class LibraryStore: ObservableObject {
         liveBlinkSeen = liveBlinkSeen.filter { keepBoxes.contains($0.key) }
         let ghostIds = liveGhosts.map(\.face.id)
         let liveIds = Array(used)
+        let holdBefore = leftoverHold.count
         leftoverHold = MatchMath.leftoverHoldSurvive(hold: leftoverHold, ghosts: ghostIds, live: liveIds)
         leftoverHoldTrail = MatchMath.leftoverHoldSurvive(hold: leftoverHoldTrail, ghosts: ghostIds, live: liveIds)
         liveSlotHold = MatchMath.leftoverHoldSurvive(hold: liveSlotHold, ghosts: ghostIds, live: liveIds)
         leftoverHoldByHash = MatchMath.leftoverHoldPrune(leftoverHoldByHash, now: now, ttl: MatchMath.dropoutTTL(dt: liveDt))
         leftoverHoldTrailByHash = MatchMath.leftoverTrailPrune(leftoverHoldTrailByHash, now: now, ttl: MatchMath.dropoutTTL(dt: liveDt))
+        if let line = MatchMath.leftoverHoldPruneLine(before: holdBefore, after: leftoverHold.count) {
+            status = line
+        }
         if found.isEmpty {
             liveHeldIds = []
             leftoverPending = [:]
@@ -2157,7 +2209,13 @@ final class LibraryStore: ObservableObject {
                     leftoverPins += 1
                     if let cos = pinCos {
                         leftoverHoldByHash = MatchMath.leftoverHoldPut(
-                            hash: MatchMath.leftoverBoxHash(adopted[bestJ].box),
+                            hash: MatchMath.leftoverHoldWriteHash(
+                                kalmanX: boxKalman[adopted[bestJ].id]?.x,
+                                kalmanY: boxKalman[adopted[bestJ].id]?.y,
+                                kalmanW: boxKalman[adopted[bestJ].id]?.w,
+                                kalmanH: boxKalman[adopted[bestJ].id]?.h,
+                                fallback: adopted[bestJ].box
+                            ),
                             cosine: cos,
                             onto: leftoverHoldByHash,
                             now: now
@@ -2182,6 +2240,13 @@ final class LibraryStore: ObservableObject {
                     guestOrder = MatchMath.guestOrderAppend(id: adopted[bestJ].id, onto: guestOrder)
                     guestSeenAt[adopted[bestJ].id] = now
                 }
+                let putHash = MatchMath.leftoverHoldWriteHash(
+                    kalmanX: boxKalman[adopted[bestJ].id]?.x ?? boxKalman[old.id]?.x,
+                    kalmanY: boxKalman[adopted[bestJ].id]?.y ?? boxKalman[old.id]?.y,
+                    kalmanW: boxKalman[adopted[bestJ].id]?.w ?? boxKalman[old.id]?.w,
+                    kalmanH: boxKalman[adopted[bestJ].id]?.h ?? boxKalman[old.id]?.h,
+                    fallback: adopted[bestJ].box
+                )
                 boxEuro.removeValue(forKey: old.id)
                 boxKalman.removeValue(forKey: old.id)
                 boxJumpPending.removeValue(forKey: old.id)
@@ -2190,7 +2255,7 @@ final class LibraryStore: ObservableObject {
                     let spike = MatchMath.leftoverBaptizeSpike(raw: cos, prev: holdPrev)
                     if !spike {
                         leftoverHoldByHash = MatchMath.leftoverHoldPut(
-                            hash: MatchMath.leftoverBoxHash(adopted[bestJ].box),
+                            hash: putHash,
                             cosine: cos,
                             onto: leftoverHoldByHash,
                             now: now

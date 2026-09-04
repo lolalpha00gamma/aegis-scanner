@@ -1,4 +1,4 @@
-# Aegis **2.1.70 alpha**
+# Aegis **2.1.71 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,17 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.71 alpha
+
+2.1.70 Survive/TTL/Jump/Tap. printPin wischte Trail. Put auf Roh-Box. Overlay-Tap ohne Lock. AE-Burst 3 Frames schrieb Gallery. Leftover durchgezogen wie ein Name.
+
+- **`printTrailKeepsOnGhostAdopt`.** Ghost-Adopt hält Median. Erster 0,82 tauft nicht.
+- **`leftoverHoldWriteHash`.** Put = Kalman-Kiste, Lookup derselbe Bin.
+- **`tapOverlay` 3 s.** Overlay-Klick auf enrolled sperrt leftover. Chip `TAP ns`.
+- **`captureBurstBlocksPrint`.** 3-Frame-AE. `exposureLockHold(dt)` 8 fps 0,40 s.
+- **`overlayBoxDash`.** Leftover/Ghost gestrichelt. Prune-Log eine Zeile.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.71 (Build 97).
 
 ## Neu in 2.1.70 alpha
 

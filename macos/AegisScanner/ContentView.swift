@@ -279,7 +279,7 @@ struct ContentView: View {
                             let pinned = owner != nil
                             let near = !pinned && ident != nil && (hit?.percent ?? 0) >= store.threshold
                             Button {
-                                store.selectedFaceId = face.id
+                                store.tapOverlay(faceId: face.id)
                             } label: {
                                 HStack(spacing: 8) {
                                     Text("\(index + 1)")
@@ -669,7 +669,8 @@ struct FaceOverlay: View {
                     let liveCont = store.liveContinuity && item.kind == .live
                     let hint = FaceEngine.overlayHint(face, gallery: gallery, continuity: liveCont)
                     let leftover = store.leftoverHold[face.id] != nil
-                    let kind = MatchMath.overlayBoxKind(selected: selected, pinned: pinned, leftover: leftover)
+                    let ghost = store.ghostFaceIds().contains(face.id)
+                    let kind = MatchMath.overlayBoxKind(selected: selected, pinned: pinned, leftover: leftover, ghost: ghost)
                     let coachDest = owner ?? (store.identities.count == 1 ? store.identities.first : ident)
                     let coach = selected ? FaceEngine.enrollmentCoach(face: face, identity: coachDest, faces: store.faces) : nil
                     let boxColor: Color = {
@@ -679,6 +680,7 @@ struct FaceOverlay: View {
                         case .selected: return .white
                         case .enrolled: return Color.green.opacity(0.85)
                         case .leftover: return Color.orange.opacity(0.95)
+                        case .ghost: return Color.orange.opacity(0.55)
                         case .unmatched: return Color.white.opacity(0.45)
                         }
                     }()
@@ -736,6 +738,9 @@ struct FaceOverlay: View {
                         if let hold = MatchMath.leftoverHoldLabel(cosine: store.leftoverHold[face.id]) {
                             return "\(base) · \(hold)"
                         }
+                        if let tap = store.tapLockChip(faceId: face.id) {
+                            return "\(base) · \(tap)"
+                        }
                         if let pending = store.leftoverAdoptProgress(faceId: face.id) {
                             return "\(base) · leftover \(pending)"
                         }
@@ -744,11 +749,16 @@ struct FaceOverlay: View {
                     }()
                     let badge = hint.map { "\(printLabel) · \($0)" } ?? printLabel
                     Button {
-                        store.selectedFaceId = face.id
-                        store.selectedMediaId = item.id
+                        store.tapOverlay(faceId: face.id, mediaId: item.id)
                     } label: {
                         Rectangle()
-                            .stroke(boxColor, lineWidth: selected ? 2 : 1.5)
+                            .stroke(
+                                boxColor,
+                                style: StrokeStyle(
+                                    lineWidth: selected ? 2 : 1.5,
+                                    dash: MatchMath.overlayBoxDash(kind)
+                                )
+                            )
                             .overlay(alignment: .topLeading) {
                                 Text(MatchMath.trackLabel(face.trackId ?? face.id))
                                     .font(.caption2.monospacedDigit())

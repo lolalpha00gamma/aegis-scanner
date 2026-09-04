@@ -1004,15 +1004,24 @@ enum MatchMath {
     }
 
     enum OverlayBoxKind: String {
-        case selected, enrolled, leftover, unmatched
+        case selected, enrolled, leftover, unmatched, ghost
     }
 
     /// Leftover-Kiste anders als enrolled — sonst wirkt 0,64 wie ein Name.
-    static func overlayBoxKind(selected: Bool, pinned: Bool, leftover: Bool) -> OverlayBoxKind {
+    /// Ghost/Leftover gestrichelt, sonst Gast-Sprung.
+    static func overlayBoxKind(selected: Bool, pinned: Bool, leftover: Bool, ghost: Bool = false) -> OverlayBoxKind {
         if selected { return .selected }
+        if ghost { return .ghost }
         if leftover { return .leftover }
         if pinned { return .enrolled }
         return .unmatched
+    }
+
+    static func overlayBoxDash(_ kind: OverlayBoxKind) -> [CGFloat] {
+        switch kind {
+        case .leftover, .ghost: return [5, 3]
+        default: return []
+        }
     }
 
     /// Taufe-Hold: „2/3“ bis Mehrheit sitzt. nil = getauft oder leer.
@@ -1908,9 +1917,14 @@ enum MatchMath {
         jitter < floor ? streak + 1 : 0
     }
 
-    /// Enrollment: 200 ms nach Belichtungssprung kein Print.
+    /// Enrollment: 200 ms nach Belichtungssprung kein Print. 8 fps: 0,40 s (sonst 1–2 Frames).
     static let exposureLockHold: TimeInterval = 0.20
     static let captureJumpDelta = 0.15
+    static let captureBurstFrames = 3
+
+    static func exposureLockHold(dt: TimeInterval) -> TimeInterval {
+        dt >= 0.08 ? 0.40 : exposureLockHold
+    }
 
     static func captureJumps(prev: Double, next: Double, delta: Double = captureJumpDelta) -> Bool {
         abs(next - prev) >= delta
@@ -1919,6 +1933,33 @@ enum MatchMath {
     /// Enrolled: AE-Sprung überschreibt den Gallery-Print nicht. holdStillSkip sitzt nur im IoU-Pfad.
     static func captureJumpBlocksPrint(prev: Double, next: Double, enrolled: Bool) -> Bool {
         enrolled && captureJumps(prev: prev, next: next)
+    }
+
+    /// Burst über 3 Frames: Undershoot nach Sprung darf den Print nicht schreiben.
+    static func captureBurstBlocksPrint(
+        history: [Double],
+        next: Double,
+        enrolled: Bool,
+        window: Int = captureBurstFrames,
+        delta: Double = captureJumpDelta
+    ) -> Bool {
+        guard enrolled else { return false }
+        if let last = history.last, captureJumps(prev: last, next: next, delta: delta) { return true }
+        let recent = Array(history.suffix(window)) + [next]
+        guard let lo = recent.min(), let hi = recent.max() else { return false }
+        return (hi - lo) >= delta
+    }
+
+    /// Ghost-Adopt: Trail bleibt. Wipe machte MAD tot, erster 0,82 taufte.
+    static func printTrailKeepsOnGhostAdopt() -> Bool { true }
+
+    /// Overlay-Tap auf enrolled sperrt leftover 3 s, nicht nur Anlegen/+.
+    static func tapOverlayLocksName(pinned: Bool) -> Bool { pinned }
+
+    /// Survive-Prune: eine Statuszeile, kein stilles Wipe.
+    static func leftoverHoldPruneLine(before: Int, after: Int) -> String? {
+        let n = before - after
+        return n > 0 ? "Hold prune \(n)" : nil
     }
 
     /// Manueller Tap: leftover 3 s kein Steal/Taufe.
@@ -2237,6 +2278,19 @@ enum MatchMath {
             return fallback
         }
         return FaceBox(x: x, y: y, width: w, height: h)
+    }
+
+    /// Put und Lookup dieselbe Kiste. Write auf Roh-Box der adopted Kiste verfehlte den Bin.
+    static func leftoverHoldWriteHash(
+        kalmanX: Double?,
+        kalmanY: Double?,
+        kalmanW: Double?,
+        kalmanH: Double?,
+        fallback: FaceBox
+    ) -> String {
+        leftoverBoxHash(leftoverHashBox(
+            kalmanX: kalmanX, kalmanY: kalmanY, kalmanW: kalmanW, kalmanH: kalmanH, fallback: fallback
+        ))
     }
 
     static func leftoverTrailPut(

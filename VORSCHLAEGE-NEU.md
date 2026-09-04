@@ -1,6 +1,17 @@
-# Nachtrag 2026-09-04 (2.1.70)
+# Nachtrag 2026-09-04 (2.1.71)
 
-Siehe ANALYSE.md. **2.1.70** schließt leftoverHoldSurvive auf Partial, Dropout-TTL an dt, Capture-Jump auf Enrolled-Print, Tap-Name-Lock 3 s wirklich im Code.
+Siehe ANALYSE.md. **2.1.71** schließt printPin-Trail, Kalman-Hash im Put, Overlay-Tap-Lock, Burst-AE 3 Frames, Exposure 8 fps 0,40 s, leftover gestrichelt wirklich im Code.
+
+## In 2.1.71 gelandet
+
+1. printTrailKeepsOnGhostAdopt — Ghost-Adopt wischt Median nicht
+2. leftoverHoldWriteHash — Put Kalman, nicht Roh-Box
+3. tapOverlay 3 s — Overlay-Tap sperrt leftover, Chip TAP ns
+4. captureBurstBlocksPrint — AE-Burst 3 Frames, enrolled
+5. exposureLockHold(dt) — 8 fps 0,40 s
+6. overlayBoxDash / .ghost — leftover gestrichelt, kein Gast-Sprung
+7. leftoverHoldPruneLine — Status eine Zeile
+8. VERSION = Models = MARKETING_VERSION 2.1.71 (Build 97)
 
 ## In 2.1.70 gelandet
 
@@ -11,14 +22,6 @@ Siehe ANALYSE.md. **2.1.70** schließt leftoverHoldSurvive auf Partial, Dropout-
 5. tapNameLock 3 s — leftover tauft nicht nach manuellem Tap
 6. Hash-Lookup Kalman nach Dropout
 7. VERSION = Models = MARKETING_VERSION 2.1.70 (Build 96)
-
-## In 2.1.69 gelandet
-
-1. leftoverDropped — Partial- und Voll-Dropout ghosten enrolled
-2. Kalman/Euro für Dropped, leftoverHashBox vor Hash
-3. leftoverBlurBlocks — 0,64 blur kein Pick, 0,80 trotz Blur
-4. Nachbar-Radius 2 bei w/h-Bin ≤ 2
-5. VERSION = Models = MARKETING_VERSION 2.1.69 (Build 95)
 
 ## Offen (nicht Pflaster)
 
@@ -50,14 +53,22 @@ Siehe ANALYSE.md. **2.1.70** schließt leftoverHoldSurvive auf Partial, Dropout-
 31. Twin-Pair Cosine ins Overlay, nicht nur TWIN
 32. PhotoKit Personen-UUID als Soft-Prior
 33. RTSP-Keyframe leftoverHoldSurvive analog Detector-Miss
-34. Enrolled-Print nicht mit Blur-Frame überschreiben sitzt im IoU+printPin; Capture-Jump sitzt — Burst-AE über 3 Frames noch
-35. Tap-Lock HUD im Overlay neben TAP ns (Farbe)
+34. Burst-AE sitzt 3 Frames — 5-Frame-Fenster Pref für Continuity-Nacht
+35. Tap-Lock Farbe: TAP-Chip amber, leftover orange, nicht beides Hue
 36. Dropout-TTL Pref (kurz/normal/lang)
-37. livePrintTrail nach Ghost-Adopt nicht wipe (printPin löscht Trail noch)
-38. Name-Lock 3 s auch nach Overlay-Tap, nicht nur Anlegen/+
-39. Kalman-Hash in leftoverHoldPut (Write noch Roh-Box der adopted Kiste)
-40. Ghost-Overlay gestrichelt statt Gast-Sprung
-41. Exposure-Lock Hold 0,20 s an 8 fps auf 0,40 s
-42. leftoverHoldSurvive prune-Log im Status eine Zeile
+37. Name-Lock nach Overlay-Tap sitzt — nach Keyboard-Rename noch offen
+38. Ghost-Kiste als echtes Overlay (liveGhosts zeichnen), nicht nur Dash am Adopt
+39. Exposure-Lock HUD `AE 0,3 s` neben TAP
+40. leftoverHoldSurvive prune-Log Pref (still / eine Zeile)
+41. Kalman-Hash auch leftoverTrailPut (Trail-Write noch Mix)
+42. printPin + IoU: Burst-Hist der Ghost-UUID beim Adopt übernehmen
+43. Overlay-Tap auf Gast = Tauf-Vorschlag, nicht nur Select
+44. Capture-Hist in gallery.json Schema 5 (Burst über Restore)
+45. 8 fps: leftoverHoldEMA alpha an dt, sonst Spike 0,06 in einem Tick
+46. CLAHE vor Print nur wenn captureJumpBlocks, nicht dauernd
+47. Twin-Pair ins leftoverPick als Hard-Veto über 0,92
+48. Helios-Steal analog: leftover Freeze wenn enrolled wegsieht, nicht taufen
+49. Status „Hold prune n“ nur bei leerem Frame, nicht Partial
+50. Live-HUD Ghost-TTL Countdown analog Helios LOCK tot
 
 Nur main.
