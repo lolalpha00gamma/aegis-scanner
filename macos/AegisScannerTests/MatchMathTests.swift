@@ -1246,6 +1246,36 @@ enum MatchMathTests {
             MatchMath.leftoverKeepBoxes(used: [], dropped: [], ghosts: [], hold: []).isEmpty,
             "ohne Ghost/Hold Kalman tot"
         )
+        ok(MatchMath.leftoverLatchChipKeeps(emptyFor: 4.2), "Chip 0,4 s nach Latch")
+        ok(!MatchMath.leftoverLatchChipKeeps(emptyFor: 4.5), "Chip tot nach 4,4 s")
+        ok(!MatchMath.leftoverLatchKeeps(emptyFor: 4.2), "Kalman tot, Chip noch")
+        let fromId = UUID()
+        let toId = UUID()
+        let mirrored = MatchMath.leftoverPendingMirror(
+            pending: [fromId: "Anna"],
+            from: fromId,
+            to: toId
+        )
+        ok(mirrored[toId] == "Anna", "Pending folgt Adopt-ID")
+        ok(mirrored[fromId] == nil, "Ghost-UUID tot")
+        let same = MatchMath.leftoverPendingMirror(pending: [fromId: "Anna"], from: fromId, to: fromId)
+        ok(same[fromId] == "Anna", "gleiche ID no-op")
+        let keepName = MatchMath.leftoverPendingMirror(
+            pending: [fromId: "Anna", toId: "Bert"],
+            from: fromId,
+            to: toId
+        )
+        ok(keepName[toId] == "Bert", "Live-Name sticht Ghost")
+        near(MatchMath.boxKalmanVelocity(prev: 0.10, next: 0.20, dt: 0.125), 0.55 * 0.8, 0.02, "vx EMA")
+        near(MatchMath.boxKalmanPredict(x: 0.20, v: 0.40, dt: 0.125), 0.25, 0.001, "cx += vx·dt")
+        near(MatchMath.boxKalmanPredict(x: 0.20, v: 8.0, dt: 0.125), 0.32, 0.001, "Cap 0,12")
+        let pred = MatchMath.leftoverPredictBoxes(
+            boxes: [idHoldA: (x: 0.20, y: 0.30)],
+            vel: [idHoldA: (vx: 0.40, vy: 0)],
+            dt: 0.125
+        )
+        near(pred[idHoldA]?.x ?? -1, 0.25, 0.001, "Predict-Box x")
+        near(pred[idHoldA]?.y ?? -1, 0.30, 0.001, "Predict-Box y still")
         near(MatchMath.dropoutTTL(dt: 0.016), 1.20, 0.001, "24 fps TTL 1,2 s")
         near(MatchMath.dropoutTTL(dt: 0.125), 4.0, 0.001, "8 fps TTL 4 s Latch")
         near(MatchMath.liveGhostHold(dt: 0.125), 4.0, 0.001, "8 fps Ghost 4 s")

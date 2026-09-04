@@ -1309,6 +1309,26 @@ enum MatchMath {
         emptyFor >= 0 && emptyFor < latch
     }
 
+    /// Overlay-Chip 0,4 s nach Latch-Ende, Kalman schon tot.
+    static let leftoverHoldChip: TimeInterval = 0.40
+
+    static func leftoverLatchChipKeeps(
+        emptyFor: TimeInterval,
+        latch: TimeInterval = leftoverLatch,
+        chip: TimeInterval = leftoverHoldChip
+    ) -> Bool {
+        emptyFor >= 0 && emptyFor < latch + chip
+    }
+
+    /// Adopt-ID tot: Namen von der Ghost-UUID auf die Live-UUID.
+    static func leftoverPendingMirror(pending: [UUID: String], from: UUID, to: UUID) -> [UUID: String] {
+        guard from != to, let v = pending[from] else { return pending }
+        var out = pending
+        if out[to] == nil { out[to] = v }
+        out.removeValue(forKey: from)
+        return out
+    }
+
     /// Zweiter leerer Frame: previous schon []. used∪dropped wischt Kalman. Ghosts+Hold halten.
     static func leftoverKeepBoxes(
         used: Set<UUID>,
@@ -2351,6 +2371,36 @@ enum MatchMath {
     }
 
     static func boxKalmanUses(dt: TimeInterval) -> Bool { dt >= 0.08 }
+
+    /// Velocity-EMA. Leerer Frame braucht vx, sonst Overlay klebt.
+    static func boxKalmanVelocity(prev: Double, next: Double, dt: TimeInterval, prevV: Double = 0) -> Double {
+        guard dt > 0.001 else { return prevV }
+        let raw = (next - prev) / dt
+        return 0.55 * raw + 0.45 * prevV
+    }
+
+    /// Leerer Frame: cx += vx·dt, Cap gegen Teleport.
+    static func boxKalmanPredict(x: Double, v: Double, dt: TimeInterval, cap: Double = 0.12) -> Double {
+        let step = v * dt
+        let clipped = max(-cap, min(cap, step))
+        return x + clipped
+    }
+
+    static func leftoverPredictBoxes(
+        boxes: [UUID: (x: Double, y: Double)],
+        vel: [UUID: (vx: Double, vy: Double)],
+        dt: TimeInterval
+    ) -> [UUID: (x: Double, y: Double)] {
+        var out: [UUID: (x: Double, y: Double)] = [:]
+        for (id, b) in boxes {
+            let v = vel[id] ?? (vx: 0, vy: 0)
+            out[id] = (
+                x: boxKalmanPredict(x: b.x, v: v.vx, dt: dt),
+                y: boxKalmanPredict(x: b.y, v: v.vy, dt: dt)
+            )
+        }
+        return out
+    }
 
     static let clusterSplitNeed = 10
 

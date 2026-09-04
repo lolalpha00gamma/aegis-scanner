@@ -1,6 +1,14 @@
-# Nachtrag 2026-09-04 (2.1.80)
+# Nachtrag 2026-09-04 (2.1.81)
 
-Siehe ANALYSE.md. **2.1.80** schließt Kalman am zweiten leeren Frame, Latch-Hold, leftoverPending wirklich im Code.
+Siehe ANALYSE.md. **2.1.81** schließt Kalman-Predict, Pending-Mirror, HOLD-Chip 0,4 s wirklich im Code.
+
+## In 2.1.81 gelandet
+
+1. boxKalmanVelocity + boxKalmanPredict — cx += vx·dt
+2. leftoverPendingMirror — Ghost-UUID → Adopt-ID
+3. leftoverLatchChipKeeps — Overlay 4,4 s
+4. leftoverPredictBoxes
+5. VERSION = Models = MARKETING_VERSION 2.1.81 (Build 107)
 
 ## In 2.1.80 gelandet
 
@@ -17,14 +25,6 @@ Siehe ANALYSE.md. **2.1.80** schließt Kalman am zweiten leeren Frame, Latch-Hol
 3. leftoverPrintProfileYaw 0,45
 4. leftoverHoldSurvive emptyKeeps
 5. VERSION = Models = MARKETING_VERSION 2.1.79 (Build 105)
-
-## In 2.1.78 gelandet
-
-1. leftoverEmptyKeepsStreak — Dropout hält Streak/Kalman
-2. leftoverPrintFloor yaw — Profil 0,70 / Frontal 0,62
-3. leftoverTwinHardVetoNow — zwei Gesichter 0,88
-4. leftoverPick facesInFrame
-5. VERSION = Models = MARKETING_VERSION 2.1.78 (Build 104)
 
 ## Offen (nicht Pflaster)
 
@@ -72,12 +72,12 @@ Siehe ANALYSE.md. **2.1.80** schließt Kalman am zweiten leeren Frame, Latch-Hol
 47. Multi-Cam-Triangulation für 3D-Slot
 48. Watch-Haptik bei UNBEKANNT
 49. Face-Clustering nach Burst (Galerie aufräumen)
-50. Kalman-Predict auf leerem Frame (cx+=vx·dt), nicht nur Hold
-51. leftoverPending an Ghost-UUID spiegeln wenn Adopt-ID schon tot
-52. Night-ISO Cap Pref, AE nicht 3 s jagen
-53. Overlay-Chip HOLD 0,4 s nach Latch-Ende statt hartem Wipe
-54. Print-EMA nur Frames mit leftoverPrintSharp
-55. Detector-leerer Frame: Overlay an Kalman-Predict, nicht nur letzte Box
+50. Night-ISO Cap Pref, AE nicht 3 s jagen
+51. Print-EMA nur Frames mit leftoverPrintSharp
+52. Detector-leerer Frame Overlay an Kalman-Predict — sitzt
+53. leftoverPending an Ghost-UUID spiegeln — sitzt
+54. Overlay-Chip HOLD 0,4 s nach Latch — sitzt
+55. Kalman-Predict auf leerem Frame — sitzt
 56. leftoverKeepBoxes sitzt
 57. leftoverLatchKeeps sitzt
 58. leftoverPending Latch sitzt

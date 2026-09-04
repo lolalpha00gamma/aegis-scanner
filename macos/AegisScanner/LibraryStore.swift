@@ -100,6 +100,7 @@ final class LibraryStore: ObservableObject {
     private var liveBlinkSeen: [UUID: Bool] = [:]
     private var leftoverDisagree: [UUID: Int] = [:]
     private var boxKalman: [UUID: (x: Double, y: Double, w: Double, h: Double, px: Double, py: Double, pw: Double, ph: Double)] = [:]
+    private var boxKalmanV: [UUID: (vx: Double, vy: Double)] = [:]
     private var leftoverHoldTrail: [UUID: [Double]] = [:]
     private var leftoverHoldByHash: [String: (cosine: Double, at: TimeInterval)] = [:]
     private var leftoverHoldTrailByHash: [String: (samples: [Double], at: TimeInterval)] = [:]
@@ -1403,6 +1404,7 @@ final class LibraryStore: ObservableObject {
             if !self.lastCameraUniqueID.isEmpty, uid != self.lastCameraUniqueID {
                 self.boxEuro.removeAll()
                 self.boxKalman.removeAll()
+                self.boxKalmanV.removeAll()
                 self.boxJumpPending.removeAll()
                 self.livePrintTrail.removeAll()
                 self.livePrintTrailSlot.removeAll()
@@ -1535,6 +1537,15 @@ final class LibraryStore: ObservableObject {
         leftoverDisagree.removeValue(forKey: id)
     }
 
+    private func leftoverMirrorPending(from: UUID, to: UUID) {
+        leftoverPending = MatchMath.leftoverPendingMirror(pending: leftoverPending, from: from, to: to)
+    }
+
+    private func boxKalmanDrop(_ id: UUID) {
+        boxKalman.removeValue(forKey: id)
+        boxKalmanV.removeValue(forKey: id)
+    }
+
     private func applyLiveFaces(_ found: [FaceObservation], image: CGImage, mediaId: UUID, stamp: TimeInterval) {
         let latch = MatchMath.liveFacesLatch(
             present: !found.isEmpty,
@@ -1572,7 +1583,8 @@ final class LibraryStore: ObservableObject {
         }
         let emptyFor = leftoverEmptySince.map { now - $0 } ?? 0
         let emptyLatch = found.isEmpty && MatchMath.leftoverLatchKeeps(emptyFor: emptyFor)
-        if !emptyLatch {
+        let emptyChip = found.isEmpty && MatchMath.leftoverLatchChipKeeps(emptyFor: emptyFor)
+        if !emptyChip {
             leftoverPending = [:]
         }
         var adopted: [FaceObservation] = []
@@ -1679,6 +1691,11 @@ final class LibraryStore: ObservableObject {
                     let h = MatchMath.boxKalman(prev: ph0, meas: face.box.height, p: prev?.ph ?? 0.04, dt: liveDt)
                     face.box = FaceBox(x: x.x, y: y.x, width: w.x, height: h.x)
                     boxKalman[old.id] = (x.x, y.x, w.x, h.x, x.p, y.p, w.p, h.p)
+                    let prevV = boxKalmanV[old.id]
+                    boxKalmanV[old.id] = (
+                        vx: MatchMath.boxKalmanVelocity(prev: px0, next: x.x, dt: liveDt, prevV: prevV?.vx ?? 0),
+                        vy: MatchMath.boxKalmanVelocity(prev: py0, next: y.x, dt: liveDt, prevV: prevV?.vy ?? 0)
+                    )
                 } else {
                     var euro = boxEuro[old.id] ?? (
                         MatchMath.OneEuro(), MatchMath.OneEuro(), MatchMath.OneEuro(), MatchMath.OneEuro()
@@ -1855,9 +1872,11 @@ final class LibraryStore: ObservableObject {
                     adopted[i].id = oldB.id
                     adopted[i].trackId = oldB.trackId ?? oldB.id
                     adopted[i].enrolledAt = oldB.enrolledAt ?? adopted[i].enrolledAt
+                    leftoverMirrorPending(from: a.id, to: oldB.id)
                     adopted[j].id = oldA.id
                     adopted[j].trackId = oldA.trackId ?? oldA.id
                     adopted[j].enrolledAt = oldA.enrolledAt ?? adopted[j].enrolledAt
+                    leftoverMirrorPending(from: b.id, to: oldA.id)
                     swapped.insert(oldA.id)
                     swapped.insert(oldB.id)
                     swapFlashUntil = now + MatchMath.swapFlashHold()
@@ -1901,9 +1920,11 @@ final class LibraryStore: ObservableObject {
                     adopted[i1].id = a.id
                     adopted[i1].trackId = a.trackId ?? a.id
                     adopted[i1].enrolledAt = a.enrolledAt ?? adopted[i1].enrolledAt
+                    leftoverMirrorPending(from: n1.id, to: a.id)
                     adopted[i0].id = b.id
                     adopted[i0].trackId = b.trackId ?? b.id
                     adopted[i0].enrolledAt = b.enrolledAt ?? adopted[i0].enrolledAt
+                    leftoverMirrorPending(from: n0.id, to: b.id)
                     used.insert(a.id)
                     used.insert(b.id)
                     boxEuro.removeValue(forKey: a.id)
@@ -1977,11 +1998,13 @@ final class LibraryStore: ObservableObject {
                     leftoverClearStreak(old.id)
                     leftoverPending.removeValue(forKey: adopted[i].id)
                     used.insert(old.id)
+                    let newId = adopted[i].id
                     adopted[i].id = old.id
+                    leftoverMirrorPending(from: newId, to: old.id)
                     adopted[i].trackId = old.trackId ?? old.id
                     adopted[i].enrolledAt = old.enrolledAt ?? adopted[i].enrolledAt
                     boxEuro.removeValue(forKey: old.id)
-                    boxKalman.removeValue(forKey: old.id)
+                    boxKalmanDrop(old.id)
                     boxJumpPending.removeValue(forKey: old.id)
                 }
                 for old in unusedLeft where !leftoverTried.contains(old.id) {
@@ -2005,6 +2028,7 @@ final class LibraryStore: ObservableObject {
         )
         boxEuro = boxEuro.filter { keepBoxes.contains($0.key) }
         boxKalman = boxKalman.filter { keepBoxes.contains($0.key) }
+        boxKalmanV = boxKalmanV.filter { keepBoxes.contains($0.key) }
         boxJumpPending = boxJumpPending.filter { keepBoxes.contains($0.key) }
         livePrintTrail = livePrintTrail.filter { keepBoxes.contains($0.key) }
         livePrintTrailSlot = livePrintTrailSlot.filter { keepBoxes.contains($0.key) }
@@ -2032,7 +2056,21 @@ final class LibraryStore: ObservableObject {
             status = line
         }
         if found.isEmpty {
-            if !MatchMath.leftoverEmptyKeepsOverlay(liveEmpty: true) || !emptyLatch {
+            if emptyLatch {
+                for id in keepBoxes {
+                    guard let k = boxKalman[id] else { continue }
+                    let v = boxKalmanV[id] ?? (vx: 0, vy: 0)
+                    let nx = MatchMath.boxKalmanPredict(x: k.x, v: v.vx, dt: liveDt)
+                    let ny = MatchMath.boxKalmanPredict(x: k.y, v: v.vy, dt: liveDt)
+                    boxKalman[id] = (nx, ny, k.w, k.h, k.px, k.py, k.pw, k.ph)
+                    if let i = liveGhosts.firstIndex(where: { $0.face.id == id }) {
+                        var g = liveGhosts[i]
+                        g.face.box = FaceBox(x: nx, y: ny, width: k.w, height: k.h)
+                        liveGhosts[i] = g
+                    }
+                }
+            }
+            if !MatchMath.leftoverEmptyKeepsOverlay(liveEmpty: true) || !emptyChip {
                 liveHeldIds = []
                 leftoverPending = [:]
             }
@@ -2047,6 +2085,7 @@ final class LibraryStore: ObservableObject {
                 leftoverDisagree = [:]
                 leftoverWipeUntil = [:]
                 boxKalman = [:]
+                boxKalmanV = [:]
                 liveStillFor = [:]
             }
             guestOrder = guestOrder.filter {
@@ -2060,7 +2099,7 @@ final class LibraryStore: ObservableObject {
             liveLidClosed = [:]
             liveBlinkSeen = [:]
             faces.removeAll { $0.mediaId == mediaId }
-            if !MatchMath.leftoverEmptyKeepsOverlay(liveEmpty: true) || !emptyLatch {
+            if !MatchMath.leftoverEmptyKeepsOverlay(liveEmpty: true) || !emptyChip {
                 if let label = MatchMath.headCountFlashLabel(prev: lastLiveHeadCount, next: 0) {
                     lastHeadCountLabel = label
                     headCountFlashUntil = now + MatchMath.headCountFlashHold
@@ -2395,7 +2434,9 @@ final class LibraryStore: ObservableObject {
                 }
                 used.insert(old.id)
                 if transfer {
+                    let newId = adopted[bestJ].id
                     adopted[bestJ].id = old.id
+                    leftoverMirrorPending(from: newId, to: old.id)
                     adopted[bestJ].trackId = old.trackId ?? old.id
                     adopted[bestJ].enrolledAt = old.enrolledAt ?? adopted[bestJ].enrolledAt
                     if adopted[bestJ].featurePrint.isEmpty {
@@ -2416,7 +2457,7 @@ final class LibraryStore: ObservableObject {
                     fallback: adopted[bestJ].box
                 )
                 boxEuro.removeValue(forKey: old.id)
-                boxKalman.removeValue(forKey: old.id)
+                boxKalmanDrop(old.id)
                 boxJumpPending.removeValue(forKey: old.id)
                 leftoverPins += 1
                 if let cos = pinCos {
@@ -2507,7 +2548,7 @@ final class LibraryStore: ObservableObject {
         }
         if selectedMediaId == mediaId {
             if found.isEmpty {
-                if !MatchMath.leftoverEmptyKeepsOverlay(liveEmpty: true) || !emptyLatch {
+                if !MatchMath.leftoverEmptyKeepsOverlay(liveEmpty: true) || !emptyChip {
                     selectedFaceId = nil
                 }
             } else if let cur = selectedFaceId, adopted.contains(where: { $0.id == cur }) {

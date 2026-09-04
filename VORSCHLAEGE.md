@@ -1,8 +1,17 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.80 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.81 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 
-Neu in 2.1.80: Kalman am Ghost, Latch-Hold, leftoverPending bleibt.
+Neu in 2.1.81: Kalman-Predict, Pending-Mirror, HOLD-Chip 0,4 s.
+
+## In 2.1.81 wirklich im Code
+
+2.1.80 Kalman am Ghost. Velocity fehlte. leftoverPending blieb auf toter UUID. Latch-Ende hartes Wipe.
+
+1. **`boxKalmanVelocity` + `boxKalmanPredict`.** cx += vx·dt.
+2. **`leftoverPendingMirror`.**
+3. **`leftoverLatchChipKeeps`.** Overlay 4,4 s.
+4. Tests + VERSION = Models = MARKETING_VERSION 2.1.81 (Build 107).
 
 ## In 2.1.80 wirklich im Code
 
