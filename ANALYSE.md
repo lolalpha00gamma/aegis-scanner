@@ -1,28 +1,28 @@
-# Helios + Aegis — Analyse 2026-09-04 (2.1.71)
+# Helios + Aegis — Analyse 2026-09-04 (2.1.72)
 
-Helios **1.5.55** (Build 75). Aegis **2.1.71 alpha** (Build 97). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`.
+Helios **1.5.56** (Build 76). Aegis **2.1.72 alpha** (Build 98). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`.
 
-## Warum Namen nach 2.1.70 noch sprangen
+## Warum Namen nach 2.1.71 noch sprangen
 
-2.1.70 hat leftoverHoldSurvive live+Ghost, Dropout-TTL, Capture-Jump, Tap-Name-Lock wirklich verdrahtet. Fünf Löcher blieben:
+2.1.71 hat printPin-Trail, Kalman-Put, Overlay-Tap-Lock, Burst-AE, leftover gestrichelt verdrahtet. Fünf Löcher blieben:
 
-1. **printPin wischte livePrintTrail.** Ghost-Adopt `removeValue` — Median tot, erster 0,82 tauft. KeepBoxes hielt Dropped, Adopt warf sie weg.
-2. **leftoverHoldPut auf Roh-Box.** Lookup Kalman, Write `adopted[bestJ].box`. Kopfdrehen wechselt Bin, Hold weg.
-3. **Tap-Lock nur Anlegen/+.** Overlay-Klick setzte `selectedFaceId` ohne `tapNameLockUntil`. leftover taufte in denselben 3 s.
-4. **Capture-Jump 1 Frame.** AE-Burst 0,40→0,70→0,52: Undershoot nach 3 Frames schrieb den Gallery-Print. Exposure 0,20 s = 1–2 Frames bei 8 fps.
-5. **Leftover-Kiste durchgezogen orange.** Wirkt wie ein Name. Ghost-Overlay sprang als Gast.
+1. **Trail-Lookup Roh-Box.** Put Kalman, `trailNow` `leftoverBoxHash(adopted.box)`. MAD tot, erster 0,82 tauft.
+2. **EMA ohne dt.** 8 fps ein Tick = Spike 0,06 wie 7 Frames bei 24 fps. leftoverHoldSmooth sprang.
+3. **Twin 0,93 + Baptize 0,82 Adopt.** Soft-Veto 0,90 ließ Zwillinge taufen. Keyboard-Rename ohne Tap-Lock.
+4. **Ghosts nicht gezeichnet.** `liveGhosts` nur IDs am Live-Face. Dropout: Kiste weg, Overlay tot. Enrolled Yaw ¾ taufte leftover.
+5. **AE/Ghost ohne Chip.** Exposure-Lock unsichtbar. Overlay-Tap auf Gast nur Select.
 
-## Was 2.1.71 wirklich ändert
+## Was 2.1.72 wirklich ändert
 
-1. **`printTrailKeepsOnGhostAdopt`.** printPin lässt Trail/Slot stehen. MAD überlebt den Miss.
-2. **`leftoverHoldWriteHash`.** Put = Lookup = Kalman-Kiste. Fallback Roh.
-3. **`tapOverlay` / `tapOverlayLocksName`.** Overlay-Tap auf enrolled sperrt leftover 3 s. Chip `TAP ns`.
-4. **`captureBurstBlocksPrint`.** 3-Frame-Fenster. `exposureLockHold(dt)` 8 fps 0,40 s.
-5. **`overlayBoxDash` / `.ghost`.** Leftover und Ghost gestrichelt. `leftoverHoldPruneLine` Status.
-6. VERSION = Models = MARKETING_VERSION 2.1.71 (Build 97).
+1. **`leftoverTrailWriteHash`.** Put = Lookup = Kalman. Tests Trail-Hash = Hold-Hash.
+2. **`leftoverHoldAlpha(dt)`.** 8 fps α ≈ 0,05. Spike 0,06 dämpft.
+3. **`leftoverTwinHardBlocks` 0,92.** Auch Baptize tot. **`renameIdentity` Tap-Lock 3 s.**
+4. **`ghostFaces()` Overlay.** Dropout gestrichelt. **`leftoverLookawayBlocks`** enrolled Yaw ≥ 0,28 freeze.
+5. **AE / GHOST HUD.** Gast-Tap `TAUFEN?`. TAP nicht leftover-orange. Prune-Log nur leerer Frame.
+6. VERSION = Models = MARKETING_VERSION 2.1.72 (Build 98).
 
-Was Masse noch bringen würde: Frame-Pump mit Helios, CLAHE auf den Buffer, Live-ROI Crop, Drop-in `.mlmodel`, DBSCAN vor Merge.
+Was Masse noch bringen würde: Frame-Pump mit Helios, CLAHE auf den Buffer, Live-ROI Crop, Drop-in `.mlmodel`, DBSCAN vor Merge, Burst-5 Pref, Dropout-TTL Pref.
 
-Helios 1.5.55: Steal blockt Cursor, Relock 0,35 s, LOCK-Timeout 1,2 s, displayTick Freeze, Palm-Reach. Siehe `bpms9cmnxc-debug/Helios`.
+Helios 1.5.56: Drag-Timeout, Latch-displayTick, destClamp lastScreen, Palm 8 fps 4, IDLE/Relock/SCALE, ⌥-Relock. Siehe `bpms9cmnxc-debug/Helios`.
 
 `bugfix` mergen oder fortsetzen: nein. Nur `main`.

@@ -645,13 +645,15 @@ struct FaceOverlay: View {
             let dh = CGFloat(image.height) * scale
             let ox = (geo.size.width - dw) / 2
             let oy = (geo.size.height - dh) / 2
+            let ghostOnly = store.ghostFaces().filter { g in !faces.contains { $0.id == g.id } }
+            let drawnFaces = faces + ghostOnly
             ZStack(alignment: .topLeading) {
                 Image(nsImage: ns)
                     .resizable()
                     .interpolation(.high)
                     .frame(width: dw, height: dh)
                     .offset(x: ox, y: oy)
-                ForEach(Array(faces.enumerated()), id: \.element.id) { _, face in
+                ForEach(Array(drawnFaces.enumerated()), id: \.element.id) { _, face in
                     let hit = store.matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == store.strategy }
                     let printHit = store.matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == .featurePrint }
                     let aegisHit = store.matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == .aegis }
@@ -668,7 +670,7 @@ struct FaceOverlay: View {
                     }()
                     let liveCont = store.liveContinuity && item.kind == .live
                     let hint = FaceEngine.overlayHint(face, gallery: gallery, continuity: liveCont)
-                    let leftover = store.leftoverHold[face.id] != nil
+                    let leftover = store.leftoverHold[face.id] != nil && store.tapLockChip(faceId: face.id) == nil
                     let ghost = store.ghostFaceIds().contains(face.id)
                     let kind = MatchMath.overlayBoxKind(selected: selected, pinned: pinned, leftover: leftover, ghost: ghost)
                     let coachDest = owner ?? (store.identities.count == 1 ? store.identities.first : ident)
@@ -740,6 +742,12 @@ struct FaceOverlay: View {
                         }
                         if let tap = store.tapLockChip(faceId: face.id) {
                             return "\(base) · \(tap)"
+                        }
+                        if let ae = store.exposureLockChip(faceId: face.id) {
+                            return "\(base) · \(ae)"
+                        }
+                        if let ghostTTL = store.ghostTTLChip(faceId: face.id) {
+                            return "\(base) · \(ghostTTL)"
                         }
                         if let pending = store.leftoverAdoptProgress(faceId: face.id) {
                             return "\(base) · leftover \(pending)"

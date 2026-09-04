@@ -1162,12 +1162,30 @@ final class LibraryStore: ObservableObject {
         Set(liveGhosts.map(\.face.id))
     }
 
+    func ghostFaces() -> [FaceObservation] {
+        liveGhosts.map(\.face)
+    }
+
+    func exposureLockChip(faceId: UUID) -> String? {
+        MatchMath.exposureLockLabel(
+            until: liveExposureUntil[faceId],
+            now: Date().timeIntervalSince1970
+        )
+    }
+
+    func ghostTTLChip(faceId: UUID) -> String? {
+        guard let g = liveGhosts.first(where: { $0.face.id == faceId }) else { return nil }
+        return MatchMath.ghostTTLLabel(until: g.until, now: Date().timeIntervalSince1970)
+    }
+
     func tapOverlay(faceId: UUID, mediaId: UUID? = nil) {
         selectedFaceId = faceId
         if let mediaId { selectedMediaId = mediaId }
         let pinned = identities.contains { $0.faceIds.contains(faceId) }
         if MatchMath.tapOverlayLocksName(pinned: pinned) {
             tapNameLockUntil[faceId] = MatchMath.tapNameLockUntil(now: Date().timeIntervalSince1970)
+        } else if MatchMath.tapGuestSuggests(pinned: pinned) {
+            leftoverPending[faceId] = MatchMath.tapGuestNote()
         }
     }
 
@@ -1226,6 +1244,11 @@ final class LibraryStore: ObservableObject {
         pendingRenameId = nil
         pendingRenameAt = nil
         identities[idx].name = name
+        let lockAt = Date().timeIntervalSince1970
+        tapNameLockUntil[id] = MatchMath.tapNameLockUntil(now: lockAt)
+        for fid in identities[idx].faceIds {
+            tapNameLockUntil[fid] = MatchMath.tapNameLockUntil(now: lockAt)
+        }
         persist()
         status = "\(name) umbenannt"
     }
@@ -1949,7 +1972,11 @@ final class LibraryStore: ObservableObject {
         liveSlotHold = MatchMath.leftoverHoldSurvive(hold: liveSlotHold, ghosts: ghostIds, live: liveIds)
         leftoverHoldByHash = MatchMath.leftoverHoldPrune(leftoverHoldByHash, now: now, ttl: MatchMath.dropoutTTL(dt: liveDt))
         leftoverHoldTrailByHash = MatchMath.leftoverTrailPrune(leftoverHoldTrailByHash, now: now, ttl: MatchMath.dropoutTTL(dt: liveDt))
-        if let line = MatchMath.leftoverHoldPruneLine(before: holdBefore, after: leftoverHold.count) {
+        if let line = MatchMath.leftoverHoldPruneLine(
+            before: holdBefore,
+            after: leftoverHold.count,
+            liveEmpty: liveIds.isEmpty
+        ) {
             status = line
         }
         if found.isEmpty {
@@ -2081,7 +2108,10 @@ final class LibraryStore: ObservableObject {
                     liveIds: liveIds,
                     leftoverId: old.id,
                     printId: aegisHit?.identityId,
-                    geoMix: aegisHit?.geoMix
+                    geoMix: aegisHit?.geoMix,
+                    dt: liveDt,
+                    lookawayEnrolled: namedTracks.contains(old.id) || enrolled.contains(old.id),
+                    lookawayYaw: abs(old.quality.yaw)
                 ) else {
                     let twin = aegisHit?.pairCosine
                     if MatchMath.leftoverTwinSuggest(pairCosine: twin) {
@@ -2125,13 +2155,13 @@ final class LibraryStore: ObservableObject {
                 }
                 guard step.ready else { continue }
                 if let cos = remaining.first(where: { $0.index == bestJ })?.cosine {
-                    let boxHash = MatchMath.leftoverBoxHash(MatchMath.leftoverHashBox(
+                    let boxHash = MatchMath.leftoverTrailWriteHash(
                         kalmanX: boxKalman[adopted[bestJ].id]?.x,
                         kalmanY: boxKalman[adopted[bestJ].id]?.y,
                         kalmanW: boxKalman[adopted[bestJ].id]?.w,
                         kalmanH: boxKalman[adopted[bestJ].id]?.h,
                         fallback: adopted[bestJ].box
-                    ))
+                    )
                     var trail = leftoverHoldTrail[old.id] ?? MatchMath.leftoverTrailLookup(
                         hash: boxHash,
                         table: leftoverHoldTrailByHash,
@@ -2181,7 +2211,13 @@ final class LibraryStore: ObservableObject {
                     ttl: MatchMath.dropoutTTL(dt: liveDt)
                 )
                 let trailNow = leftoverHoldTrail[old.id] ?? MatchMath.leftoverTrailLookup(
-                    hash: MatchMath.leftoverBoxHash(adopted[bestJ].box),
+                    hash: MatchMath.leftoverTrailWriteHash(
+                        kalmanX: boxKalman[adopted[bestJ].id]?.x,
+                        kalmanY: boxKalman[adopted[bestJ].id]?.y,
+                        kalmanW: boxKalman[adopted[bestJ].id]?.w,
+                        kalmanH: boxKalman[adopted[bestJ].id]?.h,
+                        fallback: adopted[bestJ].box
+                    ),
                     table: leftoverHoldTrailByHash,
                     now: now,
                     ttl: MatchMath.dropoutTTL(dt: liveDt)

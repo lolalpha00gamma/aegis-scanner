@@ -811,8 +811,17 @@ enum MatchMathTests {
                 sharpness: [0: 0.20],
                 sameSlot: [:],
                 twinPair: 0.93
+            ) == nil,
+            "Twin 0,92 Hard-Veto auch Baptize"
+        )
+        ok(
+            MatchMath.leftoverPick(
+                candidates: [(0, 0.50, 0.82)],
+                sharpness: [0: 0.20],
+                sameSlot: [:],
+                twinPair: 0.905
             ) == 0,
-            "Twin + Print 0,82 Adopt"
+            "Twin 0,90 weich: Baptize darf"
         )
         let sticky0 = MatchMath.poseSlotSticky(prev: "frontal", raw: "threeQuarter", hold: 0)
         ok(sticky0.slot == "frontal" && sticky0.hold == 1, "F→¾ Frame 1 hält F")
@@ -1221,6 +1230,32 @@ enum MatchMathTests {
         ok(!MatchMath.tapOverlayLocksName(pinned: false), "Gast-Tap kein Lock")
         ok(MatchMath.leftoverHoldPruneLine(before: 2, after: 1) == "Hold prune 1", "Prune-Log")
         ok(MatchMath.leftoverHoldPruneLine(before: 2, after: 2) == nil, "ohne Prune still")
+        ok(MatchMath.leftoverHoldPruneLine(before: 2, after: 1, liveEmpty: false) == nil, "Partial kein Prune-Log")
+        ok(MatchMath.tapGuestSuggests(pinned: false), "Gast-Tap Tauf-Vorschlag")
+        ok(!MatchMath.tapGuestSuggests(pinned: true), "enrolled kein Taufen")
+        ok(MatchMath.tapGuestNote() == "TAUFEN?", "Taufen-Chip")
+        ok(MatchMath.leftoverTwinHardBlocks(pairCosine: 0.93), "0,93 Hard-Veto")
+        ok(!MatchMath.leftoverTwinHardBlocks(pairCosine: 0.91), "0,91 weich")
+        ok(MatchMath.leftoverLookawayBlocks(yawAbs: 0.40, enrolled: true), "Enrolled wegsieht freeze")
+        ok(!MatchMath.leftoverLookawayBlocks(yawAbs: 0.40, enrolled: false), "Gast wegsieht darf")
+        ok(!MatchMath.leftoverLookawayBlocks(yawAbs: 0.10, enrolled: true), "frontal kein Freeze")
+        ok(
+            MatchMath.leftoverPick(
+                candidates: [(0, 0.50, 0.82)],
+                sharpness: [0: 0.20],
+                lookawayEnrolled: true,
+                lookawayYaw: 0.40
+            ) == nil,
+            "Lookaway leftover tot"
+        )
+        let a8 = MatchMath.leftoverHoldAlpha(dt: 0.125)
+        ok(a8 < 0.12 && a8 > 0.04, "8 fps EMA träge")
+        near(MatchMath.leftoverHoldAlpha(dt: 0.016), 0.35, 0.001, "24 fps EMA 0,35")
+        let s8 = MatchMath.leftoverHoldSmooth(raw: 0.70, prev: 0.64, dt: 0.125) ?? -1
+        ok(abs(s8 - 0.64) < 0.03, "8 fps Spike 0,06 dämpft")
+        ok(MatchMath.exposureLockLabel(until: 1.3, now: 1.0) == "AE 0,3s", "AE-HUD")
+        ok(MatchMath.exposureLockLabel(until: 1.0, now: 1.2) == nil, "AE vorbei")
+        ok(MatchMath.ghostTTLLabel(until: 2.0, now: 1.2) == "GHOST 0,8s", "Ghost-TTL HUD")
         ok(MatchMath.leftoverBlurBlocks(sharpness: 0.10, cosine: 0.64), "Blur sperrt Hold-Pick")
         ok(!MatchMath.leftoverBlurBlocks(sharpness: 0.10, cosine: 0.82), "Baptize trotz Blur")
         ok(!MatchMath.leftoverBlurBlocks(sharpness: 0.40, cosine: 0.64), "scharf Hold ok")
@@ -1235,6 +1270,9 @@ enum MatchMathTests {
         let writeH = MatchMath.leftoverHoldWriteHash(kalmanX: 0.50, kalmanY: 0.50, kalmanW: 0.40, kalmanH: 0.40, fallback: rawBox)
         let rawH = MatchMath.leftoverBoxHash(rawBox)
         ok(writeH != rawH, "Kalman-Hash ≠ Roh-Box")
+        let trailH = MatchMath.leftoverTrailWriteHash(kalmanX: 0.50, kalmanY: 0.50, kalmanW: 0.40, kalmanH: 0.40, fallback: rawBox)
+        ok(trailH == writeH, "Trail-Hash = Hold-Hash")
+        ok(trailH != rawH, "Trail-Hash ≠ Roh-Box")
         let writeFb = MatchMath.leftoverHoldWriteHash(kalmanX: nil, kalmanY: nil, kalmanW: nil, kalmanH: nil, fallback: rawBox)
         ok(writeFb == rawH, "Write-Hash Fallback Roh")
         let midN = MatchMath.leftoverBoxHashNeighbors("1.2.2.2")

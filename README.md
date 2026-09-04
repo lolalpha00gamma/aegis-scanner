@@ -1,4 +1,4 @@
-# Aegis **2.1.71 alpha**
+# Aegis **2.1.72 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,17 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.72 alpha
+
+2.1.71 Trail/Kalman-Put/Tap/Burst. Trail-Lookup Roh-Box. EMA ohne dt. Twin 0,93 taufte. Ghosts unsichtbar. Rename ohne Lock.
+
+- **`leftoverTrailWriteHash`.** Put = Lookup = Kalman.
+- **`leftoverHoldAlpha(dt)`.** 8 fps Spike 0,06 dämpft.
+- **`leftoverTwinHardBlocks` 0,92.** Auch Baptize tot. Rename Tap-Lock 3 s.
+- **`leftoverLookawayBlocks`.** Enrolled Yaw freeze. Ghost-Overlay + `GHOST n,s`.
+- **AE-HUD, Gast `TAUFEN?`, Prune nur leerer Frame.** TAP nicht leftover-orange.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.72 (Build 98).
 
 ## Neu in 2.1.71 alpha
 

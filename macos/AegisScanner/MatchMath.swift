@@ -248,12 +248,21 @@ enum MatchMath {
         printId: UUID? = nil,
         geoId: UUID? = nil,
         lockId: UUID? = nil,
-        geoMix: Double? = nil
+        geoMix: Double? = nil,
+        dt: TimeInterval = 0.016,
+        lookawayEnrolled: Bool = false,
+        lookawayYaw: Double? = nil
     ) -> Int? {
+        if leftoverLookawayBlocks(yawAbs: lookawayYaw, enrolled: lookawayEnrolled) {
+            return nil
+        }
+        if leftoverTwinHardBlocks(pairCosine: twinPair) {
+            return nil
+        }
         var ok = candidates.filter { leftoverPin(iou: $0.iou, floor: floor) }
         ok = ok.filter { !leftoverHoldBlocks(raw: $0.cosine, prev: holdPrev) }
         let smoothed: [(index: Int, iou: Double, cosine: Double?)] = ok.map {
-            (index: $0.index, iou: $0.iou, cosine: leftoverHoldSmooth(raw: $0.cosine, prev: holdPrev))
+            (index: $0.index, iou: $0.iou, cosine: leftoverHoldSmooth(raw: $0.cosine, prev: holdPrev, dt: dt))
         }
         var printable = smoothed.filter { leftoverPrintOk(cosine: $0.cosine, sharpness: sharpness[$0.index]) }
         if leftoverTwinBlocksBox(pairCosine: twinPair, printCosine: nil) {
@@ -332,6 +341,24 @@ enum MatchMath {
     }
 
     static let twinPairCosine = 0.90
+    /// pairCosine ≥ 0,92: Hard-Veto, auch Baptize 0,80 stiehlt nicht.
+    static let leftoverTwinHardVeto = 0.92
+
+    static func leftoverTwinHardBlocks(pairCosine: Double?, veto: Double = leftoverTwinHardVeto) -> Bool {
+        guard let pair = pairCosine else { return false }
+        return pair >= veto
+    }
+
+    /// Enrolled wegsieht (¾/Profil): leftover freeze, nicht taufen.
+    static let leftoverLookawayYaw = 0.28
+
+    static func leftoverLookawayBlocks(
+        yawAbs: Double?,
+        enrolled: Bool,
+        floor: Double = leftoverLookawayYaw
+    ) -> Bool {
+        enrolled && (yawAbs ?? 0) >= floor
+    }
 
     /// pairCosine ≥ 0,90: leftover nie über Box, nur Print ≥ 0,80.
     static func leftoverTwinBlocksBox(
@@ -1756,14 +1783,25 @@ enum MatchMath {
     }
 
     /// leftover-Hold EMA: ein scharfer Twin 0,70 tauft nicht.
+    /// 8 fps: alpha an dt, sonst Spike 0,06 in einem Tick.
+    static func leftoverHoldAlpha(
+        dt: TimeInterval,
+        base: Double = liveScoreAlpha,
+        ref: TimeInterval = 0.016
+    ) -> Double {
+        let a = min(1, max(0, base))
+        guard dt > ref, ref > 0 else { return a }
+        return 1 - pow(1 - a, ref / dt)
+    }
+
     static func leftoverHoldEMA(prev: Double?, next: Double, alpha: Double = liveScoreAlpha) -> Double {
         liveScoreEMA(prev: prev, next: next, alpha: alpha)
     }
 
     /// Glättung vor leftoverPick. Roh 0,70 / Hold 0,64 → 0,66, nicht 0,70.
-    static func leftoverHoldSmooth(raw: Double?, prev: Double?) -> Double? {
+    static func leftoverHoldSmooth(raw: Double?, prev: Double?, dt: TimeInterval = 0.016) -> Double? {
         guard let raw else { return nil }
-        return leftoverHoldEMA(prev: prev, next: raw)
+        return leftoverHoldEMA(prev: prev, next: raw, alpha: leftoverHoldAlpha(dt: dt))
     }
 
     /// Twin-Spike ≥ 0,04 ohne Baptize 0,80: leftover nicht taufen.
@@ -1956,8 +1994,14 @@ enum MatchMath {
     /// Overlay-Tap auf enrolled sperrt leftover 3 s, nicht nur Anlegen/+.
     static func tapOverlayLocksName(pinned: Bool) -> Bool { pinned }
 
-    /// Survive-Prune: eine Statuszeile, kein stilles Wipe.
-    static func leftoverHoldPruneLine(before: Int, after: Int) -> String? {
+    /// Overlay-Tap auf Gast = Tauf-Vorschlag, nicht nur Select.
+    static func tapGuestSuggests(pinned: Bool) -> Bool { !pinned }
+
+    static func tapGuestNote() -> String { "TAUFEN?" }
+
+    /// Survive-Prune: eine Statuszeile, kein stilles Wipe. Nur leerer Frame, nicht Partial.
+    static func leftoverHoldPruneLine(before: Int, after: Int, liveEmpty: Bool = true) -> String? {
+        guard liveEmpty else { return nil }
         let n = before - after
         return n > 0 ? "Hold prune \(n)" : nil
     }
@@ -1986,6 +2030,25 @@ enum MatchMath {
 
     static func exposureLocks(now: TimeInterval, until: TimeInterval) -> Bool {
         until > 0 && now < until
+    }
+
+    static func exposureLockLabel(until: TimeInterval?, now: TimeInterval) -> String? {
+        guard let until, now < until else { return nil }
+        let left = until - now
+        guard left > 0 else { return nil }
+        return "AE \(commaTenths(left))s"
+    }
+
+    static func ghostTTLLabel(until: TimeInterval?, now: TimeInterval) -> String? {
+        guard let until else { return nil }
+        let left = until - now
+        guard left > 0 else { return nil }
+        return "GHOST \(commaTenths(left))s"
+    }
+
+    static func commaTenths(_ value: TimeInterval) -> String {
+        let tenths = max(0, Int((value * 10).rounded()))
+        return "\(tenths / 10),\(tenths % 10)"
     }
 
     /// Median-Trail Commit, nicht Mittel — ein Outlier-Frame tauft nicht.
@@ -2291,6 +2354,19 @@ enum MatchMath {
         leftoverBoxHash(leftoverHashBox(
             kalmanX: kalmanX, kalmanY: kalmanY, kalmanW: kalmanW, kalmanH: kalmanH, fallback: fallback
         ))
+    }
+
+    /// Trail-Write = Hold-Write. Roh-Box verfehlte den Bin nach Kalman-Put.
+    static func leftoverTrailWriteHash(
+        kalmanX: Double?,
+        kalmanY: Double?,
+        kalmanW: Double?,
+        kalmanH: Double?,
+        fallback: FaceBox
+    ) -> String {
+        leftoverHoldWriteHash(
+            kalmanX: kalmanX, kalmanY: kalmanY, kalmanW: kalmanW, kalmanH: kalmanH, fallback: fallback
+        )
     }
 
     static func leftoverTrailPut(
