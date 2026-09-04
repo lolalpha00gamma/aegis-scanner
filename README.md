@@ -1,4 +1,4 @@
-# Aegis **2.1.56 alpha**
+# Aegis **2.1.57 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,17 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.57 alpha
+
+Leftover taufte den Profil-Nachbarn (Yaw ignoriert). 2-opt wechselte UUID in einem Tick. 24 fps Print fraß den Frame. Name-Lock Overlay blieb „hält“ ohne Countdown.
+
+- **`leftoverPick yawAbs`.** Penalty 0,12 — Frontal schlägt Profil bei gleichem Print.
+- **`leftoverAssignMajority` 3 Frames** bevor UUID-Switch.
+- **`printBudgetSkip`.** visMs > 18 nur bei 24 fps. 8 fps nie.
+- **`nameLockTTLLabel`.** Overlay `hält · TTL 3s` in den letzten 4 s.
+- **`posterFaceReject` / `boxAspectFrontal` / `printCommitMedian` / `exposureLock` / `partialPrintMasked` / `unknownCentroid`.** Math+Tests.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.57 (Build 84).
 
 ## Neu in 2.1.56 alpha
 

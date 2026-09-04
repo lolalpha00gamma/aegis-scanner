@@ -1,6 +1,21 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.56 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.57 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.57 wirklich im Code
+
+2.1.56 leftover Slot-hart — Yaw ignoriert, 2-opt ein Tick, Print-Budget tot, Name-Lock Overlay ohne TTL-Chip.
+
+1. **`leftoverPick(yawAbs:)`** Penalty 0,12.
+2. **`leftoverAssignMajority` 3 Frames.** Overlay `MAJ n/3`.
+3. **`printBudgetSkip`.** 24 fps visMs > 18, 8 fps nie.
+4. **`nameLockTTLLabel`** in `voteProgress`.
+5. **`posterFaceReject` / `boxAspectFrontal` / `printCommitMedian` / `exposureLock` / `partialPrintMasked` / `unknownCentroid`.**
+6. Tests + VERSION = Models = MARKETING_VERSION 2.1.57 (Build 84).
+
+## Nächste (offen, 2.1.56 — erledigt in 2.1.57)
+
+Yaw-Slot leftoverPick, leftover-Assign Majority, Print-Budget, Name-Lock Overlay-TTL sitzen in 2.1.57. Poster/AE-Lock/Partial-Print/Unknown-Centroid sind Math — Wiring nächste.
 
 ## In 2.1.56 wirklich im Code
 
@@ -113,7 +128,7 @@ Die Punkte leftover Ambiguity, Twin-Veto, Mouth-open, Reconnect-Ghost, Slot-Hyst
 
 - **Identitäten-Merge-Wizard** bei Centroid 0,89–0,94. Confirm, nie still.
 - **Helios-Bridge.** Eine Kamera-Session, eine TCC.
-- **Enrollment AE-Lock** 200 ms nach Belichtungssprung.
+- **Enrollment AE-Lock** 200 ms nach Belichtungssprung. **Math → 2.1.57 exposureLock.** Wiring fehlt.
 - **Zwei-Kamera-Live.** Built-in + Continuity, Track über Print.
 - **PhotoKit-Scan** nur mit expliziter Foto-Berechtigung.
 - **Live-FAR** letzte 200 Impostor-Ticks im Labor, Overlay-Ticker.
@@ -127,17 +142,17 @@ Die Punkte leftover Ambiguity, Twin-Veto, Mouth-open, Reconnect-Ghost, Slot-Hyst
 - **Aktives Lernen.** „Ist das dieselbe Person?“ an unsicheren Rändern.
 - **Platt-Skalierung** der Sigmoid auf Leave-one-out der Galerie.
 - **Print-Revision-Banner** wenn Face-Print nach OS-Update andere Dim liefert.
-- **Poster-Face reject.** Landmark-Jitter 0 über 4 Frames = Foto an der Wand.
+- **Poster-Face reject.** Landmark-Jitter 0 über 4 Frames = Foto an der Wand. **Math → 2.1.57 posterFaceReject.** Landmark-Hist fehlt.
 - **Glasses as Slot.** Brille an/aus nicht neue Identität.
 - **Track-ID in Labor-CSV.**
 - **CLAHE vor Print** bei Continuity, sonst Nacht-Print driftet.
-- **Partial-Print bei Maske.** `meanPartialVector` statt Vote-Skip wenn U-Slot-Refs da sind.
+- **Partial-Print bei Maske.** `meanPartialVector` statt Vote-Skip wenn U-Slot-Refs da sind. **Math → 2.1.57 partialPrintMasked.**
 - **Enrollment-Radar** F/¾/P als Ring, nicht nur Balken.
 - **Gallery-Compact.** gleiche Pose Cosine 0,97 mergen, Confirm.
 - **Name-Farbe sticky** nach Lock, nicht jedes Tick neu.
 - **Nacht-ISO Banner** wenn Capture < 0,30 drei Frames — CLAHE vorschlagen.
 - **Twin-Wizard.** pairCosine 0,89–0,94 → „dieselbe Person?“ statt still taufen.
-- **Ransac-1 Print.** Outlier-Frame nicht in den Median-Trail.
+- **Ransac-1 Print.** Outlier-Frame nicht in den Median-Trail. **Math → 2.1.57 printCommitMedian.**
 - **Identity-Graph.** Wer mit wem im Bild — Soft-Prior, nie Taufe.
 - **Liveness-Blink.** 1 Lid-Toggle in 2 s sonst Poster.
 - **Cross-Cam ReID.** Built-in → Continuity gleiche UUID über Print, nicht IoU.
@@ -149,7 +164,7 @@ Die Punkte leftover Ambiguity, Twin-Veto, Mouth-open, Reconnect-Ghost, Slot-Hyst
 - **Print-Cache LRU 512** statt `removeAll` — Burst nach 513 Gesichtern sonst kalt. **→ 2.1.56 printCacheDropCount**
 - **Live-dt Median** analog Helios sampleDts — ein Dropout darf leftover-Need nicht auf 0,50 s kippen. **→ 2.1.56 medianLiveDt**
 - **Enrollment-Burst 400 ms auch über `+` in der Liste**, nicht nur Kamera.
-- **Yaw-Slot-Prior im leftoverPick** bevor IoU, sonst ¾-Ghost auf Frontal-Nachbarn (Slot-hart sitzt, Pick-Reihenfolge nicht).
+- **Yaw-Slot-Prior im leftoverPick** bevor IoU, sonst ¾-Ghost auf Frontal-Nachbarn (Slot-hart sitzt, Pick-Reihenfolge nicht). **→ 2.1.57 leftoverPick yawAbs**
 - **Gallery-JSON Schema 3:** `ghostHoldSec` persistiert, Restore nach Crash.
 - **Testmodus ident20 parallel zu Live** ohne Galerie zu wischen.
 - **Continuity-Desk-View eigener Pose-Slot `desk`**, nicht Profil.
@@ -157,18 +172,23 @@ Die Punkte leftover Ambiguity, Twin-Veto, Mouth-open, Reconnect-Ghost, Slot-Hyst
 - **Name-Lock TTL 8 s ohne Vote** analog Rename-Confirm — sonst klebt Anna nach Verlassen. **→ 2.1.56 nameLockVoteTTL**
 - **Cosine-EMA des leftover-Hold** statt Roh-0,64, sonst ein scharfer Twin 0,70 tauft. **→ 2.1.56 leftoverHoldEMA**
 - **Continuity Desk-View nicht als Front spiegeln.** `position == .unspecified` ist oft Desk-View, nicht FaceTime. **→ 2.1.56 mirrorAsFront**
-- **Unknown als Galerie-Klasse.** Reject-Centroid aus den letzten Impostor-Ticks, nicht nur Floor 50.
-- **Print jeden 2. Frame wenn visMs > 18** analog Helios AX-Budget — 24 fps Trail fängt den Skip.
+- **Unknown als Galerie-Klasse.** Reject-Centroid aus den letzten Impostor-Ticks, nicht nur Floor 50. **Math → 2.1.57 unknownCentroid.**
+- **Print jeden 2. Frame wenn visMs > 18** analog Helios AX-Budget — 24 fps Trail fängt den Skip. **→ 2.1.57 printBudgetSkip**
 - **leftoverStreakSince in gallery.json Schema 3** — Crash mitten im Walk tauft nicht neu.
 - **Face-count Hysterese Idle→Live** 2 Frames Gesicht bevor 8 fps, sonst Blinker am Türrahmen. **→ 2.1.56 liveFacesLatch**
 - **Live-ROI um letzte Boxen.** Vision nur Crop bei 8 fps, Full-Frame alle 4 Ticks.
-- **leftover-Assign 3-Frame Majority** bevor UUID wechselt, sonst ein Tick Kreuz tauft.
+- **leftover-Assign 3-Frame Majority** bevor UUID wechselt, sonst ein Tick Kreuz tauft. **→ 2.1.57 leftoverAssignMajority**
 - **VNDetectFaceCaptureQuality** als vierte Ampel neben C/S/Y.
 - **Per-Kamera-Centroid** Built-in vs Continuity, Cross-Cam ReID über den Split.
 - **Shared Frame-Pump mit Helios.** Bridge sitzt als Idee, eine Session-API fehlt.
-- **Name-Lock Overlay `LOCK n s`** Countdown der 8 s, sonst wirkt tot nach Verlassen.
+- **Name-Lock Overlay `LOCK n s`** Countdown der 8 s, sonst wirkt tot nach Verlassen. **→ 2.1.57 nameLockTTLLabel**
 - **Desk-View Horizont-Linie** im Overlay, sonst wirkt ungespiegelt „falsch herum“.
 - **Print-Cache Hit-Rate im Labor**, Cap 512 sichtbar wenn Burst droppt.
+- **Cluster-split Wizard** wenn leftover-Majority 10 Ticks uneinig bleibt.
+- **Live freeze-frame Enrollment.** Space legt die aktuelle Kiste an, ohne Galerie-Wisch.
+- **Track-Farbe sticky** nach leftover, nicht jedes Tick neu.
+- **Print-Budget HUD** visMs analog Helios, Cap 18 ms sichtbar.
+- **Box-Aspekt < 0,38 kein leftover-Frontal.** Math sitzt (`boxAspectFrontal`), Wire in leftoverPick fehlt.
 
 ## Nächste (offen, 2.1.50 — erledigt in 2.1.51)
 

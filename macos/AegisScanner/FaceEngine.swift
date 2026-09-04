@@ -11,7 +11,7 @@ enum FaceEngine {
         return _dropped
     }
 
-    static func detect(in image: CGImage, mediaId: UUID, tiles: Bool = true, orientation: CGImagePropertyOrientation = .up, minSharpness: Double = MatchMath.sharpnessFloor, continuity: Bool = false, cheapGraph: Bool = false, live: Bool = false) throws -> [FaceObservation] {
+    static func detect(in image: CGImage, mediaId: UUID, tiles: Bool = true, orientation: CGImagePropertyOrientation = .up, minSharpness: Double = MatchMath.sharpnessFloor, continuity: Bool = false, cheapGraph: Bool = false, live: Bool = false, skipPrints: Bool = false) throws -> [FaceObservation] {
         let w = Double(image.width)
         let h = Double(image.height)
         var out = try detectOnce(in: image, mediaId: mediaId, originX: 0, originY: 0, imageWidth: w, imageHeight: h, orientation: orientation, cheapGraph: cheapGraph)
@@ -67,7 +67,9 @@ enum FaceEngine {
                 out.append(contentsOf: found)
             }
         }
-        return stampPrints(nms(out, live: live), from: image, orientation: orientation, continuity: continuity, minSharpness: minSharpness)
+        let boxed = nms(out, live: live)
+        if skipPrints { return boxed }
+        return stampPrints(boxed, from: image, orientation: orientation, continuity: continuity, minSharpness: minSharpness)
     }
 
     private static func detectOnce(

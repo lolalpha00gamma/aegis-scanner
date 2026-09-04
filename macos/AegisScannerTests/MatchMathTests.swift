@@ -896,6 +896,53 @@ enum MatchMathTests {
         ok(MatchMath.printCacheDropCount(count: 512) == 0, "512 hält")
         ok(MatchMath.printCacheDropCount(count: 513) == 1, "513 älteste raus")
         ok(MatchMath.printCacheDropCount(count: 600) == 88, "Burst drop auf Cap")
+        ok(
+            MatchMath.leftoverScore(cosine: 0.80, sharpness: nil, yawAbs: 0)
+                > MatchMath.leftoverScore(cosine: 0.80, sharpness: nil, yawAbs: 0.50),
+            "Yaw-Penalty"
+        )
+        ok(
+            MatchMath.leftoverPick(
+                candidates: [(0, 0.50, 0.78), (1, 0.50, 0.78)],
+                sameSlot: [0: true, 1: true],
+                yawAbs: [0: 0.50, 1: 0.05]
+            ) == 1,
+            "Frontal schlägt Profil bei gleichem Print"
+        )
+        let idA = UUID()
+        let idB = UUID()
+        let s1 = MatchMath.leftoverAssignMajority(committed: nil, proposed: idA, lastProposed: nil, streak: 0)
+        ok(!s1.ready && s1.streak == 1, "1. Tick kein Switch")
+        let s2 = MatchMath.leftoverAssignMajority(committed: nil, proposed: idA, lastProposed: s1.last, streak: s1.streak)
+        ok(!s2.ready && s2.streak == 2, "2. Tick")
+        let s3 = MatchMath.leftoverAssignMajority(committed: nil, proposed: idA, lastProposed: s2.last, streak: s2.streak)
+        ok(s3.ready && s3.commit == idA, "3. Tick Switch")
+        let flip = MatchMath.leftoverAssignMajority(committed: nil, proposed: idB, lastProposed: idA, streak: 2)
+        ok(!flip.ready && flip.streak == 1, "Kreuz setzt Streak")
+        ok(MatchMath.leftoverMajorityLabel(streak: 1) == "MAJ 1/3", "MAJ-Label")
+        ok(MatchMath.leftoverMajorityLabel(streak: 3) == nil, "ready kein MAJ")
+        ok(!MatchMath.printBudgetSkip(visionMs: 10, dt: 0.016), "10 ms Print frei")
+        ok(MatchMath.printBudgetSkip(visionMs: 19, dt: 0.016), "24 fps 19 ms Print skip")
+        ok(!MatchMath.printBudgetSkip(visionMs: 19, dt: 0.125), "8 fps Print bleibt")
+        ok(MatchMath.nameLockTTLLabel(lastVote: 1, now: 5.5) != nil, "TTL letzte 4 s")
+        ok(MatchMath.nameLockTTLLabel(lastVote: 1, now: 2) == nil, "TTL 6 s noch still")
+        ok(MatchMath.nameLockTTLLabel(lastVote: nil, now: 10) == nil, "ohne Vote kein TTL-Chip")
+        ok(MatchMath.nameLockLabel(locked: true, leftover: false, progress: nil, ttl: "TTL 3s") == "hält · TTL 3s", "Lock+TTL")
+        ok(MatchMath.posterFaceReject(jitter: 0, frames: 4), "Poster 4 Frames tot")
+        ok(!MatchMath.posterFaceReject(jitter: 0.01, frames: 4), "lebendes Gesicht")
+        ok(!MatchMath.posterFaceReject(jitter: 0, frames: 2), "zu früh")
+        ok(MatchMath.boxAspectFrontal(width: 80, height: 100), "Frontal-Aspekt")
+        ok(!MatchMath.boxAspectFrontal(width: 20, height: 100), "Profil-schmal")
+        near(MatchMath.printCommitMedian([0.70, 0.90, 0.72]) ?? -1, 0.72, 0.001, "Median nicht Mittel")
+        ok(MatchMath.printCommitMedian([]) == nil, "leerer Median")
+        ok(MatchMath.exposureLocks(now: 1.10, until: 1.20), "AE-Lock 200 ms")
+        ok(!MatchMath.exposureLocks(now: 1.21, until: 1.20), "AE frei")
+        near(MatchMath.exposureLockUntil(now: 1.0) - 1.20, 0, 0.001, "AE +200 ms")
+        ok(MatchMath.partialPrintMasked(occluded: true, hasUpperRefs: true), "Maske + U-Refs")
+        ok(!MatchMath.partialPrintMasked(occluded: true, hasUpperRefs: false), "Maske ohne U")
+        ok(MatchMath.unknownCentroid(bestCosine: 0.40), "Centroid unbekannt")
+        ok(!MatchMath.unknownCentroid(bestCosine: 0.80), "Centroid bekannt")
+        ok(MatchMath.unknownCentroid(bestCosine: nil), "nil unbekannt")
 
         let fixture = "1\t2\nAlice\t1\t2\nBob\t1\t3\nAlice\t1\tBob\t1\nAlice\t2\tCarol\t1\n"
         let parsed = BenchProtocol.parsePairs(fixture)

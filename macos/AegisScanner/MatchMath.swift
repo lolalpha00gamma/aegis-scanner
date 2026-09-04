@@ -238,6 +238,7 @@ enum MatchMath {
         candidates: [(index: Int, iou: Double, cosine: Double?)],
         sharpness: [Int: Double] = [:],
         sameSlot: [Int: Bool] = [:],
+        yawAbs: [Int: Double] = [:],
         floor: Double = leftoverIoU,
         twinPair: Double? = nil
     ) -> Int? {
@@ -258,7 +259,9 @@ enum MatchMath {
             // Slot-Info da, kein gleicher Pose-Slot → ¾-Ghost pinnt keinen Frontal-Nachbarn.
             return nil
         }
-        let scored = pool.map { leftoverScore(cosine: $0.cosine ?? -1, sharpness: sharpness[$0.index]) }
+        let scored = pool.map {
+            leftoverScore(cosine: $0.cosine ?? -1, sharpness: sharpness[$0.index], yawAbs: yawAbs[$0.index] ?? 0)
+        }
         let raw = pool.map { $0.cosine ?? -1 }
         if leftoverAmbiguousBlocks(raw: raw, scored: scored) { return nil }
         if let i = scored.enumerated().max(by: { $0.element < $1.element })?.offset {
@@ -346,12 +349,20 @@ enum MatchMath {
     }
 
     /// Scharfer Print gewinnt gegen leicht höheren unscharfen (0,72 scharf > 0,73 blur).
+    /// Profil-Yaw zieht den Score — Twin im Profil tauft sonst den Frontal-Nachbarn.
     static let leftoverSharpBonus = 0.05
+    static let leftoverYawPenalty = 0.12
 
-    static func leftoverScore(cosine: Double, sharpness: Double?) -> Double {
-        guard let s = sharpness else { return cosine }
-        let t = min(1, max(0, (s - leftoverPrintSharp) / 0.20))
-        return cosine + leftoverSharpBonus * t
+    static func leftoverScore(cosine: Double, sharpness: Double?, yawAbs: Double = 0) -> Double {
+        var s: Double
+        if let sh = sharpness {
+            let t = min(1, max(0, (sh - leftoverPrintSharp) / 0.20))
+            s = cosine + leftoverSharpBonus * t
+        } else {
+            s = cosine
+        }
+        s -= leftoverYawPenalty * min(1, max(0, yawAbs / 0.50))
+        return s
     }
 
     /// Bewegung + Unschärfe: neuen Print nicht übernehmen. Scharfes Nicken (IoU 0,75) darf.
@@ -933,9 +944,12 @@ enum MatchMath {
 
     /// Overlay `hält` sobald Lock sitzt — Uneinig-Ticks wirken sonst tot.
     /// leftover hat eigenes Hold-Label, nicht den alten Namen halten.
-    static func nameLockLabel(locked: Bool, leftover: Bool, progress: String?) -> String? {
+    static func nameLockLabel(locked: Bool, leftover: Bool, progress: String?, ttl: String? = nil) -> String? {
         if leftover { return progress }
-        if locked { return "hält" }
+        if locked {
+            if let ttl { return "hält · \(ttl)" }
+            return "hält"
+        }
         return progress
     }
 
@@ -1642,6 +1656,100 @@ enum MatchMath {
     /// Burst nach 513 Gesichtern nicht kalt — älteste raus, nicht removeAll.
     static func printCacheDropCount(count: Int, cap: Int = printCacheCap) -> Int {
         max(0, count - cap)
+    }
+
+    /// 3 Frames gleiche Zuordnung, dann UUID-Switch. Ein 2-opt-Tick tauft sonst den Twin.
+    static let leftoverMajorityNeed = 3
+
+    static func leftoverAssignMajority(
+        committed: UUID?,
+        proposed: UUID?,
+        lastProposed: UUID?,
+        streak: Int,
+        need: Int = leftoverMajorityNeed
+    ) -> (commit: UUID?, last: UUID?, streak: Int, ready: Bool) {
+        guard let proposed else {
+            return (committed, nil, 0, false)
+        }
+        if let committed, proposed == committed {
+            return (committed, proposed, 0, false)
+        }
+        if lastProposed == proposed {
+            let n = streak + 1
+            if n >= need {
+                return (proposed, proposed, 0, true)
+            }
+            return (committed, proposed, n, false)
+        }
+        return (committed, proposed, 1, false)
+    }
+
+    static func leftoverMajorityLabel(streak: Int, need: Int = leftoverMajorityNeed) -> String? {
+        guard streak > 0, streak < need else { return nil }
+        return "MAJ \(streak)/\(need)"
+    }
+
+    /// 24 fps: Print skip wenn Vision > 18 ms. 8 fps nie — leftover braucht den Print.
+    static let printBudgetMs = 18.0
+
+    static func printBudgetSkip(visionMs: Double, dt: TimeInterval) -> Bool {
+        if dt >= 0.08 { return false }
+        return visionMs > printBudgetMs
+    }
+
+    /// Name-Lock Overlay Countdown der letzten 4 s, sonst wirkt tot nach Verlassen.
+    static func nameLockTTLLabel(
+        lastVote: TimeInterval?,
+        now: TimeInterval,
+        hold: TimeInterval = nameLockVoteTTL,
+        window: TimeInterval = 4
+    ) -> String? {
+        guard let lastVote, now > 0, window > 0 else { return nil }
+        let left = hold - (now - lastVote)
+        guard left > 0, left <= window + 1e-9 else { return nil }
+        return String(format: "TTL %.0fs", left)
+    }
+
+    /// Landmark-Jitter 0 über 4 Frames = Poster an der Wand.
+    static func posterFaceReject(jitter: Double, frames: Int, need: Int = 4, floor: Double = 1e-4) -> Bool {
+        frames >= need && jitter < floor
+    }
+
+    /// Sehr schmale Kiste ist kein Frontal — leftover auf Profil-Ghost.
+    static let boxAspectMin = 0.38
+
+    static func boxAspectFrontal(width: Double, height: Double, minAspect: Double = boxAspectMin) -> Bool {
+        guard height > 1e-6 else { return false }
+        return (width / height) >= minAspect
+    }
+
+    /// Median-Trail Commit, nicht Mittel — ein Outlier-Frame tauft nicht.
+    static func printCommitMedian(_ samples: [Double]) -> Double? {
+        let ok = samples.filter { $0.isFinite }
+        guard !ok.isEmpty else { return nil }
+        let sorted = ok.sorted()
+        return sorted[sorted.count / 2]
+    }
+
+    /// Enrollment: 200 ms nach Belichtungssprung kein Print.
+    static let exposureLockHold: TimeInterval = 0.20
+
+    static func exposureLockUntil(now: TimeInterval, hold: TimeInterval = exposureLockHold) -> TimeInterval {
+        now + hold
+    }
+
+    static func exposureLocks(now: TimeInterval, until: TimeInterval) -> Bool {
+        until > 0 && now < until
+    }
+
+    /// Maske: Partial-Print statt Vote-Skip wenn U-Slot-Refs da sind.
+    static func partialPrintMasked(occluded: Bool, hasUpperRefs: Bool) -> Bool {
+        occluded && hasUpperRefs
+    }
+
+    /// Open-Set: Bester Galerie-Centroid unter leftover-Floor — Overlay, keine Taufe.
+    static func unknownCentroid(bestCosine: Double?, floor: Double = leftoverPrintCosine) -> Bool {
+        (bestCosine ?? -1) < floor
     }
 }
 

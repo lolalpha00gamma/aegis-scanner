@@ -49,6 +49,10 @@ final class LibraryStore: ObservableObject {
     private var leftoverStreakBox: [UUID: FaceBox] = [:]
     private var leftoverStreakSince: [UUID: TimeInterval] = [:]
     private var leftoverWipeUntil: [UUID: TimeInterval] = [:]
+    private var leftoverPairLast: [UUID: UUID] = [:]
+    private var leftoverPairStreak: [UUID: Int] = [:]
+    private var leftoverPairCommit: [UUID: UUID] = [:]
+    private var lastLiveVisMs: Double = 0
     private var liveSlotHold: [UUID: (slot: String, n: Int)] = [:]
     private var lastLiveHeadCount: Int = 0
     private var lastHeadCountLabel: String?
@@ -1050,7 +1054,11 @@ final class LibraryStore: ObservableObject {
         return MatchMath.nameLockLabel(
             locked: liveNameLock[faceId] != nil,
             leftover: leftoverHold[faceId] != nil,
-            progress: progress
+            progress: progress,
+            ttl: liveNameLock[faceId] == nil ? nil : MatchMath.nameLockTTLLabel(
+                lastVote: liveNameVoteAt[faceId],
+                now: liveLastStamp
+            )
         )
     }
 
@@ -1190,6 +1198,9 @@ final class LibraryStore: ObservableObject {
         leftoverStreak = [:]
         leftoverStreakBox = [:]
         leftoverStreakSince = [:]
+        leftoverPairLast = [:]
+        leftoverPairStreak = [:]
+        leftoverPairCommit = [:]
         leftoverPending = [:]
         leftoverHold = [:]
         leftoverWipeUntil = [:]
@@ -1269,10 +1280,16 @@ final class LibraryStore: ObservableObject {
 
     private func runLiveDetect(_ image: CGImage, mediaId: UUID, stamp: TimeInterval) {
         let cont = liveCapture.isContinuity
+        let dt = liveDt
+        let vis = lastLiveVisMs
         Task.detached(priority: .userInitiated) {
-            let found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true)) ?? []
+            let skipPrints = MatchMath.printBudgetSkip(visionMs: vis, dt: dt)
+            let t0 = CFAbsoluteTimeGetCurrent()
+            let found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true, skipPrints: skipPrints)) ?? []
+            let visMs = (CFAbsoluteTimeGetCurrent() - t0) * 1000
             await MainActor.run { [weak self] in
                 guard let self else { return }
+                self.lastLiveVisMs = visMs
                 if !self.liveActive || self.liveMediaId != mediaId {
                     self.liveBusy = false
                     self.livePending = nil
@@ -1339,6 +1356,9 @@ final class LibraryStore: ObservableObject {
         leftoverStreakBox.removeValue(forKey: id)
         leftoverStreakSince.removeValue(forKey: id)
         leftoverWipeUntil.removeValue(forKey: id)
+        leftoverPairLast.removeValue(forKey: id)
+        leftoverPairStreak.removeValue(forKey: id)
+        leftoverPairCommit.removeValue(forKey: id)
     }
 
     private func applyLiveFaces(_ found: [FaceObservation], image: CGImage, mediaId: UUID, stamp: TimeInterval) {
@@ -1656,6 +1676,20 @@ final class LibraryStore: ObservableObject {
                     let i = unnamedLeft[col]
                     guard !used.contains(old.id) else { continue }
                     leftoverTried.insert(old.id)
+                    let proposed = adopted[i].id
+                    let maj = MatchMath.leftoverAssignMajority(
+                        committed: leftoverPairCommit[old.id],
+                        proposed: proposed,
+                        lastProposed: leftoverPairLast[old.id],
+                        streak: leftoverPairStreak[old.id] ?? 0
+                    )
+                    leftoverPairLast[old.id] = maj.last
+                    leftoverPairStreak[old.id] = maj.streak
+                    if let majLabel = MatchMath.leftoverMajorityLabel(streak: maj.streak) {
+                        leftoverPending[adopted[i].id] = majLabel
+                    }
+                    guard maj.ready else { continue }
+                    leftoverPairCommit[old.id] = maj.commit
                     let step = leftoverAdvance(oldId: old.id, box: adopted[i].box, now: now)
                     if let label = step.label {
                         leftoverPending[adopted[i].id] = label
@@ -1692,6 +1726,9 @@ final class LibraryStore: ObservableObject {
             leftoverStreak = [:]
             leftoverStreakBox = [:]
             leftoverStreakSince = [:]
+            leftoverPairLast = [:]
+            leftoverPairStreak = [:]
+            leftoverPairCommit = [:]
             leftoverWipeUntil = [:]
             liveSlotHold = [:]
             liveStillFor = [:]
@@ -1737,6 +1774,7 @@ final class LibraryStore: ObservableObject {
                 }
                 var sharp: [Int: Double] = [:]
                 var sameSlot: [Int: Bool] = [:]
+                var yawAbs: [Int: Double] = [:]
                 let old = item.old
                 if leftoverTried.contains(old.id) { continue }
                 let oldRaw = FaceEngine.poseSlot(old).rawValue
@@ -1745,6 +1783,7 @@ final class LibraryStore: ObservableObject {
                 liveSlotHold[old.id] = oldSticky
                 for cand in remaining {
                     sharp[cand.index] = adopted[cand.index].quality.sharpness
+                    yawAbs[cand.index] = abs(adopted[cand.index].quality.yaw)
                     let raw = FaceEngine.poseSlot(adopted[cand.index]).rawValue
                     let held = liveSlotHold[adopted[cand.index].id]
                     let sticky = MatchMath.poseSlotSticky(prev: held?.slot ?? oldSticky.slot, raw: raw, hold: held?.n ?? 0)
@@ -1755,6 +1794,7 @@ final class LibraryStore: ObservableObject {
                     candidates: remaining,
                     sharpness: sharp,
                     sameSlot: sameSlot,
+                    yawAbs: yawAbs,
                     twinPair: matches.first { $0.faceId == old.id }?.hits.first { $0.strategy == .aegis }?.pairCosine
                 ) else {
                     leftoverClearStreak(old.id)
@@ -1805,6 +1845,9 @@ final class LibraryStore: ObservableObject {
             leftoverStreak = leftoverStreak.filter { leftoverIds.contains($0.key) && !used.contains($0.key) }
             leftoverStreakBox = leftoverStreakBox.filter { leftoverIds.contains($0.key) && !used.contains($0.key) }
             leftoverStreakSince = leftoverStreakSince.filter { leftoverIds.contains($0.key) && !used.contains($0.key) }
+            leftoverPairLast = leftoverPairLast.filter { leftoverIds.contains($0.key) && !used.contains($0.key) }
+            leftoverPairStreak = leftoverPairStreak.filter { leftoverIds.contains($0.key) && !used.contains($0.key) }
+            leftoverPairCommit = leftoverPairCommit.filter { leftoverIds.contains($0.key) && !used.contains($0.key) }
             leftoverWipeUntil = leftoverWipeUntil.filter { liveIds.contains($0.key) }
             liveSlotHold = liveSlotHold.filter { liveIds.contains($0.key) }
             if leftoverPins > 0, let line = MatchMath.leftoverPinStatus(
