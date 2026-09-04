@@ -145,7 +145,7 @@ final class LibraryStore: ObservableObject {
     func refreshMergeHint() {
         let pairs = IdentityDesk.mergePairs(identities: identities, gallery: faces)
         if let p = pairs.first {
-            mergeHint = String(format: "%@ und %@ %.0f%% — zusammenführen?", p.keepName, p.dropName, p.cosine * 100)
+            mergeHint = MatchMath.mergeHintLabel(count: pairs.count, a: p.keepName, b: p.dropName, cosine: p.cosine)
         } else {
             mergeHint = ""
         }
@@ -1868,6 +1868,10 @@ final class LibraryStore: ObservableObject {
                     twinPair: matches.first { $0.faceId == old.id }?.hits.first { $0.strategy == .aegis }?.pairCosine,
                     holdPrev: leftoverHold[old.id]
                 ) else {
+                    let twin = matches.first { $0.faceId == old.id }?.hits.first { $0.strategy == .aegis }?.pairCosine
+                    if MatchMath.leftoverTwinSuggest(pairCosine: twin) {
+                        leftoverPending[old.id] = MatchMath.leftoverTwinNote()
+                    }
                     leftoverClearStreak(old.id)
                     continue
                 }

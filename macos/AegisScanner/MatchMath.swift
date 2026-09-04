@@ -253,6 +253,9 @@ enum MatchMath {
         if leftoverTwinBlocksBox(pairCosine: twinPair, printCosine: nil) {
             printable = printable.filter { leftoverBaptize(cosine: $0.cosine) }
         }
+        if leftoverTwinSuggest(pairCosine: twinPair) {
+            return nil
+        }
         if !aspectOk.isEmpty {
             printable = printable.filter {
                 leftoverPickAspect(ok: aspectOk[$0.index], cosine: $0.cosine)
@@ -370,7 +373,7 @@ enum MatchMath {
         var s: Double
         if let sh = sharpness {
             let t = min(1, max(0, (sh - leftoverPrintSharp) / 0.20))
-            s = cosine + leftoverSharpBonus * t
+            s = cosine * (0.88 + leftoverSharpBonus * 2.4 * t)
         } else {
             s = cosine
         }
@@ -1832,6 +1835,92 @@ enum MatchMath {
     /// Open-Set: Bester Galerie-Centroid unter leftover-Floor — Overlay, keine Taufe.
     static func unknownCentroid(bestCosine: Double?, floor: Double = leftoverPrintCosine) -> Bool {
         (bestCosine ?? -1) < floor
+    }
+
+    /// leftover ohne Baptize-Print zeigt keinen eingeschriebenen Namen.
+    static func leftoverShowsName(cosine: Double?) -> Bool {
+        leftoverBaptize(cosine: cosine)
+    }
+
+    static func unknownStickyName(index: Int) -> String {
+        "Gast \(max(1, index))"
+    }
+
+    /// Enrolled leftover + unknown probe: UUID nicht stehlen.
+    static func unknownStickyKeeps(bestCosine: Double?, enrolled: Bool) -> Bool {
+        enrolled && unknownCentroid(bestCosine: bestCosine)
+    }
+
+    /// pairCosine 0,89–0,94: Twin-Wizard, leftover nicht taufen.
+    static func leftoverTwinSuggest(pairCosine: Double?) -> Bool {
+        guard let p = pairCosine else { return false }
+        return mergeSuggest(pairCosine: p)
+    }
+
+    static func leftoverTwinNote() -> String { "TWIN" }
+
+    /// Bei genau 2 Personen: Print und Geo müssen einig sein.
+    static func twoPersonAnd(printAgree: Bool, geoAgree: Bool, gallery: Int) -> Bool {
+        if gallery != 2 { return true }
+        return printAgree && geoAgree
+    }
+
+    static func twoPersonAndNote() -> String { "Print und Maße uneinig" }
+
+    static func mergeSuggestPairs(_ pairs: [(Int, Int, Double)]) -> [(Int, Int, Double)] {
+        pairs.filter { mergeSuggest(pairCosine: $0.2) }
+            .sorted { $0.2 > $1.2 }
+    }
+
+    static func mergeHintLabel(count: Int, a: String, b: String, cosine: Double) -> String {
+        let pct = Int((cosine * 100).rounded())
+        if count <= 1 {
+            return "\(a) und \(b) \(pct)% — zusammenführen?"
+        }
+        return "\(a) und \(b) \(pct)% (+\(count - 1) weitere) — zusammenführen?"
+    }
+
+    /// Lid zu → auf, sonst Poster.
+    static func livenessBlink(prevClosed: Bool, nowClosed: Bool) -> Bool {
+        prevClosed && !nowClosed
+    }
+
+    static func posterNeedsBlink(stillFrames: Int, blinked: Bool, need: Int = 8) -> Bool {
+        stillFrames >= need && !blinked
+    }
+
+    static func visionQualityLamp(_ q: Double) -> Lamp {
+        if q >= 0.50 { return .green }
+        if q >= 0.25 { return .amber }
+        return .red
+    }
+
+    /// 8 fps Box: einfache 1D-Kalman statt 1-Euro (hängt hinter Sprung).
+    static func boxKalman(
+        prev: Double,
+        meas: Double,
+        p: Double,
+        dt: TimeInterval,
+        q: Double = 0.008,
+        r: Double = 0.04
+    ) -> (x: Double, p: Double) {
+        let qScale = dt >= 0.08 ? q * 4 : q
+        let pPred = p + qScale
+        let k = pPred / (pPred + r)
+        let x = prev + k * (meas - prev)
+        return (x, (1 - k) * pPred)
+    }
+
+    static let clusterSplitNeed = 10
+
+    static func clusterSplit(disagree: Int, need: Int = clusterSplitNeed) -> Bool {
+        disagree >= need
+    }
+
+    static func clusterSplitNote() -> String { "SPLIT" }
+
+    static func centroidWeight(capture: Double, sharpness: Double) -> Double {
+        max(0.08, capture * (0.35 + 0.65 * max(0, sharpness)))
     }
 }
 

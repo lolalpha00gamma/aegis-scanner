@@ -995,6 +995,49 @@ enum MatchMathTests {
         ok(order.last == Data([1]), "LRU hit ans Ende")
         ok(order.first == Data([2]), "älteste bleibt vorn")
 
+        ok(MatchMath.leftoverShowsName(cosine: 0.82), "Baptize zeigt Namen")
+        ok(!MatchMath.leftoverShowsName(cosine: 0.70), "0,70 leftover kein Name")
+        ok(!MatchMath.leftoverShowsName(cosine: nil), "nil kein Name")
+        ok(MatchMath.unknownStickyName(index: 1) == "Gast 1", "Gast 1")
+        ok(MatchMath.unknownStickyKeeps(bestCosine: 0.40, enrolled: true), "Gast hält UUID")
+        ok(!MatchMath.unknownStickyKeeps(bestCosine: 0.80, enrolled: true), "Print darf pin")
+        ok(MatchMath.leftoverTwinSuggest(pairCosine: 0.91), "Twin-Wizard 0,91")
+        ok(!MatchMath.leftoverTwinSuggest(pairCosine: 0.70), "fremd kein Twin")
+        ok(
+            MatchMath.leftoverPick(candidates: [(0, 0.50, 0.70)], twinPair: 0.91) == nil,
+            "Twin 0,91 leftover tot"
+        )
+        ok(
+            MatchMath.leftoverPick(candidates: [(0, 0.50, 0.70)], twinPair: 0.895) == nil,
+            "Twin 0,895 Wizard, nicht leftover"
+        )
+        ok(
+            MatchMath.leftoverPick(candidates: [(0, 0.50, 0.70)], twinPair: 0.50) == 0,
+            "fremd leftover darf"
+        )
+        ok(MatchMath.twoPersonAnd(printAgree: true, geoAgree: false, gallery: 2) == false, "2 Personen AND")
+        ok(MatchMath.twoPersonAnd(printAgree: true, geoAgree: false, gallery: 8), "8 Personen kein AND")
+        ok(MatchMath.twoPersonAnd(printAgree: true, geoAgree: true, gallery: 2), "2 Personen einig")
+        let hinted = MatchMath.mergeHintLabel(count: 3, a: "Anna", b: "Annika", cosine: 0.91)
+        ok(hinted.contains("+2"), "Merge +2 weitere")
+        ok(MatchMath.mergeHintLabel(count: 1, a: "A", b: "B", cosine: 0.90).contains("zusammenführen"), "ein Paar")
+        let pairs = MatchMath.mergeSuggestPairs([(0, 1, 0.91), (0, 2, 0.50), (1, 2, 0.93)])
+        ok(pairs.count == 2 && pairs[0].2 >= pairs[1].2, "Merge-Paare sortiert")
+        ok(MatchMath.livenessBlink(prevClosed: true, nowClosed: false), "Lid auf = Blink")
+        ok(!MatchMath.livenessBlink(prevClosed: false, nowClosed: false), "offen bleibt")
+        ok(MatchMath.posterNeedsBlink(stillFrames: 8, blinked: false), "Poster ohne Blink")
+        ok(!MatchMath.posterNeedsBlink(stillFrames: 8, blinked: true), "geblinkt lebt")
+        ok(MatchMath.visionQualityLamp(0.80) == .green, "Vision grün")
+        ok(MatchMath.visionQualityLamp(0.10) == .red, "Vision rot")
+        let kal = MatchMath.boxKalman(prev: 0.20, meas: 0.80, p: 0.04, dt: 0.125)
+        ok(kal.x > 0.20 && kal.x < 0.80, "Kalman zwischen")
+        ok(MatchMath.clusterSplit(disagree: 10), "10 Ticks Split")
+        ok(!MatchMath.clusterSplit(disagree: 3), "3 Ticks kein Split")
+        ok(MatchMath.centroidWeight(capture: 1, sharpness: 1) > MatchMath.centroidWeight(capture: 0.2, sharpness: 0.1), "Centroid-Gewicht")
+        let sharpMul = MatchMath.leftoverScore(cosine: 0.72, sharpness: 0.42)
+        let blurMul = MatchMath.leftoverScore(cosine: 0.73, sharpness: 0.10)
+        ok(sharpMul > blurMul, "Score multiplikativ Schärfe (\(sharpMul) > \(blurMul))")
+
         let fixture = "1\t2\nAlice\t1\t2\nBob\t1\t3\nAlice\t1\tBob\t1\nAlice\t2\tCarol\t1\n"
         let parsed = BenchProtocol.parsePairs(fixture)
         ok(parsed.count == 4, "Fixture 4 Paare (ist \(parsed.count))")

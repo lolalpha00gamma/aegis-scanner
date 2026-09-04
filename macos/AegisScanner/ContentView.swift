@@ -153,7 +153,7 @@ struct ContentView: View {
                     Button("Zusammenführen") { store.acceptMergeHint() }
                         .controlSize(.small)
                 }
-                .help("Centroid 0,89–0,94. Bestätigen, nie still taufen.")
+                .help("Centroid 0,89–0,94. Mehrere Paare: Button mehrmals. Nie still taufen.")
             }
             Text("Anlegen = neue Person (zweites Mal bestätigt, wenn Cosine ≥ 0,82). + = extra Foto derselben Person. Dritter gleicher Slot blockt, solange Frontal oder ¾ fehlt. Live speichert eine Kopie.")
                 .font(.caption2)
@@ -849,6 +849,10 @@ struct FaceOverlay: View {
     ) -> String {
         if pinned, let owner {
             let held = store.liveHeldIds.contains(faceId)
+            if let holdCos = store.leftoverHold[faceId], !MatchMath.leftoverShowsName(cosine: holdCos) {
+                let hold = MatchMath.leftoverHoldLabel(cosine: holdCos) ?? MatchMath.unknownRejectNote()
+                return "\(MatchMath.unknownStickyName(index: 1)) · \(hold)"
+            }
             if let hold = MatchMath.leftoverHoldLabel(cosine: store.leftoverHold[faceId]) {
                 return "\(owner.name) \(Int(pct))% · \(hold)"
             }

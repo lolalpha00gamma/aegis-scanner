@@ -806,6 +806,17 @@ enum FaceEngine {
                 let lead = MatchMath.liveNamePrintLeadsNote()
                 note = note.isEmpty ? lead : lead + ". " + note
             }
+            let printOk = decidedId != nil
+            let geoOk = MatchMath.liveGeoAgrees(
+                printBest: best?.identityId,
+                geoBest: geoBest?.id,
+                geoAvailable: geoAvailable
+            )
+            if !MatchMath.twoPersonAnd(printAgree: printOk, geoAgree: geoOk, gallery: models.count) {
+                decidedId = nil
+                let andNote = MatchMath.twoPersonAndNote()
+                note = note.isEmpty ? andNote : andNote + ". " + note
+            }
             let printHit = StrategyHit(
                 strategy: .featurePrint,
                 identityId: decidedId,

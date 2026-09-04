@@ -1,6 +1,24 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.59 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.60 alpha**. Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+## In 2.1.60 wirklich im Code
+
+2.1.59 leftover taufte Zwillinge 0,89–0,94 still. Pinned Overlay zeigte Anna bei leftover 0,64. Merge-Banner nur Top-1. Zwei Personen: Print OR Geo. leftoverScore additiv (0,05) zu schwach gegen Blur.
+
+1. **`leftoverTwinSuggest` 0,89–0,94.** leftoverPick nil, Overlay `TWIN`.
+2. **`leftoverShowsName` / `unknownStickyName`.** Overlay `Gast 1` bis Baptize 0,80.
+3. **`mergeHintLabel` +N weitere.** Button mehrmals, Top bleibt Confirm.
+4. **`twoPersonAnd`.** Gallery=2: Print und Geo einig, sonst keine Taufe.
+5. **`leftoverScore` multiplikativ** 0,88–1,00 × Schärfe.
+6. **`livenessBlink` / `posterNeedsBlink`.** Math; Jitter-Poster bleibt.
+7. **`boxKalman` 8 fps.** Math.
+8. **`clusterSplit` 10 Ticks.** Math.
+9. Tests + VERSION = Models = MARKETING_VERSION 2.1.60 (Build 87).
+
+## Nächste (offen, 2.1.59 — erledigt in 2.1.60)
+
+Twin-Wizard leftover, Gast-Sticky, Merge-Liste, Print+Geo AND, Score×Schärfe sitzen in 2.1.60.
 
 ## In 2.1.59 wirklich im Code
 
@@ -232,7 +250,20 @@ Die Punkte leftover Ambiguity, Twin-Veto, Mouth-open, Reconnect-Ghost, Slot-Hyst
 - **Live freeze-frame Enrollment.** Space legt die aktuelle Kiste an, ohne Galerie-Wisch.
 - **Track-Farbe sticky** nach leftover, nicht jedes Tick neu.
 - **Print-Budget HUD** visMs analog Helios, Cap 18 ms sichtbar.
-- **Box-Aspekt < 0,38 kein leftover-Frontal.** Math sitzt (`boxAspectFrontal`), Wire in leftoverPick fehlt.
+- **Box-Aspekt < 0,38 kein leftover-Frontal.** Math sitzt (`boxAspectFrontal`), Wire in leftoverPick **→ 2.1.59 leftoverPickAspect**.
+- **Guest-Identität persistieren.** `Gast n` nach 8 s leftover → eigene UUID, nicht nächste Anna.
+- **Liveness-Blink verdrahten.** `posterNeedsBlink` in leftover nach Jitter.
+- **Box-Kalman verdrahten** statt 1-Euro bei Continuity 8 fps.
+- **Cluster-Split Overlay** wenn leftover-Majority 10 Ticks uneinig — „zwei Personen?“.
+- **Drop-in FaceEmbedder `.mlmodel`.** Apple-Print default, ArcFace optional.
+- **PhotoKit-Alben** nur mit expliziter Berechtigung, Watch-Folder danach.
+- **CLAHE Continuity-Nacht** Capture < 0,30 drei Frames, Banner.
+- **Cross-Cam ReID.** Built-in → Continuity über Print, nicht IoU.
+- **Enrollment-Radar** F/¾/P als Ring plus Coach-Pfeil (Text sitzt).
+- **Print-Revision-Banner** nach OS-Update wenn Dim ≠ gallery.
+- **Aktives Lernen.** „Ist das dieselbe Person?“ an leftover 0,80–0,88.
+- **Identity-Graph.** Wer mit wem im Bild — Soft-Prior, nie Taufe.
+- **Helios Frame-Pump teilen.** Eine TCC, ein RotationCoordinator.
 
 ## Nächste (offen, 2.1.50 — erledigt in 2.1.51)
 

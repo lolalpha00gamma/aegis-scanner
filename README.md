@@ -1,4 +1,4 @@
-# Aegis **2.1.59 alpha**
+# Aegis **2.1.60 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,17 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.60 alpha
+
+2.1.59 leftover taufte Zwillinge 0,89–0,94, Overlay zeigte Anna bei 0,64, Merge nur Top-1, zwei Köpfe Print-OR-Geo.
+
+- **`leftoverTwinSuggest`.** 0,89–0,94 kein leftover, Overlay `TWIN`.
+- **`Gast 1`** bis Baptize 0,80 — leftover stiehlt den Namen nicht.
+- **Merge +N weitere.** Button mehrmals.
+- **`twoPersonAnd`.** Zwei Personen: Print und Maße.
+- **leftoverScore × Schärfe.** Blur 0,73 verliert gegen scharf 0,72.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.60 (Build 87).
 
 ## Neu in 2.1.59 alpha
 
