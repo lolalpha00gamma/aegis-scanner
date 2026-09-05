@@ -1,4 +1,4 @@
-# Aegis **2.1.128 alpha**
+# Aegis **2.1.129 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.129 alpha
+
+AssignLive erst ab 2 Gesichtern — eine Person nach Vision-Restart tot. Pair/Streak nicht reminted. StreakBox x auf old.
+
+- **`leftoverAssignLiveGate` 1+1.** LibraryStore nicht mehr ≥2.
+- **leftoverHoldRemint** Pair/Streak/Disagree/StreakBox.
+- **`leftoverStreakBoxLive`.** Hold-Keys ← Live-Box.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.129 (Build 155).
 
 ## Neu in 2.1.128 alpha
 

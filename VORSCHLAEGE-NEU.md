@@ -1,3 +1,62 @@
+# Nachtrag 2026-09-05 (2.1.129)
+
+Siehe ANALYSE.md. **2.1.129** AssignLive 1+1, Pair/Streak Remint, StreakBox Live.
+
+## In 2.1.129 gelandet
+
+1. leftoverAssignLiveGate unnamed≥1 unused≥1 — Einzelperson nach Restart
+2. leftoverHoldRemint Pair/Streak/Disagree/StreakBox
+3. leftoverStreakBoxLive Hold-Keys ← Live-Box
+4. VERSION = Models = MARKETING_VERSION 2.1.129 (Build 155)
+
+## Nächste, zusätzlich
+
+- leftoverHoldByHash Rescue wenn x-Match > Pad (Hash-Key, nicht UUID).
+- leftoverAssignLiveGate Pref 1 vs 2 — Crowd default 2, Solo 1.
+- leftoverFillXPad Pref 0,06–0,20.
+- leftoverHashHoldFloor bleibt 0,64 (kein Sharpness im Persist).
+- leftoverNameLockHeld persist Schema 7.
+- leftoverJpegProbeReuse TTL Pref 0,25–1,2.
+- FaceEngine jpegProbe detached queue.
+- FaceEngine VNTrackObjectRequest statt nur Rectangles — weniger UUID-Remint.
+- PhotoKit Live Photos Frame 0, nicht Poster.
+- printRevision je Identity.
+- gallery.json.bak rotate 3.
+- VNDetectFaceRectangles revision pin.
+- leftoverHashHold VoiceOver.
+- leftoverJumpName VoiceOver.
+- Schema 5 UUID-Bins nach Schema 6 behalten (kein Wipe).
+- Helios Frame-Pump, eine TCC. Shared XPC mit Helios 1.5.115.
+- Overlay VoiceOver HOLD/Spark/HASH/LOCK/NBR/FAST/INDOOR/TWIN.
+- Per-Box CLAHE statt Full-Frame.
+- Continuity Desk-View yaw-floor 0,36.
+- Gallery print decay: ungenutzte 14-Tage-Prints downweight.
+- Partial-Print P-Slot ohne Augen (Schal/Maske).
+- Burst-AE 5-Frame Pref Continuity-Nacht.
+- Print-Bank 5 Pose-Slots front/left/right/up/down.
+- DBSCAN vor Merge.
+- Watch-Folder PhotoKit.
+- Encrypted gallery export `.aegis`.
+- Iris-Textur-Slot als Twin-Veto.
+- Specular-Highlight auf Stirn als Card-Photo-Veto.
+- Continuity LiDAR-Z als Twin-Trennung.
+- Masken-/Schal-Slot. Brille-Slot.
+- Tests splitted.
+- Merge-Undo Stack 8.
+- IdentityDesk 9-Tuple → GalleryPayload direkt.
+- **Per-Hold TTL in Schema 7.** `at` + `ttl` je Zeile.
+- Temporal ReID-Graph über Hold-Trail.
+- PnP 6DoF, Slot folgt der Nase.
+- leftoverGateChip Cap Pref 4–8.
+- leftoverLiveHashTick nach Transfer kopieren (newId → old.id).
+- Rank-Keys persist Schema 7.
+- leftoverPairCommit Value-Remint (alte Live-UUID → neue).
+- leftoverHoldRemint dist-Cap analog leftoverFillXPad Pref.
+- dropoutTTLSticky nicht verdrahten — leftoverHoldTTLOf sitzt.
+- leftoverHoldsTrack LOCK halten — Tests verlangen JUMP Frame kein Hold.
+
+Nur main.
+
 # Nachtrag 2026-09-05 (2.1.128)
 
 Siehe ANALYSE.md. **2.1.128** AssignLive Remint, leftoverHold UUID/Bins/NameLock Remint.

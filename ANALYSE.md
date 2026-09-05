@@ -1,3 +1,26 @@
+# Helios + Aegis — Analyse 2026-09-05 (2.1.129)
+
+Helios **1.5.115** (Build 135). Aegis **2.1.129 alpha** (Build 155). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.128: AssignLive Remint, leftoverHold UUID/Bins Remint. AssignLive erst ab 2 Gesichtern. Pair/Streak nicht reminted. StreakBox tot nach Restart.
+
+## 2.1.128 → 2.1.129
+
+1. **AssignLive ≥2.** Vision-Restart, eine Person: unnamed=1 unused=1. ID-Transfer tot. Overlay hält neuen UUID, Galerie den alten.
+2. **leftoverPairCommit/Streak/Last/Disagree nicht reminted.** Overlay keyed live.id, AssignLive keyed old.id. Majority-Streak nach Restart 0.
+3. **leftoverStreakBox nur leftoverAdvance.** Ohne AssignLive bleibt x auf old — nächster Hitch matched tot.
+
+## Was 2.1.129 ändert
+
+1. **`leftoverAssignLiveGate` 1+1.** LibraryStore nicht mehr ≥2.
+2. **leftoverHoldRemint** PairLast/Streak/Commit, Disagree, Streak, StreakBox, StreakSince.
+3. **`leftoverStreakBoxLive`.** Hold-Keys bekommen die Live-Box nach Remint.
+4. Tests + VERSION = Models = MARKETING_VERSION 2.1.129 (Build 155).
+
+Helios 1.5.115: destEdgeCrosses innerster, Cross-Hold 80 ms. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-05 (2.1.128)
 
 Helios **1.5.113** (Build 133). Aegis **2.1.128 alpha** (Build 154). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

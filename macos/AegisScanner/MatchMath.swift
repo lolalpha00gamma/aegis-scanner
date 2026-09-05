@@ -1374,6 +1374,11 @@ enum MatchMath {
 
     /// Print-Assign, x-Fill nur für leere Zeilen, Twin-Spread danach.
     /// Remint (x) zuerst — Print füllt Rest, stiehlt keine Remint-Spalte.
+    /// 1 Hold + 1 Live nach Vision-Restart. ≥2 ließ Einzelperson tot.
+    static func leftoverAssignLiveGate(unnamed: Int, unused: Int) -> Bool {
+        unnamed >= 1 && unused >= 1
+    }
+
     static func leftoverAssignRemint(
         liveX: [Double],
         holdX: [Double]
@@ -1495,6 +1500,20 @@ enum MatchMath {
         }
         let keep = Set(ranked.prefix(n).map(\.element))
         return unique.filter { keep.contains($0) }
+    }
+
+    /// Live-Box auf Hold-Keys nach Remint. leftoverAdvance schreibt nur bei AssignLive.
+    /// Ohne das bleibt leftoverStreakBox[old] — nächster Restart matched tote x.
+    static func leftoverStreakBoxLive(
+        boxes: [UUID: FaceBox],
+        live: [(id: UUID, box: FaceBox)],
+        holdIds: Set<UUID>
+    ) -> [UUID: FaceBox] {
+        var out = boxes
+        for row in live where holdIds.contains(row.id) {
+            out[row.id] = row.box
+        }
+        return out
     }
 
     static func leftoverLiveHashTickWipes(empty: Bool) -> Bool { empty }

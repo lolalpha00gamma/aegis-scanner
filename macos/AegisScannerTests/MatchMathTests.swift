@@ -2533,6 +2533,25 @@ enum MatchMathTests {
         )
         ok(remintBins[MatchMath.leftoverHoldKey(id: idNew, bin: 1)] == 0.68, "Remint Bins ¾")
         ok(MatchMath.leftoverHoldBinFromKey(binOld) == 1, "BinFromKey")
+        ok(MatchMath.leftoverAssignLiveGate(unnamed: 1, unused: 1), "1+1 Gate")
+        ok(!MatchMath.leftoverAssignLiveGate(unnamed: 0, unused: 1), "ohne Live tot")
+        ok(!MatchMath.leftoverAssignLiveGate(unnamed: 1, unused: 0), "ohne Hold tot")
+        let one = MatchMath.leftoverAssignLive(scores: [[nil]], liveX: [0.21], holdX: [0.22])
+        ok(one[0] == 0, "1 Hold 1 Live x-Fill")
+        let pairOld = UUID(), pairNew = UUID()
+        let pairRemint = MatchMath.leftoverHoldRemint(
+            hold: [pairOld: pairOld],
+            live: [(id: pairNew, x: 0.21)],
+            stored: [(id: pairOld, x: 0.22)]
+        )
+        ok(pairRemint[pairNew] == pairOld, "Pair-Commit Remint auf Live-UUID")
+        let liveBox = FaceBox(x: 0.25, y: 0.4, width: 0.1, height: 0.1)
+        let streakLive = MatchMath.leftoverStreakBoxLive(
+            boxes: [pairOld: FaceBox(x: 0.22, y: 0.4, width: 0.1, height: 0.1)],
+            live: [(id: pairNew, box: liveBox)],
+            holdIds: [pairNew]
+        )
+        ok(abs((streakLive[pairNew]?.x ?? 0) - 0.25) < 1e-9, "StreakBox Live nach Remint")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

@@ -2443,7 +2443,7 @@ final class LibraryStore: ObservableObject {
                 !used.contains(adopted[i].id)
             }
             let unusedLeft = unusedNamed.filter { !used.contains($0.id) }
-            if unnamedLeft.count >= 2, unusedLeft.count >= 2 {
+            if MatchMath.leftoverAssignLiveGate(unnamed: unnamedLeft.count, unused: unusedLeft.count) {
                 var scores: [[Double?]] = []
                 scores.reserveCapacity(unusedLeft.count)
                 for old in unusedLeft {
@@ -2593,6 +2593,18 @@ final class LibraryStore: ObservableObject {
         leftoverWipeUntil = MatchMath.leftoverHoldRemint(hold: leftoverWipeUntil, live: remintLive, stored: remintStored)
         leftoverHoldBins = MatchMath.leftoverHoldRemintBins(hold: leftoverHoldBins, live: remintLive, stored: remintStored)
         leftoverHoldTrailBins = MatchMath.leftoverHoldRemintBins(hold: leftoverHoldTrailBins, live: remintLive, stored: remintStored)
+        leftoverPairLast = MatchMath.leftoverHoldRemint(hold: leftoverPairLast, live: remintLive, stored: remintStored)
+        leftoverPairStreak = MatchMath.leftoverHoldRemint(hold: leftoverPairStreak, live: remintLive, stored: remintStored)
+        leftoverPairCommit = MatchMath.leftoverHoldRemint(hold: leftoverPairCommit, live: remintLive, stored: remintStored)
+        leftoverDisagree = MatchMath.leftoverHoldRemint(hold: leftoverDisagree, live: remintLive, stored: remintStored)
+        leftoverStreak = MatchMath.leftoverHoldRemint(hold: leftoverStreak, live: remintLive, stored: remintStored)
+        leftoverStreakBox = MatchMath.leftoverHoldRemint(hold: leftoverStreakBox, live: remintLive, stored: remintStored)
+        leftoverStreakSince = MatchMath.leftoverHoldRemint(hold: leftoverStreakSince, live: remintLive, stored: remintStored)
+        leftoverStreakBox = MatchMath.leftoverStreakBoxLive(
+            boxes: leftoverStreakBox,
+            live: adopted.map { (id: $0.id, box: $0.box) },
+            holdIds: Set(leftoverHold.keys)
+        )
         leftoverHoldByHash = MatchMath.leftoverHoldPrune(
             leftoverHoldByHash,
             now: now,
