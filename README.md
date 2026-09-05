@@ -1,4 +1,4 @@
-# Aegis **2.1.110 alpha**
+# Aegis **2.1.111 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,12 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.111 alpha
+
+2.1.110 CI: `¾ kein Trail` widersprach leftoverTrailWriteOk ohne Yaw-Block (2.1.104 Hash-Bin).
+
+- **¾ Hash-Bin Trail.** leftoverHoldBinWriteOk schreibt Pose-Bin. Tests + VERSION 2.1.111 (Build 137).
 
 ## Neu in 2.1.110 alpha
 

@@ -1,4 +1,9 @@
+# Helios + Aegis — Analyse 2026-09-05 (2.1.111)
+
+Helios **1.5.95** (Build 115). Aegis **2.1.111 alpha** (Build 137). CI 2.1.109: `¾ kein Trail` — leftoverTrailWriteOk schreibt Pose-Bin seit 2.1.104. Test auf Hash-Bin.
+
 # Helios + Aegis — Analyse 2026-09-05 (2.1.110)
+
 
 Helios **1.5.94** (Build 114). Aegis **2.1.110 alpha** (Build 136). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
 

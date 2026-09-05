@@ -1679,7 +1679,7 @@ enum MatchMathTests {
         ok(MatchMath.leftoverHoldWriteOk(sharpness: 0.40, yawAbs: 0.10), "frontal Hold")
         ok(!MatchMath.leftoverHoldWriteOk(sharpness: 0.40, yawAbs: 0.50), "Profil kein Hold-EMA")
         ok(!MatchMath.leftoverHoldWriteOk(sharpness: 0.40, yawAbs: 0.35), "¾ kein Hold-EMA")
-        ok(!MatchMath.leftoverTrailWriteOk(sharpness: 0.40, yawAbs: 0.35), "¾ kein Trail")
+        ok(MatchMath.leftoverTrailWriteOk(sharpness: 0.40, yawAbs: 0.35), "¾ Hash-Bin Trail")
         let sparkLbl = MatchMath.leftoverCosineSparkLabel([0.64, 0.66, 0.90])
         ok(sparkLbl == "0,64→0,90", "Spark 0,64→0,90")
         ok(MatchMath.leftoverCosineSparkLabel([0.70]) == nil, "ein Sample kein Spark")

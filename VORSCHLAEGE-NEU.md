@@ -1,3 +1,7 @@
+# Nachtrag 2026-09-05 (2.1.111)
+
+**2.1.111** CI: ¾ Hash-Bin Trail. leftoverTrailWriteOk ohne Yaw-Block seit 2.1.104 — Test war 2.1.88.
+
 # Nachtrag 2026-09-05 (2.1.110)
 
 Siehe ANALYSE.md. **2.1.110** JPEG required, Probe-Cache 0,80 s Hash/Cosine, Miss −1, Timer .common, Gate required.
