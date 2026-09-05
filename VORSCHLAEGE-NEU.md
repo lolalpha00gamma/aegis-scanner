@@ -1,6 +1,15 @@
-# Nachtrag 2026-09-05 (2.1.87)
+# Nachtrag 2026-09-05 (2.1.88)
 
-Siehe ANALYSE.md. **2.1.87** schließt Ghost-Capture, unknownCentroid-Floor, Profil-EMA, Cosine-Spark Overlay, 4K-Order-Gap, Profil-Centroid.
+Siehe ANALYSE.md. **2.1.88** schließt Ghost-Tag-Floor, ¾-EMA, Impostor-Smooth, Nacht-Climb-Spike, FaceEngine Capture.
+
+## In 2.1.88 gelandet
+
+1. leftoverSessionCapture Live schlägt Ghost
+2. leftoverHoldWriteOk Lookaway 0,28
+3. leftoverPickPrint — Floor roh
+4. leftoverHoldClimb — Nacht 0,61→0,66 bleibt
+5. FaceEngine unknownCentroid(capture)
+6. VERSION = Models = MARKETING_VERSION 2.1.88 (Build 114)
 
 ## In 2.1.87 gelandet
 
@@ -10,16 +19,6 @@ Siehe ANALYSE.md. **2.1.87** schließt Ghost-Capture, unknownCentroid-Floor, Pro
 4. leftoverCosineSparkPut / Label — Overlay 0,64→0,90, Trail cap 8
 5. leftoverBoxOrderGap 4 % + liveCentroidKeepsPrint
 6. VERSION = Models = MARKETING_VERSION 2.1.87 (Build 113)
-
-## In 2.1.86 gelandet
-
-1. leftoverBoxHashNeighbors max(24, inferred) — Bin 11 → 12
-2. leftoverScore(detScore) + leftoverPick detScore
-3. leftoverBoxOrderKeeps — Anna links bleibt links
-4. leftoverSessionFloor Capture < 0,28 → −0,02
-5. centroidWeight(frontal:yawAbs:) verdrahtet
-6. leftoverCosineSparkPut / leftoverLiveWeight
-7. VERSION = Models = MARKETING_VERSION 2.1.86 (Build 112)
 
 ## Offen (nicht Pflaster)
 
@@ -90,7 +89,7 @@ Siehe ANALYSE.md. **2.1.87** schließt Ghost-Capture, unknownCentroid-Floor, Pro
 70. leftoverHoldLookup Exact vor Nachbar — sitzt
 71. Cosine-Spark 8 Frames — Overlay sitzt
 72. JPEG-Recompress-Probe. Print vor/nach 70 % JPEG — instabiler Print nicht taufen.
-73. Session-Prior Licht — sitzt (Live-Capture, nicht Ghost)
+73. Session-Prior Licht — sitzt (Live, nicht Ghost)
 74. Yaw-binned Print-Bank 5 Slots, leftoverHold nur frontal, Profil eigener Slot.
 75. Softmax-Temperatur 16 auf Gallery-Scores, platt bei 0,70–0,90.
 76. Walk-in Full-Frame alle 8 Ticks — sitzt
@@ -106,8 +105,19 @@ Siehe ANALYSE.md. **2.1.87** schließt Ghost-Capture, unknownCentroid-Floor, Pro
 86. **Audio-Doorbell Sync** — Klingel-Frame bekommt leftoverLatch extra 1,2 s.
 87. **Print-Drift Alarm** nach OS-Update, nicht nur Banner.
 88. **Kalman-Box 3D** aus yaw/pitch, Ghost folgt der Kopfdrehung.
-89. Profil kein Hold-EMA — sitzt.
-90. unknownCentroid Session-Floor — sitzt.
+89. Profil kein Hold-EMA — sitzt (jetzt ¾ 0,28).
+90. unknownCentroid Session-Floor — sitzt (FaceEngine Capture sitzt).
 91. 4K Order-Gap 4 % — sitzt.
+92. **per-Box Capture** statt min(alle Live). Gast im Schatten senkt Annas Floor nicht.
+93. **Hold-EMA α aus Capture-Jump.** AE-Sprung 0,20 → α 0,08, nicht 0,35.
+94. **Gallery-Print nur leftoverPrintSharp ∧ frontal>0,7.** ¾ in der Galerie zieht den Centroid.
+95. **Twin-Pair Cosine in leftoverScore** als vierter Term, nicht nur Veto.
+96. **Session-Luma aus Frame-Histogram**, nicht aus Box-Capture. Center Stage täuscht Box-Luma.
+97. **unknownCentroid Yaw** — Profil 0,65 bei Floor 0,70 ist unbekannt, nicht Genuine 0,62.
+98. **Overlay „HOLD roh/smooth“** zwei Zahlen, Smooth-Taufe sichtbar.
+99. **Face-Print Byte-Salt** nach OS-Update, alte gallery.json nicht still matchen.
+100. Live-Tag schlägt Ghost — sitzt.
+101. Print-Floor roh — sitzt.
+102. Nacht-Climb kein Spike — sitzt.
 
 Nur main.

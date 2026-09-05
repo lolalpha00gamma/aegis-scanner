@@ -1,30 +1,30 @@
-# Helios + Aegis — Analyse 2026-09-05 (2.1.87)
+# Helios + Aegis — Analyse 2026-09-05 (2.1.88)
 
-Helios **1.5.71** (Build 91). Aegis **2.1.87 alpha** (Build 113). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`. `bugfix` (2.1.15) hinter main, nichts nachziehen.
+Helios **1.5.72** (Build 92). Aegis **2.1.88 alpha** (Build 114). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`. `bugfix` (2.1.15) hinter main, nichts nachziehen.
 
-## Warum Namen nach 2.1.86 noch sprangen / tot wirkten
+## Warum Namen nach 2.1.87 noch sprangen / tot wirkten
 
-2.1.86 hält Detector-Score, L/R-Order, Session-Floor, Centroid Pose, 4K-Nachbar. Fünf Löcher blieben:
+2.1.87 hält Live-min mit Ghost, unknownCentroid-Floor, Profil-EMA 0,45, Spark Overlay, 4K-Gap. Fünf Löcher blieben:
 
-1. **Session-Floor am Ghost.** `sessionCapture: old.quality.capture`. Anna war hell 0,70, Frame ist Nacht 0,18. Floor bleibt 0,62, Genuine 0,61 tot.
-2. **unknownCentroid ignoriert Session-Floor.** leftoverPrintOk lässt 0,61 durch, Pick `allSatisfy unknownCentroid` wirft den Pool weg. Nacht-Hold tot.
-3. **Profil schreibt Hold-EMA.** leftoverHoldWriteOk nur Schärfe. ¾ 0,58 zieht Frontal-Hold 0,80 runter. Nächster Frontal spike-blockt oder Name weg.
-4. **Cosine-Spark tot.** leftoverCosineSparkPut nur Tests. Overlay springt 0,64→0,90 ohne Trail. leftoverTrail cap 5, nicht 8.
-5. **4K-Order 40 px + Profil im Centroid.** Zwei Köpfe 80 px: Order stiehlt. leftoverLiveWeight unverdrahtet, Profil zieht den Live-Mean.
+1. **Ghost-Nacht im Floor.** `leftoverSessionCapture` min(Ghost 0,18, Live 0,70) = 0,18. Tag bleibt Nacht-Floor. Twin 0,61 tauft.
+2. **¾ schreibt Hold-EMA.** leftoverHoldWriteOk erst ab Profil 0,45 rad. ¾ 0,35 zieht Frontal-Hold 0,80 auf 0,70. Nächster Frontal spike-blockt.
+3. **Print-Floor auf Smooth.** leftoverPick filtert leftoverPrintOk(smoothed). Impostor 0,50 ∧ Hold 0,80 → 0,70. Name klebt am Falschen.
+4. **Nacht-Climb = Twin-Spike.** Hold 0,61 → 0,66 ist +0,05. leftoverHoldBlocks wirft Anna beim Hellwerden weg.
+5. **FaceEngine unknownCentroid ohne Capture.** Live-Name-Pfad Floor 0,62 hart. Nacht 0,61 → decidedId nil, Overlay tot obwohl leftoverPick halten würde.
 
-## Was 2.1.87 wirklich ändert
+## Was 2.1.88 wirklich ändert
 
-1. **`leftoverSessionCapture(old:live:)`.** min(Ghost, Live). LibraryStore verdrahtet.
-2. **`unknownCentroid(capture:)`.** Nacht-Floor 0,60. leftoverPick reicht sessionCapture durch.
-3. **`leftoverHoldWriteOk(yawAbs:)`.** Profil ≥ 0,45 rad kein EMA, kein Trail.
-4. **`leftoverCosineSparkPut` / `leftoverCosineSparkLabel`.** Trail cap 8. Overlay `0,64→0,90`.
-5. **`leftoverBoxOrderGap(imageW)` 4 %.** **`liveCentroidKeepsPrint`.** Profil raus solange Frontal da.
-6. Tests + VERSION = Models = MARKETING_VERSION 2.1.87 (Build 113).
+1. **`leftoverSessionCapture`.** Live nonempty ignoriert Ghost. Tag 0,70 bleibt 0,70.
+2. **`leftoverHoldWriteOk`.** Yaw-Skip bei leftoverLookawayYaw 0,28, nicht erst 0,45.
+3. **`leftoverPickPrint`.** leftoverPrintOk auf RAW. Smooth nur Score.
+4. **`leftoverHoldClimb`.** prev < 0,62 kein Spike-Block.
+5. **FaceEngine `unknownCentroid(capture:)`.** Nacht-Floor 0,60 auch im Live-Namen.
+6. Tests + VERSION = Models = MARKETING_VERSION 2.1.88 (Build 114).
 
-2.1.86 bleibt: Detector-Score, L/R-Order-Helfer, Session-Floor-Math, Centroid frontal×yaw, 4K-Nachbar nicht geclippt.
+2.1.87 bleibt: Live-min (Nacht), unknownCentroid Session-Math, Profil-Helfer, Spark Overlay, 4K-Gap, Live-Centroid ohne Profil-Mix.
 
-Was Masse noch bringen würde: Frame-Pump mit Helios, CLAHE auf den Buffer, Drop-in `.mlmodel`, DBSCAN vor Merge, Yaw-binned Print-Bank, Blink-Liveness.
+Was Masse noch bringen würde: Frame-Pump mit Helios, CLAHE auf den Buffer, Drop-in `.mlmodel`, DBSCAN vor Merge, Yaw-binned Print-Bank, Blink-Liveness, per-Box Capture statt min(alle Live).
 
-Helios 1.5.71: Continuity-Freeze nur DIP, 24 fps Kalman, kein Doppel-Lead, Display-dt echt, Totzone 6. Siehe `bpms9cmnxc-debug/Helios`.
+Helios 1.5.72: Display-Link nicht compounden, Freeze vel 0, Fill tot bei Hold, Totzone MAD, Kamera rebased. Siehe `bpms9cmnxc-debug/Helios`.
 
 `bugfix` mergen oder fortsetzen: nein. Nur `main`.

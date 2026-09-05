@@ -1,8 +1,19 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.87 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.88 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 
-Neu in 2.1.87: Live-Capture statt Ghost. unknownCentroid Session-Floor. Profil kein Hold-EMA. Cosine-Spark Overlay. 4K-Order-Gap. Profil raus aus Live-Centroid.
+Neu in 2.1.88: Live-Tag schlägt Ghost. ¾ kein Hold-EMA. Print-Floor roh. Nacht-Climb kein Spike. FaceEngine Capture.
+
+## In 2.1.88 wirklich im Code
+
+2.1.87 Live-min+Ghost, unknownCentroid-Floor, Profil 0,45, Spark, 4K-Gap. Ghost-Nacht blieb Floor. Smooth tauft Impostor. ¾-EMA. Climb=Spike. FaceEngine ohne Capture.
+
+1. **`leftoverSessionCapture` Live-only.**
+2. **`leftoverHoldWriteOk` Lookaway 0,28.**
+3. **`leftoverPickPrint`.**
+4. **`leftoverHoldClimb`.**
+5. **FaceEngine `unknownCentroid(capture:)`.**
+6. Tests + VERSION = Models = MARKETING_VERSION 2.1.88 (Build 114).
 
 ## In 2.1.87 wirklich im Code
 

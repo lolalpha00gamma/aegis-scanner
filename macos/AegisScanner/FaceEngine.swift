@@ -803,7 +803,10 @@ enum FaceEngine {
                 let unk = MatchMath.unknownRejectNote()
                 note = note.isEmpty ? unk : unk + ". " + note
             } else if let bid = best?.identityId, let vec = modelVec[bid],
-                      MatchMath.unknownCentroid(bestCosine: pv.count == vec.count ? cosine(pv, vec) : nil)
+                      MatchMath.unknownCentroid(
+                        bestCosine: pv.count == vec.count ? cosine(pv, vec) : nil,
+                        capture: face.quality.capture
+                      )
             {
                 decidedId = nil
                 let unk = MatchMath.unknownRejectNote()

@@ -1662,7 +1662,9 @@ enum MatchMathTests {
         let nightLive = MatchMath.leftoverSessionCapture(old: 0.70, live: [0.18, 0.22])
         near(nightLive ?? -1, 0.18, 0.001, "Session-Capture Live-Nacht")
         let dayLive = MatchMath.leftoverSessionCapture(old: 0.18, live: [0.70])
-        near(dayLive ?? -1, 0.18, 0.001, "Ghost-Nacht bleibt Floor")
+        near(dayLive ?? -1, 0.70, 0.001, "Live-Tag schlägt Ghost-Nacht")
+        let ghostOnly = MatchMath.leftoverSessionCapture(old: 0.18, live: [])
+        near(ghostOnly ?? -1, 0.18, 0.001, "leeres Live hält Ghost")
         ok(
             MatchMath.leftoverPrintOk(
                 cosine: 0.61,
@@ -1674,7 +1676,8 @@ enum MatchMathTests {
         )
         ok(MatchMath.leftoverHoldWriteOk(sharpness: 0.40, yawAbs: 0.10), "frontal Hold")
         ok(!MatchMath.leftoverHoldWriteOk(sharpness: 0.40, yawAbs: 0.50), "Profil kein Hold-EMA")
-        ok(!MatchMath.leftoverTrailWriteOk(sharpness: 0.40, yawAbs: 0.50), "Profil kein Trail")
+        ok(!MatchMath.leftoverHoldWriteOk(sharpness: 0.40, yawAbs: 0.35), "¾ kein Hold-EMA")
+        ok(!MatchMath.leftoverTrailWriteOk(sharpness: 0.40, yawAbs: 0.35), "¾ kein Trail")
         let sparkLbl = MatchMath.leftoverCosineSparkLabel([0.64, 0.66, 0.90])
         ok(sparkLbl == "0,64→0,90", "Spark 0,64→0,90")
         ok(MatchMath.leftoverCosineSparkLabel([0.70]) == nil, "ein Sample kein Spark")
@@ -1702,6 +1705,23 @@ enum MatchMathTests {
             sessionCapture: MatchMath.leftoverSessionCapture(old: 0.70, live: [0.18])
         )
         ok(nightPick == 0, "Nacht-Pick 0,61 mit Live-Capture")
+        ok(
+            MatchMath.leftoverPick(
+                candidates: [(0, 0.50, 0.50)],
+                sharpness: [0: 0.40],
+                holdPrev: 0.80
+            ) == nil,
+            "Impostor 0,50 trotz Hold 0,80"
+        )
+        ok(MatchMath.leftoverPickPrint(raw: 0.50, smoothed: 0.70) == 0.50, "Floor roh")
+        ok(MatchMath.leftoverHoldClimb(prev: 0.61), "Nacht-Hold Climb")
+        ok(!MatchMath.leftoverHoldClimb(prev: 0.80), "Tag-Hold kein Climb")
+        ok(!MatchMath.leftoverHoldBlocks(raw: 0.66, prev: 0.61), "Nacht 0,61→0,66 kein Spike")
+        ok(MatchMath.leftoverHoldBlocks(raw: 0.70, prev: 0.64), "Twin 0,64→0,70 Spike")
+        ok(
+            !MatchMath.unknownCentroid(bestCosine: 0.61, capture: 0.18),
+            "FaceEngine Nacht-Capture 0,61 bekannt"
+        )
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

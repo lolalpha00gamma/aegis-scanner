@@ -271,17 +271,18 @@ enum MatchMath {
         }
         var ok = candidates.filter { leftoverPin(iou: $0.iou, floor: floor) }
         ok = ok.filter { !leftoverHoldBlocks(raw: $0.cosine, prev: holdPrev) }
-        let smoothed: [(index: Int, iou: Double, cosine: Double?)] = ok.map {
-            (index: $0.index, iou: $0.iou, cosine: leftoverHoldSmooth(raw: $0.cosine, prev: holdPrev, dt: dt))
-        }
-        var printable = smoothed.filter {
+        ok = ok.filter {
             leftoverPrintOk(
-                cosine: $0.cosine,
+                cosine: leftoverPickPrint(raw: $0.cosine, smoothed: nil),
                 sharpness: sharpness[$0.index],
                 yawAbs: yawAbs[$0.index],
                 capture: sessionCapture
             )
         }
+        let smoothed: [(index: Int, iou: Double, cosine: Double?)] = ok.map {
+            (index: $0.index, iou: $0.iou, cosine: leftoverHoldSmooth(raw: $0.cosine, prev: holdPrev, dt: dt))
+        }
+        var printable = smoothed
         if leftoverTwinBlocksBox(pairCosine: twinPair, printCosine: nil) {
             printable = printable.filter { leftoverBaptize(cosine: $0.cosine) }
         }
@@ -583,10 +584,11 @@ enum MatchMath {
     }
 
     /// Ghost-Capture 0,70 + Live-Nacht 0,18: Floor aus dem dunklen Frame, nicht der alten Kiste.
+    /// Ghost-Nacht 0,18 + Live-Tag 0,70: Live gewinnt — sonst Twin-Floor den ganzen Tag.
     static func leftoverSessionCapture(old: Double?, live: [Double]) -> Double? {
-        let pool = live.filter { $0 > 0 } + [old].compactMap { $0 }
-        guard !pool.isEmpty else { return old }
-        return pool.min()
+        let liveOk = live.filter { $0 > 0 }
+        if !liveOk.isEmpty { return liveOk.min() }
+        return old
     }
 
     static func leftoverPrintOk(cosine: Double?, sharpness: Double? = nil, floor: Double = leftoverPrintCosine, yawAbs: Double? = nil, capture: Double? = nil) -> Bool {
@@ -1459,8 +1461,9 @@ enum MatchMath {
     }
 
     /// Blur darf Hold-EMA nicht schreiben — sonst Twin 0,70 klebt.
+    /// ¾ 0,35 schreibt sonst den Frontal-Hold runter. Lookaway 0,28, nicht erst Profil 0,45.
     static func leftoverHoldWriteOk(sharpness: Double?, yawAbs: Double? = nil) -> Bool {
-        if let y = yawAbs, y >= leftoverPrintProfileYaw { return false }
+        if let y = yawAbs, y >= leftoverLookawayYaw { return false }
         guard let s = sharpness else { return true }
         return s >= leftoverPrintSharp
     }
@@ -2109,6 +2112,15 @@ enum MatchMath {
     /// Twin-Spike ≥ 0,04 ohne Baptize 0,80: leftover nicht taufen.
     static let leftoverHoldSpike = 0.04
 
+    /// Floor auf RAW. Smoothed 0,50 ∧ Hold 0,80 = 0,70 tauft den Impostor.
+    static func leftoverPickPrint(raw: Double?, smoothed: Double?) -> Double? { raw }
+
+    /// Nacht-Hold 0,61 → 0,66 ist Erholung, kein Twin-Spike.
+    static func leftoverHoldClimb(prev: Double?, floor: Double = leftoverPrintGenuine) -> Bool {
+        guard let prev else { return false }
+        return prev < floor
+    }
+
     static func leftoverHoldBlocks(
         raw: Double?,
         prev: Double?,
@@ -2118,6 +2130,7 @@ enum MatchMath {
         guard let raw else { return false }
         if leftoverBaptize(cosine: raw) { return false }
         guard let prev else { return false }
+        if leftoverHoldClimb(prev: prev) { return false }
         return raw - prev >= spike
     }
 
