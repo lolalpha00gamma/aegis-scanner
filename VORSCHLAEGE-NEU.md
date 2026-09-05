@@ -1,3 +1,60 @@
+# Nachtrag 2026-09-05 (2.1.127)
+
+Siehe ANALYSE.md. **2.1.127** leftoverXAmbiguous relativ, FillX Spread.
+
+## In 2.1.127 gelandet
+
+1. leftoverXAmbiguous — 2·d, nicht d2−d ≤ 0,08
+2. leftoverHoldXMatch + leftoverAssignFillX dieselbe Regel
+3. VERSION = Models = MARKETING_VERSION 2.1.127 (Build 153)
+
+## Nächste, zusätzlich
+
+- leftoverFillXPad Pref 0,06–0,20.
+- leftoverHold UUID-Remint: leftoverHoldXMatch auf leftoverHold-Dictionary in LibraryStore verdrahten.
+- leftoverHashHoldFloor bleibt 0,64 (kein Sharpness im Persist).
+- dropoutTTLSticky nicht verdrahten — leftoverHoldTTLOf sitzt.
+- leftoverHoldsTrack LOCK halten — JUMP bricht.
+- leftoverNameLockHeld persist Schema 7.
+- leftoverJpegProbeReuse TTL Pref 0,25–1,2.
+- FaceEngine jpegProbe detached queue. Cache sitzt, Detect hoppt noch nach Main.
+- PhotoKit Live Photos Frame 0, nicht Poster.
+- printRevision je Identity.
+- gallery.json.bak rotate 3.
+- VNDetectFaceRectangles revision pin.
+- leftoverHashHold VoiceOver.
+- leftoverJumpName VoiceOver.
+- Schema 5 UUID-Bins nach Schema 6 behalten (kein Wipe).
+- Helios Frame-Pump, eine TCC. Shared XPC mit Helios 1.5.109.
+- Overlay VoiceOver HOLD/Spark/HASH/LOCK/NBR/FAST/INDOOR/TWIN.
+- Per-Box CLAHE statt Full-Frame.
+- Continuity Desk-View yaw-floor 0,36.
+- Gallery print decay: ungenutzte 14-Tage-Prints downweight.
+- Partial-Print P-Slot ohne Augen (Schal/Maske).
+- Burst-AE 5-Frame Pref Continuity-Nacht.
+- Print-Bank 5 Pose-Slots front/left/right/up/down.
+- DBSCAN vor Merge.
+- Watch-Folder PhotoKit.
+- Encrypted gallery export `.aegis`.
+- Iris-Textur-Slot als Twin-Veto.
+- Specular-Highlight auf Stirn als Card-Photo-Veto.
+- Continuity LiDAR-Z als Twin-Trennung.
+- Masken-/Schal-Slot. Brille-Slot.
+- Tests splitted.
+- Merge-Undo Stack 8.
+- IdentityDesk 9-Tuple → GalleryPayload direkt.
+- **Per-Hold TTL in Schema 7.** `at` + `ttl` je Zeile, nicht Session-Sticky.
+- Temporal ReID-Graph über Hold-Trail.
+- PnP 6DoF, Slot folgt der Nase.
+- leftoverGateChip Cap Pref 4–8.
+- leftoverLiveHashTick nach Transfer kopieren (newId → old.id).
+- Rank-Keys persist Schema 7, Spatial-Migration beim Load.
+- leftoverHoldXMatch in leftoverAssignLive als UUID-Remint vor Print-Scores — FillX sitzt nach Print, Dictionary noch RAM.
+- leftoverXAmbiguous Pref 1,5–3,0 × d statt hart 2.
+- Capture-Hist Rank nach FillX-Spread mergen, sonst Twin-Mitte ohne Print hungert und Majority tauft.
+
+Nur main.
+
 # Nachtrag 2026-09-05 (2.1.126)
 
 Siehe ANALYSE.md. **2.1.126** FillX Dist-greedy, HoldX Occupied+Spread, Gate Original-Lage.

@@ -1298,6 +1298,17 @@ enum MatchMath {
     /// Ohne Pad tauft 0,90 den Hold bei 0,10.
     static let leftoverFillXPad = 0.12
 
+    /// Twin-Mitte: d≈d2. Nächster Hold 4× näher bleibt (0,02 vs 0,08).
+    /// `d2 - d <= spread` allein tötete leftoverHoldXMatch(0,22) trotz eindeutigem 0,20.
+    static func leftoverXAmbiguous(
+        d: Double,
+        d2: Double,
+        pad: Double = leftoverFillXPad,
+        spread: Double = leftoverAmbiguousSpread
+    ) -> Bool {
+        d2 <= pad && d2 - d <= spread && d2 < max(d * 2, d + 0.02) - 1e-12
+    }
+
     static func leftoverHoldXMatch(
         liveX: Double,
         holds: [(id: UUID, x: Double)],
@@ -1313,7 +1324,7 @@ enum MatchMath {
         if d > pad { return nil }
         if let second = sorted.dropFirst().first {
             let d2 = abs(second.x - liveX)
-            if d2 <= pad, d2 - d <= spread { return nil }
+            if leftoverXAmbiguous(d: d, d2: d2, pad: pad, spread: spread) { return nil }
         }
         return best.id
     }
@@ -1324,7 +1335,8 @@ enum MatchMath {
         assigned: [Int?],
         liveX: [Double],
         holdX: [Double],
-        pad: Double = leftoverFillXPad
+        pad: Double = leftoverFillXPad,
+        spread: Double = leftoverAmbiguousSpread
     ) -> [Int?] {
         var out = assigned
         if out.count < holdX.count {
@@ -1349,6 +1361,11 @@ enum MatchMath {
         for p in pairs {
             if p.r < out.count, out[p.r] != nil { continue }
             if used.contains(p.c) { continue }
+            var d2 = Double.infinity
+            for h in 0..<holdX.count where h != p.r && (h >= out.count || out[h] == nil) {
+                d2 = min(d2, abs(liveX[p.c] - holdX[h]))
+            }
+            if leftoverXAmbiguous(d: p.d, d2: d2, pad: pad, spread: spread) { continue }
             out[p.r] = p.c
             used.insert(p.c)
         }
@@ -1356,6 +1373,7 @@ enum MatchMath {
     }
 
     /// Print-Assign, x-Fill nur für leere Zeilen, Twin-Spread danach.
+    /// leftoverHoldXMatch-Logik sitzt in FillX (leftoverXAmbiguous).
     static func leftoverAssignLive(
         scores: [[Double?]],
         liveX: [Double],

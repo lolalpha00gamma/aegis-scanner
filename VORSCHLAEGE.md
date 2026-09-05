@@ -1,8 +1,8 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.95 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.127 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 
-Neu in 2.1.95: Dropout-Hold je Bin. Overlay roh/smooth aus Trail. leftoverBaptizeBoth.
+Neu in 2.1.127: leftoverXAmbiguous relativ. FillX Spread Twin-Mitte tot.
 
 ## In 2.1.95 wirklich im Code
 

@@ -2508,6 +2508,14 @@ enum MatchMathTests {
         let gateOrder = MatchMath.overlayChipCap(["HASH", "JPEG", "FAST", "INDOOR", "X", "Y", "TWIN L", "NBR"])
         ok(gateOrder.first == "HASH" || gateOrder.contains("TWIN L"), "Gate Keep Original-Lage")
         ok(gateOrder.contains(where: { $0.hasPrefix("TWIN") }), "TWIN bleibt")
+        ok(!MatchMath.leftoverXAmbiguous(d: 0.02, d2: 0.08), "0,02 vs 0,08 eindeutig")
+        ok(MatchMath.leftoverXAmbiguous(d: 0.05, d2: 0.05), "Twin-Mitte d=d2")
+        ok(!MatchMath.leftoverXAmbiguous(d: 0.02, d2: 0.58), "Far kein Spread")
+        let twinMid = MatchMath.leftoverAssignFillX(assigned: [nil, nil], liveX: [0.50], holdX: [0.45, 0.55])
+        ok(twinMid[0] == nil && twinMid[1] == nil, "FillX Spread Twin-Mitte tot")
+        let liveTwin = MatchMath.leftoverAssignLive(scores: [[nil], [nil]], liveX: [0.50], holdX: [0.45, 0.55])
+        ok(liveTwin[0] == nil && liveTwin[1] == nil, "AssignLive Spread Twin tot")
+        ok(MatchMath.leftoverHoldXMatch(liveX: 0.22, holds: [(id: xa2, x: 0.30), (id: xb2, x: 0.20)]) == xb2, "HoldX näherer nach relativem Spread")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)
