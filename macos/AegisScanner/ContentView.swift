@@ -898,7 +898,12 @@ struct FaceOverlay: View {
         hit: StrategyHit?,
         yawAbs: Double? = nil
     ) -> String {
-        if let holdCos = store.leftoverHoldNow(faceId: faceId, yawAbs: yawAbs), !MatchMath.leftoverShowsName(cosine: holdCos) {
+        let holdCos = store.leftoverHoldNow(faceId: faceId, yawAbs: yawAbs)
+        if !MatchMath.leftoverNameFromHold(
+            hasHold: store.leftoverHasHold(faceId: faceId),
+            hold: holdCos,
+            yawAbs: yawAbs
+        ) {
             let hold = store.leftoverHoldChip(faceId: faceId, yawAbs: yawAbs) ?? MatchMath.unknownRejectNote()
             if let spark = store.leftoverSparkChip(faceId: faceId) {
                 return "\(store.guestName(for: faceId)) · \(hold) · \(spark)"

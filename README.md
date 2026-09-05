@@ -1,4 +1,4 @@
-# Aegis **2.1.101 alpha**
+# Aegis **2.1.102 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.102 alpha
+
+2.1.101 HOLD compact. leftoverBaptizeBoth `?? raw` taufte Dropout. overlayName zeigte Frontal-Namen in ¾. Transfer-Trail blieb UUID.
+
+- **`leftoverBaptizeBoth` roh UND smooth.** nil Smooth keine Taufe.
+- **`leftoverHoldOverlayChipOf`.** ¾ Chip ohne Frontal-Trail.
+- **`leftoverTrailNowOf` / `leftoverNameFromHold`.** ¾ ohne Bin kein Name-Steal.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.102 (Build 128).
 
 ## Neu in 2.1.101 alpha
 

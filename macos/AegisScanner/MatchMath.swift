@@ -626,14 +626,28 @@ enum MatchMath {
         leftoverHoldBin(yawAbs: yawAbs ?? 0) == 0 ? uuidTrail : []
     }
 
-    /// Overlay darf den Track halten. Taufe erst ab Pin-Print 0,80 — sonst erbt der Nachbar den Namen.
-    static func leftoverBaptize(cosine: Double?) -> Bool {
-        pinByPrint(cosine: cosine ?? -1)
+    /// ¾: UUID-Trail ist Frontal. Chip sonst „HOLD 80/64 · BIN 1“.
+    static func leftoverHoldOverlayChipOf(
+        hold: Double?,
+        trail: [Double] = [],
+        yawAbs: Double? = nil,
+        sharpness: Double? = nil,
+        compact: Bool = false
+    ) -> String? {
+        let bin = leftoverHoldBin(yawAbs: yawAbs ?? 0)
+        let raw = bin == 0 ? leftoverHoldRawOf(trail: trail, hold: hold) : hold
+        return leftoverHoldLabel(cosine: raw, sharpness: sharpness, yawAbs: yawAbs, smooth: hold, compact: compact)
     }
 
-    /// Taufe roh ≥ 0,80 UND smooth ≥ 0,80. EMA genau 0,80 ist Hold, nicht Spike.
+    /// Overlay darf den Track halten. Taufe erst ab Pin-Print 0,80 — sonst erbt der Nachbar den Namen.
+    static func leftoverBaptize(cosine: Double?) -> Bool {
+        guard let cosine else { return false }
+        return cosine >= pinPrintCosine
+    }
+
+    /// Taufe roh ≥ 0,80 UND smooth ≥ 0,80. nil Smooth ist Dropout, nicht Taufe.
     static func leftoverBaptizeBoth(raw: Double?, smooth: Double?) -> Bool {
-        leftoverBaptize(cosine: raw) && (smooth ?? raw ?? -1) >= pinPrintCosine
+        leftoverBaptize(cosine: raw) && leftoverBaptize(cosine: smooth)
     }
 
     /// Twin 0,80 nach Hold 0,64: Spike, kein Steal. 0,80 nach 0,80 bleibt Taufe.
@@ -1880,6 +1894,12 @@ enum MatchMath {
         return nil
     }
 
+    /// ¾ liest nicht den Frontal-UUID-Trail. Sonst trailMean 0,81 tauft den Twin.
+    static func leftoverTrailNowOf(idTrail: [Double], binTrail: [Double] = [], yawAbs: Double? = nil) -> [Double] {
+        if leftoverHoldBin(yawAbs: yawAbs ?? 0) != 0 { return binTrail }
+        return idTrail
+    }
+
     static func leftoverHoldBinWriteOk(sharpness: Double?, yawAbs: Double = 0) -> Bool {
         leftoverHoldWriteOk(sharpness: sharpness)
     }
@@ -2917,6 +2937,15 @@ enum MatchMath {
     /// leftover ohne Baptize-Print zeigt keinen eingeschriebenen Namen.
     static func leftoverShowsName(cosine: Double?) -> Bool {
         leftoverBaptize(cosine: cosine)
+    }
+
+    /// Overlay: ohne leftover Live-Pin. Mit leftover nur wenn diese Pose tauft — ¾ ohne Bin nicht Frontal-Name.
+    static func leftoverNameFromHold(hasHold: Bool, hold: Double?, yawAbs: Double? = nil) -> Bool {
+        if !hasHold { return true }
+        if leftoverHoldBin(yawAbs: yawAbs ?? 0) != 0 {
+            return leftoverBaptize(cosine: hold)
+        }
+        return leftoverBaptize(cosine: hold)
     }
 
     static func unknownStickyName(index: Int) -> String {

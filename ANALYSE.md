@@ -1,32 +1,28 @@
-# Helios + Aegis — Analyse 2026-09-05 (2.1.101)
+# Helios + Aegis — Analyse 2026-09-05 (2.1.102)
 
-Helios **1.5.85** (Build 105). Aegis **2.1.101 alpha** (Build 127). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+Helios **1.5.86** (Build 106). Aegis **2.1.102 alpha** (Build 128). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
 
-## 2.1.100 → 2.1.101
+## 2.1.101 → 2.1.102
 
-2.1.100: leftoverScore Nacht-Rampe, Capture-Band 15–30. Live: Overlay lang, ¾ mischt Frontal-Trail, Center Stage an, Preset clampte Continuity, Softmax-Floor 0,55 nachts, Heat-Mid 0,72, kein SHARP/BAND-Chip.
+2.1.101: HOLD compact, leftoverHoldTrailOf, Nacht-Softmax, Center-Stage. **leftoverBaptizeBoth fällt auf roh zurück** wenn Smooth nil. overlayName `if let leftoverHoldNow` zeigt Frontal-Namen in ¾ ohne Bin. Transfer-Trail bleibt `leftoverHoldTrail[id] ?? lookup`.
 
-## Warum Namen nach 2.1.100 noch sprangen / tot wirkten
+## Warum Namen nach 2.1.101 noch sprangen
 
-1. **`leftoverHoldChip` lang `gehalten 0,80 / 0,64`.** Overlay voll. Compact `HOLD 80/64` fehlte.
-2. **`leftoverHoldTrail[id]` UUID-Mix.** ¾-Chip las Frontal-Trail. leftoverHoldNow sitzt auf dem Bin, Trail nicht.
-3. **Kein Center Stage Off.** Helios 1.5.84, Aegis nicht. CS croppt Box, Formatliste 8 fps.
-4. **`sessionPreset .hd1280x720` vor dem Gerät.** Continuity 8 + BGRA.
-5. **Softmax-Floor 0,55 nachts.** 0,62 vs 0,60 blockt wie Tag 0,72 vs 0,71.
-6. **Heat-Mid 0,72 bei Session-Drop.** Genuine 0,62 nachts tot trotz leftoverScore capture.
-7. **420v Laplacian ohne Range-Lift.** VideoRange Offset 16, Sharp wirkt 0,10 zu dunkel.
-8. **Kein SHARP/BAND-Chip.** Nutzer sieht nicht warum leftover tot ist.
+1. **`leftoverBaptizeBoth(smooth ?? raw)`.** Dropout-nil + Frame 0,82 tauft den Nachbarn.
+2. **`leftoverTransfersId` ohne Hold.** leftoverAdopt 1,2 s ist der echte Pfad.
+3. **overlayName `if let holdCos`.** ¾ ohne Bin → Owner-Name aus Frontal-Taufe.
+4. **Transfer-Trail UUID.** ¾ trailMean 0,81 tauft trotz leftoverHoldTrailOf am Chip.
 
-`bugfix` (2.1.15) hinter main, nichts nachziehen.
+`bugfix` (familyBump / Score-EMA / Gallery-Prune) hinter main, nichts nachziehen.
 
-## Was 2.1.101 wirklich ändert
+## Was 2.1.102 wirklich ändert
 
-1. leftoverHoldChip compact `HOLD 80/64`. ¾-Trail nicht UUID-Mix.
-2. leftoverScoreHeatMid Nacht 0,60. leftoverSoftmaxFloorOf 0,47 nachts.
-3. Center Stage aus vor Format. Continuity kein Preset. lock 24 statt 30.
-4. SHARP + BAND Chips. 420v Sharp-Lift. 422 vor BGRA. Format-Chip Toolbar.
-5. Tests + VERSION = Models = MARKETING_VERSION 2.1.101 (Build 127).
+1. **`leftoverBaptizeBoth` roh UND smooth, kein `?? raw`.**
+2. **`leftoverHoldOverlayChipOf`.** ¾ Chip nur Bin-Hold.
+3. **`leftoverTrailNowOf`.** Transfer-Trail ¾ = Hash-Bin.
+4. **`leftoverNameFromHold`.** leftover aktiv + Pose ohne Taufe → Gast.
+5. Tests + VERSION = Models = MARKETING_VERSION 2.1.102 (Build 128).
 
-Helios 1.5.85: Preset aus, 24 statt 30, Timer-Retarget, ROI 1,8×, AE 1,2 s, Format-Chip. Siehe `bpms9cmnxc-debug/Helios`.
+Helios 1.5.86: Warp-Smooth je Achse, Fill-Cap je Achse, MAP≠STEAL.
 
 `bugfix` mergen: nein. Nur `main`.

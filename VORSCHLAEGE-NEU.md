@@ -1,6 +1,15 @@
-# Nachtrag 2026-09-05 (2.1.101)
+# Nachtrag 2026-09-05 (2.1.102)
 
-Siehe ANALYSE.md. **2.1.101** HOLD compact, Nacht-Softmax, Center-Stage, SHARP/BAND. 2.1.100: leftoverScore Nacht, Capture-Band 15–30.
+Siehe ANALYSE.md. **2.1.102** leftoverBaptizeBoth ohne `?? raw`, Overlay ¾, leftoverNameFromHold. 2.1.101: HOLD compact, Nacht-Softmax, Center-Stage.
+
+## In 2.1.102 gelandet
+
+1. leftoverBaptizeBoth roh UND smooth — nil Smooth keine Taufe
+2. leftoverHoldOverlayChipOf — ¾ Chip ohne Frontal-Trail
+3. leftoverTrailNowOf — Transfer-Trail ¾ = Hash-Bin
+4. leftoverNameFromHold — ¾ ohne Bin kein Frontal-Name
+5. leftoverHasHold / overlayName
+6. VERSION = Models = MARKETING_VERSION 2.1.102 (Build 128)
 
 ## In 2.1.101 gelandet
 
@@ -76,11 +85,18 @@ Siehe ANALYSE.md. **2.1.101** HOLD compact, Nacht-Softmax, Center-Stage, SHARP/B
 
 Neu:
 
-- ** Bin-Trail in leftoverHoldTrailByHash `#bin` schreiben**, nicht nur filtern.
+- ** Bin-Trail in leftoverHoldTrailByHash `#bin` schreiben**, nicht nur filtern. leftoverTrailWriteOk blockt Yaw ≥ 0,28 — leftoverTrailNowOf liefert [] bis das sitzt.
 - ** Overlay VoiceOver HOLD roh/smooth** „gehalten null acht null“.
 - ** JPEG 70 % + Blink 2-Frame** vor leftoverBaptize — Poster tauft nicht.
 - ** gallery.json Schema 5 Capture-Hist + Hold-Bins** über App-Neustart.
 - ** Per-Box CLAHE** statt Full-Frame.
 - ** Shared XPC mit Helios** eine TCC, ein Buffer.
+- **Score-EMA 3-Tick / Live-Name 3-Tick / Gallery-Prune** aus bugfix 2.1.15, nicht mergen — hinter Pref.
+- **leftoverSparkChip je Bin.** Spark liest noch leftoverHoldTrail[id] frontal bei ¾.
+- **leftoverAdopt bleibt Taufe-Pfad.** 1,2 s sitzt. leftoverTransfersId ohne Smooth tauft nicht mehr.
+- leftoverBaptizeBoth ohne ?? raw — sitzt.
+- leftoverHoldOverlayChipOf — sitzt.
+- leftoverTrailNowOf — sitzt.
+- leftoverNameFromHold — sitzt.
 
 Nur main.

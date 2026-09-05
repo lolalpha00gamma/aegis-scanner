@@ -1158,10 +1158,14 @@ final class LibraryStore: ObservableObject {
         )
     }
 
+    func leftoverHasHold(faceId: UUID) -> Bool {
+        leftoverHold[faceId] != nil || MatchMath.leftoverHoldIds(leftoverHoldBins).contains(faceId)
+    }
+
     func leftoverHoldChip(faceId: UUID, sharpness: Double? = nil, yawAbs: Double? = nil) -> String? {
-        MatchMath.leftoverHoldOverlayChip(
+        MatchMath.leftoverHoldOverlayChipOf(
             hold: leftoverHoldNow(faceId: faceId, yawAbs: yawAbs),
-            trail: MatchMath.leftoverHoldTrailOf(uuidTrail: leftoverHoldTrail[faceId] ?? [], yawAbs: yawAbs),
+            trail: leftoverHoldTrail[faceId] ?? [],
             yawAbs: yawAbs,
             sharpness: sharpness,
             compact: true
@@ -2553,19 +2557,23 @@ final class LibraryStore: ObservableObject {
                     now: now,
                     ttl: MatchMath.dropoutTTL(dt: liveDt)
                 )
-                let trailNow = leftoverHoldTrail[old.id] ?? MatchMath.leftoverTrailLookup(
-                    hash: leftoverLiveHash(
-                        kalmanX: boxKalman[adopted[bestJ].id]?.x,
-                        kalmanY: boxKalman[adopted[bestJ].id]?.y,
-                        kalmanW: boxKalman[adopted[bestJ].id]?.w,
-                        kalmanH: boxKalman[adopted[bestJ].id]?.h,
-                        fallback: adopted[bestJ].box,
-                        image: image
+                let trailNow = MatchMath.leftoverTrailNowOf(
+                    idTrail: leftoverHoldTrail[old.id] ?? [],
+                    binTrail: MatchMath.leftoverTrailLookup(
+                        hash: leftoverLiveHash(
+                            kalmanX: boxKalman[adopted[bestJ].id]?.x,
+                            kalmanY: boxKalman[adopted[bestJ].id]?.y,
+                            kalmanW: boxKalman[adopted[bestJ].id]?.w,
+                            kalmanH: boxKalman[adopted[bestJ].id]?.h,
+                            fallback: adopted[bestJ].box,
+                            image: image
+                        ),
+                        table: leftoverHoldTrailByHash,
+                        now: now,
+                        ttl: MatchMath.dropoutTTL(dt: liveDt),
+                        bin: MatchMath.leftoverHoldBin(yawAbs: abs(adopted[bestJ].quality.yaw))
                     ),
-                    table: leftoverHoldTrailByHash,
-                    now: now,
-                    ttl: MatchMath.dropoutTTL(dt: liveDt),
-                    bin: MatchMath.leftoverHoldBin(yawAbs: abs(adopted[bestJ].quality.yaw))
+                    yawAbs: abs(adopted[bestJ].quality.yaw)
                 )
                 let tapUntil = tapNameLockUntil[old.id] ?? tapNameLockUntil[adopted[bestJ].id]
                 if let tap = MatchMath.tapNameLockLabel(until: tapUntil, now: now) {

@@ -1125,7 +1125,7 @@ enum MatchMathTests {
         near(MatchMath.leftoverStreakSincePersist(since: 1.5, now: 4), 1.5, 0.001, "Streak-Since hält")
         ok(!MatchMath.leftoverTransfersId(cosine: 0.64), "0,64 hält, stiehlt keine UUID")
         ok(!MatchMath.leftoverTransfersId(cosine: 0.70), "0,70 leftover kein Transfer")
-        ok(MatchMath.leftoverTransfersId(cosine: 0.82), "0,82 ohne Hold tauft UUID")
+        ok(!MatchMath.leftoverTransfersId(cosine: 0.82), "0,82 ohne Hold keine Taufe")
         ok(!MatchMath.leftoverTransfersId(cosine: nil), "nil kein Transfer")
         ok(MatchMath.leftoverBaptizeSpike(raw: 0.82, prev: 0.64), "0,82 nach 0,64 Twin-Spike")
         ok(!MatchMath.leftoverBaptizeSpike(raw: 0.82, prev: 0.80), "0,82 nach 0,80 kein Spike")
@@ -1200,7 +1200,7 @@ enum MatchMathTests {
         ok(MatchMath.leftoverAllowsCrossSlot(sameSlot: false, cosine: 0.70), "0,70 Cross-Slot Hold")
         ok(!MatchMath.leftoverAllowsCrossSlot(sameSlot: false, cosine: 0.50), "0,50 Cross-Slot tot")
         ok(MatchMath.leftoverHoldsTrack(cosine: 0.70), "0,70 Hold ohne Steal")
-        ok(!MatchMath.leftoverHoldsTrack(cosine: 0.82), "0,82 tauft, kein Hold-only")
+        ok(MatchMath.leftoverHoldsTrack(cosine: 0.82), "0,82 ohne Smooth Overlay halten")
         ok(MatchMath.leftoverHoldsTrack(cosine: 0.82, holdPrev: 0.64), "Spike 0,82 nach 0,64 hält statt Steal")
         let tinyN = MatchMath.leftoverBoxHashNeighbors("1.2.0.0")
         ok(tinyN.contains("1.2.2.0"), "kleine Box w+2")
@@ -1310,7 +1310,7 @@ enum MatchMathTests {
         ok(!MatchMath.tapNameLockBlocks(until: nil, now: 10), "ohne Tap kein Lock")
         ok(!MatchMath.leftoverTransfersId(cosine: 0.82, tapUntil: 13, now: 11), "Tap sperrt Taufe")
         ok(MatchMath.leftoverHoldsTrack(cosine: 0.82, tapUntil: 13, now: 11), "Tap: Overlay halten statt Steal")
-        ok(MatchMath.leftoverTransfersId(cosine: 0.82, tapUntil: 13, now: 14), "nach Tap darf Taufe")
+        ok(MatchMath.leftoverTransfersId(cosine: 0.82, holdPrev: 0.80, tapUntil: 13, now: 14), "nach Tap darf Taufe")
         ok(MatchMath.tapNameLockLabel(until: 13, now: 11)?.hasPrefix("TAP") == true, "TAP-Chip")
         let ghostIds = MatchMath.leftoverGhostIds(previous: [], ghosts: [idHoldA])
         ok(ghostIds == [idHoldA], "Ghost-Pool nach Dropout")
@@ -1458,7 +1458,7 @@ enum MatchMathTests {
         ok(!MatchMath.leftoverBaptizeStillBlocks(stillFor: 0.10, cosine: 0.82, holdPrev: 0.64), "Hold skippt Still")
         ok(!MatchMath.leftoverTransfersId(cosine: 0.82, stillFor: 0.10), "Still sperrt Taufe")
         ok(MatchMath.leftoverHoldsTrack(cosine: 0.82, stillFor: 0.10), "Still: Overlay halten")
-        ok(MatchMath.leftoverTransfersId(cosine: 0.82, stillFor: 0.50), "nach Still darf Taufe")
+        ok(MatchMath.leftoverTransfersId(cosine: 0.82, holdPrev: 0.80, stillFor: 0.50), "nach Still darf Taufe")
         let kStreak = MatchMath.leftoverStreakBoxWrite(kalmanX: 0.50, kalmanY: 0.50, kalmanW: 0.40, kalmanH: 0.40, fallback: rawBox)
         ok(abs(kStreak.x - 0.50) < 0.001, "Streak-Box Kalman")
         let rawStreak = MatchMath.leftoverStreakBoxWrite(kalmanX: nil, kalmanY: nil, kalmanW: nil, kalmanH: nil, fallback: rawBox)
@@ -1961,7 +1961,7 @@ enum MatchMathTests {
         )
         ok(MatchMath.leftoverBaptizeBoth(raw: 0.82, smooth: 0.80), "roh+smooth taufen")
         ok(!MatchMath.leftoverBaptizeBoth(raw: 0.82, smooth: 0.64), "Smooth 0,64 keine Taufe")
-        ok(MatchMath.leftoverBaptizeBoth(raw: 0.82, smooth: nil), "ohne Smooth roh reicht")
+        ok(!MatchMath.leftoverBaptizeBoth(raw: 0.82, smooth: nil), "ohne Smooth keine Taufe")
         ok(
             MatchMath.leftoverHoldLookupYaw(hash: "1.2.3.4", table: yawTab, now: 10.1, yawAbs: nil) == nil,
             "ohne Yaw kein Frontal-Guess"
@@ -2035,6 +2035,34 @@ enum MatchMathTests {
         ok(MatchMath.captureLockFrameRate(30, continuity: true) == 24, "Continuity 24 statt 30")
         ok(MatchMath.centerStageOff, "Center Stage aus")
         ok(MatchMath.sessionPresetClampsContinuity(true), "Continuity Preset aus")
+        ok(!MatchMath.leftoverBaptizeBoth(raw: 0.82, smooth: nil), "Dropout-nil keine Taufe")
+        ok(!MatchMath.leftoverHoldsTrack(cosine: 0.82, holdPrev: 0.80), "0,82 nach Smooth 0,80 tauft")
+        let poseChipId = UUID(uuidString: "00000000-0000-0000-0000-0000000000EA")!
+        var poseChipBins: [String: Double] = [:]
+        poseChipBins = MatchMath.leftoverHoldBinPut(bins: poseChipBins, id: poseChipId, yawAbs: 0.35, next: 0.64)
+        ok(
+            MatchMath.leftoverHoldPrevOf(frontal: 0.80, yawAbs: 0.35, bins: poseChipBins, id: poseChipId) == 0.64,
+            "¾ Chip-Bin nicht Frontal"
+        )
+        ok(
+            MatchMath.leftoverHoldOverlayChipOf(hold: 0.64, trail: [0.80], yawAbs: 0.35, compact: true) == "HOLD 64 · BIN 1",
+            "¾ Overlay ohne Frontal-Trail"
+        )
+        ok(
+            MatchMath.leftoverHoldOverlayChipOf(hold: nil, trail: [0.80], yawAbs: 0.35, compact: true) == nil,
+            "¾ ohne Bin kein Frontal-Chip"
+        )
+        ok(
+            MatchMath.leftoverHoldOverlayChipOf(hold: 0.80, trail: [0.82], yawAbs: 0.10, compact: true) == "HOLD 82/80 · BIN 0",
+            "frontal Overlay compact"
+        )
+        ok(!MatchMath.leftoverNameFromHold(hasHold: true, hold: nil, yawAbs: 0.35), "¾ ohne Bin kein Name")
+        ok(MatchMath.leftoverNameFromHold(hasHold: false, hold: nil, yawAbs: 0.35), "ohne leftover Live-Pin")
+        ok(MatchMath.leftoverNameFromHold(hasHold: true, hold: 0.82, yawAbs: 0.35), "¾ Baptize-Bin Name")
+        ok(!MatchMath.leftoverNameFromHold(hasHold: true, hold: 0.64, yawAbs: 0.35), "¾ Hold 0,64 Gast")
+        ok(MatchMath.leftoverTrailNowOf(idTrail: [0.80], binTrail: [0.66], yawAbs: 0.35) == [0.66], "¾ Bin-Trail")
+        ok(MatchMath.leftoverTrailNowOf(idTrail: [0.80], binTrail: [], yawAbs: 0.35).isEmpty, "¾ ohne Bin-Trail leer")
+        ok(MatchMath.leftoverTrailNowOf(idTrail: [0.80], binTrail: [0.66], yawAbs: 0.10) == [0.80], "frontal UUID-Trail")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)
