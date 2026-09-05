@@ -1554,6 +1554,50 @@ enum MatchMathTests {
         ])
         ok(!bank.isEmpty && abs(bank[0] - 1) < 0.001, "Bank ignoriert Gewicht 0")
 
+        ok(MatchMath.leftoverBoxHashBins(1280) == 12, "HD 12 Bins")
+        ok(MatchMath.leftoverBoxHashBins(1920) == 16, "FHD 16 Bins")
+        ok(MatchMath.leftoverBoxHashBins(3840) == 24, "4K 24 Bins")
+        let k4a = FaceBox(x: 1000, y: 400, width: 180, height: 220)
+        let k4b = FaceBox(x: 1180, y: 400, width: 180, height: 220)
+        ok(
+            MatchMath.leftoverBoxHash(k4a, bins: 12, imageW: 3840, imageH: 2160)
+                == MatchMath.leftoverBoxHash(k4b, bins: 12, imageW: 3840, imageH: 2160),
+            "12 Bins 4K Kollision"
+        )
+        ok(
+            MatchMath.leftoverBoxHash(k4a, imageW: 3840, imageH: 2160)
+                != MatchMath.leftoverBoxHash(k4b, imageW: 3840, imageH: 2160),
+            "24 Bins 4K getrennt"
+        )
+        var twoHold: [String: (cosine: Double, at: TimeInterval)] = [:]
+        twoHold = MatchMath.leftoverHoldPut(hash: "1.2.3.4", cosine: 0.64, onto: twoHold, now: 10)
+        twoHold = MatchMath.leftoverHoldPut(hash: "1.3.3.4", cosine: 0.90, onto: twoHold, now: 10.4)
+        ok(abs((MatchMath.leftoverHoldLookup(hash: "1.2.3.4", table: twoHold, now: 10.5) ?? -1) - 0.64) < 0.001, "Exact vor jüngerem Nachbar")
+        ok(abs((MatchMath.leftoverHoldLookup(hash: "1.3.3.4", table: twoHold, now: 10.5) ?? -1) - 0.90) < 0.001, "Nachbar Exact eigen")
+        var twoTrail: [String: (samples: [Double], at: TimeInterval)] = [:]
+        twoTrail = MatchMath.leftoverTrailPut(hash: "1.2.3.4", sample: 0.64, onto: twoTrail, now: 10, sharpness: 0.40)
+        twoTrail = MatchMath.leftoverTrailPut(hash: "1.3.3.4", sample: 0.90, onto: twoTrail, now: 10.4, sharpness: 0.40)
+        ok(abs((MatchMath.leftoverTrailLookup(hash: "1.2.3.4", table: twoTrail, now: 10.5).last ?? -1) - 0.64) < 0.001, "Trail Exact vor Nachbar")
+        ok(twoTrail["1.2.3.4"]?.samples.last == 0.64, "Put schreibt nicht den Nachbar-Trail")
+        ok(MatchMath.liveRoiMissRetries(hadROI: true, empty: true), "ROI-Miss retry")
+        ok(!MatchMath.liveRoiMissRetries(hadROI: false, empty: true), "ohne ROI kein retry")
+        ok(MatchMath.liveRoiMissGoesFull(dt: 0.125), "8 fps ROI direkt voll")
+        ok(!MatchMath.liveRoiMissGoesFull(dt: 0.016), "24 fps erst expand")
+        let roi0 = MatchMath.liveRoiBox(kalman: [(x: 200, y: 150, w: 80, h: 100)], imageW: 1280, imageH: 720)!
+        let roiE = MatchMath.liveRoiExpand(roi0, imageW: 1280, imageH: 720)
+        ok(roiE.w > roi0.w, "ROI 1,4×")
+        ok(MatchMath.liveRoiPeriodicFull(tick: 8), "Tick 8 voll")
+        ok(!MatchMath.liveRoiPeriodicFull(tick: 7), "Tick 7 Crop")
+        ok(MatchMath.liveRoiSkipsForStranger(foundCount: 2, kalmanCount: 1), "Gast → Full")
+        ok(!MatchMath.liveRoiSkipsForStranger(foundCount: 1, kalmanCount: 1), "gleiche Zahl Crop")
+        let ghost = MatchMath.leftoverGhostAspectLock(predX: 400, predY: 200, lastW: 80, lastH: 100)
+        ok(abs(ghost.x - 400) < 0.001 && abs(ghost.w - 80) < 0.001, "Ghost cx, w bleibt")
+        ok(abs(MatchMath.boxKalmanQ(captureJump: true) - 0.020) < 0.001, "AE mehr Q")
+        ok(abs(MatchMath.boxKalmanQ(captureJump: false) - 0.008) < 0.001, "ruhig Q 0,008")
+        let jumped = MatchMath.boxKalman(prev: 200, meas: 400, p: 0.04, dt: 0.125, q: MatchMath.boxKalmanQ(captureJump: true))
+        let calm = MatchMath.boxKalman(prev: 200, meas: 400, p: 0.04, dt: 0.125, q: MatchMath.boxKalmanQ(captureJump: false))
+        ok(abs(jumped.x - 400) < abs(calm.x - 400), "AE folgt stärker")
+
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)
             exit(1)

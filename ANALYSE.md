@@ -1,24 +1,31 @@
-# Helios + Aegis — Analyse 2026-09-04 (2.1.84)
+# Helios + Aegis — Analyse 2026-09-05 (2.1.85)
 
-Helios **1.5.68** (Build 88). Aegis **2.1.84 alpha** (Build 110). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`. `bugfix` geprüft: hinter main, nichts nachziehen.
+Helios **1.5.69** (Build 89). Aegis **2.1.85 alpha** (Build 111). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`. `bugfix` (2.1.15) hinter main, nichts nachziehen.
 
-## Warum Namen nach 2.1.83 noch sprangen / tot wirkten
+## Warum Namen nach 2.1.84 noch sprangen / tot wirkten
 
-2.1.83 hält Adopt-Blend, Predict bei Fremder Kiste, Trail-Schärfe, Live-ROI, Kalman-NMS, Ghost-AE. Ein Loch blieb, das leftover kaputt macht sobald mehr als eine Kiste im Bild ist:
+2.1.84 hält leftoverBoxUnit Pixel durch Bildmaß. Fünf Löcher blieben:
 
-**`leftoverBoxHash` Clamp-auf-1.** Live-Box ist Pixel (vnToPixels). Tests liefen mit 0–1. cx=200 und cx=900 landen beide in Bin 11. Hold/Trail von Anna klebt an Gast 2. Nach Dropout erbt der Falsche den Cosine.
+1. **`leftoverHoldLookup` jüngster Nachbar.** Exact und 80 Nachbarn, Winner = `at` neueste. Anna in Bin 5, Gast in Bin 6: Anna erbt 0,90 vom Gast. Overlay-Name springt.
+2. **12 Bins auf 4K.** 250 px zwischen zwei Köpfen = ein Hash. Hold klebt.
+3. **liveRoiBox ohne Miss-Retry.** Crop leer (Kopf am Rand) = False-Empty, Latch stirbt. Helios 1.5.68 hatte dasselbe.
+4. **Walk-in außerhalb ROI.** Zweite Person nie im Crop, bis Kalman tot ist.
+5. **boxKalman Q fest.** Capture-Jump (AE) = Overlay klebt, Print blockt, Box hinkt.
 
-## Was 2.1.84 wirklich ändert
+## Was 2.1.85 wirklich ändert
 
-1. **`leftoverBoxUnit` / Hash mit imageW/H.** Pixel-Kisten räumlich getrennt.
-2. **`leftoverLiveHash`.** Alle Hold/Trail-Writes dieselbe Normierung.
-3. **`leftoverTrailPut(sharpness:)`.** Blur auch im Put kein Append.
-4. Tests + VERSION = Models = MARKETING_VERSION 2.1.84 (Build 110).
+1. **`leftoverHoldLookup` / `leftoverTrailLookup` Exact zuerst**, sonst Manhattan-Nachbar, nicht Recency.
+2. **`leftoverBoxHashBins`.** 12 / 16 ab 1920 / 24 ab 3000.
+3. **`liveRoiMissRetries` / `liveRoiMissGoesFull` / `liveRoiExpand`.** 8 fps direkt voll.
+4. **`liveRoiPeriodicFull` alle 8 Ticks. `liveRoiSkipsForStranger`.**
+5. **`leftoverGhostAspectLock`.** Predict cx/cy, w/h bleibt.
+6. **`boxKalmanQ(captureJump)`.** AE 2,5× Process-Noise.
+7. Tests + VERSION = Models = MARKETING_VERSION 2.1.85 (Build 111).
 
-2.1.83 bleibt: leftoverAdoptBlend, leftoverPredictOnEmptyLike, leftoverTrailWriteOk, kalmanNmsDrops, liveRoiBox, exposureLockHold(reconnect).
+2.1.84 bleibt: leftoverBoxUnit, leftoverLiveHash, leftoverTrailPut(sharpness).
 
-Was Masse noch bringen würde: Frame-Pump mit Helios, CLAHE auf den Buffer, Drop-in `.mlmodel`, DBSCAN vor Merge, temporal print bank nach Yaw-Bins, Quality-weighted Centroid, leftoverKalman-Q aus Capture analog Helios luma-Q, Hold-Hash 16 Bins auf 4K.
+Was Masse noch bringen würde: Frame-Pump mit Helios, CLAHE auf den Buffer, Drop-in `.mlmodel`, DBSCAN vor Merge, temporal print bank nach Yaw-Bins, Quality-weighted Live-Centroid.
 
-Helios 1.5.68: ROI-Miss (8 fps direkt voll), Pinch-Open Extra-Margin, Faust-AE, Kalman-Q, Freeze nur im AE-Fenster, Tip-Occlusion. Siehe `bpms9cmnxc-debug/Helios`.
+Helios 1.5.69: Kalman-R, Pinch ratio-only 2, ROI S1, Faust-AE nur Continuity, Warp-Floor 96. Siehe `bpms9cmnxc-debug/Helios`.
 
 `bugfix` mergen oder fortsetzen: nein. Nur `main`.

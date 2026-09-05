@@ -1,6 +1,16 @@
-# Nachtrag 2026-09-04 (2.1.84)
+# Nachtrag 2026-09-05 (2.1.85)
 
-Siehe ANALYSE.md. **2.1.84** schließt leftoverBoxHash Pixel durch Bildmaß. 2.1.83 hatte Adopt-Blend, Predict, Trail-Schärfe, Live-ROI — Hold/Trail landeten trotzdem alle im selben Bin.
+Siehe ANALYSE.md. **2.1.85** schließt leftoverHoldLookup Identity-Swap, 4K-Bins, ROI-Miss, Ghost-Aspect, Kalman-Q aus Capture.
+
+## In 2.1.85 gelandet
+
+1. leftoverHoldLookup / TrailLookup Exact vor Nachbar
+2. leftoverBoxHashBins 12 / 16 / 24
+3. liveRoiMissRetries / GoesFull / Expand
+4. liveRoiPeriodicFull + liveRoiSkipsForStranger
+5. leftoverGhostAspectLock
+6. boxKalmanQ(captureJump)
+7. VERSION = Models = MARKETING_VERSION 2.1.85 (Build 111)
 
 ## In 2.1.84 gelandet
 
@@ -8,23 +18,6 @@ Siehe ANALYSE.md. **2.1.84** schließt leftoverBoxHash Pixel durch Bildmaß. 2.1
 2. leftoverLiveHash — Hold/Trail dieselbe Normierung
 3. leftoverTrailPut(sharpness:) — Blur kein Append
 4. VERSION = Models = MARKETING_VERSION 2.1.84 (Build 110)
-
-## In 2.1.83 gelandet
-
-1. leftoverAdoptBlend — Live-Box durch Kalman
-2. leftoverPredictOnEmptyLike — Poster kein Freeze
-3. leftoverTrailWriteOk — Blur kein Trail
-4. kalmanNmsDrops — Walker-Twin weg
-5. liveRoiBox — Detector Crop
-6. exposureLockHold(reconnect) 8 fps 0,80 s
-7. VERSION = Models = MARKETING_VERSION 2.1.83 (Build 109)
-
-## In 2.1.82 gelandet
-
-1. leftoverAdoptKeepsKalman — Kalman+vx bleibt
-2. leftoverEmptyIgnoresStranger — Poster kein Latch-Wipe
-3. leftoverHoldAlpha(dt) Live-EMA + leftoverHoldWriteOk
-4. VERSION = Models = MARKETING_VERSION 2.1.82 (Build 108)
 
 ## Offen (nicht Pflaster)
 
@@ -78,20 +71,26 @@ Siehe ANALYSE.md. **2.1.84** schließt leftoverBoxHash Pixel durch Bildmaß. 2.1
 53. leftover Adopt blendet die Live-Box durch den alten Kalman — sitzt
 54. Detector-NMS gegen Kalman-Predict-Box — sitzt
 55. Exposure-Lock nach Latch-Reconnect 0,8 s — sitzt
-56. ROI-Expand: Crop leer → 1,4×, dann volles Bild
-57. Kalman-Q aus Capture-Jump (AE jagt = mehr Process-Noise)
+56. ROI-Expand: Crop leer → 1,4×, dann volles Bild — sitzt
+57. Kalman-Q aus Capture-Jump — sitzt
 58. Left/Right-Box-Order als Twin-Prior (Anna links bleibt links)
 59. Shared AVCaptureSession via XPC mit Helios
 60. CLAHE nur im ROI, nicht Full-Frame
 61. Print-Bank 5 Pose-Slots (front/left/right/up/down) gewichtet
 62. Overlay Ghost-Opacity = leftoverEmptySince / latch
 63. leftoverBoxHash Pixel-Norm — sitzt
-64. Hold-Hash 16 Bins wenn imageW≥1920 — sonst zwei Köpfe ein Bin auf 4K
-65. Ghost-Box Aspect-Lock: Predict ändert cx/cy, nicht w/h
-66. Unbekannte zweite Kiste: ROI aus, Full-Frame ein Tick
-67. leftoverKalman-Q aus Capture analog Helios luma-Q
+64. Hold-Hash 16 Bins wenn imageW≥1920 — sitzt (24 ab 4K)
+65. Ghost-Box Aspect-Lock: Predict ändert cx/cy, nicht w/h — sitzt
+66. Unbekannte zweite Kiste: ROI aus, Full-Frame ein Tick — sitzt
+67. leftoverKalman-Q aus Capture analog Helios luma-Q — sitzt (boxKalmanQ)
 68. Quality-weighted Live-Centroid (Schärfe × Frontal × 1−|yaw|)
 69. Detector-Score als dritter leftoverPick-Term
+70. leftoverHoldLookup Exact vor Nachbar — sitzt
+71. **Cosine-Spark 8 Frames im Overlay.** Hold 0,64→0,90 sichtbar, nicht nur Label.
+72. **JPEG-Recompress-Probe.** Print vor/nach 70 % JPEG — instabiler Print nicht taufen.
+73. **Session-Prior Licht, nicht Demografie.** Indoor-Luma hält Floor −2 für 30 s.
+74. **Yaw-binned Print-Bank** 5 Slots, leftoverHold nur frontal, Profil eigener Slot.
+75. **Softmax-Temperatur 16** auf Gallery-Scores, platt bei 0,70–0,90.
+76. **Walk-in Full-Frame alle 8 Ticks** — sitzt (liveRoiPeriodicFull).
 
 Nur main.
-

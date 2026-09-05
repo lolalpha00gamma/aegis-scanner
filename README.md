@@ -1,4 +1,4 @@
-# Aegis **2.1.84 alpha**
+# Aegis **2.1.85 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,17 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.85 alpha
+
+2.1.84 leftoverBoxUnit. HoldLookup jüngster Nachbar = Anna erbt Gast. 12 Bins auf 4K ein Hash. ROI-Crop leer = Latch tot. Walk-in außerhalb Crop. Kalman-Q fest bei AE.
+
+- **`leftoverHoldLookup` / `leftoverTrailLookup` Exact zuerst**, sonst Manhattan, nicht Recency.
+- **`leftoverBoxHashBins`.** 12 / 16 ab 1920 / 24 ab 4K.
+- **`liveRoiMissRetries` / `GoesFull` / `Expand`.** 8 fps direkt voll.
+- **`liveRoiPeriodicFull` + `liveRoiSkipsForStranger`.**
+- **`leftoverGhostAspectLock`.** **`boxKalmanQ(captureJump)`.**
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.85 (Build 111).
 
 ## Neu in 2.1.84 alpha
 

@@ -2479,6 +2479,52 @@ enum MatchMath {
         return (x, y, w, h)
     }
 
+    /// Crop-Miss: ROI 1,4×, dann volles Bild. Sonst Continuity False-Empty.
+    static func liveRoiMissRetries(hadROI: Bool, empty: Bool) -> Bool { hadROI && empty }
+
+    /// 8 fps: Expand + Full = 3 Detector-Pässe > 125 ms. Direkt volles Bild.
+    static func liveRoiMissGoesFull(dt: TimeInterval) -> Bool { dt >= 0.08 }
+
+    static func liveRoiExpand(
+        _ box: (x: Double, y: Double, w: Double, h: Double),
+        imageW: Double,
+        imageH: Double,
+        factor: Double = 1.4
+    ) -> (x: Double, y: Double, w: Double, h: Double) {
+        let cx = box.x + box.w / 2
+        let cy = box.y + box.h / 2
+        let w = min(imageW, box.w * factor)
+        let h = min(imageH, box.h * factor)
+        let x = min(max(0, cx - w / 2), max(0, imageW - w))
+        let y = min(max(0, cy - h / 2), max(0, imageH - h))
+        return (x, y, w, h)
+    }
+
+    /// Jeder 8. Tick volles Bild — Walk-in außerhalb des Crops.
+    static func liveRoiPeriodicFull(tick: Int, every: Int = 8) -> Bool {
+        every > 0 && tick % every == 0
+    }
+
+    /// Zweite Kiste im Crop: nächster Tick voll, sonst klebt ROI an Anna.
+    static func liveRoiSkipsForStranger(foundCount: Int, kalmanCount: Int) -> Bool {
+        foundCount > kalmanCount && kalmanCount > 0
+    }
+
+    /// Ghost-Predict ändert cx/cy, nicht w/h — sonst Hash-Sprung.
+    static func leftoverGhostAspectLock(
+        predX: Double,
+        predY: Double,
+        lastW: Double,
+        lastH: Double
+    ) -> (x: Double, y: Double, w: Double, h: Double) {
+        (predX, predY, lastW, lastH)
+    }
+
+    /// AE jagt: mehr Process-Noise, sonst Overlay klebt am alten Print.
+    static func boxKalmanQ(captureJump: Bool, base: Double = 0.008) -> Double {
+        captureJump ? base * 2.5 : base
+    }
+
     /// Print-Bank: Blur zählt 0, scharf nach leftoverPrintSharp.
     static func printBankWeight(sharpness: Double?) -> Double {
         leftoverTrailWriteOk(sharpness: sharpness) ? max(0.15, sharpness ?? 1) : 0
@@ -2603,11 +2649,34 @@ enum MatchMath {
 
     /// Box-Hash über Dropout. UUID stirbt, die Kiste bleibt.
     /// Live-Box ist Pixel. Ohne imageW/H fällt alles >1 in denselben Bin.
-    static func leftoverBoxHash(_ box: FaceBox, bins: Int = 12, imageW: Double = 0, imageH: Double = 0) -> String {
+    /// 4K mit 12 Bins: zwei Köpfe 250 px auseinander ein Bin.
+    static func leftoverBoxHashBins(imageW: Double) -> Int {
+        if imageW >= 3000 { return 24 }
+        if imageW >= 1920 { return 16 }
+        return 12
+    }
+
+    static func leftoverBoxHashBinsInferred(_ hash: String) -> Int {
+        let parts = hash.split(separator: ".").compactMap { Int($0) }
+        let hi = parts.max() ?? 0
+        if hi >= 16 { return 24 }
+        if hi >= 12 { return 16 }
+        return 12
+    }
+
+    static func leftoverBoxHashDistance(_ a: String, _ b: String) -> Int {
+        let pa = a.split(separator: ".").compactMap { Int($0) }
+        let pb = b.split(separator: ".").compactMap { Int($0) }
+        guard pa.count == 4, pb.count == 4 else { return 99 }
+        return abs(pa[0] - pb[0]) + abs(pa[1] - pb[1]) + abs(pa[2] - pb[2]) + abs(pa[3] - pb[3])
+    }
+
+    static func leftoverBoxHash(_ box: FaceBox, bins: Int? = nil, imageW: Double = 0, imageH: Double = 0) -> String {
+        let used = bins ?? leftoverBoxHashBins(imageW: imageW)
         let u = leftoverBoxUnit(box, imageW: imageW, imageH: imageH)
         func q(_ v: Double) -> Int {
             let t = min(1, max(0, v))
-            return min(bins - 1, Int((t * Double(bins)).rounded(.down)))
+            return min(used - 1, Int((t * Double(used)).rounded(.down)))
         }
         return "\(q(u.cx)).\(q(u.cy)).\(q(u.w)).\(q(u.h))"
     }
@@ -2635,6 +2704,7 @@ enum MatchMath {
         let far = w <= 2 || h <= 2
         let rPos = far ? 2 : 1
         let rSize = far ? 2 : 1
+        let used = max(bins, leftoverBoxHashBinsInferred(hash))
         var out: [String] = []
         out.reserveCapacity((2 * rPos + 1) * (2 * rPos + 1) * (2 * rSize + 1) * (2 * rSize + 1))
         for dx in -rPos...rPos {
@@ -2645,8 +2715,8 @@ enum MatchMath {
                         let y = cy + dy
                         let ww = w + dw
                         let hh = h + dh
-                        guard x >= 0, x < bins, y >= 0, y < bins else { continue }
-                        guard ww >= 0, ww < bins, hh >= 0, hh < bins else { continue }
+                        guard x >= 0, x < used, y >= 0, y < used else { continue }
+                        guard ww >= 0, ww < used, hh >= 0, hh < used else { continue }
                         out.append("\(x).\(y).\(ww).\(hh)")
                     }
                 }
@@ -2704,7 +2774,7 @@ enum MatchMath {
     ) -> String {
         leftoverBoxHash(leftoverHashBox(
             kalmanX: kalmanX, kalmanY: kalmanY, kalmanW: kalmanW, kalmanH: kalmanH, fallback: fallback
-        ), imageW: imageW, imageH: imageH)
+        ), bins: leftoverBoxHashBins(imageW: imageW), imageW: imageW, imageH: imageH)
     }
 
     /// Trail-Write = Hold-Write. Roh-Box verfehlte den Bin nach Kalman-Put.
@@ -2733,7 +2803,7 @@ enum MatchMath {
     ) -> [String: (samples: [Double], at: TimeInterval)] {
         var next = leftoverTrailPrune(table, now: now)
         if !leftoverTrailWriteOk(sharpness: sharpness) { return next }
-        var row = leftoverTrailLookup(hash: hash, table: next, now: now)
+        var row = next[hash]?.samples ?? []
         row.append(sample)
         if row.count > cap { row.removeFirst(row.count - cap) }
         next[hash] = (row, now)
@@ -2746,11 +2816,15 @@ enum MatchMath {
         now: TimeInterval,
         ttl: TimeInterval = leftoverAdoptSec
     ) -> [Double] {
-        var best: (samples: [Double], at: TimeInterval)?
-        for h in leftoverBoxHashNeighbors(hash) {
+        if let row = table[hash], now - row.at <= ttl {
+            return row.samples
+        }
+        var best: (samples: [Double], at: TimeInterval, dist: Int)?
+        for h in leftoverBoxHashNeighbors(hash) where h != hash {
             guard let row = table[h], now - row.at <= ttl else { continue }
-            if best == nil || row.at > best!.at {
-                best = row
+            let d = leftoverBoxHashDistance(hash, h)
+            if best == nil || d < best!.dist || (d == best!.dist && row.at > best!.at) {
+                best = (row.samples, row.at, d)
             }
         }
         return best?.samples ?? []
@@ -2770,11 +2844,15 @@ enum MatchMath {
         now: TimeInterval,
         ttl: TimeInterval = leftoverAdoptSec
     ) -> Double? {
-        var best: (cosine: Double, at: TimeInterval)?
-        for h in leftoverBoxHashNeighbors(hash) {
+        if let row = table[hash], now - row.at <= ttl {
+            return row.cosine
+        }
+        var best: (cosine: Double, at: TimeInterval, dist: Int)?
+        for h in leftoverBoxHashNeighbors(hash) where h != hash {
             guard let row = table[h], now - row.at <= ttl else { continue }
-            if best == nil || row.at > best!.at {
-                best = row
+            let d = leftoverBoxHashDistance(hash, h)
+            if best == nil || d < best!.dist || (d == best!.dist && row.at > best!.at) {
+                best = (row.cosine, row.at, d)
             }
         }
         return best?.cosine

@@ -1,8 +1,19 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.84 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.85 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 
-Neu in 2.1.84: leftoverBoxHash Pixel durch Bildmaß. Hold/Trail nicht mehr ein Bin für alle Köpfe.
+Neu in 2.1.85: leftoverHoldLookup Exact vor Nachbar. 4K-Bins. ROI-Miss Full. Ghost-Aspect. Kalman-Q aus Capture.
+
+## In 2.1.85 wirklich im Code
+
+2.1.84 Pixel-Norm. Lookup jüngster Nachbar. 12 Bins 4K. ROI ohne Retry.
+
+1. **`leftoverHoldLookup` / `leftoverTrailLookup` Exact zuerst.**
+2. **`leftoverBoxHashBins` 12 / 16 / 24.**
+3. **`liveRoiMissRetries` / `GoesFull` / `Expand`.**
+4. **`liveRoiPeriodicFull` / `liveRoiSkipsForStranger`.**
+5. **`leftoverGhostAspectLock`.** **`boxKalmanQ(captureJump)`.**
+6. Tests + VERSION = Models = MARKETING_VERSION 2.1.85 (Build 111).
 
 ## In 2.1.84 wirklich im Code
 

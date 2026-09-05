@@ -62,6 +62,8 @@ final class LibraryStore: ObservableObject {
     private var scopedRoots: [URL] = []
     private var liveBusy = false
     private var livePending: (image: CGImage, mediaId: UUID, stamp: TimeInterval)?
+    private var liveRoiTick = 0
+    private var liveRoiSkipOnce = false
     private var maskHoldSince: [UUID: TimeInterval] = [:]
     private var lastUSlotHint: TimeInterval = 0
     private var scanGeneration = 0
@@ -1317,6 +1319,8 @@ final class LibraryStore: ObservableObject {
 
     func stopLive() {
         livePending = nil
+        liveRoiTick = 0
+        liveRoiSkipOnce = false
         maskHoldSince.removeAll()
         lastUSlotHint = 0
         boxJumpPending.removeAll()
@@ -1409,6 +1413,8 @@ final class LibraryStore: ObservableObject {
                 self.livePrintTrail.removeAll()
                 self.livePrintTrailSlot.removeAll()
                 self.leftoverEmptySince = nil
+                self.liveRoiTick = 0
+                self.liveRoiSkipOnce = false
             }
             self.lastCameraUniqueID = uid
             self.cameraUniqueID = uid
@@ -1446,11 +1452,30 @@ final class LibraryStore: ObservableObject {
             imageW: Double(image.width),
             imageH: Double(image.height)
         )
+        let skipRoi = liveRoiSkipOnce || MatchMath.liveRoiPeriodicFull(tick: liveRoiTick)
+        liveRoiTick += 1
+        liveRoiSkipOnce = false
         Task.detached(priority: .userInitiated) {
             let skipPrints = MatchMath.printBudgetSkip(visionMs: vis, dt: dt)
             let t0 = CFAbsoluteTimeGetCurrent()
-            let roi = roiTuple.map { FaceBox(x: $0.x, y: $0.y, width: $0.w, height: $0.h) }
-            let found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true, skipPrints: skipPrints, roi: roi)) ?? []
+            var roi = skipRoi ? nil : roiTuple.map { FaceBox(x: $0.x, y: $0.y, width: $0.w, height: $0.h) }
+            var found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true, skipPrints: skipPrints, roi: roi)) ?? []
+            if found.isEmpty, roi != nil, MatchMath.liveRoiMissRetries(hadROI: true, empty: true) {
+                if MatchMath.liveRoiMissGoesFull(dt: dt) {
+                    roi = nil
+                    found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true, skipPrints: skipPrints, roi: nil)) ?? []
+                } else if let raw = roiTuple {
+                    let exp = MatchMath.liveRoiExpand(raw, imageW: Double(image.width), imageH: Double(image.height))
+                    found = (try? FaceEngine.detect(
+                        in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true,
+                        skipPrints: skipPrints,
+                        roi: FaceBox(x: exp.x, y: exp.y, width: exp.w, height: exp.h)
+                    )) ?? []
+                    if found.isEmpty {
+                        found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true, skipPrints: skipPrints, roi: nil)) ?? []
+                    }
+                }
+            }
             let visMs = (CFAbsoluteTimeGetCurrent() - t0) * 1000
             await MainActor.run { [weak self] in
                 guard let self else { return }
@@ -1459,6 +1484,9 @@ final class LibraryStore: ObservableObject {
                     self.liveBusy = false
                     self.livePending = nil
                     return
+                }
+                if MatchMath.liveRoiSkipsForStranger(foundCount: found.count, kalmanCount: kalmanSnap.count) {
+                    self.liveRoiSkipOnce = true
                 }
                 self.applyLiveFaces(found, image: image, mediaId: mediaId, stamp: stamp)
                 if let pending = self.livePending {
@@ -1581,10 +1609,11 @@ final class LibraryStore: ObservableObject {
             let v = boxKalmanV[id] ?? (vx: 0, vy: 0)
             let nx = MatchMath.boxKalmanPredict(x: k.x, v: v.vx, dt: liveDt)
             let ny = MatchMath.boxKalmanPredict(x: k.y, v: v.vy, dt: liveDt)
-            boxKalman[id] = (nx, ny, k.w, k.h, k.px, k.py, k.pw, k.ph)
+            let locked = MatchMath.leftoverGhostAspectLock(predX: nx, predY: ny, lastW: k.w, lastH: k.h)
+            boxKalman[id] = (locked.x, locked.y, locked.w, locked.h, k.px, k.py, k.pw, k.ph)
             if let i = liveGhosts.firstIndex(where: { $0.face.id == id }) {
                 var g = liveGhosts[i]
-                g.face.box = FaceBox(x: nx, y: ny, width: k.w, height: k.h)
+                g.face.box = FaceBox(x: locked.x, y: locked.y, width: locked.w, height: locked.h)
                 liveGhosts[i] = g
             }
         }
@@ -1764,10 +1793,12 @@ final class LibraryStore: ObservableObject {
                     let py0 = prev?.y ?? face.box.y
                     let pw0 = prev?.w ?? face.box.width
                     let ph0 = prev?.h ?? face.box.height
-                    let x = MatchMath.boxKalman(prev: px0, meas: face.box.x, p: prev?.px ?? 0.04, dt: liveDt)
-                    let y = MatchMath.boxKalman(prev: py0, meas: face.box.y, p: prev?.py ?? 0.04, dt: liveDt)
-                    let w = MatchMath.boxKalman(prev: pw0, meas: face.box.width, p: prev?.pw ?? 0.04, dt: liveDt)
-                    let h = MatchMath.boxKalman(prev: ph0, meas: face.box.height, p: prev?.ph ?? 0.04, dt: liveDt)
+                    let jump = MatchMath.captureJumps(prev: old.quality.capture, next: face.quality.capture)
+                    let q = MatchMath.boxKalmanQ(captureJump: jump)
+                    let x = MatchMath.boxKalman(prev: px0, meas: face.box.x, p: prev?.px ?? 0.04, dt: liveDt, q: q)
+                    let y = MatchMath.boxKalman(prev: py0, meas: face.box.y, p: prev?.py ?? 0.04, dt: liveDt, q: q)
+                    let w = MatchMath.boxKalman(prev: pw0, meas: face.box.width, p: prev?.pw ?? 0.04, dt: liveDt, q: q)
+                    let h = MatchMath.boxKalman(prev: ph0, meas: face.box.height, p: prev?.ph ?? 0.04, dt: liveDt, q: q)
                     face.box = FaceBox(x: x.x, y: y.x, width: w.x, height: h.x)
                     boxKalman[old.id] = (x.x, y.x, w.x, h.x, x.p, y.p, w.p, h.p)
                     let prevV = boxKalmanV[old.id]
