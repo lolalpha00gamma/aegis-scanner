@@ -1,4 +1,4 @@
-# Aegis **2.1.116 alpha**
+# Aegis **2.1.117 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.117 alpha
+
+leftoverTransfersId respektierte LOCK. Majority und Overlay tauften den Twin trotzdem. LOCK-AND nil wischt den Namen. NBR bei jedem Twin.
+
+- **`leftoverAssignMajority(locked:)`.** LOCK: keine UUID-Taufe.
+- **`leftoverLiveNameAnd(locked:, held:)`.** Overlay hält, Twin tot. Hist-Token leer.
+- **`leftoverHoldNeighborDist` `NBR` nur Hamming-2.** **`leftoverHoldFastChip` `FAST`.**
+- **`leftoverNameLockSecPref` / `leftoverAdoptSecLockPref`.**
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.117 (Build 143).
 
 ## Neu in 2.1.116 alpha
 

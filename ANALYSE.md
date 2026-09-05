@@ -1,4 +1,34 @@
+# Helios + Aegis — Analyse 2026-09-05 (2.1.117)
+
+Helios **1.5.101** (Build 121). Aegis **2.1.117 alpha** (Build 143). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.116: Sticky-Reset, Hamming-2 Veto, Twin-name lock. leftoverTransfersId respektiert LOCK. leftoverPairCommit Majority und leftoverLiveNameAnd tauften trotzdem. NBR/FAST unsichtbar. leftoverLiveNameAnd(locked) nil wischt Overlay. NBR-HUD dist=2 sobald zwei Köpfe live.
+
+## 2.1.116 → 2.1.117 (warum Namen nach JUMP noch sprangen)
+
+1. **`leftoverAssignMajority` ohne LOCK.** leftoverTransfersId tot 1,2 s, Ghost-2-opt nach 3 Frames (~0,2–0,4 s) schreibt leftoverPairCommit. Twin bekommt die UUID.
+2. **`leftoverLiveNameAnd` ohne LOCK.** Overlay-Mehrheit wechselt den Namen während leftoverHoldsTrack den Track hält.
+3. **Hamming-2 Veto ohne HUD.** Twin-Steal tot, Nutzer sieht nur HASH/LOCK.
+4. **Sticky FAST unsichtbar.** Indoor-Latch nach Hop 4 s ohne Chip.
+5. **`leftoverLiveNameAnd(locked) → nil`.** nameLockHolds(voted:nil) + leftoverLocked(holding) = Overlay-Name tot 1,2 s, danach Twin.
+6. **NBR-HUD `faces≥2 → dist 2`.** Chip bei jedem Twin-Frame, nicht nur Hamming-2 Miss.
+
+## Was 2.1.117 ändert
+
+1. **`leftoverAssignMajority(locked:)`.** LOCK: streak 0, ready tot.
+2. **`leftoverLiveNameAnd(locked:, held:)`.** LOCK hält Overlay-Namen, tauft nicht.
+3. **Hist-Token leer während LOCK.** 3× Bert nach Unlock tot.
+4. **`leftoverHoldNeighborDist` / `leftoverHoldHashBare`.** HUD `NBR` nur Lookup Hamming-2.
+5. **`leftoverHoldFastChip` HUD `FAST`.** Sticky nach Hop.
+6. **`leftoverNameLockSecPref` 0,6–2,0. `leftoverAdoptSecLockPref` 0,6–1,4.**
+7. Tests + VERSION = Models = MARKETING_VERSION 2.1.117 (Build 143).
+
+Helios 1.5.101: Warp-Hold JUMP, MUTE bis Release, Laterality HUD, USB transportType. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-05 (2.1.116)
+
 
 Helios **1.5.100** (Build 120). Aegis **2.1.116 alpha** (Build 142). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
 

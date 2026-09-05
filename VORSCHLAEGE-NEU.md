@@ -1,4 +1,66 @@
+# Nachtrag 2026-09-05 (2.1.117)
+
+Siehe ANALYSE.md. **2.1.117** leftoverAssignMajority LOCK, leftoverLiveNameAnd hält Overlay, HUD NBR aus Lookup, FAST, LOCK/Adopt Pref-Clamp.
+
+## In 2.1.117 gelandet
+
+1. leftoverAssignMajority locked — Majority tot während LOCK
+2. leftoverLiveNameAnd locked+held — Overlay-Name bleibt, Twin tot
+3. Hist-Token leer während LOCK
+4. leftoverHoldNeighborDist / leftoverHoldHashBare — HUD `NBR` nur Hamming-2
+5. leftoverHoldFastChip HUD `FAST`
+6. leftoverNameLockSecPref 0,6–2,0 / leftoverAdoptSecLockPref 0,6–1,4
+7. VERSION = Models = MARKETING_VERSION 2.1.117 (Build 143)
+
+## Nächste, zusätzlich
+
+- leftoverAdoptSecLock Pref-Slider 0,6–1,4 (Clamp sitzt).
+- leftoverNameLockSec Pref-Slider 0,6–2,0 (Clamp sitzt).
+- leftoverHold ttl Slider 1,2–4,0 (Clamp sitzt).
+- leftoverJpegProbeReuse TTL Pref 0,25–1,2.
+- FaceEngine jpegProbe detached queue. Cache sitzt, Detect hoppt noch nach Main.
+- PhotoKit Live Photos Frame 0, nicht Poster.
+- printRevision je Identity.
+- gallery.json.bak rotate 3.
+- VNDetectFaceRectangles revision pin.
+- leftoverHashHold VoiceOver.
+- Schema 5 UUID-Bins nach Schema 6 behalten (kein Wipe).
+- Helios Frame-Pump, eine TCC. Shared XPC mit Helios 1.5.101.
+- Overlay VoiceOver HOLD/Spark/HASH/LOCK/NBR/FAST.
+- Per-Box CLAHE statt Full-Frame.
+- Continuity Desk-View yaw-floor 0,36.
+- Gallery print decay: ungenutzte 14-Tage-Prints downweight.
+- Partial-Print P-Slot ohne Augen (Schal/Maske).
+- Burst-AE 5-Frame Pref Continuity-Nacht.
+- Print-Bank 5 Pose-Slots front/left/right/up/down.
+- DBSCAN vor Merge.
+- Watch-Folder PhotoKit.
+- Encrypted gallery export `.aegis`.
+- Iris-Textur-Slot als Twin-Veto.
+- Specular-Highlight auf Stirn als Card-Photo-Veto.
+- Continuity LiDAR-Z als Twin-Trennung.
+- Masken-/Schal-Slot. Brille-Slot.
+- Tests splitted.
+- Merge-Undo Stack 8.
+- IdentityDesk 9-Tuple → GalleryPayload direkt.
+- **Per-Hold TTL in Schema 7.** `at` + `ttl` je Zeile, nicht Session-Sticky.
+- Temporal ReID-Graph über Hold-Trail.
+- PnP 6DoF, Slot folgt der Nase.
+- **FAST Chip peak-hold 2 Frames** analog Spark — leftoverGateChip mutiert nicht.
+- **leftoverPairCommit nach LOCK nicht sofort 3-Tick** — streak 0 sitzt, UI MAJ fehlt.
+- **Hamming-1 Neighbor** stiehlt Twins die eng sitzen. Crowd ≥3: dist 1 tot.
+- **leftoverHoldNeighborOk bei 3+ Köpfen** dist≥1 tot, nicht erst dist 2.
+- **Familien-Bump nur Best-Paar** (bugfix 2.1.15) Pref: Zweit-Treffer +0,02 tot.
+- **Gallery-Prune unenrolled** 14 Tage hinter Pref.
+- **Score-EMA α Pref** 0,20–0,50 (bugfix 2.1.15 hart).
+- **Live-Name 3-Tick Pref** 2–5 bei 8 fps vs 24 fps.
+- RTSP 420f, Player-Pfad bleibt 32BGRA.
+- RTSP-Reconnect Exponential-Backoff.
+
+Nur main.
+
 # Nachtrag 2026-09-05 (2.1.116)
+
 
 Siehe ANALYSE.md. **2.1.116** dropoutSeenSlow Reset, Hamming-2 Neighbor-Veto, Twin-name lock 1,2 s, leftoverHoldTTL Pref.
 

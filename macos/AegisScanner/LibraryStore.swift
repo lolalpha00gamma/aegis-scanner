@@ -872,6 +872,7 @@ final class LibraryStore: ObservableObject {
                 if muted { return "" }
                 if MatchMath.leftoverStarvesVote() && leftoverHold[fid] != nil { return "" }
                 if spinning || !qualityOK { return "" }
+                if MatchMath.leftoverNameLockBlocks(until: leftoverNameLockUntil[fid], now: frameNow) { return "" }
                 return hit.identityId?.uuidString ?? ""
             }()
             let vs = hit.versus
@@ -886,7 +887,9 @@ final class LibraryStore: ObservableObject {
             liveNameHist[fid] = hist
             let voted = MatchMath.leftoverLiveNameAnd(
                 voted: MatchMath.nameMajorityAgreeing(hist, window: cap, need: need),
-                hist: hist
+                hist: hist,
+                locked: MatchMath.leftoverNameLockBlocks(until: leftoverNameLockUntil[fid], now: frameNow),
+                held: hit.identityId?.uuidString ?? liveNameLock[fid]?.uuidString
             )
             if let voted, !voted.isEmpty {
                 liveNameVoteAt[fid] = frameNow
@@ -1270,6 +1273,21 @@ final class LibraryStore: ObservableObject {
             bits.append(chip)
         }
         if let chip = MatchMath.leftoverNameLockChip(until: leftoverNameLockUntil[faceId], now: liveLastStamp) {
+            bits.append(chip)
+        }
+        if let chip = MatchMath.leftoverHoldFastChip(seenSlow: leftoverHoldSeenSlow, dt: liveDt) {
+            bits.append(chip)
+        }
+        let neighborDist: Int = {
+            guard let hash = leftoverLastHash[faceId] else { return 0 }
+            return MatchMath.leftoverHoldNeighborDist(
+                hash: hash,
+                table: leftoverHoldByHash,
+                now: liveLastStamp,
+                ttl: leftoverHoldTTL
+            )
+        }()
+        if let chip = MatchMath.leftoverHoldNeighborChip(facesInFrame: faces.count, dist: neighborDist) {
             bits.append(chip)
         }
         return bits.isEmpty ? nil : bits.joined(separator: " · ")
@@ -2349,7 +2367,11 @@ final class LibraryStore: ObservableObject {
                         committed: leftoverPairCommit[old.id],
                         proposed: proposed,
                         lastProposed: leftoverPairLast[old.id],
-                        streak: leftoverPairStreak[old.id] ?? 0
+                        streak: leftoverPairStreak[old.id] ?? 0,
+                        locked: MatchMath.leftoverNameLockBlocks(
+                            until: leftoverNameLockUntil[old.id] ?? leftoverNameLockUntil[proposed],
+                            now: now
+                        )
                     )
                     leftoverDisagree[old.id] = MatchMath.clusterSplitAdvance(
                         prev: leftoverDisagree[old.id] ?? 0,

@@ -683,7 +683,9 @@ enum MatchMath {
     }
 
     /// Mehrheit UND 3 gleiche Ticks. Mehrheit allein springt Geschwister.
-    static func leftoverLiveNameAnd(voted: String?, hist: [String], need: Int = 3) -> String? {
+    /// JUMP-LOCK: neue Majority tot, Overlay hält `held` — nil wischt sonst den Namen.
+    static func leftoverLiveNameAnd(voted: String?, hist: [String], need: Int = 3, locked: Bool = false, held: String? = nil) -> String? {
+        if locked { return held }
         guard let voted, leftoverLiveNameHolds(hist, need: need) == voted else { return nil }
         return voted
     }
@@ -1150,6 +1152,48 @@ enum MatchMath {
         if dist <= 0 { return true }
         if facesInFrame >= 2, dist >= 2 { return false }
         return dist < 99
+    }
+
+    /// Hamming-2 Veto sichtbar. Sonst Twin-Steal ohne Chip.
+    static func leftoverHoldNeighborChip(facesInFrame: Int, dist: Int) -> String? {
+        leftoverHoldNeighborOk(facesInFrame: facesInFrame, dist: dist) ? nil : "NBR"
+    }
+
+    /// Hash-Key ohne `#bin`. Lookup-Dist sonst 99.
+    static func leftoverHoldHashBare(_ key: String) -> String {
+        if let i = key.lastIndex(of: "#") { return String(key[..<i]) }
+        return key
+    }
+
+    /// Nächste Hold-Dist ≠ self. HUD NBR sonst bei jedem Twin-Frame (faces≥2 → dist 2).
+    static func leftoverHoldNeighborDist(
+        hash: String,
+        table: [String: (cosine: Double, at: TimeInterval)],
+        now: TimeInterval,
+        ttl: TimeInterval = leftoverAdoptSec
+    ) -> Int {
+        var best = 0
+        for (key, row) in table {
+            guard now - row.at <= ttl else { continue }
+            let other = leftoverHoldHashBare(key)
+            if other == hash { continue }
+            let d = leftoverBoxHashDistance(hash, other)
+            if d > 0 && (best == 0 || d < best) { best = d }
+        }
+        return best
+    }
+
+    /// Sticky nach Hop: Overlay `FAST`. 8 s Reset sonst unsichtbar.
+    static func leftoverHoldFastChip(seenSlow: Bool, dt: TimeInterval) -> String? {
+        seenSlow && dt < 0.08 ? "FAST" : nil
+    }
+
+    static func leftoverNameLockSecPref(_ pref: TimeInterval) -> TimeInterval {
+        min(2.0, max(0.6, pref))
+    }
+
+    static func leftoverAdoptSecLockPref(_ pref: TimeInterval) -> TimeInterval {
+        min(1.4, max(0.6, pref))
     }
 
     static func leftoverCaptureHistTableEncode(_ table: [String: [Double]]) -> [String: [Double]] {
@@ -3062,8 +3106,12 @@ enum MatchMath {
         proposed: UUID?,
         lastProposed: UUID?,
         streak: Int,
-        need: Int = leftoverMajorityNeed
+        need: Int = leftoverMajorityNeed,
+        locked: Bool = false
     ) -> (commit: UUID?, last: UUID?, streak: Int, ready: Bool) {
+        if locked {
+            return (committed, lastProposed, 0, false)
+        }
         guard let proposed else {
             return (committed, nil, 0, false)
         }
