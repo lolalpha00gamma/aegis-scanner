@@ -264,6 +264,7 @@ enum MatchMath {
         capture: [Int: Double] = [:],
         imageW: Double = 0,
         captureHist: [Double] = [],
+        captureBoxHist: [Int: [Double]] = [:],
         holdBins: [String: Double] = [:],
         holdHash: String? = nil,
         holdHashTable: [String: (cosine: Double, at: TimeInterval)] = [:],
@@ -305,7 +306,10 @@ enum MatchMath {
                 capture: leftoverSessionCaptureBox(
                     old: session,
                     live: liveCap($0.index),
-                    hist: captureHist
+                    hist: leftoverCaptureHistOf(
+                        box: captureBoxHist[$0.index],
+                        leftover: captureHist
+                    )
                 )
             )
         }
@@ -356,7 +360,10 @@ enum MatchMath {
                 capture: leftoverSessionCaptureBox(
                     old: session,
                     live: liveCap($0.index),
-                    hist: captureHist
+                    hist: leftoverCaptureHistOf(
+                        box: captureBoxHist[$0.index],
+                        leftover: captureHist
+                    )
                 ),
                 yawAbs: yawAbs[$0.index]
             )
@@ -399,6 +406,7 @@ enum MatchMath {
         }
         let raw = pool.map { $0.cosine ?? -1 }
         if leftoverAmbiguousBlocks(raw: raw, scored: scored) { return nil }
+        if leftoverSoftmaxBlocks(leftoverScoreSoftmax(scored)) { return nil }
         if let i = scored.enumerated().max(by: { $0.element < $1.element })?.offset {
             let idx = pool[i].index
             if !conflictTickAgrees(
@@ -685,6 +693,19 @@ enum MatchMath {
 
     static func leftoverHoldBinChip(_ bin: Int) -> String { "BIN \(bin)" }
 
+    static func leftoverHoldFrac(_ cosine: Double) -> String {
+        let hundredths = Int((cosine * 100).rounded())
+        let whole = hundredths / 100
+        let frac = abs(hundredths % 100)
+        let fracStr = frac < 10 ? "0\(frac)" : "\(frac)"
+        return "\(whole),\(fracStr)"
+    }
+
+    static func leftoverCaptureChip(_ capture: Double?) -> String? {
+        guard let c = capture, c > 0, leftoverSessionLumaLow(c) else { return nil }
+        return "CAP \(leftoverHoldFrac(c))"
+    }
+
     static func leftoverPrintOk(cosine: Double?, sharpness: Double? = nil, floor: Double = leftoverPrintCosine, yawAbs: Double? = nil, capture: Double? = nil) -> Bool {
         guard let cosine else { return false }
         if leftoverBaptize(cosine: cosine) { return true }
@@ -722,11 +743,42 @@ enum MatchMath {
         if let t = twinPair, t >= leftoverTwinSameShot {
             s -= leftoverTwinScorePenalty * min(1, max(0, (t - leftoverTwinSameShot) / 0.04))
         }
+        s += leftoverScoreTempK * leftoverScoreHeat(cosine)
         return s
     }
 
     static let leftoverDetBonus = 0.04
     static let leftoverTwinScorePenalty = 0.06
+    static let leftoverScoreTemp: Double = 16
+    static let leftoverScoreTempK: Double = 0.10
+    static let leftoverScoreTempMid: Double = 0.72
+
+    static func leftoverScoreHeat(_ cosine: Double, t: Double = leftoverScoreTemp, mid: Double = leftoverScoreTempMid) -> Double {
+        let z = t * (cosine - mid)
+        if z > 20 { return 1 }
+        if z < -20 { return 0 }
+        return 1 / (1 + exp(-z))
+    }
+
+    static func leftoverScoreSoftmax(_ scores: [Double], t: Double = leftoverScoreTemp) -> [Double] {
+        guard !scores.isEmpty else { return [] }
+        let m = scores.max() ?? 0
+        let exps = scores.map { s -> Double in
+            let z = t * (s - m)
+            if z < -20 { return 0 }
+            return exp(z)
+        }
+        let z = exps.reduce(0, +)
+        guard z > 0 else { return scores.map { _ in 1 / Double(scores.count) } }
+        return exps.map { $0 / z }
+    }
+
+    static let leftoverSoftmaxFloor: Double = 0.55
+
+    static func leftoverSoftmaxBlocks(_ p: [Double], floor: Double = leftoverSoftmaxFloor) -> Bool {
+        guard p.count >= 2 else { return false }
+        return (p.max() ?? 0) < floor
+    }
 
     /// Twin: Anna links bleibt links. Gast-Kiste rechts stiehlt nicht.
     static func leftoverBoxOrderKeeps(prevX: Double, candX: Double, others: [Double], minGap: Double = 40) -> Bool {
@@ -1674,6 +1726,12 @@ enum MatchMath {
 
     static func leftoverCaptureHistPut(_ sample: Double, onto trail: [Double], cap: Int = leftoverCaptureHistCap) -> [Double] {
         leftoverCosineSparkPut(sample, onto: trail, cap: cap)
+    }
+
+    /// Gast mit eigener Hist (3+) erbt Annas Median nicht. Flash ohne Box-Hist: leftover bleibt.
+    static func leftoverCaptureHistOf(box: [Double]?, leftover: [Double]?) -> [Double] {
+        if let box, box.count >= 3 { return box }
+        return leftover ?? []
     }
 
     /// Trail-Append dieselbe Schwelle. Roh 0,70 blur pollutet MAD.

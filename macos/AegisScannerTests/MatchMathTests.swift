@@ -1870,6 +1870,21 @@ enum MatchMathTests {
             holdAt: 10.1
         )
         ok(dropPick == nil, "¾ roh 0,70 gegen Hash-Hold 0,66 Spike")
+        ok(
+            MatchMath.leftoverCaptureHistOf(box: [0.18, 0.18, 0.18], leftover: [0.70, 0.70, 0.70]) == [0.18, 0.18, 0.18],
+            "Gast-Hist 3+ vor leftover"
+        )
+        ok(
+            MatchMath.leftoverCaptureHistOf(box: [], leftover: [0.70, 0.70, 0.70]) == [0.70, 0.70, 0.70],
+            "Flash ohne Box-Hist leftover"
+        )
+        let smClear = MatchMath.leftoverScoreSoftmax([0.80, 0.70])
+        ok((smClear.max() ?? 0) > 0.70, "0,80 vs 0,70 Softmax klar")
+        ok(!MatchMath.leftoverSoftmaxBlocks(smClear), "0,80 vs 0,70 kein Block")
+        ok(MatchMath.leftoverSoftmaxBlocks(MatchMath.leftoverScoreSoftmax([0.72, 0.71])), "0,72 vs 0,71 Softmax Block")
+        ok(MatchMath.leftoverScoreHeat(0.80) > MatchMath.leftoverScoreHeat(0.70), "Temp 16 steiler")
+        ok(MatchMath.leftoverCaptureChip(0.18) == "CAP 0,18", "CAP-Chip Nacht")
+        ok(MatchMath.leftoverCaptureChip(0.70) == nil, "kein CAP am Tag")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

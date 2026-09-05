@@ -750,12 +750,17 @@ struct FaceOverlay: View {
                         }
                         if let hold = MatchMath.leftoverHoldLabel(
                             cosine: store.leftoverHold[face.id],
-                            sharpness: face.quality.sharpness
+                            sharpness: face.quality.sharpness,
+                            yawAbs: abs(face.quality.yaw)
                         ) {
+                            var tail = "\(base) · \(hold)"
                             if let spark = store.leftoverSparkChip(faceId: face.id) {
-                                return "\(base) · \(hold) · \(spark)"
+                                tail += " · \(spark)"
                             }
-                            return "\(base) · \(hold)"
+                            if let cap = MatchMath.leftoverCaptureChip(face.quality.capture) {
+                                tail += " · \(cap)"
+                            }
+                            return tail
                         }
                         if let tap = store.tapLockChip(faceId: face.id) {
                             return "\(base) · \(tap)"

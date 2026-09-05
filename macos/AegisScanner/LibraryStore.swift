@@ -2392,6 +2392,9 @@ final class LibraryStore: ObservableObject {
                     }),
                     imageW: Double(image.width),
                     captureHist: liveCaptureHist[old.id] ?? [],
+                    captureBoxHist: Dictionary(uniqueKeysWithValues: remaining.map {
+                        ($0.index, liveCaptureHist[adopted[$0.index].id] ?? [])
+                    }),
                     holdBins: leftoverHoldBins,
                     holdHash: leftoverLiveHash(
                         kalmanX: boxKalman[old.id]?.x,

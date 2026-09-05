@@ -1,4 +1,4 @@
-# Aegis **2.1.92 alpha**
+# Aegis **2.1.93 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.93 alpha
+
+2.1.92 leftoverHoldByHash je Bin. leftoverPick Hash-Hold. Frame-Luma-Helfer. leftoverHoldBinChip. Box-Hist erbte leftover. HUD ohne CAP. Score platt.
+
+- **`leftoverCaptureHistOf`.** Box-Hist ≥ 3, Flash leftover.
+- **`leftoverCaptureChip` + leftoverHoldLabel yawAbs.** Overlay CAP / BIN.
+- **`leftoverScoreHeat` Temp 16 + `leftoverScoreSoftmax` Floor 0,55.**
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.93 (Build 119).
 
 ## Neu in 2.1.92 alpha
 

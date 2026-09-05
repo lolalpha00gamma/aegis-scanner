@@ -1,26 +1,24 @@
-# Helios + Aegis — Analyse 2026-09-05 (2.1.92)
+# Helios + Aegis — Analyse 2026-09-05 (2.1.93)
 
-Helios **1.5.76** (Build 96). Aegis **2.1.92 alpha** (Build 118). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`. `bugfix` (2.1.15) hinter main, nichts nachziehen.
+Helios **1.5.77** (Build 97). Aegis **2.1.93 alpha** (Build 119). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`. `bugfix` hinter main, nichts nachziehen.
 
-## Warum Namen nach 2.1.91 noch sprangen / tot wirkten
+## Warum Namen nach 2.1.92 noch sprangen / tot wirkten
 
-2.1.91 hält leftoverHold[id:bin], Capture-Hist in leftoverPick, ¾ erbt nicht Frontal. Drei Löcher blieben:
+2.1.92 hält leftoverHoldByHash je Bin, leftoverPick Hash-Hold, Frame-Luma-Helfer, leftoverHoldBinChip. Drei Löcher blieben:
 
-1. **leftoverHoldByHash unbinned.** Store schrieb Hash nur frontal (`leftoverHoldWriteOk`). ¾-Bin UUID-keyed. Dropout: UUID weg, Hash ohne Bin. leftoverHoldPrevOf ¾ → nil → Smooth = roh. Twin 0,70 tauft.
-2. **leftoverPick ohne Hash-Bin.** holdPrev frontal, bins leer nach Dropout. ¾ Smooth ignoriert Frontal — und hat keinen eigenen Prev.
-3. **Center-Stage Box-Luma.** leftoverSessionCaptureBox nimmt Live-Box. Crop 0,18 senkt den Floor, 0,61 wirkt genuin. Overlay ohne BIN — ¾ unsichtbar.
+1. **Capture-Hist leftover-weit.** Gast mit eigener Hist 3+ erbte Annas Median. Flash ohne Box-Hist muss leftover halten.
+2. **HUD ohne CAP, BIN nicht wired.** leftoverHoldLabel yawAbs saß tot. Nacht-Floor unsichtbar.
+3. **leftoverScore linear 0,70–0,90.** Twin 0,72 vs 0,80 platt. Softmax fehlte.
 
-## Was 2.1.92 wirklich ändert
+## Was 2.1.93 wirklich ändert
 
-1. **`leftoverHoldHashKey` / `leftoverHoldPut(bin:)` / `leftoverHoldLookup(bin:)`.** ¾ überlebt Dropout räumlich.
-2. **leftoverHoldPrevOf + leftoverPick `holdHash`.** LibraryStore reicht leftoverHoldByHash. BinWriteOk schreibt Hash.
-3. **`leftoverSessionCapturePrefersFrame`.** leftoverPick `frameCapture`. Overlay `BIN n` in leftoverHoldLabel.
-4. Tests + VERSION = Models = MARKETING_VERSION 2.1.92 (Build 118).
+1. **`leftoverCaptureHistOf`.** Box-Hist ≥ 3. leftoverPick `captureBoxHist`.
+2. **`leftoverCaptureChip` + leftoverHoldLabel yawAbs** im Overlay.
+3. **`leftoverScoreHeat` Temp 16 + `leftoverScoreSoftmax` Floor 0,55.** leftoverPick wired.
+4. Tests + VERSION = Models = MARKETING_VERSION 2.1.93 (Build 119).
 
-2.1.91 bleibt: leftoverHold[id:bin], Capture-Hist, ¾ erbt nicht Frontal.
+2.1.92 bleibt: leftoverHoldByHash je Bin, leftoverPick Hash-Hold, leftoverSessionCapturePrefersFrame, leftoverHoldBinChip.
 
-Was Masse noch bringen würde: FaceEngine Frame-Histogram in leftoverPick `frameCapture` (Store reicht noch Box), CLAHE auf den Buffer, Drop-in `.mlmodel`, DBSCAN vor Merge, Yaw-binned Print-Bank als Galerie, Blink-Liveness, Iris-Twin-Veto.
+Helios 1.5.77: Open-Hysterese, Fill coalesced, destBounds-Latch, Fill-Share. Siehe `bpms9cmnxc-debug/Helios`.
 
-Helios 1.5.76: Totzone je Achse, destEdge Kamera-Tick, Warp Relock Map. Siehe `bpms9cmnxc-debug/Helios`.
-
-`bugfix` mergen oder fortsetzen: nein. Nur `main`.
+`bugfix` mergen: nein. Nur `main`.

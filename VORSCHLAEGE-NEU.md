@@ -1,6 +1,13 @@
-# Nachtrag 2026-09-05 (2.1.92)
+# Nachtrag 2026-09-05 (2.1.93)
 
-Siehe ANALYSE.md. **2.1.92** schließt leftoverHoldByHash je Bin, leftoverPick Hash-Hold, Frame-Luma vs Box, Overlay BIN.
+Siehe ANALYSE.md. **2.1.93** schließt Capture-Hist je Box, CAP-Chip, Score-Softmax, HUD BIN wired.
+
+## In 2.1.93 gelandet
+
+1. leftoverCaptureHistOf — Box-Hist ≥ 3, Flash leftover
+2. leftoverCaptureChip + leftoverHoldLabel yawAbs im Overlay
+3. leftoverScoreHeat Temp 16 + leftoverScoreSoftmax Floor 0,55
+4. VERSION = Models = MARKETING_VERSION 2.1.93 (Build 119)
 
 ## In 2.1.92 gelandet
 

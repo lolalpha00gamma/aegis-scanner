@@ -1,8 +1,17 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.92 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.93 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 
-Neu in 2.1.92: leftoverHoldByHash je Bin. leftoverPick Hash-Hold. Frame-Luma vs Box. Overlay BIN.
+Neu in 2.1.93: Capture-Hist je Box. CAP-Chip. Score-Softmax. HUD BIN wired.
+
+## In 2.1.93 wirklich im Code
+
+2.1.92 leftoverHoldByHash je Bin, leftoverPick Hash-Hold, Frame-Luma-Helfer, leftoverHoldBinChip. Box-Hist erbte leftover. HUD ohne CAP. Score platt.
+
+1. **`leftoverCaptureHistOf`.**
+2. **`leftoverCaptureChip` + leftoverHoldLabel yawAbs.**
+3. **`leftoverScoreHeat` / `leftoverScoreSoftmax`.**
+4. Tests + VERSION = Models = MARKETING_VERSION 2.1.93 (Build 119).
 
 ## In 2.1.92 wirklich im Code
 
