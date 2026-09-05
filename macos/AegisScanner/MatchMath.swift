@@ -214,7 +214,7 @@ enum MatchMath {
     }
 
     static func pinByPrint(cosine: Double, floor: Double = pinPrintCosine) -> Bool {
-        cosine > floor
+        cosine >= floor
     }
 
     static func leftoverPin(iou: Double, floor: Double = leftoverIoU) -> Bool {
@@ -401,7 +401,15 @@ enum MatchMath {
                 sharpness: sharpness[$0.index],
                 yawAbs: yawAbs[$0.index] ?? 0,
                 detScore: detScore[$0.index],
-                twinPair: twinPair
+                twinPair: twinPair,
+                capture: leftoverSessionCaptureBox(
+                    old: session,
+                    live: liveCap($0.index),
+                    hist: leftoverCaptureHistOf(
+                        box: captureBoxHist[$0.index],
+                        leftover: captureHist
+                    )
+                )
             )
         }
         let raw = pool.map { $0.cosine ?? -1 }
@@ -604,7 +612,7 @@ enum MatchMath {
         pinByPrint(cosine: cosine ?? -1)
     }
 
-    /// Taufe roh > 0,80 UND smooth ≥ 0,80. EMA genau 0,80 ist Hold, nicht Spike.
+    /// Taufe roh ≥ 0,80 UND smooth ≥ 0,80. EMA genau 0,80 ist Hold, nicht Spike.
     static func leftoverBaptizeBoth(raw: Double?, smooth: Double?) -> Bool {
         leftoverBaptize(cosine: raw) && (smooth ?? raw ?? -1) >= pinPrintCosine
     }
@@ -790,8 +798,62 @@ enum MatchMath {
         if leftoverBlurBlocks(sharpness: sharpness, cosine: cosine) { return false }
         let genuine = leftoverSessionFloor(yawAbs: yawAbs, capture: capture)
         if cosine >= max(floor, genuine) { return true }
-        if cosine >= genuine, let s = sharpness, s >= leftoverPrintSharp { return true }
+        if cosine >= genuine, let s = sharpness, s >= leftoverPrintSharpOf(capture: capture) { return true }
         return false
+    }
+
+    /// Nacht/Continuity Laplacian 0,12–0,14. leftoverPrintSharp 0,22 ließ Genuine 0,62 tot.
+    static func leftoverPrintSharpOf(capture: Double? = nil, continuity: Bool = false) -> Double {
+        if leftoverSessionLumaLow(capture) || continuity { return sharpnessFloor }
+        return leftoverPrintSharp
+    }
+
+    /// Continuity 15–30. 8 bleibt 8, 60 wird 30.
+    static func captureLockFrameRate(_ maxFps: Double) -> Double {
+        if maxFps >= 30 { return 30 }
+        if maxFps >= 24 { return max(24, min(30, maxFps)) }
+        if maxFps >= 15 { return max(15, min(24, maxFps)) }
+        return max(7, maxFps)
+    }
+
+    /// Continuity 1–30 hart auf 30 droppt auf 8. Band Floor 15 atmet.
+    static let captureLockFloor: Double = 15
+
+    static func captureLockFrameLo(_ maxFps: Double, rangeMin: Double) -> Double {
+        let hi = captureLockFrameRate(maxFps)
+        if hi + 1e-9 < captureLockFloor { return hi }
+        return min(hi, max(rangeMin, captureLockFloor))
+    }
+
+    /// 720p @ 15–30 schlägt 360p @ 60 und 800p @ 8. Analog Helios formatScore.
+    static func captureFormatScore(width: Double, height: Double, fps: Double) -> Double {
+        guard width >= 640, height >= 360, width <= 1920, height <= 1080, fps >= 7 else { return -1 }
+        let near720 = 1.0 - min(abs(height - 720) / 720, 1)
+        let res = near720 * 80 + min(width / 1280, 1.1) * 20
+        let fpsTerm: Double
+        if fps >= 24 {
+            fpsTerm = 55 + min(fps, 30) - 24
+        } else if fps >= 15 {
+            fpsTerm = 38 + (fps - 15) * 1.5
+        } else if fps >= 12 {
+            fpsTerm = 22
+        } else {
+            fpsTerm = fps * 1.5
+        }
+        let lowFpsPenalty = fps < 12 ? 40.0 : 0
+        let tinyPenalty = height < 480 ? 50.0 : 0
+        return res + fpsTerm - lowFpsPenalty - tinyPenalty
+    }
+
+    static let captureFourCC420f: UInt32 = 0x34323066
+    static let captureFourCC420v: UInt32 = 0x34323076
+    static let captureFourCCBGRA: UInt32 = 0x42475241
+
+    static func capturePixelBonus(osType: UInt32, fps: Double) -> Double {
+        let is420 = osType == captureFourCC420f || osType == captureFourCC420v
+        if is420 && fps >= 15 { return 25 }
+        if osType == captureFourCCBGRA && fps < 12 { return -35 }
+        return 0
     }
 
     static func leftoverBlurBlocks(sharpness: Double?, cosine: Double?) -> Bool {
@@ -805,10 +867,11 @@ enum MatchMath {
     static let leftoverSharpBonus = 0.05
     static let leftoverYawPenalty = 0.12
 
-    static func leftoverScore(cosine: Double, sharpness: Double?, yawAbs: Double = 0, detScore: Double? = nil, twinPair: Double? = nil) -> Double {
+    static func leftoverScore(cosine: Double, sharpness: Double?, yawAbs: Double = 0, detScore: Double? = nil, twinPair: Double? = nil, capture: Double? = nil) -> Double {
         var s: Double
         if let sh = sharpness {
-            let t = min(1, max(0, (sh - leftoverPrintSharp) / 0.20))
+            let floor = leftoverPrintSharpOf(capture: capture)
+            let t = min(1, max(0, (sh - floor) / 0.20))
             s = cosine * (0.88 + leftoverSharpBonus * 2.4 * t)
         } else {
             s = cosine

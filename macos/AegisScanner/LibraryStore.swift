@@ -1148,9 +1148,18 @@ final class LibraryStore: ObservableObject {
         MatchMath.leftoverCosineSparkLabel(leftoverHoldTrail[faceId] ?? [])
     }
 
+    func leftoverHoldNow(faceId: UUID, yawAbs: Double? = nil) -> Double? {
+        MatchMath.leftoverHoldPrevOf(
+            frontal: leftoverHold[faceId],
+            yawAbs: yawAbs,
+            bins: leftoverHoldBins,
+            id: faceId
+        )
+    }
+
     func leftoverHoldChip(faceId: UUID, sharpness: Double? = nil, yawAbs: Double? = nil) -> String? {
         MatchMath.leftoverHoldOverlayChip(
-            hold: leftoverHold[faceId],
+            hold: leftoverHoldNow(faceId: faceId, yawAbs: yawAbs),
             trail: leftoverHoldTrail[faceId] ?? [],
             yawAbs: yawAbs,
             sharpness: sharpness

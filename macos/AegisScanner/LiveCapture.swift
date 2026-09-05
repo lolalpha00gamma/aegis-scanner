@@ -140,7 +140,6 @@ final class LiveCapture: NSObject {
         if session.canAddInput(input) { session.addInput(input) }
         let out = AVCaptureVideoDataOutput()
         out.alwaysDiscardsLateVideoFrames = true
-        out.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA]
         let delegate = FrameTap { [weak self] image, stamp in
             self?.onFrame?(image, stamp)
         }
@@ -149,6 +148,8 @@ final class LiveCapture: NSObject {
         self.tap = delegate
         out.setSampleBufferDelegate(delegate, queue: outputQueue)
         if session.canAddOutput(out) { session.addOutput(out) }
+        applyBestFormat(device)
+        applyNativePixelFormat(out)
         if let conn = out.connection(with: .video) {
             if conn.isVideoMirroringSupported {
                 conn.automaticallyAdjustsVideoMirroring = false
@@ -222,6 +223,68 @@ final class LiveCapture: NSObject {
             if let builtIn = discovered.first(where: { $0.deviceType == .builtInWideAngleCamera }) { return builtIn }
             return extra ?? discovered.first ?? AVCaptureDevice.default(for: .video)
         }
+    }
+
+    /// Continuity 15–30 nur als 420f. 32BGRA + CGContext war 8 fps und tot auf Planar.
+    private func applyNativePixelFormat(_ output: AVCaptureVideoDataOutput) {
+        let types = output.availableVideoCVPixelFormatTypes
+        func has(_ t: OSType) -> Bool {
+            types.contains { Int(truncating: $0) == Int(t) }
+        }
+        let fmt: OSType
+        if has(kCVPixelFormatType_420YpCbCr8BiPlanarFullRange) {
+            fmt = kCVPixelFormatType_420YpCbCr8BiPlanarFullRange
+        } else if has(kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange) {
+            fmt = kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
+        } else if has(kCVPixelFormatType_32BGRA) {
+            fmt = kCVPixelFormatType_32BGRA
+        } else {
+            return
+        }
+        output.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: fmt]
+    }
+
+    private func applyBestFormat(_ device: AVCaptureDevice) {
+        guard let format = Self.bestFormat(on: device) else { return }
+        do {
+            try device.lockForConfiguration()
+            device.activeFormat = format
+            if let range = device.activeFormat.videoSupportedFrameRateRanges.max(by: {
+                $0.maxFrameRate < $1.maxFrameRate
+            }) {
+                let hi = MatchMath.captureLockFrameRate(range.maxFrameRate)
+                let lo = MatchMath.captureLockFrameLo(range.maxFrameRate, rangeMin: range.minFrameRate)
+                var minDur = CMTimeMake(value: 1, timescale: CMTimeScale(max(1, Int(hi.rounded()))))
+                var maxDur = CMTimeMake(value: 1, timescale: CMTimeScale(max(1, Int(lo.rounded()))))
+                if minDur < range.minFrameDuration { minDur = range.minFrameDuration }
+                if maxDur > range.maxFrameDuration { maxDur = range.maxFrameDuration }
+                if minDur > maxDur { minDur = maxDur }
+                device.activeVideoMinFrameDuration = minDur
+                device.activeVideoMaxFrameDuration = maxDur
+            }
+            device.unlockForConfiguration()
+        } catch { }
+    }
+
+    private static func bestFormat(on device: AVCaptureDevice) -> AVCaptureDevice.Format? {
+        var best: AVCaptureDevice.Format?
+        var bestScore = -1.0
+        var bestMin = 0.0
+        for format in device.formats {
+            let dims = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
+            let ranges = format.videoSupportedFrameRateRanges
+            let fps = ranges.map(\.maxFrameRate).max() ?? 0
+            let minFps = ranges.map(\.minFrameRate).max() ?? 0
+            let osType = CMFormatDescriptionGetMediaSubType(format.formatDescription)
+            let s = MatchMath.captureFormatScore(width: Double(dims.width), height: Double(dims.height), fps: fps)
+                + MatchMath.capturePixelBonus(osType: osType, fps: fps)
+            if best == nil || s > bestScore + 0.5 || (abs(s - bestScore) < 0.5 && minFps > bestMin) {
+                bestScore = s
+                bestMin = minFps
+                best = format
+            }
+        }
+        return best
     }
 
     private func startPlayer(url: URL) {
@@ -377,36 +440,7 @@ private func cgImage(from data: Data) -> CGImage? {
 private let liveOrientContext = CIContext(options: [.cacheIntermediates: false])
 
 private func cgImage(from pb: CVPixelBuffer, orientation: CGImagePropertyOrientation = .up, transform: CGAffineTransform = .identity) -> CGImage? {
-    let w = CVPixelBufferGetWidth(pb)
-    let h = CVPixelBufferGetHeight(pb)
-    CVPixelBufferLockBaseAddress(pb, .readOnly)
-    defer { CVPixelBufferUnlockBaseAddress(pb, .readOnly) }
-    guard let base = CVPixelBufferGetBaseAddress(pb) else { return nil }
-    let bpr = CVPixelBufferGetBytesPerRow(pb)
-    let cs = CGColorSpaceCreateDeviceRGB()
-    guard let ctx = CGContext(
-        data: base,
-        width: w,
-        height: h,
-        bitsPerComponent: 8,
-        bytesPerRow: bpr,
-        space: cs,
-        bitmapInfo: CGBitmapInfo.byteOrder32Little.rawValue | CGImageAlphaInfo.premultipliedFirst.rawValue
-    ) else { return nil }
-    guard let raw = ctx.makeImage() else { return nil }
-    guard let owned = CGContext(
-        data: nil,
-        width: w,
-        height: h,
-        bitsPerComponent: 8,
-        bytesPerRow: w * 4,
-        space: cs,
-        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-    ) else { return raw }
-    owned.draw(raw, in: CGRect(x: 0, y: 0, width: w, height: h))
-    guard let copied = owned.makeImage() else { return raw }
-    if orientation == .up, transform.isIdentity { return copied }
-    var oriented = CIImage(cgImage: copied)
+    var oriented = CIImage(cvPixelBuffer: pb)
     if !transform.isIdentity {
         oriented = oriented.transformed(by: transform)
     }

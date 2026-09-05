@@ -1,4 +1,4 @@
-# Aegis **2.1.99 alpha**
+# Aegis **2.1.100 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -16,10 +16,23 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
 
+## Neu in 2.1.100 alpha
+
+2.1.99 leftoverScore ramped ab 0,22. Capture lockte hart 30.
+
+- **`leftoverScore capture:`** Nacht-Rampe ab leftoverPrintSharpOf 0,12.
+- **leftoverPick Box-Capture** in leftoverScore.
+- **`captureLockFrameLo` 15–30.** Continuity atmet, droppt nicht auf 8.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.100 (Build 126).
+
 ## Neu in 2.1.99 alpha
 
-2.1.98 Math-Tests grün. xcodebuild: leftoverAdoptReady holdPrev vor needSec.
+2.1.98 IEEE. Overlay las Frontal-EMA. pinByPrint `>`. LiveCapture 32BGRA = 8 fps, 420f tot. leftoverAdoptReady holdPrev vor needSec.
 
+- **`leftoverHoldNow` leftoverHoldPrevOf.** ¾-Chip nicht Frontal 0,80.
+- **`pinByPrint` ≥ 0,80.** Roh und Smooth dieselbe Sprache.
+- **`leftoverPrintSharpOf` Nacht 0,12.** Genuine 0,62 mit Laplacian 0,14.
+- **Capture 420f + CIImage.** Continuity 15–30, nicht BGRA@8.
 - **LibraryStore leftoverAdoptReady** needSec vor holdPrev.
 - Tests + VERSION = Models = MARKETING_VERSION 2.1.99 (Build 125).
 

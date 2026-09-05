@@ -1978,6 +1978,43 @@ enum MatchMathTests {
             !MatchMath.leftoverTransfersId(cosine: 0.82, holdPrev: 0.64),
             "Smooth 0,64 ohne Trail keine Taufe"
         )
+        ok(MatchMath.pinByPrint(cosine: 0.80), "0,80 klebt analog Taufe ≥")
+        ok(MatchMath.leftoverBaptize(cosine: 0.80), "0,80 leftover tauft")
+        ok(abs(MatchMath.leftoverPrintSharpOf() - 0.22) < 0.001, "Tag Sharp 0,22")
+        ok(abs(MatchMath.leftoverPrintSharpOf(capture: 0.15) - 0.12) < 0.001, "Nacht Sharp 0,12")
+        ok(abs(MatchMath.leftoverPrintSharpOf(continuity: true) - 0.12) < 0.001, "Continuity Sharp 0,12")
+        ok(
+            MatchMath.leftoverPrintOk(cosine: 0.62, sharpness: 0.14, capture: 0.15),
+            "Genuine 0,62 nachts mit Laplacian 0,14"
+        )
+        ok(
+            !MatchMath.leftoverPrintOk(cosine: 0.62, sharpness: 0.14),
+            "Tag 0,14 unter leftoverPrintSharp 0,22"
+        )
+        ok(MatchMath.captureLockFrameRate(15) == 15, "Continuity 15 bleibt 15")
+        ok(MatchMath.captureLockFrameRate(60) == 30, "60 auf 30")
+        ok(MatchMath.captureLockFrameRate(8) == 8, "8 bleibt 8")
+        ok(MatchMath.capturePixelBonus(osType: MatchMath.captureFourCC420f, fps: 24) > 0, "420f Bonus")
+        ok(MatchMath.capturePixelBonus(osType: MatchMath.captureFourCCBGRA, fps: 8) < 0, "BGRA 8 Strafe")
+        let cap720_15 = MatchMath.captureFormatScore(width: 1280, height: 720, fps: 15)
+            + MatchMath.capturePixelBonus(osType: MatchMath.captureFourCC420f, fps: 15)
+        let cap720_8 = MatchMath.captureFormatScore(width: 1280, height: 720, fps: 8)
+            + MatchMath.capturePixelBonus(osType: MatchMath.captureFourCCBGRA, fps: 8)
+        ok(cap720_15 > cap720_8, "720p 420f@15 vor BGRA@8")
+        ok(
+            MatchMath.leftoverHoldOverlayChip(hold: 0.66, trail: [0.64], yawAbs: 0.35) == "gehalten 0,64 / 0,66 · BIN 1",
+            "Overlay ¾ roh/smooth BIN"
+        )
+        ok(
+            MatchMath.leftoverHoldPrevOf(frontal: 0.80, yawAbs: 0.35) == nil,
+            "Chip ¾ ohne Bin nicht Frontal-EMA"
+        )
+        ok(abs(MatchMath.captureLockFrameLo(30, rangeMin: 1) - 15) < 1e-9, "Continuity 1–30 Floor 15")
+        ok(abs(MatchMath.captureLockFrameLo(30, rangeMin: 24) - 24) < 1e-9, "Built-in 24–30 bleibt 24")
+        ok(abs(MatchMath.captureLockFrameLo(8, rangeMin: 1) - 8) < 1e-9, "8 fps kein 15-Floor")
+        let nightMul14 = MatchMath.leftoverScore(cosine: 0.72, sharpness: 0.14, capture: 0.15)
+        let dayMul14 = MatchMath.leftoverScore(cosine: 0.72, sharpness: 0.14)
+        ok(nightMul14 > dayMul14, "Nacht Laplacian 0,14 ohne 0,88-Strafe")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

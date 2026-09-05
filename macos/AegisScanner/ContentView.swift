@@ -678,7 +678,8 @@ struct FaceOverlay: View {
                     }()
                     let liveCont = store.liveContinuity && item.kind == .live
                     let hint = FaceEngine.overlayHint(face, gallery: gallery, continuity: liveCont)
-                    let leftover = store.leftoverHold[face.id] != nil && store.tapLockChip(faceId: face.id) == nil
+                    let leftover = store.leftoverHoldNow(faceId: face.id, yawAbs: abs(face.quality.yaw)) != nil
+                        && store.tapLockChip(faceId: face.id) == nil
                     let ghost = store.ghostFaceIds().contains(face.id)
                     let kind = MatchMath.overlayBoxKind(selected: selected, pinned: pinned, leftover: leftover, ghost: ghost)
                     let coachDest = owner ?? (store.identities.count == 1 ? store.identities.first : ident)
@@ -819,7 +820,7 @@ struct FaceOverlay: View {
                             .overlay(alignment: .bottomLeading) {
                                 if selected || ident != nil || leftover {
                                     VStack(alignment: .leading, spacing: 2) {
-                                        Text(overlayName(faceId: face.id, pinned: pinned, owner: owner, near: near, ident: ident, pct: pct, hit: hit))
+                                        Text(overlayName(faceId: face.id, pinned: pinned, owner: owner, near: near, ident: ident, pct: pct, hit: hit, yawAbs: abs(face.quality.yaw)))
                                             .font(.caption2.monospaced())
                                             .lineLimit(2)
                                         if selected, let coach {
@@ -885,10 +886,11 @@ struct FaceOverlay: View {
         near: Bool,
         ident: Identity?,
         pct: Double,
-        hit: StrategyHit?
+        hit: StrategyHit?,
+        yawAbs: Double? = nil
     ) -> String {
-        if let holdCos = store.leftoverHold[faceId], !MatchMath.leftoverShowsName(cosine: holdCos) {
-            let hold = store.leftoverHoldChip(faceId: faceId) ?? MatchMath.unknownRejectNote()
+        if let holdCos = store.leftoverHoldNow(faceId: faceId, yawAbs: yawAbs), !MatchMath.leftoverShowsName(cosine: holdCos) {
+            let hold = store.leftoverHoldChip(faceId: faceId, yawAbs: yawAbs) ?? MatchMath.unknownRejectNote()
             if let spark = store.leftoverSparkChip(faceId: faceId) {
                 return "\(store.guestName(for: faceId)) · \(hold) · \(spark)"
             }
@@ -896,7 +898,7 @@ struct FaceOverlay: View {
         }
         if pinned, let owner {
             let held = store.liveHeldIds.contains(faceId)
-            if let hold = store.leftoverHoldChip(faceId: faceId) {
+            if let hold = store.leftoverHoldChip(faceId: faceId, yawAbs: yawAbs) {
                 if let spark = store.leftoverSparkChip(faceId: faceId) {
                     return "\(owner.name) \(Int(pct))% · \(hold) · \(spark)"
                 }

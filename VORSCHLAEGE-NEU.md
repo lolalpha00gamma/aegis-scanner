@@ -1,11 +1,23 @@
-# Nachtrag 2026-09-05 (2.1.99)
+# Nachtrag 2026-09-05 (2.1.100)
 
-Siehe ANALYSE.md. **2.1.99** leftoverAdoptReady Argument-Reihenfolge.
+Siehe ANALYSE.md. **2.1.100** leftoverScore Nacht, Capture-Band 15–30. 2.1.99: HOLD Overlay ¾, pin ≥, Continuity-Sharp, 420f, leftoverAdoptReady Argument-Reihenfolge.
+
+## In 2.1.100 gelandet
+
+1. leftoverScore capture: — Nacht-Rampe ab leftoverPrintSharpOf 0,12
+2. leftoverPick reicht Box-Capture in leftoverScore
+3. captureLockFrameLo Band 15–30
+4. VERSION = Models = MARKETING_VERSION 2.1.100 (Build 126)
 
 ## In 2.1.99 gelandet
 
-1. LibraryStore leftoverAdoptReady needSec vor holdPrev
-2. VERSION = Models = MARKETING_VERSION 2.1.99 (Build 125)
+1. leftoverHoldNow / leftoverHoldChip leftoverHoldPrevOf — ¾ nicht Frontal-EMA
+2. overlayName leftoverShowsName aus dem Bin
+3. pinByPrint / leftoverBaptize ≥ 0,80
+4. leftoverPrintSharpOf Nacht 0,12 / Tag 0,22
+5. LiveCapture 420f + CIImage, captureFormatScore analog Helios
+6. LibraryStore leftoverAdoptReady needSec vor holdPrev
+7. VERSION = Models = MARKETING_VERSION 2.1.99 (Build 125)
 
 ## In 2.1.98 gelandet
 
@@ -19,35 +31,6 @@ Siehe ANALYSE.md. **2.1.99** leftoverAdoptReady Argument-Reihenfolge.
 3. leftoverBlurBlocks / leftoverHoldWriteOk sharpnessFloor 0,12
 4. liveRoiBox min 0,10 — HD-Gesicht Crop
 5. VERSION = Models = MARKETING_VERSION 2.1.97 (Build 123)
-
-## In 2.1.96 gelandet
-
-1. leftoverTransfersId leftoverBaptizeBoth — Non-Spike Smooth, Spike-Trail Mean
-2. LibraryStore leftoverHoldPrevOf holdPrev/holdNow — ¾ erbt nicht Frontal
-3. Lookaway leftoverHold[id] nur Bin 0. leftoverHoldLookupYaw nil yaw → nil
-4. MatchMathTests Unique-Lets + leftoverBoxHashBins(imageW:)
-5. VERSION = Models = MARKETING_VERSION 2.1.96 (Build 122)
-
-## In 2.1.95 gelandet
-
-1. leftoverHoldLookupYaw — Dropout/holdPrev immer Yaw-Bin
-2. leftoverHoldRawOf / leftoverHoldOverlayChip — Trail roh, Hold smooth
-3. leftoverBaptizeBoth — roh UND smooth ≥ 0,80 (Math; TransfersId Spike-Pfad bleibt)
-4. VERSION = Models = MARKETING_VERSION 2.1.95 (Build 121)
-
-## In 2.1.94 gelandet
-
-1. leftoverFrameCapture / leftoverFrameCaptureByte — 8×8 Buffer, leftoverPick frameCapture live
-2. leftoverTrailPut(bin:) / leftoverTrailLookup(bin:) — ¾ liest nicht Frontal-Nachbar
-3. leftoverHoldLabel(smooth:) — gehalten 0,80 / 0,64
-4. VERSION = Models = MARKETING_VERSION 2.1.94 (Build 120)
-
-## In 2.1.93 gelandet
-
-1. leftoverCaptureHistOf — Box-Hist ≥ 3, Flash leftover
-2. leftoverCaptureChip + leftoverHoldLabel yawAbs im Overlay
-3. leftoverScoreHeat Temp 16 + leftoverScoreSoftmax Floor 0,55
-4. VERSION = Models = MARKETING_VERSION 2.1.93 (Build 119)
 
 ## Offen (nicht Pflaster)
 
@@ -132,15 +115,31 @@ Siehe ANALYSE.md. **2.1.99** leftoverAdoptReady Argument-Reihenfolge.
 137. **leftoverHoldBins persist** App-Neustart analog Capture-Hist Schema 5.
 138. **overlayName yawAbs** in leftoverHoldChip — zwei Overlay-Pfade ohne BIN.
 139. **Tests splitted.** Eine `run()`-Funktion, jeder Patch redeclare.
-140. **leftoverHold[id] Overlay ¾** leftoverHoldChip liest unbinned EMA, ¾ unsichtbar nach Dropout.
 141. **leftoverAdoptNeedSecSlow 1,6 s Pref** — 1,2 s sitzt, Ghost-Walker 1,6 s hinter Schalter.
 142. **liveRoiBox minFrac Konstante + Test** 40×50 px tot, 80×100 durch. Magic 0,10.
-143. **pinByPrint ≥** analog leftoverBaptizeBoth. Roh `>` und Smooth `≥` sind zwei Sprachen.
 144. **Continuity Laplacian-HUD** `SHARP 0,12` neben HOLD — sonst Blindflug warum leftover tot.
-145. **leftoverPrintSharp Continuity-Pfad** 0,08 wenn sessionCapture low, Genuine 0,62 nachts.
 146. **MatchMathTests split** — eine `run()`, Force-Unwrap liveRoiBox crasht den Rest.
 147. **Aegis.dmg nicht ins Git** — nur CI-Artefakt.
 148. **Shared AVCaptureSession XPC** mit Helios, eine TCC.
+149. **Format-Chip `420f 15–30` / `BGRA 8`** analog Helios. Nutzer sieht warum Live tot ist.
+150. **Center-Stage aus + Format neu** nach Sleep, analog Helios 1.5.84.
+151. **leftoverHoldTrail[id] je Bin verdrahten.** Chip sitzt auf Hold-Bin, Trail bleibt UUID-Mix.
+152. **CIImage createCGImage Farbe.** 420v (video range) wirkt dunkel — FullRange bevorzugen sitzt, 420v Fallback messen.
+153. **overlay leftover box** aus leftoverHoldNow, nicht leftoverHold.keys — ¾-only Bin unsichtbar. Sitzt zum Teil (leftoverHoldNow).
+155. **Timer/Session fps HUD `BAND 15–30`.** Wenn Live 8 trotz Band, Watchdog.
+156. **leftoverScore Temp 16 × Nacht-Floor.** Heat-Mid 0,72 bei Session-Drop 0,60 zu hoch.
+157. **420v VideoRange Offset 16** vor Laplacian. FullRange sitzt, 420v Sharp wirkt 0,10 zu dunkel.
+158. **FaceEngine capture an leftoverPick** wenn LibraryStore Frame-Luma nil — sonst Score ohne Nacht-Rampe.
+159. **RTSP 420f analog LiveCapture.** Player-Pfad bleibt 32BGRA (Datei/HTTP ok).
+160. **yawAbs in leftoverHoldTrail append.** Chip roh/smooth je Bin ohne neue Tabelle.
+161. **Softmax capture-aware.** Nacht 0,62 vs 0,60 nicht blocken wie Tag 0,72 vs 0,71.
+- leftoverScore capture — sitzt.
+- captureLockFrameLo — sitzt.
+- leftoverHoldNow leftoverHoldPrevOf — sitzt.
+- pinByPrint ≥ — sitzt.
+- leftoverPrintSharpOf — sitzt.
+- Capture 420f — sitzt.
+- leftoverAdoptReady needSec vor holdPrev — sitzt.
 - leftoverHoldBlocks IEEE 1e-9 — sitzt.
 - leftoverTransfersId leftoverBaptizeBoth — sitzt.
 - leftoverBaptizeBoth EMA ≥ 0,80 — sitzt.
@@ -149,26 +148,10 @@ Siehe ANALYSE.md. **2.1.99** leftoverAdoptReady Argument-Reihenfolge.
 - leftoverHoldWriteOk sharpnessFloor — sitzt.
 - liveRoiBox 0,10 — sitzt.
 - leftoverHoldPrevOf live — sitzt.
-- leftoverHoldPrevOf live — sitzt.
 - Lookaway leftoverHold[id] nur frontal — sitzt.
 - leftoverHoldLookupYaw nil yaw — sitzt.
 - leftoverHoldLookupYaw Dropout — sitzt.
 - Overlay roh/smooth aus Trail — sitzt.
 - leftoverBaptizeBoth Math — sitzt.
-- Pick-EMA AE — sitzt.
-- Twin-Score — sitzt.
-- Galerie frontal — sitzt.
-- Capture-Median Helfer — sitzt.
-- Hold-Bin Helfer — sitzt.
-- leftoverHold[id:bin] — sitzt.
-- Capture-Hist in leftoverPick — sitzt.
-- ¾ erbt nicht Frontal — sitzt.
-- leftoverHoldByHash je Bin — sitzt.
-- leftoverPick Hash-Hold — sitzt.
-- Frame-Luma vs Box (Math) — sitzt.
-- Overlay BIN — sitzt.
-- Frame-Luma live — sitzt.
-- Trail je Bin — sitzt.
-- HOLD roh/smooth Label — sitzt.
 
 Nur main.
