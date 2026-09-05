@@ -2568,6 +2568,31 @@ final class LibraryStore: ObservableObject {
         leftoverHoldTrailBins = MatchMath.leftoverHoldSurviveBinMap(hold: leftoverHoldTrailBins, ghosts: ghostIds, live: liveIds, emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds)
         liveSlotHold = MatchMath.leftoverHoldSurvive(hold: liveSlotHold, ghosts: ghostIds, live: liveIds, emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds)
         leftoverMissFrames = MatchMath.leftoverHoldSurvive(hold: leftoverMissFrames, ghosts: ghostIds, live: liveIds, emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds)
+        let remintLive = adopted.map { (id: $0.id, x: $0.box.x) }
+        var remintStored = leftoverStreakBox.map { (id: $0.key, x: $0.value.x) }
+        var remintSeen = Set(remintStored.map(\.id))
+        for g in liveGhosts where !remintSeen.contains(g.face.id) {
+            remintStored.append((id: g.face.id, x: g.face.box.x))
+            remintSeen.insert(g.face.id)
+        }
+        leftoverHold = MatchMath.leftoverHoldRemint(hold: leftoverHold, live: remintLive, stored: remintStored)
+        leftoverHoldTrail = MatchMath.leftoverHoldRemint(hold: leftoverHoldTrail, live: remintLive, stored: remintStored)
+        liveSlotHold = MatchMath.leftoverHoldRemint(hold: liveSlotHold, live: remintLive, stored: remintStored)
+        leftoverMissFrames = MatchMath.leftoverHoldRemint(hold: leftoverMissFrames, live: remintLive, stored: remintStored)
+        leftoverNameLockUntil = MatchMath.leftoverHoldRemint(hold: leftoverNameLockUntil, live: remintLive, stored: remintStored)
+        leftoverNameLockHeld = MatchMath.leftoverHoldRemint(hold: leftoverNameLockHeld, live: remintLive, stored: remintStored)
+        leftoverPending = MatchMath.leftoverHoldRemint(hold: leftoverPending, live: remintLive, stored: remintStored)
+        leftoverLastHash = MatchMath.leftoverHoldRemint(hold: leftoverLastHash, live: remintLive, stored: remintStored)
+        leftoverLastIoU = MatchMath.leftoverHoldRemint(hold: leftoverLastIoU, live: remintLive, stored: remintStored)
+        leftoverSparkChipHeld = MatchMath.leftoverHoldRemint(hold: leftoverSparkChipHeld, live: remintLive, stored: remintStored)
+        leftoverJpegDelta = MatchMath.leftoverHoldRemint(hold: leftoverJpegDelta, live: remintLive, stored: remintStored)
+        leftoverJpegAt = MatchMath.leftoverHoldRemint(hold: leftoverJpegAt, live: remintLive, stored: remintStored)
+        leftoverJpegHash = MatchMath.leftoverHoldRemint(hold: leftoverJpegHash, live: remintLive, stored: remintStored)
+        leftoverJpegCos = MatchMath.leftoverHoldRemint(hold: leftoverJpegCos, live: remintLive, stored: remintStored)
+        leftoverLiveHashTick = MatchMath.leftoverHoldRemint(hold: leftoverLiveHashTick, live: remintLive, stored: remintStored)
+        leftoverWipeUntil = MatchMath.leftoverHoldRemint(hold: leftoverWipeUntil, live: remintLive, stored: remintStored)
+        leftoverHoldBins = MatchMath.leftoverHoldRemintBins(hold: leftoverHoldBins, live: remintLive, stored: remintStored)
+        leftoverHoldTrailBins = MatchMath.leftoverHoldRemintBins(hold: leftoverHoldTrailBins, live: remintLive, stored: remintStored)
         leftoverHoldByHash = MatchMath.leftoverHoldPrune(
             leftoverHoldByHash,
             now: now,

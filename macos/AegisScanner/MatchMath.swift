@@ -1373,20 +1373,103 @@ enum MatchMath {
     }
 
     /// Print-Assign, x-Fill nur für leere Zeilen, Twin-Spread danach.
-    /// leftoverHoldXMatch-Logik sitzt in FillX (leftoverXAmbiguous).
+    /// Remint (x) zuerst — Print füllt Rest, stiehlt keine Remint-Spalte.
+    static func leftoverAssignRemint(
+        liveX: [Double],
+        holdX: [Double]
+    ) -> [Int?] {
+        leftoverAssignFillX(
+            assigned: Array(repeating: Optional<Int>.none, count: holdX.count),
+            liveX: liveX,
+            holdX: holdX
+        )
+    }
+
     static func leftoverAssignLive(
         scores: [[Double?]],
         liveX: [Double],
         holdX: [Double]
     ) -> [Int?] {
-        leftoverAssignDropAmbiguous(
+        var assigned = leftoverAssignRemint(liveX: liveX, holdX: holdX)
+        var used = Set(assigned.compactMap { $0 })
+        let printed = leftoverAssign(scores: scores)
+        if assigned.count < printed.count {
+            assigned += Array(repeating: Optional<Int>.none, count: printed.count - assigned.count)
+        }
+        for r in printed.indices {
+            if r < assigned.count, assigned[r] != nil { continue }
+            guard let c = printed[r], !used.contains(c) else { continue }
+            if r < assigned.count {
+                assigned[r] = c
+            }
+            used.insert(c)
+        }
+        return leftoverAssignDropAmbiguous(
             scores: scores,
             assigned: leftoverAssignFillX(
-                assigned: leftoverAssign(scores: scores),
+                assigned: assigned,
                 liveX: liveX,
                 holdX: holdX
             )
         )
+    }
+
+    /// Vision-Restart: leftoverHold[old] auf Live-UUID nach x.
+    /// stored nur Keys, die im Hold sitzen — Stale-Streak sonst näher und tot.
+    static func leftoverHoldRemint<Value>(
+        hold: [UUID: Value],
+        live: [(id: UUID, x: Double)],
+        stored: [(id: UUID, x: Double)],
+        occupied: Set<UUID> = []
+    ) -> [UUID: Value] {
+        var out = hold
+        var taken = occupied
+        let holds = stored.filter { hold[$0.id] != nil }
+        for row in live {
+            if hold[row.id] != nil {
+                taken.insert(row.id)
+                continue
+            }
+            guard let match = leftoverHoldXMatch(liveX: row.x, holds: holds, occupied: taken) else { continue }
+            if match == row.id { continue }
+            if let v = hold[match] {
+                out[row.id] = v
+                taken.insert(match)
+            }
+        }
+        return out
+    }
+
+    static func leftoverHoldBinFromKey(_ key: String) -> Int? {
+        guard let dot = key.lastIndex(of: ".") else { return nil }
+        return Int(key[key.index(after: dot)...])
+    }
+
+    /// Bin-Keys `UUID.bin` analog leftoverHoldRemint.
+    static func leftoverHoldRemintBins<Value>(
+        hold: [String: Value],
+        live: [(id: UUID, x: Double)],
+        stored: [(id: UUID, x: Double)],
+        occupied: Set<UUID> = []
+    ) -> [String: Value] {
+        var out = hold
+        var taken = occupied
+        let present = Set(hold.keys.compactMap { leftoverHoldId(from: $0) })
+        let holds = stored.filter { present.contains($0.id) }
+        for row in live {
+            if present.contains(row.id) {
+                taken.insert(row.id)
+                continue
+            }
+            guard let match = leftoverHoldXMatch(liveX: row.x, holds: holds, occupied: taken) else { continue }
+            if match == row.id { continue }
+            for (key, v) in hold {
+                guard leftoverHoldId(from: key) == match, let bin = leftoverHoldBinFromKey(key) else { continue }
+                out[leftoverHoldKey(id: row.id, bin: bin)] = v
+            }
+            taken.insert(match)
+        }
+        return out
     }
 
     static func overlayChipKeep(_ chip: String) -> Int {

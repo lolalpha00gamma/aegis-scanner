@@ -1,3 +1,28 @@
+# Helios + Aegis — Analyse 2026-09-05 (2.1.128)
+
+Helios **1.5.113** (Build 133). Aegis **2.1.128 alpha** (Build 154). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.127: leftoverXAmbiguous relativ 2·d, FillX Spread. AssignLive Print vor x. leftoverHold tot auf neuer UUID.
+
+## 2.1.127 → 2.1.128
+
+1. **leftoverAssignLive Print zuerst.** Restart-UUIDs, schwache Cosine, x-Match erst auf leeren Zeilen. Falscher Twin bleibt.
+2. **leftoverHold UUID tot nach Restart.** leftoverHold[old] überlebt Survive, Live hat neue UUID. holdPrev leer bis Adopt. leftoverHoldBins/NameLock/JPEG bleiben auf old.
+3. **leftoverHoldRemint stored = leftoverStreakBox roh.** Stale-Streak näher als Hold → Remint tot.
+
+## Was 2.1.128 ändert
+
+1. **`leftoverAssignRemint` vor Print** in leftoverAssignLive. Print füllt Rest, stiehlt keine Remint-Spalte.
+2. **`leftoverHoldRemint`.** stored nur Hold-Keys. Live-UUID schon im Hold = occupied. leftoverStreakBox ∪ liveGhosts.
+3. **`leftoverHoldRemintBins`.** leftoverHoldBins/TrailBins. LibraryStore: NameLock, Pending, Miss, JPEG, LastHash, Spark, Wipe, LiveHashTick.
+4. Tests + VERSION = Models = MARKETING_VERSION 2.1.128 (Build 154).
+
+Nicht: leftoverHoldsTrack LOCK vor JUMP — Tests verlangen `JUMP Frame kein Hold` während LOCK. leftoverTransfersId sitzt.
+
+Helios 1.5.113: destEdgeNearest innerster, FillAxis toward, Seam still. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-05 (2.1.127)
 
 Helios **1.5.109** (Build 129). Aegis **2.1.127 alpha** (Build 153). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

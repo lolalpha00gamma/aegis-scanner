@@ -2516,6 +2516,23 @@ enum MatchMathTests {
         let liveTwin = MatchMath.leftoverAssignLive(scores: [[nil], [nil]], liveX: [0.50], holdX: [0.45, 0.55])
         ok(liveTwin[0] == nil && liveTwin[1] == nil, "AssignLive Spread Twin tot")
         ok(MatchMath.leftoverHoldXMatch(liveX: 0.22, holds: [(id: xa2, x: 0.30), (id: xb2, x: 0.20)]) == xb2, "HoldX näherer nach relativem Spread")
+        let reminted = MatchMath.leftoverAssignRemint(liveX: [0.20, 0.80], holdX: [0.22, 0.78])
+        ok(reminted[0] == 0 && reminted[1] == 1, "Remint x-order")
+        let idOld = UUID(), idNew = UUID(), idStale = UUID()
+        let remint = MatchMath.leftoverHoldRemint(
+            hold: [idOld: 0.72],
+            live: [(id: idNew, x: 0.20)],
+            stored: [(id: idStale, x: 0.205), (id: idOld, x: 0.22)]
+        )
+        ok(remint[idNew] == 0.72 && remint[idOld] == 0.72, "Hold Remint skippt Stale")
+        let binOld = MatchMath.leftoverHoldKey(id: idOld, bin: 1)
+        let remintBins = MatchMath.leftoverHoldRemintBins(
+            hold: [binOld: 0.68],
+            live: [(id: idNew, x: 0.21)],
+            stored: [(id: idOld, x: 0.20)]
+        )
+        ok(remintBins[MatchMath.leftoverHoldKey(id: idNew, bin: 1)] == 0.68, "Remint Bins ¾")
+        ok(MatchMath.leftoverHoldBinFromKey(binOld) == 1, "BinFromKey")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

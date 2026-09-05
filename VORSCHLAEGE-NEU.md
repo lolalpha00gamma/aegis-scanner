@@ -1,4 +1,66 @@
+# Nachtrag 2026-09-05 (2.1.128)
+
+Siehe ANALYSE.md. **2.1.128** AssignLive Remint, leftoverHold UUID/Bins/NameLock Remint.
+
+## In 2.1.128 gelandet
+
+1. leftoverAssignRemint vor Print in leftoverAssignLive
+2. leftoverHoldRemint — stored nur Hold-Keys, Live occupied, leftoverStreakBox ∪ Ghosts
+3. leftoverHoldRemintBins + NameLock/Pending/Miss/JPEG/Hash/Spark/Wipe
+4. VERSION = Models = MARKETING_VERSION 2.1.128 (Build 154)
+
+## Nächste, zusätzlich
+
+- leftoverFillXPad Pref 0,06–0,20.
+- leftoverHashHoldFloor bleibt 0,64 (kein Sharpness im Persist).
+- dropoutTTLSticky nicht verdrahten — leftoverHoldTTLOf sitzt.
+- leftoverHoldsTrack LOCK halten — Tests verlangen JUMP Frame kein Hold. leftoverTransfersId sitzt.
+- leftoverNameLockHeld persist Schema 7.
+- leftoverJpegProbeReuse TTL Pref 0,25–1,2.
+- FaceEngine jpegProbe detached queue. Cache sitzt, Detect hoppt noch nach Main.
+- PhotoKit Live Photos Frame 0, nicht Poster.
+- printRevision je Identity.
+- gallery.json.bak rotate 3.
+- VNDetectFaceRectangles revision pin.
+- leftoverHashHold VoiceOver.
+- leftoverJumpName VoiceOver.
+- Schema 5 UUID-Bins nach Schema 6 behalten (kein Wipe).
+- Helios Frame-Pump, eine TCC. Shared XPC mit Helios 1.5.113.
+- Overlay VoiceOver HOLD/Spark/HASH/LOCK/NBR/FAST/INDOOR/TWIN.
+- Per-Box CLAHE statt Full-Frame.
+- Continuity Desk-View yaw-floor 0,36.
+- Gallery print decay: ungenutzte 14-Tage-Prints downweight.
+- Partial-Print P-Slot ohne Augen (Schal/Maske).
+- Burst-AE 5-Frame Pref Continuity-Nacht.
+- Print-Bank 5 Pose-Slots front/left/right/up/down.
+- DBSCAN vor Merge.
+- Watch-Folder PhotoKit.
+- Encrypted gallery export `.aegis`.
+- Iris-Textur-Slot als Twin-Veto.
+- Specular-Highlight auf Stirn als Card-Photo-Veto.
+- Continuity LiDAR-Z als Twin-Trennung.
+- Masken-/Schal-Slot. Brille-Slot.
+- Tests splitted.
+- Merge-Undo Stack 8.
+- IdentityDesk 9-Tuple → GalleryPayload direkt.
+- **Per-Hold TTL in Schema 7.** `at` + `ttl` je Zeile, nicht Session-Sticky.
+- Temporal ReID-Graph über Hold-Trail.
+- PnP 6DoF, Slot folgt der Nase.
+- leftoverGateChip Cap Pref 4–8.
+- leftoverLiveHashTick nach Transfer kopieren (newId → old.id).
+- Rank-Keys persist Schema 7, Spatial-Migration beim Load.
+- leftoverAssignFillX Occupied-Set analog HoldX, nicht nur used cols.
+- leftoverPairCommit/Streak/Last Remint — AssignLive keyed old.id, Overlay nicht.
+- leftoverStreakBox Write auch bei Single-Face Restart (AssignLive erst ab 2).
+- leftoverHoldRemint dist-Cap analog leftoverFillXPad Pref.
+- leftoverHoldByHash Spatial nach UUID-Restart ohne Remint (Hash-Key, nicht UUID).
+- FaceEngine VNTrackObjectRequest statt nur Rectangles — weniger UUID-Remint.
+- leftoverAssignLive Single-Row (1 Hold, 1 Live) ohne ≥2-Gate in LibraryStore.
+
+Nur main.
+
 # Nachtrag 2026-09-05 (2.1.127)
+
 
 Siehe ANALYSE.md. **2.1.127** leftoverXAmbiguous relativ, FillX Spread.
 
