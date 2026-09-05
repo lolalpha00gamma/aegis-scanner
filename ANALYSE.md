@@ -1,24 +1,28 @@
-# Helios + Aegis — Analyse 2026-09-05 (2.1.95)
+# Helios + Aegis — Analyse 2026-09-05 (2.1.96)
 
-Helios **1.5.79** (Build 99). Aegis **2.1.95 alpha** (Build 121). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`. `bugfix` hinter main, nichts nachziehen.
+Helios **1.5.80** (Build 100). Aegis **2.1.96 alpha** (Build 122). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
 
-## Warum Namen nach 2.1.94 noch sprangen / tot wirkten
+## Warum Namen nach 2.1.95 noch sprangen / tot wirkten
 
-2.1.94 hält Frame-Luma live, Trail je Bin, HOLD roh/smooth im Label. Drei Löcher blieben im Live-Pfad:
+2.1.95 Dropout-Hold je Bin, Overlay roh/smooth, leftoverBaptizeBoth Math. Drei Löcher, plus CI tot:
 
-1. **Dropout leftoverHoldLookup unbinned.** `hash#1` ¾ sitzt, Store-Lookup ohne `bin:` findet ihn nicht. Lookaway/holdPrev nach Dropout frontal leer, ¾ tot.
-2. **Overlay leftoverHoldLabel ohne Trail.** leftoverHold[id] ist EMA. `gehalten 0,64` — Roh 0,80 unsichtbar. leftoverHoldLabel(smooth:) sitzt, drei Overlay-Pfade reichen nur Hold.
-3. **Taufe roh allein.** Overlay zeigt Smooth, leftoverTransfersId tauft 0,82 nach 0,64 mit 3 Trail-Samples. leftoverBaptizeBoth fehlte.
+1. **CI kompiliert nicht.** MatchMathTests: `roi`/`edge`/`anna` redeclare in einer `run()`-Funktion. `leftoverBoxHashBins(1280)` ohne `imageW:`. Tests failen in 8 s, DMG wird nie gebaut.
+2. **leftoverTransfersId tauft auf Roh.** leftoverBaptizeBoth sitzt, Spike-Pfad und Non-Spike ignorieren Smooth. Twin 0,82 nach Hold 0,64 mit 3 Samples stiehlt.
+3. **holdPrev = leftoverHold[id] ?? lookupYaw.** leftoverHoldPrevOf sitzt, Store reicht Frontal-EMA in leftoverPick/TransfersId. ¾ erbt 0,80.
+4. **Lookaway schreibt ¾ in leftoverHold[id].** Unbinned EMA ist Frontal. ¾-Lookup nach Dropout tauft den Twin.
 
-## Was 2.1.95 wirklich ändert
+`bugfix` (2.1.15) hinter main, nichts nachziehen.
 
-1. **`leftoverHoldLookupYaw`.** Dropout/holdPrev immer Yaw-Bin. LibraryStore 4 Pfade.
-2. **`leftoverHoldRawOf` / `leftoverHoldOverlayChip`.** Trail roh, Hold smooth. ContentView Overlay roh/smooth.
-3. **`leftoverBaptizeBoth`.** Math roh UND smooth ≥ 0,80. leftoverTransfersId bleibt Spike-Pfad (3 Samples).
-4. Tests + VERSION = Models = MARKETING_VERSION 2.1.95 (Build 121).
+## Was 2.1.96 wirklich ändert
 
-2.1.94 bleibt: leftoverFrameCapture live, leftoverTrailPut/Lookup(bin:), leftoverHoldLabel(smooth:).
+1. **Tests kompilieren.** Unique-Lets, `leftoverBoxHashBins(imageW:)`.
+2. **leftoverTransfersId leftoverBaptizeBoth.** Non-Spike Smooth. Spike-Trail Mean.
+3. **LibraryStore leftoverHoldPrevOf** für holdPrev/holdNow. leftoverPick `holdPrev` nur leftoverHold[id] — Pick hat holdHash/holdBins.
+4. **Lookaway schreibt leftoverHold[id] nur Bin 0.** leftoverHoldLookupYaw `yawAbs: nil` → nil.
+5. VERSION = Models = MARKETING_VERSION 2.1.96 (Build 122).
 
-Helios 1.5.79: destEdge je Achse, destEdgeApplies, destEdgeFill. Siehe `bpms9cmnxc-debug/Helios`.
+2.1.95 bleibt: leftoverHoldLookupYaw, leftoverHoldRawOf, leftoverBaptizeBoth Math.
+
+Helios 1.5.80: destEdge räumlich, Fill kein zweites destEdge, HUD je Achse, CI jointGain. Siehe `bpms9cmnxc-debug/Helios`.
 
 `bugfix` mergen: nein. Nur `main`.

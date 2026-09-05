@@ -1530,12 +1530,12 @@ enum MatchMathTests {
         ok(!MatchMath.kalmanNmsDrops(iou: 0.80, bestIou: 0.80), "beste Kiste bleibt")
         ok(!MatchMath.kalmanNmsDrops(iou: 0.20, bestIou: 0.80), "fremd kein NMS")
         ok(MatchMath.kalmanNmsKeeps(iou: 0.80, bestIou: 0.80), "Keep beste")
-        let roi = MatchMath.liveRoiBox(
+        let roiPx = MatchMath.liveRoiBox(
             kalman: [(x: 200, y: 150, w: 80, h: 100)],
             imageW: 1280,
             imageH: 720
         )
-        ok(roi != nil && (roi?.w ?? 0) > 80, "Live-ROI um Kalman")
+        ok(roiPx != nil && (roiPx?.w ?? 0) > 80, "Live-ROI um Kalman")
         ok(MatchMath.liveRoiBox(kalman: [], imageW: 1280, imageH: 720) == nil, "ohne Kalman kein ROI")
         let full = MatchMath.liveRoiBox(
             kalman: [(x: 10, y: 10, w: 1260, h: 700)],
@@ -1554,9 +1554,9 @@ enum MatchMathTests {
         ])
         ok(!bank.isEmpty && abs(bank[0] - 1) < 0.001, "Bank ignoriert Gewicht 0")
 
-        ok(MatchMath.leftoverBoxHashBins(1280) == 12, "HD 12 Bins")
-        ok(MatchMath.leftoverBoxHashBins(1920) == 16, "FHD 16 Bins")
-        ok(MatchMath.leftoverBoxHashBins(3840) == 24, "4K 24 Bins")
+        ok(MatchMath.leftoverBoxHashBins(imageW: 1280) == 12, "HD 12 Bins")
+        ok(MatchMath.leftoverBoxHashBins(imageW: 1920) == 16, "FHD 16 Bins")
+        ok(MatchMath.leftoverBoxHashBins(imageW: 3840) == 24, "4K 24 Bins")
         let k4a = FaceBox(x: 1000, y: 400, width: 180, height: 220)
         let k4b = FaceBox(x: 1180, y: 400, width: 180, height: 220)
         ok(
@@ -1652,9 +1652,9 @@ enum MatchMathTests {
                 > MatchMath.centroidWeight(capture: 1, sharpness: 1, frontal: 0.2, yawAbs: 0.45),
             "Centroid Profil weniger Gewicht"
         )
-        let edge = "11.11.3.2"
-        let neigh = MatchMath.leftoverBoxHashNeighbors(edge)
-        ok(neigh.contains("12.11.3.2"), "4K Bin 11 Nachbar 12 nicht geclippt")
+        let hashEdge = "11.11.3.2"
+        let hashNeigh = MatchMath.leftoverBoxHashNeighbors(hashEdge)
+        ok(hashNeigh.contains("12.11.3.2"), "4K Bin 11 Nachbar 12 nicht geclippt")
         ok(MatchMath.leftoverBoxHashNeighbors("5.4.3.2").contains("6.4.3.2"), "HD Nachbar bleibt")
         ok(MatchMath.unknownCentroid(bestCosine: 0.61), "Tag 0,61 unbekannt")
         ok(!MatchMath.unknownCentroid(bestCosine: 0.61, capture: 0.18), "Nacht 0,61 bekannt")
@@ -1789,18 +1789,18 @@ enum MatchMathTests {
         ok(MatchMath.leftoverHoldBin(yawAbs: 0.10) == 0, "frontal Bin")
         ok(MatchMath.leftoverHoldBin(yawAbs: 0.35) == 1, "¾ Bin")
         ok(MatchMath.leftoverHoldBin(yawAbs: 0.50) == 2, "Profil Bin")
-        let anna = UUID(uuidString: "AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA")!
+        let holdAnna = UUID(uuidString: "AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA")!
         ok(MatchMath.leftoverHoldPrevOf(frontal: 0.80, yawAbs: 0.10) == 0.80, "frontal Prev")
         ok(MatchMath.leftoverHoldPrevOf(frontal: 0.80, yawAbs: 0.35) == nil, "¾ erbt nicht Frontal")
-        let binKey = MatchMath.leftoverHoldKey(id: anna, bin: 1)
+        let binKey = MatchMath.leftoverHoldKey(id: holdAnna, bin: 1)
         ok(
-            MatchMath.leftoverHoldPrevOf(frontal: 0.80, yawAbs: 0.35, bins: [binKey: 0.66], id: anna) == 0.66,
+            MatchMath.leftoverHoldPrevOf(frontal: 0.80, yawAbs: 0.35, bins: [binKey: 0.66], id: holdAnna) == 0.66,
             "¾ liest eigenen Bin"
         )
         ok(MatchMath.leftoverHoldBinWriteOk(sharpness: 0.40, yawAbs: 0.35), "¾ schreibt Bin")
         ok(!MatchMath.leftoverHoldBinWriteOk(sharpness: 0.10, yawAbs: 0.10), "Blur kein Bin")
-        ok(MatchMath.leftoverHoldId(from: binKey) == anna, "Key → UUID")
-        let dropped = MatchMath.leftoverHoldBinDrop(bins: [binKey: 0.66], id: anna)
+        ok(MatchMath.leftoverHoldId(from: binKey) == holdAnna, "Key → UUID")
+        let dropped = MatchMath.leftoverHoldBinDrop(bins: [binKey: 0.66], id: holdAnna)
         ok(dropped.isEmpty, "Drop alle Bins der UUID")
         let flashPick = MatchMath.leftoverPick(
             candidates: [(0, 0.50, 0.61)],
@@ -1962,6 +1962,22 @@ enum MatchMathTests {
         ok(MatchMath.leftoverBaptizeBoth(raw: 0.82, smooth: 0.80), "roh+smooth taufen")
         ok(!MatchMath.leftoverBaptizeBoth(raw: 0.82, smooth: 0.64), "Smooth 0,64 keine Taufe")
         ok(MatchMath.leftoverBaptizeBoth(raw: 0.82, smooth: nil), "ohne Smooth roh reicht")
+        ok(
+            MatchMath.leftoverHoldLookupYaw(hash: "1.2.3.4", table: yawTab, now: 10.1, yawAbs: nil) == nil,
+            "ohne Yaw kein Frontal-Guess"
+        )
+        ok(
+            !MatchMath.leftoverTransfersId(cosine: 0.82, holdPrev: 0.64, trail: [0.81, 0.64, 0.82]),
+            "Spike-Trail Mean < 0,80 keine Taufe"
+        )
+        ok(
+            MatchMath.leftoverTransfersId(cosine: 0.82, holdPrev: 0.80),
+            "roh+smooth 0,80 tauft"
+        )
+        ok(
+            !MatchMath.leftoverTransfersId(cosine: 0.82, holdPrev: 0.64),
+            "Smooth 0,64 ohne Trail keine Taufe"
+        )
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

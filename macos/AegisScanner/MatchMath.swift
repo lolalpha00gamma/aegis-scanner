@@ -636,10 +636,12 @@ enum MatchMath {
         if leftoverBaptizeStillBlocks(stillFor: stillFor, cosine: cosine, holdPrev: holdPrev) { return false }
         guard leftoverBaptize(cosine: cosine) else { return false }
         if printMADBlocks(trail) { return false }
+        let trailMean: Double? = trail.isEmpty ? nil : trail.reduce(0, +) / Double(trail.count)
         if leftoverBaptizeSpike(raw: cosine, prev: holdPrev) {
-            return trail.filter { leftoverBaptize(cosine: $0) }.count >= 3
+            let n = trail.filter { leftoverBaptize(cosine: $0) }.count
+            return n >= 3 && leftoverBaptizeBoth(raw: cosine, smooth: trailMean)
         }
-        return true
+        return leftoverBaptizeBoth(raw: cosine, smooth: holdPrev)
     }
 
     static let leftoverBaptizeStillNeed: TimeInterval = 0.45
@@ -3388,6 +3390,7 @@ enum MatchMath {
     }
 
     /// Dropout/holdPrev: immer Yaw-Bin. Unbinned liest ¾-Hash nicht (`hash#1`).
+    /// ohne yawAbs: nicht frontal raten — ¾-Ghost würde Anna erben.
     static func leftoverHoldLookupYaw(
         hash: String,
         table: [String: (cosine: Double, at: TimeInterval)],
@@ -3395,12 +3398,13 @@ enum MatchMath {
         ttl: TimeInterval = leftoverAdoptSec,
         yawAbs: Double?
     ) -> Double? {
-        leftoverHoldLookup(
+        guard let yaw = yawAbs else { return nil }
+        return leftoverHoldLookup(
             hash: hash,
             table: table,
             now: now,
             ttl: ttl,
-            bin: leftoverHoldBin(yawAbs: yawAbs ?? 0)
+            bin: leftoverHoldBin(yawAbs: yaw)
         )
     }
 

@@ -2347,7 +2347,10 @@ final class LibraryStore: ObservableObject {
                         leftoverTried.insert(old.id)
                     }
                     // leftoverHoldSkipLookaway: EMA nicht mit Profil überschreiben. continue hält den Wert.
-                    if leftoverHold[old.id] == nil {
+                    // leftoverHold[id] ist Frontal. ¾-Lookup nicht in die unbinned EMA.
+                    if leftoverHold[old.id] == nil,
+                       MatchMath.leftoverHoldBin(yawAbs: lookYaw ?? abs(old.quality.yaw)) == 0
+                    {
                         leftoverHold[old.id] = MatchMath.leftoverHoldLookupYaw(
                             hash: leftoverLiveHash(
                                 kalmanX: boxKalman[old.id]?.x,
@@ -2372,20 +2375,7 @@ final class LibraryStore: ObservableObject {
                     yawAbs: yawAbs,
                     aspectOk: aspectOk,
                     twinPair: aegisHit?.pairCosine,
-                    holdPrev: leftoverHold[old.id] ?? MatchMath.leftoverHoldLookupYaw(
-                        hash: leftoverLiveHash(
-                            kalmanX: boxKalman[old.id]?.x,
-                            kalmanY: boxKalman[old.id]?.y,
-                            kalmanW: boxKalman[old.id]?.w,
-                            kalmanH: boxKalman[old.id]?.h,
-                            fallback: old.box,
-                            image: image
-                        ),
-                        table: leftoverHoldByHash,
-                        now: now,
-                        ttl: MatchMath.dropoutTTL(dt: liveDt),
-                        yawAbs: lookYaw ?? abs(old.quality.yaw)
-                    ),
+                    holdPrev: leftoverHold[old.id],
                     liveIds: liveIds,
                     leftoverId: old.id,
                     printId: aegisHit?.identityId,
@@ -2467,12 +2457,15 @@ final class LibraryStore: ObservableObject {
                     fallback: old.box,
                     image: image
                 )
-                let holdPrev = leftoverHold[old.id] ?? MatchMath.leftoverHoldLookupYaw(
+                let holdPrev = MatchMath.leftoverHoldPrevOf(
+                    frontal: leftoverHold[old.id],
+                    yawAbs: abs(adopted[bestJ].quality.yaw),
+                    bins: leftoverHoldBins,
+                    id: old.id,
                     hash: holdHash,
-                    table: leftoverHoldByHash,
+                    hashTable: leftoverHoldByHash,
                     now: now,
-                    ttl: MatchMath.dropoutTTL(dt: liveDt),
-                    yawAbs: abs(adopted[bestJ].quality.yaw)
+                    ttl: MatchMath.dropoutTTL(dt: liveDt)
                 )
                 let step = leftoverAdvance(oldId: old.id, box: adopted[bestJ].box, now: now, holdPrev: holdPrev, boxId: adopted[bestJ].id, dt: liveDt)
                 if let label = step.label {
@@ -2538,12 +2531,15 @@ final class LibraryStore: ObservableObject {
                 }
                 leftoverPending.removeValue(forKey: adopted[bestJ].id)
                 let pinCos = remaining.first(where: { $0.index == bestJ })?.cosine ?? item.bestCos
-                let holdNow = leftoverHold[old.id] ?? MatchMath.leftoverHoldLookupYaw(
+                let holdNow = MatchMath.leftoverHoldPrevOf(
+                    frontal: leftoverHold[old.id],
+                    yawAbs: abs(adopted[bestJ].quality.yaw),
+                    bins: leftoverHoldBins,
+                    id: old.id,
                     hash: holdHash,
-                    table: leftoverHoldByHash,
+                    hashTable: leftoverHoldByHash,
                     now: now,
-                    ttl: MatchMath.dropoutTTL(dt: liveDt),
-                    yawAbs: abs(adopted[bestJ].quality.yaw)
+                    ttl: MatchMath.dropoutTTL(dt: liveDt)
                 )
                 let trailNow = leftoverHoldTrail[old.id] ?? MatchMath.leftoverTrailLookup(
                     hash: leftoverLiveHash(
@@ -2585,7 +2581,7 @@ final class LibraryStore: ObservableObject {
                         cosine: pinCos,
                         sharpness: adopted[bestJ].quality.sharpness,
                         yawAbs: abs(adopted[bestJ].quality.yaw),
-                        smooth: leftoverHold[old.id] ?? holdNow
+                        smooth: holdNow
                     )
                         ?? leftoverPending[adopted[bestJ].id]
                     leftoverPins += 1

@@ -1,4 +1,4 @@
-# Aegis **2.1.95 alpha**
+# Aegis **2.1.96 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.96 alpha
+
+2.1.95 leftoverBaptizeBoth Math. leftoverHoldPrevOf tot im Store. CI: redeclare + imageW-Label. Twin 0,82 nach 0,64 stiehlt.
+
+- **`leftoverTransfersId leftoverBaptizeBoth`.** Non-Spike Smooth. Spike-Trail Mean.
+- **LibraryStore leftoverHoldPrevOf** holdPrev/holdNow. leftoverPick holdPrev nur leftoverHold[id].
+- **Lookaway leftoverHold[id] nur Bin 0.** leftoverHoldLookupYaw `yawAbs: nil` → nil.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.96 (Build 122).
 
 ## Neu in 2.1.95 alpha
 

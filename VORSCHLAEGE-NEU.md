@@ -1,6 +1,14 @@
-# Nachtrag 2026-09-05 (2.1.95)
+# Nachtrag 2026-09-05 (2.1.96)
 
-Siehe ANALYSE.md. **2.1.95** schließt Dropout-Hold je Bin, Overlay roh/smooth aus Trail, leftoverBaptizeBoth.
+Siehe ANALYSE.md. **2.1.96** schließt leftoverTransfersId leftoverBaptizeBoth, leftoverHoldPrevOf live, CI-Compile.
+
+## In 2.1.96 gelandet
+
+1. leftoverTransfersId leftoverBaptizeBoth — Non-Spike Smooth, Spike-Trail Mean
+2. LibraryStore leftoverHoldPrevOf holdPrev/holdNow — ¾ erbt nicht Frontal
+3. Lookaway leftoverHold[id] nur Bin 0. leftoverHoldLookupYaw nil yaw → nil
+4. MatchMathTests Unique-Lets + leftoverBoxHashBins(imageW:)
+5. VERSION = Models = MARKETING_VERSION 2.1.96 (Build 122)
 
 ## In 2.1.95 gelandet
 
@@ -96,18 +104,21 @@ Siehe ANALYSE.md. **2.1.95** schließt Dropout-Hold je Bin, Overlay roh/smooth a
 121. **leftoverHold hash# bins in gallery.json** — ¾ nach App-Neustart, TTL 8 s sonst.
 124. **Yaw-binned Print-Bank 5 Slots**, leftoverHold nur frontal, Profil eigener Slot. Hash-Bin ist EMA, nicht Print.
 126. **leftoverHoldTrail[id] je Bin** analog Hash. UUID-Trail mischt Frontal+¾ wenn der Kopf dreht. Overlay-Chip liest UUID-Trail.
-127. **Taufe nur roh UND smooth ≥ 0,80.** leftoverBaptizeBoth sitzt. leftoverTransfersId Spike-3-Samples bleibt Roh. **→ 2.1.95 leftoverBaptizeBoth Math.**
 128. **leftoverTrail Profil-TTL 2 s**, Frontal 8 s. ¾-Ghosts kleben sonst.
 129. **CAP-Chip Frame/Box** `CAP 0,70/0,18` wenn Center Stage springt.
 130. **leftoverFrameCapture in gallery.json** Session über App-Neustart, analog Capture-Hist.
 131. **VoiceOver HOLD roh/smooth** getrennt: „gehalten null acht null, geglättet null sechs vier“.
 132. **leftoverFrameCapture vs FaceEngine lumaStats** ±0,08 — sonst zwei Nacht-Quellen.
-133. **leftoverTransfersId leftoverBaptizeBoth.** Math sitzt, Spike-Pfad nicht umgebaut.
 134. **leftoverHoldChip compact `HOLD 80/64`** neben `gehalten 0,80 / 0,64`.
 135. **leftoverHold pose tuple** leftoverHold[id] = (cosine, bin), nicht nur EMA.
-136. **leftoverHoldLookupYaw ohne yawAbs** default frontal — Dropout ohne Quality.yaw darf ¾ nicht frontal lesen. lookYaw sitzt.
 137. **leftoverHoldBins persist** App-Neustart analog Capture-Hist Schema 5.
 138. **overlayName yawAbs** in leftoverHoldChip — zwei Overlay-Pfade ohne BIN.
+139. **Tests splitted.** Eine `run()`-Funktion, jeder Patch redeclare.
+140. **leftoverHold[id] Overlay ¾** leftoverHoldChip liest unbinned EMA, ¾ unsichtbar nach Dropout.
+- leftoverTransfersId leftoverBaptizeBoth — sitzt.
+- leftoverHoldPrevOf live — sitzt.
+- Lookaway leftoverHold[id] nur frontal — sitzt.
+- leftoverHoldLookupYaw nil yaw — sitzt.
 - leftoverHoldLookupYaw Dropout — sitzt.
 - Overlay roh/smooth aus Trail — sitzt.
 - leftoverBaptizeBoth Math — sitzt.
