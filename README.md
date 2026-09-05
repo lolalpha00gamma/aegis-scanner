@@ -1,4 +1,4 @@
-# Aegis **2.1.105 alpha**
+# Aegis **2.1.106 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -16,7 +16,17 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
 
+## Neu in 2.1.106 alpha
+
+2.1.105 leftoverHoldTrailBins. Hunt Built-in 8 fps, Adopt hart 1,2 s bei 15 fps, Spark flackert, Poster taufen.
+
+- **`leftoverAdoptNeedSec` Lock 0,80 s** bei 15/24 fps (12 Frames). 8 fps bleibt 1,2 s.
+- **`liveMinInterval` Hunt 10 fps.** streak ≥ 1 → Lock. Built-in nicht 8.
+- **`overlayChipPeakHold` 2 Frames.** JPEG-Poster-Veto. Blink 2-Frame Lid-Gap. Thermal 2 s. CS-Reconnect.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.106 (Build 132).
+
 ## Neu in 2.1.105 alpha
+
 
 2.1.104 ¾-Trail Hash-Bin. Spark und HOLD roh in ¾ noch leer/EMA. Taufe ohne Blur/Blink/Profil.
 

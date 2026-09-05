@@ -1,6 +1,15 @@
-# Nachtrag 2026-09-05 (2.1.105)
+# Nachtrag 2026-09-05 (2.1.106)
 
-Siehe ANALYSE.md. **2.1.105** leftoverHoldTrailBins, HOLD/Spark roh je Bin, leftoverBaptizeQuality. 2.1.104: Live 15 fps, leftoverTrailWriteOk ohne Yaw-Block.
+Siehe ANALYSE.md. **2.1.106** leftoverAdopt Lock 0,80 s, Hunt 10 fps, Spark peak-hold, JPEG/Blink, Thermal, CS-Reconnect. 2.1.105: leftoverHoldTrailBins.
+
+## In 2.1.106 gelandet
+
+1. leftoverAdoptNeedSec 15/24 = 0,80 s, 8 fps 1,2 s
+2. liveMinInterval Hunt 10, streak ≥ 1 Lock
+3. overlayChipPeakHold 2 Frames
+4. leftoverBaptizeJpeg + leftoverBlinkLiveness
+5. liveThermalHolds + reconnectCenterStageOff
+6. VERSION = Models = MARKETING_VERSION 2.1.106 (Build 132)
 
 ## In 2.1.105 gelandet
 
@@ -107,24 +116,30 @@ Siehe ANALYSE.md. **2.1.105** leftoverHoldTrailBins, HOLD/Spark roh je Bin, left
 Neu:
 
 - leftoverLastHash je FaceId — sitzt als leftoverHoldTrailBins (2.1.105). Spark/HOLD ohne Box-Hash.
-- ** leftoverAdopt Lock 0,80 s** bei 15 fps (12 Frames) statt hart 1,2 s.
-- ** Hunt 10 fps bis leftoverStreak ≥ 1**, nicht 8 — erste Taufe sonst weiter hungernd.
+- ** leftoverAdopt Lock 0,80 s** — sitzt (2.1.106). 15/24 fps 12 Frames.
+- ** Hunt 10 fps bis leftoverStreak ≥ 1** — sitzt (2.1.106).
 - ** FaceEngine auf outputQueue**, nicht Main. 15 fps auf Main kann UI-Jank.
 - ** RTSP 420f**, Player-Pfad bleibt 32BGRA.
-- ** Shared XPC mit Helios 1.5.89** eine TCC, ein Buffer, dieselbe 0°-Geometrie.
+- ** Shared XPC mit Helios 1.5.90** eine TCC, ein Buffer, dieselbe 0°-Geometrie.
 - ** Overlay VoiceOver HOLD roh/smooth** „gehalten null acht null“.
-- ** JPEG 70 % + Blink 2-Frame** vor leftoverBaptize — leftoverBaptizeQuality sitzt, JPEG-Probe fehlt.
+- ** JPEG 70 % + Blink 2-Frame** — Math sitzt (2.1.106). FaceEngine-Probe (recompress + Lid) fehlt.
 - ** gallery.json Schema 5 Capture-Hist + Hold-Bins** über App-Neustart. leftoverHoldTrailBins stirbt mit dem Prozess.
 - ** Per-Box CLAHE** statt Full-Frame.
 - leftoverScoreTickPut / leftoverLiveNameHolds — Math sitzt (2.1.105). Overlay bleibt liveScoreEMA, Vote bleibt Mehrheit. **3-Tick-AND hinter Pref.**
-- ** liveMinInterval thermal** 8 fps 2 s halten analog Helios, nicht hart Hunt.
-- ** Center Stage nach Continuity-Reconnect** nochmal aus — CS kommt mit dem Gerät zurück.
-- ** leftoverSparkChip peak-hold 2 Frames** sonst 8 fps Overlay flackert.
+- ** liveMinInterval thermal** — sitzt (2.1.106). FaceEngine muss medianFps reichen.
+- ** Center Stage nach Continuity-Reconnect** — sitzt (2.1.106) in setFacesPresent.
+- ** leftoverSparkChip peak-hold 2 Frames** — Math sitzt (2.1.106). LibraryStore mutiert nicht im SwiftUI-Body — verdrahten im Tick.
 - ** FaceEngine capture an leftoverPick** wenn Frame-Luma nil — Indoor 420v sonst Nacht-Softmax.
-- leftoverAdopt bleibt Taufe-Pfad. 1,2 s sitzt. leftoverTransfersId ohne Smooth tauft nicht mehr.
+- leftoverAdopt bleibt Taufe-Pfad. 0,80/1,2 s sitzt (2.1.106). leftoverTransfersId ohne Smooth tauft nicht mehr.
 - VideoStabilization aus — Math fehlt auf macOS.
 - leftoverBaptize Qualitätstor — sitzt (2.1.105).
 - leftoverHoldOverlayChipOf Bin-Trail roh — sitzt (2.1.105).
 - leftoverCosineSparkLabelOf — sitzt (2.1.105).
+- ** leftoverAdoptSecLock Pref 0,6–1,4.**
+- ** Track-ID Hysterese:** IoU-Sprung > 0,4 keine Taufe (Box-Steal).
+- ** Continuity Desk-View yaw-floor 0,36** analog leftoverPrintProfileYaw.
+- ** Per-Bin leftoverAdoptNeedSec** (¾ 1,2 s, frontal 0,80).
+- ** Gallery print decay:** ungenutzte 14-Tage-Prints downweight.
+- ** Overlay Spark peak-hold im Tick verdrahten** — Math sitzt, Body darf nicht mutieren.
 
 Nur main.

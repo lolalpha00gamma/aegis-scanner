@@ -61,6 +61,9 @@ final class LiveCapture: NSObject {
         let changed = on != facesPresent
         facesPresent = on
         tap?.minInterval = MatchMath.liveMinInterval(continuity: isContinuity, faces: on)
+        if changed, isContinuity {
+            applyCenterStage(force: true)
+        }
         if changed, timer != nil {
             startTimer()
         }

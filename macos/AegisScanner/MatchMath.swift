@@ -923,10 +923,16 @@ enum MatchMath {
 
     static func videoRotationAngleFallback() -> CGFloat { 0 }
 
-    /// Hunt 8/10 fps, Lock 12/15. 5 fps ließ leftoverAdopt 1,2 s bei 6 Frames sterben.
-    static func liveMinInterval(continuity: Bool, faces: Bool) -> TimeInterval {
-        if faces { return continuity ? 1.0 / 15.0 : 1.0 / 12.0 }
-        return continuity ? 1.0 / 10.0 : 1.0 / 8.0
+    /// Hunt 10 fps bis leftoverStreak / Face sitzt. Built-in 8 hungerte erste Taufe.
+    /// Lock Continuity 15, Built-in 12. streak ≥ 1 = erste Begegnung, nicht erst facesPresent.
+    static func liveMinInterval(continuity: Bool, faces: Bool, streak: Int = 0) -> TimeInterval {
+        if faces || streak >= 1 { return continuity ? 1.0 / 15.0 : 1.0 / 12.0 }
+        return 1.0 / 10.0
+    }
+
+    /// Analog Helios thermalHoldsFormat. 2 s unter 12 fps Format halten.
+    static func liveThermalHolds(medianFps: Double, slowFor: TimeInterval, need: TimeInterval = 2.0) -> Bool {
+        medianFps > 0 && medianFps < 12 && slowFor >= need
     }
 
     /// Portrait-Buffer → .right (6), sonst .up (1). Kein Coordinator.
@@ -1098,6 +1104,30 @@ enum MatchMath {
         let tail = Array(hist.suffix(need))
         guard Set(tail).count == 1, let name = tail.last, !name.isEmpty else { return nil }
         return name
+    }
+
+    /// 8 fps Overlay flackert Spark. 2 Extra-Frames peak-hold.
+    static func overlayChipPeakHold(current: String?, held: String?, remaining: Int, need: Int = 2) -> (chip: String?, remaining: Int) {
+        if let c = current, !c.isEmpty { return (c, need) }
+        if remaining > 0, let h = held, !h.isEmpty { return (h, remaining - 1) }
+        return (nil, 0)
+    }
+
+    /// JPEG 70 % Probe: Cosine-Drop > 0,06 = Poster, keine Taufe.
+    static func leftoverBaptizeJpeg(delta: Double, maxDelta: Double = 0.06) -> Bool {
+        delta <= maxDelta
+    }
+
+    /// Lid-Gap 2 Frames offen vor Taufe. Poster/Foto blinzelt nicht.
+    static func leftoverBlinkLiveness(open: Bool, openStreak: Int, need: Int = 2) -> (ok: Bool, streak: Int) {
+        if !open { return (false, 0) }
+        let n = openStreak + 1
+        return (n >= need, n)
+    }
+
+    /// Continuity-Reconnect schaltet Center Stage wieder an.
+    static func reconnectCenterStageOff(continuity: Bool, enabled: Bool) -> Bool {
+        continuity && centerStageNeedsReassert(enabled: enabled)
     }
 
     static func leftoverLiveWeight(sharpness: Double?, frontal: Double?, yawAbs: Double?) -> Double {
@@ -1762,6 +1792,8 @@ enum MatchMath {
     static let leftoverAdoptFrames = 3
     static let leftoverAdoptSec: TimeInterval = 1.20
     static let leftoverAdoptCap = 80
+    /// 15/24 fps Lock 0,80 s = 12 Frames bei 15 fps. Hart 1,2 s hungerte Taufe.
+    static let leftoverAdoptSecLock: TimeInterval = 0.80
     /// 8 fps: 1,2 s = 9 Frames, Walker fällt durch. 1,6 s hält den Ghost.
     static let leftoverAdoptSecSlow: TimeInterval = 1.60
     /// Continuity-AE oft 2–3 s. 1,6 s Ghost = Gast n+1. Latch wie Helios 4 s.
@@ -1782,10 +1814,10 @@ enum MatchMath {
         return max(leftoverAdoptFrames, min(leftoverAdoptCap, frames))
     }
 
-    /// 8 fps: 1,2 s ist 10 Frames — Walker fällt durch. Nicht halb analog Pinch.
+    /// 8 fps: 1,2 s ist 10 Frames — Walker fällt durch. 15/24 fps Lock 0,80 s (12 Frames bei 15).
     static func leftoverAdoptNeedSec(dt: TimeInterval) -> TimeInterval {
-        _ = dt
-        return leftoverAdoptSec
+        if dt <= 0 || dt >= 0.08 { return leftoverAdoptSec }
+        return leftoverAdoptSecLock
     }
 
     static func leftoverAdoptReady(streak: Int, need: Int) -> Bool {
