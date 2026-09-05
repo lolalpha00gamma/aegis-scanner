@@ -1,4 +1,28 @@
-# Helios + Aegis — Analyse 2026-09-05 (2.1.114)
+# Helios + Aegis — Analyse 2026-09-05 (2.1.115)
+
+Helios **1.5.99** (Build 119). Aegis **2.1.115 alpha** (Build 141). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.114: Audit-Fixes, leftoverTrailPut nil-Bin. leftoverHoldPut und leftoverTrailPut prune Default 1,2 s. Transfers-Prune ohne ttl. Median-Hop 8→24 wischt Indoor-Latch.
+
+## 2.1.114 → 2.1.115 (warum Namen indoor nach 1,2 s noch sprangen)
+
+1. **`leftoverHoldPut` prune Default 1,2 s.** Jede Taufe wischt Holds älter als 1,2 s, obwohl dropoutTTL 8 fps = 4 s.
+2. **Transfers-Prune ohne ttl.** 1,2 s nochmal nach leftoverTransfersId.
+3. **`leftoverTrailPut` prune Default 1,2 s.** Spark-Trail indoor tot.
+4. **Median-Hop 8→24.** liveDt 8 Samples unter 0,08 → TTL 1,2 s. Holds von vor 2 s tot, Licht an = Gast n+1.
+
+## Was 2.1.115 ändert
+
+1. **`leftoverHoldPut` / leftoverTrailPut `ttl:` leftoverHoldTTL.** Indoor 4 s. Key-Logik 2.1.114 (nil-Bin unbinned) bleibt.
+2. **Transfers-Prune leftoverHoldTTL.** Nicht leftoverAdoptSec.
+3. **`dropoutTTLSticky` / dropoutSeenSlow.** 8 Samples Slow → Latch 4 s bleibt nach Hop. Fallback 0,125 kein Sticky.
+4. Tests + VERSION = Models = MARKETING_VERSION 2.1.115 (Build 141).
+
+Helios 1.5.99: Vel-TTL 0,40 s, JUMP, Fill lastMapped2. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
+
 
 Helios **1.5.98** (Build 118). Aegis **2.1.114 alpha** (Build 140). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
 

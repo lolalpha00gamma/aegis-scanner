@@ -113,6 +113,10 @@ final class LibraryStore: ObservableObject {
     private var leftoverHoldTrailByHash: [String: (samples: [Double], at: TimeInterval)] = [:]
     private var leftoverHashNeedsRebase = false
     private var leftoverHashRebasedTick = false
+    private var leftoverHoldSeenSlow = false
+    private var leftoverHoldTTL: TimeInterval {
+        MatchMath.dropoutTTLSticky(dt: liveDt, seenSlow: leftoverHoldSeenSlow)
+    }
     private var leftoverLastHash: [UUID: String] = [:]
     private var leftoverCaptureHistByHash: [String: [Double]] = [:]
     private var leftoverLastIoU: [UUID: Double] = [:]
@@ -247,6 +251,7 @@ final class LibraryStore: ObservableObject {
         liveLastStamp = 0
         liveDt = 0.125
         liveDtSamples = []
+        leftoverHoldSeenSlow = false
         liveNameVoteAt = [:]
         tapNameLockUntil = [:]
         liveFaceStreak = 0
@@ -1280,7 +1285,7 @@ final class LibraryStore: ObservableObject {
                     hash: $0,
                     table: leftoverHoldTrailByHash,
                     now: liveLastStamp,
-                    ttl: MatchMath.dropoutTTL(dt: liveDt),
+                    ttl: leftoverHoldTTL,
                     bin: bin
                 )
             } ?? []
@@ -1527,6 +1532,7 @@ final class LibraryStore: ObservableObject {
         liveLastStamp = 0
         liveDt = 0.125
         liveDtSamples = []
+        leftoverHoldSeenSlow = false
         liveNameVoteAt = [:]
         tapNameLockUntil = [:]
         liveFaceStreak = 0
@@ -1878,6 +1884,11 @@ final class LibraryStore: ObservableObject {
             }
             liveDt = MatchMath.medianLiveDt(liveDtSamples, fallback: liveDt)
         }
+        leftoverHoldSeenSlow = MatchMath.dropoutSeenSlow(
+            dt: liveDt,
+            samples: liveDtSamples.count,
+            prev: leftoverHoldSeenSlow
+        )
         liveLastStamp = now
         let liveFrameCapture = MatchMath.leftoverPickLuma(
             frame: MatchMath.leftoverFrameCapture(image),
@@ -2368,7 +2379,7 @@ final class LibraryStore: ObservableObject {
         let dropped = Set(MatchMath.leftoverDropped(previous: previous.map(\.id), used: used))
         for old in previous where dropped.contains(old.id) {
             liveGhosts.removeAll { $0.face.id == old.id }
-            liveGhosts.append((old, now + MatchMath.liveGhostHold(dt: liveDt)))
+            liveGhosts.append((old, now + leftoverHoldTTL))
         }
         let ghostIds = liveGhosts.map(\.face.id)
         let liveIds = Array(used)
@@ -2404,13 +2415,13 @@ final class LibraryStore: ObservableObject {
         leftoverHoldByHash = MatchMath.leftoverHoldPrune(
             leftoverHoldByHash,
             now: now,
-            ttl: MatchMath.dropoutTTL(dt: liveDt),
+            ttl: leftoverHoldTTL,
             skip: MatchMath.leftoverHoldPruneSkips(rebased: leftoverHashRebasedTick)
         )
         leftoverHoldTrailByHash = MatchMath.leftoverTrailPrune(
             leftoverHoldTrailByHash,
             now: now,
-            ttl: MatchMath.dropoutTTL(dt: liveDt),
+            ttl: leftoverHoldTTL,
             skip: MatchMath.leftoverHoldPruneSkips(rebased: leftoverHashRebasedTick)
         )
         if let line = MatchMath.leftoverHoldPruneLine(
@@ -2590,7 +2601,7 @@ final class LibraryStore: ObservableObject {
                             ),
                             table: leftoverHoldByHash,
                             now: now,
-                            ttl: MatchMath.dropoutTTL(dt: liveDt),
+                            ttl: leftoverHoldTTL,
                             yawAbs: lookYaw ?? abs(old.quality.yaw)
                         )
                     }
@@ -2636,7 +2647,7 @@ final class LibraryStore: ObservableObject {
                     ),
                     holdHashTable: leftoverHoldByHash,
                     holdAt: now,
-                    holdTTL: MatchMath.dropoutTTL(dt: liveDt),
+                    holdTTL: leftoverHoldTTL,
                     frameCapture: liveFrameCapture
                 ) else {
                     let twin = aegisHit?.pairCosine
@@ -2693,7 +2704,7 @@ final class LibraryStore: ObservableObject {
                     hash: holdHash,
                     hashTable: leftoverHoldByHash,
                     now: now,
-                    ttl: MatchMath.dropoutTTL(dt: liveDt)
+                    ttl: leftoverHoldTTL
                 )
                 let step = leftoverAdvance(oldId: old.id, box: adopted[bestJ].box, now: now, holdPrev: holdPrev, boxId: adopted[bestJ].id, dt: liveDt, yawAbs: abs(adopted[bestJ].quality.yaw))
                 if let label = step.label {
@@ -2724,7 +2735,7 @@ final class LibraryStore: ObservableObject {
                             hash: boxHash,
                             table: leftoverHoldTrailByHash,
                             now: now,
-                            ttl: MatchMath.dropoutTTL(dt: liveDt),
+                            ttl: leftoverHoldTTL,
                             bin: bin
                         ),
                         yawAbs: yawNow
@@ -2740,7 +2751,8 @@ final class LibraryStore: ObservableObject {
                             now: now,
                             sharpness: adopted[bestJ].quality.sharpness,
                             yawAbs: yawNow,
-                            bin: bin
+                            bin: bin,
+                            ttl: leftoverHoldTTL
                         )
                         if bin == 0 {
                             trail = MatchMath.leftoverCosineSparkPut(cos, onto: trail)
@@ -2754,7 +2766,7 @@ final class LibraryStore: ObservableObject {
                                 hash: boxHash,
                                 table: leftoverHoldTrailByHash,
                                 now: now,
-                                ttl: MatchMath.dropoutTTL(dt: liveDt),
+                                ttl: leftoverHoldTTL,
                                 bin: bin
                             )
                         }
@@ -2794,7 +2806,7 @@ final class LibraryStore: ObservableObject {
                     hash: holdHash,
                     hashTable: leftoverHoldByHash,
                     now: now,
-                    ttl: MatchMath.dropoutTTL(dt: liveDt)
+                    ttl: leftoverHoldTTL
                 )
                 let trailNow = MatchMath.leftoverTrailNowOf(
                     idTrail: leftoverHoldTrail[old.id] ?? [],
@@ -2809,7 +2821,7 @@ final class LibraryStore: ObservableObject {
                         ),
                         table: leftoverHoldTrailByHash,
                         now: now,
-                        ttl: MatchMath.dropoutTTL(dt: liveDt),
+                        ttl: leftoverHoldTTL,
                         bin: MatchMath.leftoverHoldBin(yawAbs: abs(adopted[bestJ].quality.yaw))
                     ),
                     yawAbs: abs(adopted[bestJ].quality.yaw)
@@ -2900,7 +2912,8 @@ final class LibraryStore: ObservableObject {
                             cosine: cos,
                             onto: leftoverHoldByHash,
                             now: now,
-                            bin: MatchMath.leftoverHoldBin(yawAbs: abs(adopted[bestJ].quality.yaw))
+                            bin: MatchMath.leftoverHoldBin(yawAbs: abs(adopted[bestJ].quality.yaw)),
+                            ttl: leftoverHoldTTL
                         )
                         leftoverHold[old.id] = MatchMath.leftoverHoldEMA(
                             prev: leftoverHold[old.id] ?? holdNow,
@@ -2947,7 +2960,8 @@ final class LibraryStore: ObservableObject {
                             cosine: cos,
                             onto: leftoverHoldByHash,
                             now: now,
-                            bin: MatchMath.leftoverHoldBin(yawAbs: abs(adopted[bestJ].quality.yaw))
+                            bin: MatchMath.leftoverHoldBin(yawAbs: abs(adopted[bestJ].quality.yaw)),
+                            ttl: leftoverHoldTTL
                         )
                     }
                     continue
@@ -3002,7 +3016,8 @@ final class LibraryStore: ObservableObject {
                             cosine: cos,
                             onto: leftoverHoldByHash,
                             now: now,
-                            bin: MatchMath.leftoverHoldBin(yawAbs: abs(adopted[bestJ].quality.yaw))
+                            bin: MatchMath.leftoverHoldBin(yawAbs: abs(adopted[bestJ].quality.yaw)),
+                            ttl: leftoverHoldTTL
                         )
                     }
                     if MatchMath.leftoverWipeHist(cosine: cos) {
@@ -3043,7 +3058,8 @@ final class LibraryStore: ObservableObject {
                                 cosine: cos,
                                 onto: leftoverHoldByHash,
                                 now: now,
-                                bin: MatchMath.leftoverHoldBin(yawAbs: abs(adopted[bestJ].quality.yaw))
+                                bin: MatchMath.leftoverHoldBin(yawAbs: abs(adopted[bestJ].quality.yaw)),
+                                ttl: leftoverHoldTTL
                             )
                         }
                         leftoverWipeUntil[adopted[bestJ].id] = MatchMath.leftoverWipeMuteUntil(now: now)
@@ -3070,11 +3086,13 @@ final class LibraryStore: ObservableObject {
             leftoverHoldByHash = MatchMath.leftoverHoldPrune(
                 leftoverHoldByHash,
                 now: now,
+                ttl: leftoverHoldTTL,
                 skip: MatchMath.leftoverHoldPruneSkips(rebased: leftoverHashRebasedTick)
             )
             leftoverHoldTrailByHash = MatchMath.leftoverTrailPrune(
                 leftoverHoldTrailByHash,
                 now: now,
+                ttl: leftoverHoldTTL,
                 skip: MatchMath.leftoverHoldPruneSkips(rebased: leftoverHashRebasedTick)
             )
             leftoverHashRebasedTick = false

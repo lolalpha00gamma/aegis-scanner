@@ -1,3 +1,48 @@
+# Nachtrag 2026-09-05 (2.1.115)
+
+Siehe ANALYSE.md. **2.1.115** leftoverHoldPut Indoor-TTL 4 s, Transfers-Prune leftoverHoldTTL, Sticky nach fps-Hop.
+
+## In 2.1.115 gelandet
+
+1. leftoverHoldPut / leftoverTrailPut ttl = leftoverHoldTTL
+2. Transfers-Prune leftoverHoldTTL, nicht 1,2 s
+3. dropoutTTLSticky / dropoutSeenSlow — Hop 8→24 hält 4 s
+4. VERSION = Models = MARKETING_VERSION 2.1.115 (Build 141)
+
+## Nächste, zusätzlich
+
+- leftoverAdoptSecLock Pref 0,6–1,4.
+- Twin-name lock 1,2 s nach JUMP. Chip sitzt.
+- FaceEngine jpegProbe detached queue. Cache sitzt, Detect hoppt noch nach Main.
+- PhotoKit Live Photos Frame 0, nicht Poster.
+- printRevision je Identity.
+- gallery.json.bak rotate 3.
+- VNDetectFaceRectangles revision pin.
+- leftoverHashHold VoiceOver.
+- Schema 5 UUID-Bins nach Schema 6 behalten (kein Wipe).
+- Helios Frame-Pump, eine TCC. Shared XPC mit Helios 1.5.99.
+- Overlay VoiceOver HOLD/Spark/HASH.
+- Per-Box CLAHE statt Full-Frame.
+- Continuity Desk-View yaw-floor 0,36.
+- Gallery print decay: ungenutzte 14-Tage-Prints downweight.
+- Partial-Print P-Slot ohne Augen (Schal/Maske).
+- Burst-AE 5-Frame Pref Continuity-Nacht.
+- Print-Bank 5 Pose-Slots front/left/right/up/down.
+- DBSCAN vor Merge.
+- Watch-Folder PhotoKit.
+- Encrypted gallery export `.aegis`.
+- Iris-Textur-Slot als Twin-Veto.
+- Specular-Highlight auf Stirn als Card-Photo-Veto.
+- Continuity LiDAR-Z als Twin-Trennung.
+- Masken-/Schal-Slot. Brille-Slot.
+- Tests splitted.
+- leftoverHold ttl Pref 1,2–4,0 statt nur Takt.
+- Merge-Undo Stack 8.
+- IdentityDesk 9-Tuple → GalleryPayload direkt.
+- **Per-Hold TTL in Schema 7.** `at` + `ttl` je Zeile, nicht Session-Sticky.
+- **Hamming-2 Neighbor-Veto** wenn zwei Gesichter live — Twin stiehlt Hash-Nachbar.
+- **dropoutSeenSlow Reset** nach 8 s nur-24-fps, nicht Session-ewig.
+
 # Nachtrag 2026-09-05 (2.1.114)
 
 Siehe ANALYSE.md. **2.1.114** Audit-Fixes: Live-Uhr, 2-opt, CI DMG/Entitlements, Resume-Sandbox, TAR, RTSP, Center Stage.

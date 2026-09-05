@@ -1,4 +1,4 @@
-# Aegis **2.1.114 alpha**
+# Aegis **2.1.115 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.115 alpha
+
+Indoor 8 fps Latch 4 s starb: leftoverHoldPut prune Default 1,2 s, Transfers-Prune ohne ttl, Median-Hop 8→24.
+
+- **leftoverHoldPut / leftoverTrailPut `ttl:` leftoverHoldTTL.** Indoor 4 s.
+- **Transfers-Prune leftoverHoldTTL.** Nicht leftoverAdoptSec.
+- **`dropoutTTLSticky`.** 8 Samples Slow → Latch bleibt nach Licht-an.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.115 (Build 141).
 
 ## Neu in 2.1.114 alpha
 

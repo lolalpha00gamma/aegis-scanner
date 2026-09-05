@@ -2014,6 +2014,18 @@ enum MatchMath {
         dt >= 0.08 ? leftoverLatch : leftoverAdoptSec
     }
 
+    /// Fallback liveDt 0,125 darf nicht sticky machen. Erst 8 Samples.
+    static func dropoutSeenSlow(dt: TimeInterval, samples: Int, prev: Bool = false) -> Bool {
+        if prev { return true }
+        guard samples >= 8 else { return false }
+        return dt >= 0.08
+    }
+
+    /// Median-Hop 8→24: Latch nicht auf 1,2 s. Indoor-Holds sonst tot.
+    static func dropoutTTLSticky(dt: TimeInterval, seenSlow: Bool) -> TimeInterval {
+        seenSlow ? leftoverLatch : dropoutTTL(dt: dt)
+    }
+
     static func liveGhostHold(dt: TimeInterval = 0.016) -> TimeInterval {
         dropoutTTL(dt: dt)
     }
@@ -3780,9 +3792,10 @@ enum MatchMath {
         cap: Int = 8,
         sharpness: Double? = nil,
         yawAbs: Double? = nil,
-        bin: Int? = nil
+        bin: Int? = nil,
+        ttl: TimeInterval = leftoverAdoptSec
     ) -> [String: (samples: [Double], at: TimeInterval)] {
-        var next = leftoverTrailPrune(table, now: now)
+        var next = leftoverTrailPrune(table, now: now, ttl: ttl)
         if !leftoverTrailWriteOk(sharpness: sharpness, yawAbs: yawAbs) { return next }
         let key = bin.map { leftoverHoldHashKey(hash: hash, bin: $0) } ?? hash
         let row = leftoverCosineSparkPut(sample, onto: next[key]?.samples ?? [], cap: cap)
@@ -3924,9 +3937,10 @@ enum MatchMath {
         cosine: Double,
         onto table: [String: (cosine: Double, at: TimeInterval)],
         now: TimeInterval,
-        bin: Int = 0
+        bin: Int = 0,
+        ttl: TimeInterval = leftoverAdoptSec
     ) -> [String: (cosine: Double, at: TimeInterval)] {
-        var next = leftoverHoldPrune(table, now: now)
+        var next = leftoverHoldPrune(table, now: now, ttl: ttl)
         guard leftoverHashHoldKeeps(cosine) else { return leftoverHashHoldCapped(next) }
         next[leftoverHoldHashKey(hash: hash, bin: bin)] = (cosine, now)
         return leftoverHashHoldCapped(next)
