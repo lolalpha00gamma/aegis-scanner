@@ -1,24 +1,24 @@
-# Helios + Aegis — Analyse 2026-09-05 (2.1.94)
+# Helios + Aegis — Analyse 2026-09-05 (2.1.95)
 
-Helios **1.5.78** (Build 98). Aegis **2.1.94 alpha** (Build 120). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`. `bugfix` hinter main, nichts nachziehen.
+Helios **1.5.79** (Build 99). Aegis **2.1.95 alpha** (Build 121). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`. `bugfix` hinter main, nichts nachziehen.
 
-## Warum Namen nach 2.1.93 noch sprangen / tot wirkten
+## Warum Namen nach 2.1.94 noch sprangen / tot wirkten
 
-2.1.93 hält Capture-Hist je Box, CAP-Chip, Score-Softmax, HUD BIN. Drei Löcher blieben im Live-Pfad:
+2.1.94 hält Frame-Luma live, Trail je Bin, HOLD roh/smooth im Label. Drei Löcher blieben im Live-Pfad:
 
-1. **`frameCapture` default nil.** leftoverSessionCapturePrefersFrame tot. Center Stage Box 0,18 senkt Floor. Math sitzt, Store reicht Box.
-2. **Trail-Nachbarn unbinned.** Frontal 0,80 füttert ¾ über Spatial-Nachbar. leftoverHoldLookup(bin:) sitzt, Trail analog fehlte.
-3. **HOLD eine Zahl.** Overlay `gehalten 0,80` — Smooth-Taufe 0,64 unsichtbar.
+1. **Dropout leftoverHoldLookup unbinned.** `hash#1` ¾ sitzt, Store-Lookup ohne `bin:` findet ihn nicht. Lookaway/holdPrev nach Dropout frontal leer, ¾ tot.
+2. **Overlay leftoverHoldLabel ohne Trail.** leftoverHold[id] ist EMA. `gehalten 0,64` — Roh 0,80 unsichtbar. leftoverHoldLabel(smooth:) sitzt, drei Overlay-Pfade reichen nur Hold.
+3. **Taufe roh allein.** Overlay zeigt Smooth, leftoverTransfersId tauft 0,82 nach 0,64 mit 3 Trail-Samples. leftoverBaptizeBoth fehlte.
 
-## Was 2.1.94 wirklich ändert
+## Was 2.1.95 wirklich ändert
 
-1. **`leftoverFrameCapture` / `leftoverFrameCaptureByte`.** 8×8 Buffer. leftoverPick `frameCapture:` live.
-2. **`leftoverTrailPut(bin:)` / `leftoverTrailLookup(bin:)`.** Gleicher Yaw-Bin, Spatial-Nachbar frontal füttert ¾ nicht.
-3. **`leftoverHoldLabel(smooth:)`.** `gehalten 0,80 / 0,64`. Overlay roh/smooth.
-4. Tests + VERSION = Models = MARKETING_VERSION 2.1.94 (Build 120).
+1. **`leftoverHoldLookupYaw`.** Dropout/holdPrev immer Yaw-Bin. LibraryStore 4 Pfade.
+2. **`leftoverHoldRawOf` / `leftoverHoldOverlayChip`.** Trail roh, Hold smooth. ContentView Overlay roh/smooth.
+3. **`leftoverBaptizeBoth`.** Math roh UND smooth ≥ 0,80. leftoverTransfersId bleibt Spike-Pfad (3 Samples).
+4. Tests + VERSION = Models = MARKETING_VERSION 2.1.95 (Build 121).
 
-2.1.93 bleibt: leftoverCaptureHistOf, leftoverCaptureChip, leftoverScoreHeat/Softmax, leftoverHoldLabel yawAbs.
+2.1.94 bleibt: leftoverFrameCapture live, leftoverTrailPut/Lookup(bin:), leftoverHoldLabel(smooth:).
 
-Helios 1.5.78: HOLD je Achse, destEdge radial + 8 fps Gain, Coast τ Diagonale, Warp Relock 3 Frames. Siehe `bpms9cmnxc-debug/Helios`.
+Helios 1.5.79: destEdge je Achse, destEdgeApplies, destEdgeFill. Siehe `bpms9cmnxc-debug/Helios`.
 
 `bugfix` mergen: nein. Nur `main`.

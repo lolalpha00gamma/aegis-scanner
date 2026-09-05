@@ -1,6 +1,13 @@
-# Nachtrag 2026-09-05 (2.1.94)
+# Nachtrag 2026-09-05 (2.1.95)
 
-Siehe ANALYSE.md. **2.1.94** schließt Frame-Luma live, Trail je Bin, HOLD roh/smooth.
+Siehe ANALYSE.md. **2.1.95** schließt Dropout-Hold je Bin, Overlay roh/smooth aus Trail, leftoverBaptizeBoth.
+
+## In 2.1.95 gelandet
+
+1. leftoverHoldLookupYaw — Dropout/holdPrev immer Yaw-Bin
+2. leftoverHoldRawOf / leftoverHoldOverlayChip — Trail roh, Hold smooth
+3. leftoverBaptizeBoth — roh UND smooth ≥ 0,80 (Math; TransfersId Spike-Pfad bleibt)
+4. VERSION = Models = MARKETING_VERSION 2.1.95 (Build 121)
 
 ## In 2.1.94 gelandet
 
@@ -15,34 +22,6 @@ Siehe ANALYSE.md. **2.1.94** schließt Frame-Luma live, Trail je Bin, HOLD roh/s
 2. leftoverCaptureChip + leftoverHoldLabel yawAbs im Overlay
 3. leftoverScoreHeat Temp 16 + leftoverScoreSoftmax Floor 0,55
 4. VERSION = Models = MARKETING_VERSION 2.1.93 (Build 119)
-
-## In 2.1.92 gelandet
-
-1. leftoverHoldHashKey / leftoverHoldPut(bin:) / leftoverHoldLookup(bin:)
-2. leftoverHoldPrevOf hash — Dropout ¾ liest Hash-Bin
-3. leftoverPick holdHash + holdHashTable + frameCapture
-4. leftoverSessionCapturePrefersFrame — Center Stage Box tot
-5. leftoverHoldBinChip / leftoverHoldLabel yawAbs
-6. LibraryStore BinWriteOk schreibt Hash
-7. VERSION = Models = MARKETING_VERSION 2.1.92 (Build 118)
-
-## In 2.1.91 gelandet
-
-1. leftoverHoldKey / leftoverHoldPrevOf — ¾ kein Frontal-Smooth
-2. leftoverHoldBins im LibraryStore — Put / Survive / Drop
-3. leftoverPick(captureHist:holdBins:) — liveCaptureHist, Flash-Median
-4. leftoverHoldBinWriteOk — ¾ schreibt Bin, leftoverHold[id] bleibt frontal
-5. leftoverCaptureHistPut
-6. VERSION = Models = MARKETING_VERSION 2.1.91 (Build 117)
-
-## In 2.1.90 gelandet
-
-1. leftoverHoldSmooth(captureJump) — Pick-Pfad AE träge
-2. leftoverScore(twinPair) — Same-Shot zieht Score
-3. leftoverCentroidOk — Galerie nur scharf+frontal
-4. leftoverSessionCaptureMedian / Box(hist)
-5. leftoverHoldBin 0/1/2
-6. VERSION = Models = MARKETING_VERSION 2.1.90 (Build 116)
 
 ## Offen (nicht Pflaster)
 
@@ -114,19 +93,24 @@ Siehe ANALYSE.md. **2.1.94** schließt Frame-Luma live, Trail je Bin, HOLD roh/s
 115. **Blink 2-Frame Lid-Gap** vor Taufe — Poster.
 116. **JPEG 70 % Probe** vor leftoverBaptize.
 119. **Capture-Hist 8 in gallery.json** Schema 5, Session über App-Neustart.
-120. **FaceEngine Frame-Histogram** in leftoverPick `frameCapture`. Math sitzt, Store reicht noch Box. **→ 2.1.94 leftoverFrameCapture live.**
 121. **leftoverHold hash# bins in gallery.json** — ¾ nach App-Neustart, TTL 8 s sonst.
-122. **Overlay HOLD roh/smooth** zwei Zahlen, Smooth-Taufe sichtbar. **→ 2.1.94 leftoverHoldLabel(smooth:).**
-123. **Hash-Nachbar nur gleicher Bin.** Spatial-Nachbar frontal darf ¾ nicht füttern — Lookup sitzt, Trail analog. **→ 2.1.94 leftoverTrailPut/Lookup(bin:).**
 124. **Yaw-binned Print-Bank 5 Slots**, leftoverHold nur frontal, Profil eigener Slot. Hash-Bin ist EMA, nicht Print.
-125. **Session-Luma aus dem ganzen Buffer**, nicht Box. Center Stage täuscht Box — prefersFrame sitzt, Quelle fehlt. **→ 2.1.94 leftoverFrameCapture.**
-126. **leftoverHoldTrail[id] je Bin** analog Hash. UUID-Trail mischt Frontal+¾ wenn der Kopf dreht.
-127. **Taufe nur roh UND smooth ≥ 0,80.** Overlay zeigt beide, Pick tauft noch auf Roh.
+126. **leftoverHoldTrail[id] je Bin** analog Hash. UUID-Trail mischt Frontal+¾ wenn der Kopf dreht. Overlay-Chip liest UUID-Trail.
+127. **Taufe nur roh UND smooth ≥ 0,80.** leftoverBaptizeBoth sitzt. leftoverTransfersId Spike-3-Samples bleibt Roh. **→ 2.1.95 leftoverBaptizeBoth Math.**
 128. **leftoverTrail Profil-TTL 2 s**, Frontal 8 s. ¾-Ghosts kleben sonst.
 129. **CAP-Chip Frame/Box** `CAP 0,70/0,18` wenn Center Stage springt.
 130. **leftoverFrameCapture in gallery.json** Session über App-Neustart, analog Capture-Hist.
 131. **VoiceOver HOLD roh/smooth** getrennt: „gehalten null acht null, geglättet null sechs vier“.
 132. **leftoverFrameCapture vs FaceEngine lumaStats** ±0,08 — sonst zwei Nacht-Quellen.
+133. **leftoverTransfersId leftoverBaptizeBoth.** Math sitzt, Spike-Pfad nicht umgebaut.
+134. **leftoverHoldChip compact `HOLD 80/64`** neben `gehalten 0,80 / 0,64`.
+135. **leftoverHold pose tuple** leftoverHold[id] = (cosine, bin), nicht nur EMA.
+136. **leftoverHoldLookupYaw ohne yawAbs** default frontal — Dropout ohne Quality.yaw darf ¾ nicht frontal lesen. lookYaw sitzt.
+137. **leftoverHoldBins persist** App-Neustart analog Capture-Hist Schema 5.
+138. **overlayName yawAbs** in leftoverHoldChip — zwei Overlay-Pfade ohne BIN.
+- leftoverHoldLookupYaw Dropout — sitzt.
+- Overlay roh/smooth aus Trail — sitzt.
+- leftoverBaptizeBoth Math — sitzt.
 - Pick-EMA AE — sitzt.
 - Twin-Score — sitzt.
 - Galerie frontal — sitzt.
@@ -141,6 +125,6 @@ Siehe ANALYSE.md. **2.1.94** schließt Frame-Luma live, Trail je Bin, HOLD roh/s
 - Overlay BIN — sitzt.
 - Frame-Luma live — sitzt.
 - Trail je Bin — sitzt.
-- HOLD roh/smooth — sitzt.
+- HOLD roh/smooth Label — sitzt.
 
 Nur main.

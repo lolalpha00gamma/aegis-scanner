@@ -579,9 +579,34 @@ enum MatchMath {
         return hold
     }
 
+    /// Trail-letzter Cosine ist roh, leftoverHold[id] EMA. Overlay sonst nur Smooth.
+    static func leftoverHoldRawOf(trail: [Double], hold: Double?) -> Double? {
+        trail.last ?? hold
+    }
+
+    /// Overlay roh/smooth. leftoverHoldLabel(smooth:) sitzt, Store reicht oft nur EMA.
+    static func leftoverHoldOverlayChip(
+        hold: Double?,
+        trail: [Double] = [],
+        yawAbs: Double? = nil,
+        sharpness: Double? = nil
+    ) -> String? {
+        leftoverHoldLabel(
+            cosine: leftoverHoldRawOf(trail: trail, hold: hold),
+            sharpness: sharpness,
+            yawAbs: yawAbs,
+            smooth: hold
+        )
+    }
+
     /// Overlay darf den Track halten. Taufe erst ab Pin-Print 0,80 — sonst erbt der Nachbar den Namen.
     static func leftoverBaptize(cosine: Double?) -> Bool {
         pinByPrint(cosine: cosine ?? -1)
+    }
+
+    /// Taufe roh UND smooth ≥ 0,80. Overlay zeigt beide, Pick tauft noch auf Roh.
+    static func leftoverBaptizeBoth(raw: Double?, smooth: Double?) -> Bool {
+        leftoverBaptize(cosine: raw) && leftoverBaptize(cosine: smooth ?? raw)
     }
 
     /// Twin 0,80 nach Hold 0,64: Spike, kein Steal. 0,80 nach 0,80 bleibt Taufe.
@@ -3360,6 +3385,23 @@ enum MatchMath {
             }
         }
         return best?.cosine
+    }
+
+    /// Dropout/holdPrev: immer Yaw-Bin. Unbinned liest ¾-Hash nicht (`hash#1`).
+    static func leftoverHoldLookupYaw(
+        hash: String,
+        table: [String: (cosine: Double, at: TimeInterval)],
+        now: TimeInterval,
+        ttl: TimeInterval = leftoverAdoptSec,
+        yawAbs: Double?
+    ) -> Double? {
+        leftoverHoldLookup(
+            hash: hash,
+            table: table,
+            now: now,
+            ttl: ttl,
+            bin: leftoverHoldBin(yawAbs: yawAbs ?? 0)
+        )
     }
 
     static func leftoverHoldPrune(

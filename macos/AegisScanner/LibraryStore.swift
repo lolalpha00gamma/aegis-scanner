@@ -1148,6 +1148,15 @@ final class LibraryStore: ObservableObject {
         MatchMath.leftoverCosineSparkLabel(leftoverHoldTrail[faceId] ?? [])
     }
 
+    func leftoverHoldChip(faceId: UUID, sharpness: Double? = nil, yawAbs: Double? = nil) -> String? {
+        MatchMath.leftoverHoldOverlayChip(
+            hold: leftoverHold[faceId],
+            trail: leftoverHoldTrail[faceId] ?? [],
+            yawAbs: yawAbs,
+            sharpness: sharpness
+        )
+    }
+
     func leftoverAdoptProgress(faceId: UUID) -> String? {
         if MatchMath.leftoverWipeMutes(
             until: leftoverWipeUntil[faceId],
@@ -2339,7 +2348,7 @@ final class LibraryStore: ObservableObject {
                     }
                     // leftoverHoldSkipLookaway: EMA nicht mit Profil überschreiben. continue hält den Wert.
                     if leftoverHold[old.id] == nil {
-                        leftoverHold[old.id] = MatchMath.leftoverHoldLookup(
+                        leftoverHold[old.id] = MatchMath.leftoverHoldLookupYaw(
                             hash: leftoverLiveHash(
                                 kalmanX: boxKalman[old.id]?.x,
                                 kalmanY: boxKalman[old.id]?.y,
@@ -2350,7 +2359,8 @@ final class LibraryStore: ObservableObject {
                             ),
                             table: leftoverHoldByHash,
                             now: now,
-                            ttl: MatchMath.dropoutTTL(dt: liveDt)
+                            ttl: MatchMath.dropoutTTL(dt: liveDt),
+                            yawAbs: lookYaw ?? abs(old.quality.yaw)
                         )
                     }
                     continue
@@ -2362,7 +2372,7 @@ final class LibraryStore: ObservableObject {
                     yawAbs: yawAbs,
                     aspectOk: aspectOk,
                     twinPair: aegisHit?.pairCosine,
-                    holdPrev: leftoverHold[old.id] ?? MatchMath.leftoverHoldLookup(
+                    holdPrev: leftoverHold[old.id] ?? MatchMath.leftoverHoldLookupYaw(
                         hash: leftoverLiveHash(
                             kalmanX: boxKalman[old.id]?.x,
                             kalmanY: boxKalman[old.id]?.y,
@@ -2373,7 +2383,8 @@ final class LibraryStore: ObservableObject {
                         ),
                         table: leftoverHoldByHash,
                         now: now,
-                        ttl: MatchMath.dropoutTTL(dt: liveDt)
+                        ttl: MatchMath.dropoutTTL(dt: liveDt),
+                        yawAbs: lookYaw ?? abs(old.quality.yaw)
                     ),
                     liveIds: liveIds,
                     leftoverId: old.id,
@@ -2456,11 +2467,12 @@ final class LibraryStore: ObservableObject {
                     fallback: old.box,
                     image: image
                 )
-                let holdPrev = leftoverHold[old.id] ?? MatchMath.leftoverHoldLookup(
+                let holdPrev = leftoverHold[old.id] ?? MatchMath.leftoverHoldLookupYaw(
                     hash: holdHash,
                     table: leftoverHoldByHash,
                     now: now,
-                    ttl: MatchMath.dropoutTTL(dt: liveDt)
+                    ttl: MatchMath.dropoutTTL(dt: liveDt),
+                    yawAbs: abs(adopted[bestJ].quality.yaw)
                 )
                 let step = leftoverAdvance(oldId: old.id, box: adopted[bestJ].box, now: now, holdPrev: holdPrev, boxId: adopted[bestJ].id, dt: liveDt)
                 if let label = step.label {
@@ -2526,11 +2538,12 @@ final class LibraryStore: ObservableObject {
                 }
                 leftoverPending.removeValue(forKey: adopted[bestJ].id)
                 let pinCos = remaining.first(where: { $0.index == bestJ })?.cosine ?? item.bestCos
-                let holdNow = leftoverHold[old.id] ?? MatchMath.leftoverHoldLookup(
+                let holdNow = leftoverHold[old.id] ?? MatchMath.leftoverHoldLookupYaw(
                     hash: holdHash,
                     table: leftoverHoldByHash,
                     now: now,
-                    ttl: MatchMath.dropoutTTL(dt: liveDt)
+                    ttl: MatchMath.dropoutTTL(dt: liveDt),
+                    yawAbs: abs(adopted[bestJ].quality.yaw)
                 )
                 let trailNow = leftoverHoldTrail[old.id] ?? MatchMath.leftoverTrailLookup(
                     hash: leftoverLiveHash(

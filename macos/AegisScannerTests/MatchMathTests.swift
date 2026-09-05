@@ -1931,6 +1931,37 @@ enum MatchMathTests {
             frameCapture: MatchMath.leftoverFrameCaptureByte(dayBytes, width: 8, height: 8)
         )
         ok(cropLive == nil, "live Frame-Luma 0,70: 0,61 gegen Tag-Floor tot")
+        var yawTab: [String: (cosine: Double, at: TimeInterval)] = [:]
+        yawTab = MatchMath.leftoverHoldPut(hash: "1.2.3.4", cosine: 0.66, onto: yawTab, now: 10, bin: 1)
+        ok(
+            abs((MatchMath.leftoverHoldLookupYaw(hash: "1.2.3.4", table: yawTab, now: 10.1, yawAbs: 0.35) ?? -1) - 0.66) < 0.001,
+            "Dropout ¾ LookupYaw"
+        )
+        ok(
+            MatchMath.leftoverHoldLookupYaw(hash: "1.2.3.4", table: yawTab, now: 10.1, yawAbs: 0) == nil,
+            "frontal LookupYaw erbt nicht ¾"
+        )
+        ok(
+            MatchMath.leftoverHoldLookup(hash: "1.2.3.4", table: yawTab, now: 10.1) == nil,
+            "unbinned Dropout verliert ¾"
+        )
+        ok(abs((MatchMath.leftoverHoldRawOf(trail: [0.80], hold: 0.64) ?? -1) - 0.80) < 0.001, "Trail roh")
+        ok(abs((MatchMath.leftoverHoldRawOf(trail: [], hold: 0.64) ?? -1) - 0.64) < 0.001, "ohne Trail Hold")
+        ok(
+            MatchMath.leftoverHoldOverlayChip(hold: 0.64, trail: [0.80]) == "gehalten 0,80 / 0,64",
+            "Overlay roh/smooth"
+        )
+        ok(
+            MatchMath.leftoverHoldOverlayChip(hold: 0.64, trail: [0.64]) == "gehalten 0,64",
+            "Overlay gleich eine Zahl"
+        )
+        ok(
+            MatchMath.leftoverHoldOverlayChip(hold: 0.64, trail: [0.80], yawAbs: 0.35) == "gehalten 0,80 / 0,64 · BIN 1",
+            "Overlay roh/smooth + BIN"
+        )
+        ok(MatchMath.leftoverBaptizeBoth(raw: 0.82, smooth: 0.80), "roh+smooth taufen")
+        ok(!MatchMath.leftoverBaptizeBoth(raw: 0.82, smooth: 0.64), "Smooth 0,64 keine Taufe")
+        ok(MatchMath.leftoverBaptizeBoth(raw: 0.82, smooth: nil), "ohne Smooth roh reicht")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

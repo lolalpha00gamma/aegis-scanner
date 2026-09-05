@@ -748,8 +748,8 @@ struct FaceOverlay: View {
                             let printName = store.identities.first { $0.id == printHit?.versus.first?.identityId }?.name
                             return "\(base) · \(MatchMath.liveNameDisagreeLabel(lookName: lookName, printName: printName))"
                         }
-                        if let hold = MatchMath.leftoverHoldLabel(
-                            cosine: store.leftoverHold[face.id],
+                        if let hold = store.leftoverHoldChip(
+                            faceId: face.id,
                             sharpness: face.quality.sharpness,
                             yawAbs: abs(face.quality.yaw)
                         ) {
@@ -888,7 +888,7 @@ struct FaceOverlay: View {
         hit: StrategyHit?
     ) -> String {
         if let holdCos = store.leftoverHold[faceId], !MatchMath.leftoverShowsName(cosine: holdCos) {
-            let hold = MatchMath.leftoverHoldLabel(cosine: holdCos) ?? MatchMath.unknownRejectNote()
+            let hold = store.leftoverHoldChip(faceId: faceId) ?? MatchMath.unknownRejectNote()
             if let spark = store.leftoverSparkChip(faceId: faceId) {
                 return "\(store.guestName(for: faceId)) · \(hold) · \(spark)"
             }
@@ -896,7 +896,7 @@ struct FaceOverlay: View {
         }
         if pinned, let owner {
             let held = store.liveHeldIds.contains(faceId)
-            if let hold = MatchMath.leftoverHoldLabel(cosine: store.leftoverHold[faceId]) {
+            if let hold = store.leftoverHoldChip(faceId: faceId) {
                 if let spark = store.leftoverSparkChip(faceId: faceId) {
                     return "\(owner.name) \(Int(pct))% · \(hold) · \(spark)"
                 }

@@ -1,8 +1,19 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.94 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.95 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 
-Neu in 2.1.94: Frame-Luma live. Trail je Bin. HOLD roh/smooth.
+Neu in 2.1.95: Dropout-Hold je Bin. Overlay roh/smooth aus Trail. leftoverBaptizeBoth.
+
+## In 2.1.95 wirklich im Code
+
+2.1.94 Frame-Luma live, Trail je Bin, HOLD roh/smooth Label. Dropout Lookup unbinned. Overlay nur EMA. Taufe roh allein.
+
+1. **`leftoverHoldLookupYaw`.** Dropout/holdPrev immer Yaw-Bin.
+2. **`leftoverHoldRawOf` / `leftoverHoldOverlayChip`.**
+3. **`leftoverBaptizeBoth`.**
+4. Tests + VERSION = Models = MARKETING_VERSION 2.1.95 (Build 121).
+
+Offen nach 2.1.95: leftoverHoldTrail[id] je Bin. leftoverTransfersId Spike-Pfad. leftoverHold hash bins gallery.json. Trail Profil-TTL 2 s. CAP Frame/Box. Frame-Luma in gallery.json. VoiceOver HOLD roh/smooth. lumaStats ±0,08.
 
 ## In 2.1.94 wirklich im Code
 
