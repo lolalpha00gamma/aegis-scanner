@@ -81,6 +81,7 @@ final class LibraryStore: ObservableObject {
     private var liveNameHist: [UUID: [String]] = [:]
     private var liveNameLock: [UUID: UUID] = [:]
     private var liveScoreEma: [UUID: Double] = [:]
+    private var liveScoreTicks: [UUID: [Double]] = [:]
     private var liveYaw: [UUID: Double] = [:]
     private var livePitch: [UUID: Double] = [:]
     private var liveRoll: [UUID: Double] = [:]
@@ -102,6 +103,7 @@ final class LibraryStore: ObservableObject {
     private var liveLandmarkPrev: [UUID: [Point2]] = [:]
     private var liveLidClosed: [UUID: Bool] = [:]
     private var liveBlinkSeen: [UUID: Bool] = [:]
+    private var liveOpenStreak: [UUID: Int] = [:]
     private var leftoverDisagree: [UUID: Int] = [:]
     private var boxKalman: [UUID: (x: Double, y: Double, w: Double, h: Double, px: Double, py: Double, pw: Double, ph: Double)] = [:]
     private var boxKalmanV: [UUID: (vx: Double, vy: Double)] = [:]
@@ -211,6 +213,7 @@ final class LibraryStore: ObservableObject {
         liveNameHist = [:]
         liveNameLock = [:]
         liveScoreEma = [:]
+        liveScoreTicks = [:]
         liveYaw = [:]
         livePitch = [:]
         liveRoll = [:]
@@ -707,6 +710,7 @@ final class LibraryStore: ObservableObject {
         liveNameLock = liveNameLock.filter { liveFaceIds.contains($0.key) }
         liveNameVoteAt = liveNameVoteAt.filter { liveFaceIds.contains($0.key) }
         liveScoreEma = liveScoreEma.filter { liveFaceIds.contains($0.key) }
+        liveScoreTicks = liveScoreTicks.filter { liveFaceIds.contains($0.key) }
         liveYaw = liveYaw.filter { liveFaceIds.contains($0.key) }
         livePitch = livePitch.filter { liveFaceIds.contains($0.key) }
         liveRoll = liveRoll.filter { liveFaceIds.contains($0.key) }
@@ -788,7 +792,10 @@ final class LibraryStore: ObservableObject {
             let cap = MatchMath.nameHistCap(need: need)
             let hist = MatchMath.nameHistAppend(liveNameHist[fid] ?? [], token: token, cap: cap)
             liveNameHist[fid] = hist
-            let voted = MatchMath.nameMajorityAgreeing(hist, window: cap, need: need)
+            let voted = MatchMath.leftoverLiveNameAnd(
+                voted: MatchMath.nameMajorityAgreeing(hist, window: cap, need: need),
+                hist: hist
+            )
             if let voted, !voted.isEmpty {
                 liveNameVoteAt[fid] = frameNow
             }
@@ -822,9 +829,12 @@ final class LibraryStore: ObservableObject {
                 liveNameLock.removeValue(forKey: fid)
                 hit.identityId = nil
             }
-            let ema = MatchMath.liveScoreEMA(prev: liveScoreEma[fid], next: hit.percent)
+            let rawPct = hit.percent
+            let ema = MatchMath.liveScoreEMA(prev: liveScoreEma[fid], next: rawPct)
             liveScoreEma[fid] = ema
-            hit.percent = ema
+            let ticks = MatchMath.leftoverScoreTickPut(rawPct, onto: liveScoreTicks[fid] ?? [])
+            liveScoreTicks[fid] = ticks
+            hit.percent = MatchMath.leftoverScoreTickOverlay(ema: ema, ticks: ticks)
             matches[i].hits[hi] = hit
             var spark = livePrintDrift[fid] ?? []
             let identId = hit.identityId ?? liveNameLock[fid]
@@ -844,6 +854,7 @@ final class LibraryStore: ObservableObject {
             if spark.count > 8 { spark.removeFirst(spark.count - 8) }
             livePrintDrift[fid] = spark
         }
+        tickLeftoverSparkChips(liveFaceIds: liveFaceIds)
     }
 
     private func stampEnrolled(_ faceId: UUID) {
@@ -1149,6 +1160,11 @@ final class LibraryStore: ObservableObject {
     }
 
     func leftoverSparkChip(faceId: UUID, yawAbs: Double? = nil) -> String? {
+        leftoverSparkChipHeld[faceId]?.chip ?? leftoverSparkChipNow(faceId: faceId, yawAbs: yawAbs)
+    }
+
+    /// Ohne Mutation — SwiftUI-Body darf das lesen.
+    private func leftoverSparkChipNow(faceId: UUID, yawAbs: Double? = nil) -> String? {
         let bin = MatchMath.leftoverHoldBin(yawAbs: yawAbs ?? 0)
         let binTrail = leftoverHoldTrailBins[MatchMath.leftoverHoldKey(id: faceId, bin: bin)] ?? []
         let idTrail = leftoverHoldTrail[faceId] ?? []
@@ -1176,14 +1192,22 @@ final class LibraryStore: ObservableObject {
                 )
             )
         }
-        let prev = leftoverSparkChipHeld[faceId]
-        let held = MatchMath.leftoverSparkChipHold(prev: prev?.chip, now: nowChip, hold: prev?.hold ?? 0)
-        if let chip = held.chip {
-            leftoverSparkChipHeld[faceId] = (chip: chip, hold: held.hold)
-        } else {
-            leftoverSparkChipHeld.removeValue(forKey: faceId)
+        return nowChip
+    }
+
+    private func tickLeftoverSparkChips(liveFaceIds: Set<UUID>) {
+        leftoverSparkChipHeld = leftoverSparkChipHeld.filter { liveFaceIds.contains($0.key) }
+        for fid in liveFaceIds {
+            let yaw = faces.first { $0.id == fid }.map { abs($0.quality.yaw) }
+            let nowChip = leftoverSparkChipNow(faceId: fid, yawAbs: yaw)
+            let prev = leftoverSparkChipHeld[fid]
+            let held = MatchMath.leftoverSparkChipHold(prev: prev?.chip, now: nowChip, hold: prev?.hold ?? 0)
+            if let chip = held.chip {
+                leftoverSparkChipHeld[fid] = (chip: chip, hold: held.hold)
+            } else {
+                leftoverSparkChipHeld.removeValue(forKey: fid)
+            }
         }
-        return held.chip
     }
 
     func leftoverHoldNow(faceId: UUID, yawAbs: Double? = nil) -> Double? {
@@ -1396,6 +1420,7 @@ final class LibraryStore: ObservableObject {
         liveNameHist = [:]
         liveNameLock = [:]
         liveScoreEma = [:]
+        liveScoreTicks = [:]
         liveYaw = [:]
         livePitch = [:]
         liveRoll = [:]
@@ -1724,7 +1749,7 @@ final class LibraryStore: ObservableObject {
             streak: liveFaceStreak
         )
         liveFaceStreak = latch.streak
-        liveCapture.setFacesPresent(latch.on)
+        liveCapture.setFacesPresent(latch.on, streak: leftoverStreak.values.max() ?? 0)
         guard let idx = media.firstIndex(where: { $0.id == mediaId }) else { return }
         media[idx].width = image.width
         media[idx].height = image.height
@@ -1740,7 +1765,10 @@ final class LibraryStore: ObservableObject {
             liveDt = MatchMath.medianLiveDt(liveDtSamples, fallback: liveDt)
         }
         liveLastStamp = now
-        let liveFrameCapture = MatchMath.leftoverFrameCapture(image)
+        let liveFrameCapture = MatchMath.leftoverPickLuma(
+            frame: MatchMath.leftoverFrameCapture(image),
+            capture: found.map(\.quality.capture).max()
+        )
         let enrolled = Set(identities.flatMap(\.faceIds))
         let previous = faces.filter { $0.mediaId == mediaId }
         var foundIouMax = 0.0
@@ -1917,6 +1945,11 @@ final class LibraryStore: ObservableObject {
                     let closedNow = MatchMath.eyesClosed(
                         openIod: face.ratioSheet.first { $0.id == "eyeOpen_iod" }?.value
                     )
+                    let lids = MatchMath.leftoverBlinkLiveness(
+                        open: !closedNow,
+                        openStreak: liveOpenStreak[old.id] ?? 0
+                    )
+                    liveOpenStreak[old.id] = lids.streak
                     if MatchMath.livenessBlink(
                         prevClosed: liveLidClosed[old.id] ?? false,
                         nowClosed: closedNow
@@ -2083,6 +2116,7 @@ final class LibraryStore: ObservableObject {
                         leftoverHoldBins = MatchMath.leftoverHoldBinDrop(bins: leftoverHoldBins, id: id)
                         liveNameVoteAt.removeValue(forKey: id)
                         liveScoreEma.removeValue(forKey: id)
+                        liveScoreTicks.removeValue(forKey: id)
                         liveYaw.removeValue(forKey: id)
                         livePitch.removeValue(forKey: id)
                         liveRoll.removeValue(forKey: id)
@@ -2237,6 +2271,7 @@ final class LibraryStore: ObservableObject {
         liveLandmarkPrev = liveLandmarkPrev.filter { keepBoxes.contains($0.key) }
         liveLidClosed = liveLidClosed.filter { keepBoxes.contains($0.key) }
         liveBlinkSeen = liveBlinkSeen.filter { keepBoxes.contains($0.key) }
+        liveOpenStreak = liveOpenStreak.filter { keepBoxes.contains($0.key) }
         let holdBefore = leftoverHold.count
         leftoverHold = MatchMath.leftoverHoldSurvive(hold: leftoverHold, ghosts: ghostIds, live: liveIds, emptyKeeps: emptyLatch, emptyFor: emptyFor)
         leftoverHoldBins = MatchMath.leftoverHoldSurviveBins(hold: leftoverHoldBins, ghosts: ghostIds, live: liveIds, emptyKeeps: emptyLatch, emptyFor: emptyFor)
@@ -2285,6 +2320,7 @@ final class LibraryStore: ObservableObject {
             liveLandmarkPrev = [:]
             liveLidClosed = [:]
             liveBlinkSeen = [:]
+            liveOpenStreak = [:]
             faces.removeAll { $0.mediaId == mediaId }
             if !MatchMath.leftoverEmptyKeepsOverlay(liveEmpty: true) || !emptyChip {
                 if let label = MatchMath.headCountFlashLabel(prev: lastLiveHeadCount, next: 0) {
@@ -2648,6 +2684,7 @@ final class LibraryStore: ObservableObject {
                     leftoverPending[adopted[bestJ].id] = tap
                 }
                 let stillFor = liveStillFor[old.id] ?? liveStillFor[adopted[bestJ].id] ?? 0
+                let blinkBlocked = (liveOpenStreak[old.id] ?? liveOpenStreak[adopted[bestJ].id] ?? 0) < 2
                 let transfer = MatchMath.leftoverTransfersId(
                     cosine: pinCos,
                     holdPrev: holdNow,
@@ -2657,7 +2694,7 @@ final class LibraryStore: ObservableObject {
                     stillFor: stillFor,
                     sharpness: adopted[bestJ].quality.sharpness,
                     yawAbs: abs(adopted[bestJ].quality.yaw),
-                    blink: liveBlinkSeen[old.id] ?? liveBlinkSeen[adopted[bestJ].id] ?? false
+                    blink: blinkBlocked
                 )
                 if MatchMath.leftoverHoldsTrack(
                     cosine: pinCos,
@@ -2668,7 +2705,7 @@ final class LibraryStore: ObservableObject {
                     stillFor: stillFor,
                     sharpness: adopted[bestJ].quality.sharpness,
                     yawAbs: abs(adopted[bestJ].quality.yaw),
-                    blink: liveBlinkSeen[old.id] ?? liveBlinkSeen[adopted[bestJ].id] ?? false
+                    blink: blinkBlocked
                 ) {
                     leftoverPending[adopted[bestJ].id] = MatchMath.leftoverHoldLabel(
                         cosine: pinCos,
@@ -2846,6 +2883,7 @@ final class LibraryStore: ObservableObject {
                             liveNameLock.removeValue(forKey: old.id)
                             liveNameVoteAt.removeValue(forKey: old.id)
                             liveScoreEma.removeValue(forKey: old.id)
+                            liveScoreTicks.removeValue(forKey: old.id)
                             livePrintDrift.removeValue(forKey: old.id)
                         }
                     } else {

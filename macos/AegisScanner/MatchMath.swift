@@ -648,6 +648,29 @@ enum MatchMath {
         frame ?? capture
     }
 
+    /// JPEG-Probe optional. nil = kein Block (FaceEngine hat nicht gemessen).
+    static func leftoverBaptizeJpegOk(_ delta: Double?) -> Bool {
+        guard let delta else { return true }
+        return leftoverBaptizeJpeg(delta: delta)
+    }
+
+    /// Mehrheit UND 3 gleiche Ticks. Mehrheit allein springt Geschwister.
+    static func leftoverLiveNameAnd(voted: String?, hist: [String], need: Int = 3) -> String? {
+        guard let voted, leftoverLiveNameHolds(hist, need: need) == voted else { return nil }
+        return voted
+    }
+
+    /// Overlay: 3-Tick-Mittel wenn voll, sonst EMA.
+    static func leftoverScoreTickOverlay(ema: Double, ticks: [Double]) -> Double {
+        guard ticks.count >= 3, let mean = leftoverScoreTickMean(ticks) else { return ema }
+        return mean
+    }
+
+    /// Thermal: nicht über 8 fps jagen. Hunt/Lock-Interval bleibt Floor.
+    static func liveMinIntervalThermal(base: TimeInterval, thermal: Bool) -> TimeInterval {
+        thermal ? max(base, 1.0 / 8.0) : base
+    }
+
     /// ¾: UUID-Trail ist Frontal. Chip sonst „HOLD 80/64 · BIN 1“.
     /// binTrail: ¾ roh aus Pose-Bin, nicht leftoverHold EMA allein.
     static func leftoverHoldOverlayChipOf(
@@ -699,9 +722,11 @@ enum MatchMath {
         smooth: Double?,
         sharpness: Double? = nil,
         yawAbs: Double? = nil,
-        blink: Bool = false
+        blink: Bool = false,
+        jpegDelta: Double? = nil
     ) -> Bool {
         leftoverBaptizeBoth(raw: raw, smooth: smooth, sharpness: sharpness, yawAbs: yawAbs, blink: blink)
+            && leftoverBaptizeJpegOk(jpegDelta)
     }
 
     /// Twin 0,80 nach Hold 0,64: Spike, kein Steal. 0,80 nach 0,80 bleibt Taufe.
@@ -728,7 +753,8 @@ enum MatchMath {
         stillFor: TimeInterval = 1,
         sharpness: Double? = nil,
         yawAbs: Double? = nil,
-        blink: Bool = false
+        blink: Bool = false,
+        jpegDelta: Double? = nil
     ) -> Bool {
         if tapNameLockBlocks(until: tapUntil, now: now) { return false }
         if leftoverBaptizeStillBlocks(stillFor: stillFor, cosine: cosine, holdPrev: holdPrev) { return false }
@@ -738,9 +764,9 @@ enum MatchMath {
         let trailMean: Double? = trail.isEmpty ? nil : trail.reduce(0, +) / Double(trail.count)
         if leftoverBaptizeSpike(raw: cosine, prev: holdPrev) {
             let n = trail.filter { leftoverBaptize(cosine: $0) }.count
-            return n >= 3 && leftoverBaptizeBoth(raw: cosine, smooth: trailMean, sharpness: sharpness, yawAbs: yawAbs, blink: blink)
+            return n >= 3 && leftoverBaptizeGate(raw: cosine, smooth: trailMean, sharpness: sharpness, yawAbs: yawAbs, blink: blink, jpegDelta: jpegDelta)
         }
-        return leftoverBaptizeBoth(raw: cosine, smooth: holdPrev, sharpness: sharpness, yawAbs: yawAbs, blink: blink)
+        return leftoverBaptizeGate(raw: cosine, smooth: holdPrev, sharpness: sharpness, yawAbs: yawAbs, blink: blink, jpegDelta: jpegDelta)
     }
 
     static let leftoverBaptizeStillNeed: TimeInterval = 0.45
@@ -816,7 +842,7 @@ enum MatchMath {
 
     /// Center Stage croppt die Box. Frame-Luma bleibt, Box springt. Floor folgt dem Frame.
     static func leftoverSessionCapturePrefersFrame(frame: Double?, box: Double?, jump: Double = leftoverHoldCaptureJump) -> Double? {
-        guard let frame, let box else { return frame ?? box }
+        guard let frame, let box else { return leftoverPickLuma(frame: frame, capture: box) }
         if abs(frame - box) >= jump { return frame }
         return box
     }

@@ -57,10 +57,10 @@ final class LiveCapture: NSObject {
         }
     }
 
-    func setFacesPresent(_ on: Bool) {
+    func setFacesPresent(_ on: Bool, streak: Int = 0) {
         let changed = on != facesPresent
         facesPresent = on
-        tap?.minInterval = MatchMath.liveMinInterval(continuity: isContinuity, faces: on)
+        tap?.minInterval = MatchMath.liveMinInterval(continuity: isContinuity, faces: on, streak: streak)
         if changed, isContinuity {
             applyCenterStage(force: true)
         }
@@ -154,7 +154,7 @@ final class LiveCapture: NSObject {
         delegate.orientOverride = orientOverride
         self.tap = delegate
         out.setSampleBufferDelegate(delegate, queue: outputQueue)
-        tap?.minInterval = MatchMath.liveMinInterval(continuity: isContinuity, faces: facesPresent)
+        tap?.minInterval = MatchMath.liveMinInterval(continuity: isContinuity, faces: facesPresent, streak: 0)
         if session.canAddOutput(out) { session.addOutput(out) }
         applyCenterStage(force: true)
         applyBestFormat(device)
@@ -405,10 +405,14 @@ final class LiveCapture: NSObject {
 
 private final class FrameTap: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     private var last: TimeInterval = 0
+    private var lastRaw: TimeInterval = 0
+    private var fpsSamples: [Double] = []
+    private var slowSince: TimeInterval = 0
     var minInterval: TimeInterval = 0.20
     var uniqueID: String = ""
     var orientOverride: String = "auto"
     var horizonLevel = false
+    var thermal = false
     private let emit: (CGImage, TimeInterval) -> Void
     init(emit: @escaping (CGImage, TimeInterval) -> Void) { self.emit = emit }
     func captureOutput(
@@ -419,7 +423,24 @@ private final class FrameTap: NSObject, AVCaptureVideoDataOutputSampleBufferDele
         let pts = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
         let ptsSec = CMTimeGetSeconds(pts)
         let stamp = (pts.isValid && ptsSec.isFinite && ptsSec > 0) ? ptsSec : Date().timeIntervalSince1970
-        guard stamp - last >= minInterval else { return }
+        if lastRaw > 0 {
+            let rawDt = stamp - lastRaw
+            if rawDt > 0.02, rawDt < 0.50 {
+                fpsSamples.append(1.0 / rawDt)
+                if fpsSamples.count > 8 { fpsSamples.removeFirst(fpsSamples.count - 8) }
+            }
+        }
+        lastRaw = stamp
+        let median = fpsSamples.isEmpty ? 0.0 : fpsSamples.sorted()[fpsSamples.count / 2]
+        if median > 0, median < 12 {
+            if slowSince == 0 { slowSince = stamp }
+        } else {
+            slowSince = 0
+        }
+        let slowFor = slowSince > 0 ? stamp - slowSince : 0
+        thermal = MatchMath.liveThermalHolds(medianFps: median, slowFor: slowFor)
+        let interval = MatchMath.liveMinIntervalThermal(base: minInterval, thermal: thermal)
+        guard stamp - last >= interval else { return }
         last = stamp
         guard let pb = CMSampleBufferGetImageBuffer(sampleBuffer),
               let image = cgImage(from: pb, orientation: visionOrientation(

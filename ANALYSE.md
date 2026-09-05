@@ -1,3 +1,36 @@
+# Helios + Aegis — Analyse 2026-09-05 (2.1.108)
+
+Helios **1.5.92** (Build 112). Aegis **2.1.108 alpha** (Build 134). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.107: Hash-Spark, Spark-Hold mutierte im SwiftUI-Body. leftoverPickLuma tot. leftoverBaptizeGate tot. Blink sticky. Name-Mehrheit ohne 3-Tick. Thermal-Math tot. Hunt ignorierte leftoverStreak.
+
+## 2.1.107 → 2.1.108 (warum Namen noch sprangen / Spark flackerte / Indoor tot)
+
+1. **`leftoverSparkChip` mutierte `leftoverSparkChipHeld` im Body.** SwiftUI 8 fps Peak-Hold zählt jedes Paint, Overlay flackert.
+2. **Frame-Luma nil → Capture-Box 0,18.** Center Stage, Indoor 420v Nacht-Softmax. leftoverPickLuma ungenutzt.
+3. **`leftoverTransfersId` rief leftoverBaptizeBoth, nicht leftoverBaptizeGate.** JPEG-Veto tot.
+4. **`liveBlinkSeen` sticky true nach einem Lid.** leftoverBaptizeQuality blink:true blockt Taufe danach für immer. Lid-Gap 2 Frames offen fehlte.
+5. **Name-Mehrheit 5 ohne 3-Tick-AND.** Geschwister springen Overlay. leftoverLiveNameHolds tot.
+6. **Overlay liveScoreEMA ohne Score-Tick.** Ein Twin-Frame 0,90 bleibt 3 Ticks im HUD.
+7. **`liveThermalHolds` tot.** Hunt 10 / Lock 15 gegen thermal 8 fps.
+8. **`setFacesPresent` ohne leftoverStreak.** Hunt 10 bis facesPresent-Latch, nicht erste Begegnung.
+
+## Was 2.1.108 ändert
+
+1. **`leftoverSparkChip` peek.** Tick in `stabilizeLiveMatches`. Body mutiert nicht.
+2. **`leftoverPickLuma` in leftoverSessionCapturePrefersFrame + applyLiveFaces.**
+3. **`leftoverBaptizeGate` in leftoverTransfersId** inkl. leftoverBaptizeJpegOk.
+4. **`leftoverBlinkLiveness` open-streak.** Taufe erst nach 2 offenen Lidern.
+5. **`leftoverLiveNameAnd`** Mehrheit UND 3-Tick.
+6. **`leftoverScoreTickOverlay`** 3-Tick-Mittel, sonst EMA.
+7. **`liveMinIntervalThermal` in FrameTap.** 2 s unter 12 → Floor 8 fps.
+8. **`setFacesPresent(streak:)`** leftoverStreak ≥ 1 = Lock.
+9. Tests + VERSION = Models = MARKETING_VERSION 2.1.108 (Build 134).
+
+Helios 1.5.92: Enhance 420, Slot-Steal, ROI 8 fps, Hochpass-Slider. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-05 (2.1.107)
 
 Helios **1.5.91** (Build 111). Aegis **2.1.107 alpha** (Build 133). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

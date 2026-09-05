@@ -1,4 +1,4 @@
-# Aegis **2.1.107 alpha**
+# Aegis **2.1.108 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.108 alpha
+
+2.1.107 Hash-Spark. Spark-Hold mutierte im SwiftUI-Body. leftoverPickLuma tot. Gate tot. Blink sticky. Name ohne 3-Tick. Thermal tot.
+
+- **`leftoverSparkChip` peek.** Tick in stabilizeLiveMatches. Body mutiert nicht.
+- **`leftoverPickLuma` / leftoverBaptizeGate / leftoverBlinkLiveness.** Frame vor Box, Gate in Transfer, Lid 2 Frames.
+- **`leftoverLiveNameAnd` / leftoverScoreTickOverlay / liveMinIntervalThermal / setFacesPresent(streak:).**
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.108 (Build 134).
 
 ## Neu in 2.1.107 alpha
 

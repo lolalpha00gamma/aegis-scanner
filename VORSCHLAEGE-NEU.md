@@ -1,6 +1,18 @@
-# Nachtrag 2026-09-05 (2.1.107)
+# Nachtrag 2026-09-05 (2.1.108)
 
-Siehe ANALYSE.md. **2.1.107** Hash-Spark, Spark-Hold verdrahtet, leftoverPickLuma. 2.1.106: leftoverAdopt Lock 0,80 s, Hunt 10 fps, overlayChipPeakHold Math.
+Siehe ANALYSE.md. **2.1.108** Spark-Peek, PickLuma verdrahtet, BaptizeGate, Blink-Streak, Name-AND, Score-Tick, Thermal. 2.1.107: Hash-Spark, Spark-Hold im Body.
+
+## In 2.1.108 gelandet
+
+1. leftoverSparkChip peek — Tick in stabilizeLiveMatches, Body mutiert nicht
+2. leftoverPickLuma in leftoverSessionCapturePrefersFrame + applyLiveFaces
+3. leftoverBaptizeGate in leftoverTransfersId + leftoverBaptizeJpegOk
+4. leftoverBlinkLiveness open-streak — 2 Lider offen vor Taufe
+5. leftoverLiveNameAnd Mehrheit UND 3-Tick
+6. leftoverScoreTickOverlay 3-Tick, sonst EMA
+7. liveMinIntervalThermal FrameTap Floor 8 fps
+8. setFacesPresent leftoverStreak Lock
+9. VERSION = Models = MARKETING_VERSION 2.1.108 (Build 134)
 
 ## In 2.1.107 gelandet
 
@@ -124,22 +136,22 @@ Neu:
 
 - leftoverLastHash je FaceId — sitzt als leftoverHoldTrailBins (2.1.105). Spark/HOLD ohne Box-Hash.
 - ** leftoverAdopt Lock 0,80 s** — sitzt (2.1.106). 15/24 fps 12 Frames.
-- ** Hunt 10 fps bis leftoverStreak ≥ 1** — sitzt (2.1.106).
+- ** Hunt 10 fps bis leftoverStreak ≥ 1** — sitzt setFacesPresent(streak:) (2.1.108).
 - ** FaceEngine auf outputQueue**, nicht Main. 15 fps auf Main kann UI-Jank.
 - ** RTSP 420f**, Player-Pfad bleibt 32BGRA.
-- ** Shared XPC mit Helios 1.5.90** eine TCC, ein Buffer, dieselbe 0°-Geometrie.
+- ** Shared XPC mit Helios 1.5.92** eine TCC, ein Buffer, dieselbe 0°-Geometrie.
 - ** Overlay VoiceOver HOLD roh/smooth** „gehalten null acht null“.
-- ** JPEG 70 % + Blink 2-Frame** — Math sitzt (2.1.106). FaceEngine-Probe (recompress + Lid) fehlt.
+- ** JPEG 70 % + Blink 2-Frame** — Math sitzt (2.1.106). Gate verdrahtet (2.1.108). FaceEngine Print-Reextract nach JPEG fehlt.
 - ** gallery.json Schema 5 Capture-Hist + Hold-Bins** über App-Neustart. leftoverHoldTrailBins stirbt mit dem Prozess.
 - ** Per-Box CLAHE** statt Full-Frame.
-- leftoverScoreTickPut / leftoverLiveNameHolds — Math sitzt (2.1.105). Overlay bleibt liveScoreEMA, Vote bleibt Mehrheit. **3-Tick-AND hinter Pref.**
-- ** liveMinInterval thermal** — sitzt (2.1.106). FaceEngine muss medianFps reichen.
+- leftoverScoreTickPut / leftoverLiveNameHolds — Overlay 3-Tick-AND sitzt (2.1.108).
+- ** liveMinInterval thermal** — sitzt FrameTap (2.1.108).
 - ** Center Stage nach Continuity-Reconnect** — sitzt (2.1.106) in setFacesPresent.
-- ** leftoverSparkChip peak-hold 2 Frames** — Math sitzt (2.1.106). LibraryStore mutiert nicht im SwiftUI-Body — verdrahten im Tick.
-- ** FaceEngine capture an leftoverPick** wenn Frame-Luma nil — Indoor 420v sonst Nacht-Softmax.
-- leftoverAdopt bleibt Taufe-Pfad. 0,80/1,2 s sitzt (2.1.106). leftoverTransfersId ohne Smooth tauft nicht mehr.
-- VideoStabilization aus — Math fehlt auf macOS.
-- leftoverBaptize Qualitätstor — sitzt (2.1.105).
+- ** leftoverSparkChip peak-hold 2 Frames** — Tick sitzt (2.1.108). Body mutiert nicht.
+- ** FaceEngine capture an leftoverPick** — sitzt (2.1.108). Indoor 420v Frame vor Box.
+- leftoverAdopt bleibt Taufe-Pfad. 0,80/1,2 s sitzt (2.1.106). leftoverTransfersId leftoverBaptizeGate sitzt (2.1.108).
+- VideoStabilization aus — Math sitzt, macOS-API fehlt.
+- leftoverBaptize Qualitätstor — sitzt (2.1.105). Gate+JPEG sitzt (2.1.108).
 - leftoverHoldOverlayChipOf Bin-Trail roh — sitzt (2.1.105).
 - leftoverCosineSparkLabelOf — sitzt (2.1.105).
 - ** leftoverAdoptSecLock Pref 0,6–1,4.**
@@ -147,6 +159,17 @@ Neu:
 - ** Continuity Desk-View yaw-floor 0,36** analog leftoverPrintProfileYaw.
 - ** Per-Bin leftoverAdoptNeedSec** (¾ 1,2 s, frontal 0,80).
 - ** Gallery print decay:** ungenutzte 14-Tage-Prints downweight.
-- ** Overlay Spark peak-hold im Tick verdrahten** — Math sitzt, Body darf nicht mutieren.
+- ** Overlay Spark peak-hold im Tick verdrahten** — sitzt (2.1.108).
+- ** FaceEngine JPEG-Print cosine-drop** nach 70 % Recompress — Gate sitzt, Probe fehlt.
+- ** IoU-Sprung 0,40 Taufe-Veto** analog Helios grabAbortHold.
+- ** leftoverHoldBins persist** Schema 5.
+- ** RTSP 420f analog LiveCapture** Player-Pfad 32BGRA.
+- ** Partial-Print P-Slot** ohne Augen für Schal/Maske.
+- ** Overlay VoiceOver Spark** „null acht null nach null acht zwei“.
+- ** Burst-AE 5-Frame Pref** Continuity-Nacht.
+- ** Print-Bank 5 Pose-Slots** front/left/right/up/down gewichtet.
+- ** DBSCAN vor Merge.**
+- ** Watch-Folder PhotoKit.**
+- ** Encrypted gallery export `.aegis`.**
 
 Nur main.
