@@ -627,16 +627,22 @@ enum MatchMath {
     }
 
     /// ¾: UUID-Trail ist Frontal. Chip sonst „HOLD 80/64 · BIN 1“.
+    /// binTrail: ¾ roh aus Pose-Bin, nicht leftoverHold EMA allein.
     static func leftoverHoldOverlayChipOf(
         hold: Double?,
         trail: [Double] = [],
         yawAbs: Double? = nil,
         sharpness: Double? = nil,
-        compact: Bool = false
+        compact: Bool = false,
+        binTrail: [Double] = []
     ) -> String? {
-        let bin = leftoverHoldBin(yawAbs: yawAbs ?? 0)
-        let raw = bin == 0 ? leftoverHoldRawOf(trail: trail, hold: hold) : hold
-        return leftoverHoldLabel(cosine: raw, sharpness: sharpness, yawAbs: yawAbs, smooth: hold, compact: compact)
+        leftoverHoldOverlayChip(
+            hold: hold,
+            trail: leftoverTrailNowOf(idTrail: trail, binTrail: binTrail, yawAbs: yawAbs),
+            yawAbs: yawAbs,
+            sharpness: sharpness,
+            compact: compact
+        )
     }
 
     /// Overlay darf den Track halten. Taufe erst ab Pin-Print 0,80 — sonst erbt der Nachbar den Namen.
@@ -646,8 +652,24 @@ enum MatchMath {
     }
 
     /// Taufe roh ≥ 0,80 UND smooth ≥ 0,80. nil Smooth ist Dropout, nicht Taufe.
-    static func leftoverBaptizeBoth(raw: Double?, smooth: Double?) -> Bool {
-        leftoverBaptize(cosine: raw) && leftoverBaptize(cosine: smooth)
+    /// Qualität: Blur / Blink / Profil sperren — Poster und Lid-Schluss taufen sonst den Nachbarn.
+    static func leftoverBaptizeQuality(sharpness: Double? = nil, yawAbs: Double? = nil, blink: Bool = false) -> Bool {
+        if blink { return false }
+        if let y = yawAbs, y >= leftoverPrintProfileYaw { return false }
+        if let s = sharpness, s < sharpnessFloor { return false }
+        return true
+    }
+
+    static func leftoverBaptizeBoth(
+        raw: Double?,
+        smooth: Double?,
+        sharpness: Double? = nil,
+        yawAbs: Double? = nil,
+        blink: Bool = false
+    ) -> Bool {
+        leftoverBaptize(cosine: raw)
+            && leftoverBaptize(cosine: smooth)
+            && leftoverBaptizeQuality(sharpness: sharpness, yawAbs: yawAbs, blink: blink)
     }
 
     /// Twin 0,80 nach Hold 0,64: Spike, kein Steal. 0,80 nach 0,80 bleibt Taufe.
@@ -671,18 +693,22 @@ enum MatchMath {
         trail: [Double] = [],
         tapUntil: TimeInterval? = nil,
         now: TimeInterval = 0,
-        stillFor: TimeInterval = 1
+        stillFor: TimeInterval = 1,
+        sharpness: Double? = nil,
+        yawAbs: Double? = nil,
+        blink: Bool = false
     ) -> Bool {
         if tapNameLockBlocks(until: tapUntil, now: now) { return false }
         if leftoverBaptizeStillBlocks(stillFor: stillFor, cosine: cosine, holdPrev: holdPrev) { return false }
         guard leftoverBaptize(cosine: cosine) else { return false }
+        if !leftoverBaptizeQuality(sharpness: sharpness, yawAbs: yawAbs, blink: blink) { return false }
         if printMADBlocks(trail) { return false }
         let trailMean: Double? = trail.isEmpty ? nil : trail.reduce(0, +) / Double(trail.count)
         if leftoverBaptizeSpike(raw: cosine, prev: holdPrev) {
             let n = trail.filter { leftoverBaptize(cosine: $0) }.count
-            return n >= 3 && leftoverBaptizeBoth(raw: cosine, smooth: trailMean)
+            return n >= 3 && leftoverBaptizeBoth(raw: cosine, smooth: trailMean, sharpness: sharpness, yawAbs: yawAbs, blink: blink)
         }
-        return leftoverBaptizeBoth(raw: cosine, smooth: holdPrev)
+        return leftoverBaptizeBoth(raw: cosine, smooth: holdPrev, sharpness: sharpness, yawAbs: yawAbs, blink: blink)
     }
 
     static let leftoverBaptizeStillNeed: TimeInterval = 0.45
@@ -1049,6 +1075,29 @@ enum MatchMath {
             return "\(n / 100),\(fracStr)"
         }
         return "\(fmt(trail[0]))→\(fmt(trail[trail.count - 1]))"
+    }
+
+    /// ¾ Spark aus Bin-Trail, nicht Frontal-UUID.
+    static func leftoverCosineSparkLabelOf(idTrail: [Double], binTrail: [Double] = [], yawAbs: Double? = nil) -> String? {
+        leftoverCosineSparkLabel(leftoverTrailNowOf(idTrail: idTrail, binTrail: binTrail, yawAbs: yawAbs))
+    }
+
+    /// Score-EMA 3-Tick. bugfix 2.1.15, nicht den Branch mergen.
+    static func leftoverScoreTickPut(_ sample: Double, onto ticks: [Double], cap: Int = 3) -> [Double] {
+        leftoverCosineSparkPut(sample, onto: ticks, cap: cap)
+    }
+
+    static func leftoverScoreTickMean(_ ticks: [Double]) -> Double? {
+        guard !ticks.isEmpty else { return nil }
+        return ticks.reduce(0, +) / Double(ticks.count)
+    }
+
+    /// Live-Name 3 gleiche Ticks hintereinander. Mehrheit 5 bleibt für Look≠Print.
+    static func leftoverLiveNameHolds(_ hist: [String], need: Int = 3) -> String? {
+        guard hist.count >= need else { return nil }
+        let tail = Array(hist.suffix(need))
+        guard Set(tail).count == 1, let name = tail.last, !name.isEmpty else { return nil }
+        return name
     }
 
     static func leftoverLiveWeight(sharpness: Double?, frontal: Double?, yawAbs: Double?) -> Double {
@@ -1959,6 +2008,16 @@ enum MatchMath {
         emptyKeeps: Bool = false,
         emptyFor: TimeInterval = 0
     ) -> [String: Double] {
+        leftoverHoldSurviveBinMap(hold: hold, ghosts: ghosts, live: live, emptyKeeps: emptyKeeps, emptyFor: emptyFor)
+    }
+
+    static func leftoverHoldSurviveBinMap<Value>(
+        hold: [String: Value],
+        ghosts: [UUID],
+        live: [UUID] = [],
+        emptyKeeps: Bool = false,
+        emptyFor: TimeInterval = 0
+    ) -> [String: Value] {
         let keep = Set(ghosts + live)
         if keep.isEmpty {
             if emptyKeeps && leftoverLatchKeeps(emptyFor: emptyFor) { return hold }
@@ -2768,10 +2827,13 @@ enum MatchMath {
         tapUntil: TimeInterval? = nil,
         now: TimeInterval = 0,
         stillFor: TimeInterval = 1,
-        sharpness: Double? = nil
+        sharpness: Double? = nil,
+        yawAbs: Double? = nil,
+        blink: Bool = false
     ) -> Bool {
         leftoverPrintOk(cosine: cosine, sharpness: sharpness) && !leftoverTransfersId(
-            cosine: cosine, holdPrev: holdPrev, trail: trail, tapUntil: tapUntil, now: now, stillFor: stillFor
+            cosine: cosine, holdPrev: holdPrev, trail: trail, tapUntil: tapUntil, now: now, stillFor: stillFor,
+            sharpness: sharpness, yawAbs: yawAbs, blink: blink
         )
     }
 

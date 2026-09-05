@@ -1,6 +1,14 @@
-# Nachtrag 2026-09-05 (2.1.104)
+# Nachtrag 2026-09-05 (2.1.105)
 
-Siehe ANALYSE.md. **2.1.104** Live 15 fps, kein Coordinator, leftoverTrailWriteOk ohne Yaw-Block, Spark ¾ ohne UUID-Mix. 2.1.103: `availableVideoPixelFormatTypes`, `videoOut`. 2.1.102: leftoverBaptizeBoth ohne `?? raw`, Overlay ¾, leftoverNameFromHold.
+Siehe ANALYSE.md. **2.1.105** leftoverHoldTrailBins, HOLD/Spark roh je Bin, leftoverBaptizeQuality. 2.1.104: Live 15 fps, leftoverTrailWriteOk ohne Yaw-Block.
+
+## In 2.1.105 gelandet
+
+1. leftoverHoldTrailBins + leftoverCosineSparkLabelOf — Spark ¾ nicht leer
+2. leftoverHoldOverlayChipOf binTrail — HOLD roh aus Pose-Bin
+3. leftoverBaptizeQuality Blur/Blink/Profil
+4. leftoverScoreTickPut / leftoverLiveNameHolds Math aus bugfix 2.1.15
+5. VERSION = Models = MARKETING_VERSION 2.1.105 (Build 131)
 
 ## In 2.1.104 gelandet
 
@@ -98,23 +106,25 @@ Siehe ANALYSE.md. **2.1.104** Live 15 fps, kein Coordinator, leftoverTrailWriteO
 
 Neu:
 
-- ** leftoverLastHash je FaceId.** Overlay-Spark ohne Spatial-Hash-Steal — leftoverTrailLookup braucht den Box-Hash, Chip hat nur UUID.
+- leftoverLastHash je FaceId — sitzt als leftoverHoldTrailBins (2.1.105). Spark/HOLD ohne Box-Hash.
 - ** leftoverAdopt Lock 0,80 s** bei 15 fps (12 Frames) statt hart 1,2 s.
 - ** Hunt 10 fps bis leftoverStreak ≥ 1**, nicht 8 — erste Taufe sonst weiter hungernd.
 - ** FaceEngine auf outputQueue**, nicht Main. 15 fps auf Main kann UI-Jank.
 - ** RTSP 420f**, Player-Pfad bleibt 32BGRA.
-- ** Shared XPC mit Helios 1.5.88** eine TCC, ein Buffer, dieselbe 0°-Geometrie.
+- ** Shared XPC mit Helios 1.5.89** eine TCC, ein Buffer, dieselbe 0°-Geometrie.
 - ** Overlay VoiceOver HOLD roh/smooth** „gehalten null acht null“.
-- ** JPEG 70 % + Blink 2-Frame** vor leftoverBaptize — Poster tauft nicht.
-- ** gallery.json Schema 5 Capture-Hist + Hold-Bins** über App-Neustart.
+- ** JPEG 70 % + Blink 2-Frame** vor leftoverBaptize — leftoverBaptizeQuality sitzt, JPEG-Probe fehlt.
+- ** gallery.json Schema 5 Capture-Hist + Hold-Bins** über App-Neustart. leftoverHoldTrailBins stirbt mit dem Prozess.
 - ** Per-Box CLAHE** statt Full-Frame.
-- **Score-EMA 3-Tick / Live-Name 3-Tick / Gallery-Prune** aus bugfix 2.1.15, nicht mergen — hinter Pref.
+- leftoverScoreTickPut / leftoverLiveNameHolds — Math sitzt (2.1.105). Overlay bleibt liveScoreEMA, Vote bleibt Mehrheit. **3-Tick-AND hinter Pref.**
 - ** liveMinInterval thermal** 8 fps 2 s halten analog Helios, nicht hart Hunt.
 - ** Center Stage nach Continuity-Reconnect** nochmal aus — CS kommt mit dem Gerät zurück.
 - ** leftoverSparkChip peak-hold 2 Frames** sonst 8 fps Overlay flackert.
 - ** FaceEngine capture an leftoverPick** wenn Frame-Luma nil — Indoor 420v sonst Nacht-Softmax.
-- ** leftoverAdopt bleibt Taufe-Pfad.** 1,2 s sitzt. leftoverTransfersId ohne Smooth tauft nicht mehr.
-- ** VideoStabilization aus** auf Continuity — Landmark-Warp, HOLD tanzt.
-- ** leftoverBaptize Qualitätstor** sharp + yaw + blink, nicht nur Score.
+- leftoverAdopt bleibt Taufe-Pfad. 1,2 s sitzt. leftoverTransfersId ohne Smooth tauft nicht mehr.
+- VideoStabilization aus — Math fehlt auf macOS.
+- leftoverBaptize Qualitätstor — sitzt (2.1.105).
+- leftoverHoldOverlayChipOf Bin-Trail roh — sitzt (2.1.105).
+- leftoverCosineSparkLabelOf — sitzt (2.1.105).
 
 Nur main.

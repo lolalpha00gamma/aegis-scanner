@@ -2056,6 +2056,12 @@ enum MatchMathTests {
             MatchMath.leftoverHoldOverlayChipOf(hold: 0.80, trail: [0.82], yawAbs: 0.10, compact: true) == "HOLD 82/80 · BIN 0",
             "frontal Overlay compact"
         )
+        ok(
+            MatchMath.leftoverHoldOverlayChipOf(
+                hold: 0.64, trail: [0.80], yawAbs: 0.35, compact: true, binTrail: [0.66]
+            ) == "HOLD 66/64 · BIN 1",
+            "¾ HOLD Bin-Trail roh"
+        )
         ok(!MatchMath.leftoverNameFromHold(hasHold: true, hold: nil, yawAbs: 0.35), "¾ ohne Bin kein Name")
         ok(MatchMath.leftoverNameFromHold(hasHold: false, hold: nil, yawAbs: 0.35), "ohne leftover Live-Pin")
         ok(MatchMath.leftoverNameFromHold(hasHold: true, hold: 0.82, yawAbs: 0.35), "¾ Baptize-Bin Name")
@@ -2075,6 +2081,29 @@ enum MatchMathTests {
         ok(MatchMath.captureFormatScore(width: 1440, height: 1080, fps: 15) > 0, "Desk-View 4:3")
         ok(MatchMath.captureFormatScore(width: 1920, height: 1440, fps: 15) > 0, "Desk-View 1920×1440")
         ok(MatchMath.leftoverTrailWriteOk(sharpness: 0.50, yawAbs: 0.35), "¾ Trail-Write")
+        ok(
+            MatchMath.leftoverCosineSparkLabelOf(idTrail: [0.80, 0.82], binTrail: [0.64, 0.66], yawAbs: 0.35) == "0,64→0,66",
+            "¾ Spark Bin nicht Frontal"
+        )
+        ok(
+            MatchMath.leftoverCosineSparkLabelOf(idTrail: [0.80, 0.82], binTrail: [0.64, 0.66], yawAbs: 0.10) == "0,80→0,82",
+            "frontal Spark UUID"
+        )
+        ok(MatchMath.leftoverBaptizeQuality(sharpness: 0.40, yawAbs: 0.10), "scharf frontal Qualität")
+        ok(!MatchMath.leftoverBaptizeQuality(sharpness: 0.08, yawAbs: 0.10), "Blur keine Taufe")
+        ok(!MatchMath.leftoverBaptizeQuality(sharpness: 0.40, yawAbs: 0.50), "Profil keine Taufe")
+        ok(!MatchMath.leftoverBaptizeQuality(sharpness: 0.40, yawAbs: 0.10, blink: true), "Blink keine Taufe")
+        ok(!MatchMath.leftoverBaptizeBoth(raw: 0.82, smooth: 0.80, sharpness: 0.08), "Blur leftoverBaptizeBoth")
+        ok(MatchMath.leftoverBaptizeBoth(raw: 0.82, smooth: 0.80, sharpness: 0.40), "scharf leftoverBaptizeBoth")
+        var ticks = MatchMath.leftoverScoreTickPut(0.70, onto: [])
+        ticks = MatchMath.leftoverScoreTickPut(0.80, onto: ticks)
+        ticks = MatchMath.leftoverScoreTickPut(0.90, onto: ticks)
+        ticks = MatchMath.leftoverScoreTickPut(1.00, onto: ticks)
+        ok(ticks.count == 3, "Score-EMA Cap 3")
+        near(MatchMath.leftoverScoreTickMean(ticks) ?? -1, 0.90, 0.001, "Score-EMA Mean 0,80 0,90 1,00")
+        ok(MatchMath.leftoverLiveNameHolds(["Anna", "Anna", "Anna"]) == "Anna", "Live-Name 3-Tick")
+        ok(MatchMath.leftoverLiveNameHolds(["Anna", "Bert", "Anna"]) == nil, "Mix kein 3-Tick")
+        ok(MatchMath.leftoverLiveNameHolds(["Anna", "Anna"]) == nil, "2 Ticks zu wenig")
         ok(!MatchMath.leftoverHoldWriteOk(sharpness: 0.50, yawAbs: 0.35), "¾ Hold-Write blockt")
 
         if fails > 0 {

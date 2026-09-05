@@ -106,6 +106,7 @@ final class LibraryStore: ObservableObject {
     private var boxKalman: [UUID: (x: Double, y: Double, w: Double, h: Double, px: Double, py: Double, pw: Double, ph: Double)] = [:]
     private var boxKalmanV: [UUID: (vx: Double, vy: Double)] = [:]
     private var leftoverHoldTrail: [UUID: [Double]] = [:]
+    private var leftoverHoldTrailBins: [String: [Double]] = [:]
     private var leftoverHoldByHash: [String: (cosine: Double, at: TimeInterval)] = [:]
     private var leftoverHoldTrailByHash: [String: (samples: [Double], at: TimeInterval)] = [:]
     private var leftoverEmptySince: TimeInterval?
@@ -1146,11 +1147,12 @@ final class LibraryStore: ObservableObject {
     }
 
     func leftoverSparkChip(faceId: UUID, yawAbs: Double? = nil) -> String? {
-        MatchMath.leftoverCosineSparkLabel(
-            MatchMath.leftoverHoldTrailOf(
-                uuidTrail: leftoverHoldTrail[faceId] ?? [],
-                yawAbs: yawAbs
-            )
+        let bin = MatchMath.leftoverHoldBin(yawAbs: yawAbs ?? 0)
+        let binTrail = leftoverHoldTrailBins[MatchMath.leftoverHoldKey(id: faceId, bin: bin)] ?? []
+        return MatchMath.leftoverCosineSparkLabelOf(
+            idTrail: leftoverHoldTrail[faceId] ?? [],
+            binTrail: binTrail,
+            yawAbs: yawAbs
         )
     }
 
@@ -1168,12 +1170,15 @@ final class LibraryStore: ObservableObject {
     }
 
     func leftoverHoldChip(faceId: UUID, sharpness: Double? = nil, yawAbs: Double? = nil) -> String? {
-        MatchMath.leftoverHoldOverlayChipOf(
+        let bin = MatchMath.leftoverHoldBin(yawAbs: yawAbs ?? 0)
+        let binTrail = leftoverHoldTrailBins[MatchMath.leftoverHoldKey(id: faceId, bin: bin)] ?? []
+        return MatchMath.leftoverHoldOverlayChipOf(
             hold: leftoverHoldNow(faceId: faceId, yawAbs: yawAbs),
             trail: leftoverHoldTrail[faceId] ?? [],
             yawAbs: yawAbs,
             sharpness: sharpness,
-            compact: true
+            compact: true,
+            binTrail: binTrail
         )
     }
 
@@ -1392,6 +1397,7 @@ final class LibraryStore: ObservableObject {
         leftoverHoldBins = [:]
         leftoverHoldByHash = [:]
         leftoverHoldTrailByHash = [:]
+        leftoverHoldTrailBins = [:]
         leftoverEmptySince = nil
         leftoverWipeUntil = [:]
         liveSlotHold = [:]
@@ -2203,6 +2209,7 @@ final class LibraryStore: ObservableObject {
         leftoverHold = MatchMath.leftoverHoldSurvive(hold: leftoverHold, ghosts: ghostIds, live: liveIds, emptyKeeps: emptyLatch, emptyFor: emptyFor)
         leftoverHoldBins = MatchMath.leftoverHoldSurviveBins(hold: leftoverHoldBins, ghosts: ghostIds, live: liveIds, emptyKeeps: emptyLatch, emptyFor: emptyFor)
         leftoverHoldTrail = MatchMath.leftoverHoldSurvive(hold: leftoverHoldTrail, ghosts: ghostIds, live: liveIds, emptyKeeps: emptyLatch, emptyFor: emptyFor)
+        leftoverHoldTrailBins = MatchMath.leftoverHoldSurviveBinMap(hold: leftoverHoldTrailBins, ghosts: ghostIds, live: liveIds, emptyKeeps: emptyLatch, emptyFor: emptyFor)
         liveSlotHold = MatchMath.leftoverHoldSurvive(hold: liveSlotHold, ghosts: ghostIds, live: liveIds, emptyKeeps: emptyLatch, emptyFor: emptyFor)
         leftoverMissFrames = MatchMath.leftoverHoldSurvive(hold: leftoverMissFrames, ghosts: ghostIds, live: liveIds, emptyKeeps: emptyLatch, emptyFor: emptyFor)
         leftoverHoldByHash = MatchMath.leftoverHoldPrune(leftoverHoldByHash, now: now, ttl: MatchMath.dropoutTTL(dt: liveDt))
@@ -2532,7 +2539,11 @@ final class LibraryStore: ObservableObject {
                             trail = MatchMath.leftoverCosineSparkPut(cos, onto: trail)
                             leftoverHoldTrail[old.id] = trail
                         } else {
-                            trail = MatchMath.leftoverTrailLookup(
+                            let key = MatchMath.leftoverHoldKey(id: old.id, bin: bin)
+                            leftoverHoldTrailBins[key] = MatchMath.leftoverCosineSparkPut(
+                                cos, onto: leftoverHoldTrailBins[key] ?? []
+                            )
+                            trail = leftoverHoldTrailBins[key] ?? MatchMath.leftoverTrailLookup(
                                 hash: boxHash,
                                 table: leftoverHoldTrailByHash,
                                 now: now,
@@ -2607,7 +2618,10 @@ final class LibraryStore: ObservableObject {
                     trail: trailNow,
                     tapUntil: tapUntil,
                     now: now,
-                    stillFor: stillFor
+                    stillFor: stillFor,
+                    sharpness: adopted[bestJ].quality.sharpness,
+                    yawAbs: abs(adopted[bestJ].quality.yaw),
+                    blink: liveBlinkSeen[old.id] ?? liveBlinkSeen[adopted[bestJ].id] ?? false
                 )
                 if MatchMath.leftoverHoldsTrack(
                     cosine: pinCos,
@@ -2616,7 +2630,9 @@ final class LibraryStore: ObservableObject {
                     tapUntil: tapUntil,
                     now: now,
                     stillFor: stillFor,
-                    sharpness: adopted[bestJ].quality.sharpness
+                    sharpness: adopted[bestJ].quality.sharpness,
+                    yawAbs: abs(adopted[bestJ].quality.yaw),
+                    blink: liveBlinkSeen[old.id] ?? liveBlinkSeen[adopted[bestJ].id] ?? false
                 ) {
                     leftoverPending[adopted[bestJ].id] = MatchMath.leftoverHoldLabel(
                         cosine: pinCos,
@@ -2840,6 +2856,11 @@ final class LibraryStore: ObservableObject {
             leftoverDisagree = leftoverDisagree.filter { leftoverIds.contains($0.key) && !used.contains($0.key) }
             leftoverHoldTrail = leftoverHoldTrail.filter {
                 liveIds.contains($0.key) || (leftoverIds.contains($0.key) && !used.contains($0.key))
+            }
+            leftoverHoldTrailBins = leftoverHoldTrailBins.filter { row in
+                MatchMath.leftoverHoldId(from: row.key).map {
+                    liveIds.contains($0) || (leftoverIds.contains($0) && !used.contains($0))
+                } ?? false
             }
             leftoverWipeUntil = leftoverWipeUntil.filter { liveIds.contains($0.key) || leftoverIds.contains($0.key) }
             liveSlotHold = liveSlotHold.filter { liveIds.contains($0.key) || leftoverIds.contains($0.key) }

@@ -1,4 +1,4 @@
-# Aegis **2.1.104 alpha**
+# Aegis **2.1.105 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.105 alpha
+
+2.1.104 ¾-Trail Hash-Bin. Spark und HOLD roh in ¾ noch leer/EMA. Taufe ohne Blur/Blink/Profil.
+
+- **`leftoverHoldTrailBins`.** Spark/HOLD roh je Pose-Bin, nicht Frontal-UUID.
+- **`leftoverHoldOverlayChipOf` + leftoverSparkChip.** ¾ HOLD 66/64, Spark 0,64→0,66.
+- **`leftoverBaptizeQuality`.** Blur / Blink / Profil keine Taufe.
+- **Score-Tick / Live-Name 3-Tick** Math aus bugfix 2.1.15. Overlay bleibt liveScoreEMA / Mehrheit.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.105 (Build 131).
 
 ## Neu in 2.1.104 alpha
 
