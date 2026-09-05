@@ -1656,6 +1656,52 @@ enum MatchMathTests {
         let neigh = MatchMath.leftoverBoxHashNeighbors(edge)
         ok(neigh.contains("12.11.3.2"), "4K Bin 11 Nachbar 12 nicht geclippt")
         ok(MatchMath.leftoverBoxHashNeighbors("5.4.3.2").contains("6.4.3.2"), "HD Nachbar bleibt")
+        ok(MatchMath.unknownCentroid(bestCosine: 0.61), "Tag 0,61 unbekannt")
+        ok(!MatchMath.unknownCentroid(bestCosine: 0.61, capture: 0.18), "Nacht 0,61 bekannt")
+
+        let nightLive = MatchMath.leftoverSessionCapture(old: 0.70, live: [0.18, 0.22])
+        near(nightLive ?? -1, 0.18, 0.001, "Session-Capture Live-Nacht")
+        let dayLive = MatchMath.leftoverSessionCapture(old: 0.18, live: [0.70])
+        near(dayLive ?? -1, 0.18, 0.001, "Ghost-Nacht bleibt Floor")
+        ok(
+            MatchMath.leftoverPrintOk(
+                cosine: 0.61,
+                sharpness: 0.40,
+                yawAbs: 0,
+                capture: MatchMath.leftoverSessionCapture(old: 0.70, live: [0.18])
+            ),
+            "Nacht-Live 0,61 trotz Ghost 0,70"
+        )
+        ok(MatchMath.leftoverHoldWriteOk(sharpness: 0.40, yawAbs: 0.10), "frontal Hold")
+        ok(!MatchMath.leftoverHoldWriteOk(sharpness: 0.40, yawAbs: 0.50), "Profil kein Hold-EMA")
+        ok(!MatchMath.leftoverTrailWriteOk(sharpness: 0.40, yawAbs: 0.50), "Profil kein Trail")
+        let sparkLbl = MatchMath.leftoverCosineSparkLabel([0.64, 0.66, 0.90])
+        ok(sparkLbl == "0,64→0,90", "Spark 0,64→0,90")
+        ok(MatchMath.leftoverCosineSparkLabel([0.70]) == nil, "ein Sample kein Spark")
+        let frontW = MatchMath.leftoverLiveWeight(sharpness: 0.50, frontal: 1, yawAbs: 0)
+        let profileW = MatchMath.leftoverLiveWeight(sharpness: 0.50, frontal: 0.20, yawAbs: 0.45)
+        ok(MatchMath.liveCentroidKeepsPrint(weight: frontW, best: frontW), "Frontal bleibt")
+        ok(!MatchMath.liveCentroidKeepsPrint(weight: profileW, best: frontW), "Profil raus aus Mean")
+        ok(MatchMath.liveCentroidKeepsPrint(weight: 0.05, best: 0.05), "nur Profil bleibt")
+        ok(MatchMath.leftoverBoxOrderGap(imageW: 3840) > 100, "4K Gap > 100")
+        ok(abs(MatchMath.leftoverBoxOrderGap(imageW: 0) - 40) < 0.001, "ohne Bild 40")
+        ok(
+            MatchMath.leftoverBoxOrderKeeps(prevX: 100, candX: 180, others: [170], minGap: 40) == false,
+            "80 px Jitter stiehlt bei Gap 40"
+        )
+        ok(
+            MatchMath.leftoverBoxOrderKeeps(
+                prevX: 100, candX: 180, others: [170],
+                minGap: MatchMath.leftoverBoxOrderGap(imageW: 3840)
+            ),
+            "4K 80 px kein Order"
+        )
+        let nightPick = MatchMath.leftoverPick(
+            candidates: [(0, 0.50, 0.61)],
+            sharpness: [0: 0.40],
+            sessionCapture: MatchMath.leftoverSessionCapture(old: 0.70, live: [0.18])
+        )
+        ok(nightPick == 0, "Nacht-Pick 0,61 mit Live-Capture")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

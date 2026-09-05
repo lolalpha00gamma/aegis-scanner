@@ -260,7 +260,8 @@ enum MatchMath {
         boxX: [Int: Double] = [:],
         leftoverX: Double? = nil,
         otherX: [Double] = [],
-        sessionCapture: Double? = nil
+        sessionCapture: Double? = nil,
+        imageW: Double = 0
     ) -> Int? {
         if leftoverLookawayBlocks(yawAbs: lookawayYaw, enrolled: lookawayEnrolled) {
             return nil
@@ -300,7 +301,7 @@ enum MatchMath {
             }
         }
         guard !printable.isEmpty else { return nil }
-        if printable.allSatisfy({ unknownCentroid(bestCosine: $0.cosine) }) {
+        if printable.allSatisfy({ unknownCentroid(bestCosine: $0.cosine, capture: sessionCapture) }) {
             return nil
         }
         let slotted = printable.filter { sameSlot[$0.index] == true }
@@ -317,11 +318,13 @@ enum MatchMath {
             pool = cross
         }
         if let leftoverX {
+            let gap = leftoverBoxOrderGap(imageW: imageW)
             let ordered = pool.filter { cand in
                 leftoverBoxOrderKeeps(
                     prevX: leftoverX,
                     candX: boxX[cand.index] ?? leftoverX,
-                    others: otherX
+                    others: otherX,
+                    minGap: gap
                 )
             }
             if !ordered.isEmpty { pool = ordered }
@@ -579,6 +582,13 @@ enum MatchMath {
         return f
     }
 
+    /// Ghost-Capture 0,70 + Live-Nacht 0,18: Floor aus dem dunklen Frame, nicht der alten Kiste.
+    static func leftoverSessionCapture(old: Double?, live: [Double]) -> Double? {
+        let pool = live.filter { $0 > 0 } + [old].compactMap { $0 }
+        guard !pool.isEmpty else { return old }
+        return pool.min()
+    }
+
     static func leftoverPrintOk(cosine: Double?, sharpness: Double? = nil, floor: Double = leftoverPrintCosine, yawAbs: Double? = nil, capture: Double? = nil) -> Bool {
         guard let cosine else { return false }
         if leftoverBaptize(cosine: cosine) { return true }
@@ -626,6 +636,11 @@ enum MatchMath {
         return wasLeft ? candX <= other : candX >= other
     }
 
+    /// 4K: 40 px ist Überlapp. 4 % Bildbreite, sonst Order bei 80 px Jitter.
+    static func leftoverBoxOrderGap(imageW: Double, minGap: Double = 40) -> Double {
+        imageW > 1 ? max(minGap, imageW * 0.04) : minGap
+    }
+
     /// Overlay: Hold 0,64 → 0,90 als 8 Samples, nicht nur Label.
     static func leftoverCosineSparkPut(_ sample: Double, onto trail: [Double], cap: Int = 8) -> [Double] {
         var t = trail
@@ -634,11 +649,28 @@ enum MatchMath {
         return t
     }
 
+    static func leftoverCosineSparkLabel(_ trail: [Double]) -> String? {
+        guard trail.count >= 2 else { return nil }
+        func fmt(_ x: Double) -> String {
+            let n = Int((x * 100).rounded())
+            let frac = abs(n % 100)
+            let fracStr = frac < 10 ? "0\(frac)" : "\(frac)"
+            return "\(n / 100),\(fracStr)"
+        }
+        return "\(fmt(trail[0]))→\(fmt(trail[trail.count - 1]))"
+    }
+
     static func leftoverLiveWeight(sharpness: Double?, frontal: Double?, yawAbs: Double?) -> Double {
         let s = max(0, sharpness ?? 0)
         let f = max(0.15, frontal ?? 1)
         let y = 1 - min(1, max(0, (yawAbs ?? 0) / 0.50))
         return s * f * max(0.15, y)
+    }
+
+    /// Profil-Print 0,05 zieht den Live-Mean nicht, solange Frontal 0,50 da ist.
+    static func liveCentroidKeepsPrint(weight: Double, best: Double, floor: Double = 0.08) -> Bool {
+        if best <= floor { return weight > 0 }
+        return weight >= max(floor, best * 0.28)
     }
 
     /// Bewegung + Unschärfe: neuen Print nicht übernehmen. Scharfes Nicken (IoU 0,75) darf.
@@ -1427,14 +1459,15 @@ enum MatchMath {
     }
 
     /// Blur darf Hold-EMA nicht schreiben — sonst Twin 0,70 klebt.
-    static func leftoverHoldWriteOk(sharpness: Double?) -> Bool {
+    static func leftoverHoldWriteOk(sharpness: Double?, yawAbs: Double? = nil) -> Bool {
+        if let y = yawAbs, y >= leftoverPrintProfileYaw { return false }
         guard let s = sharpness else { return true }
         return s >= leftoverPrintSharp
     }
 
     /// Trail-Append dieselbe Schwelle. Roh 0,70 blur pollutet MAD.
-    static func leftoverTrailWriteOk(sharpness: Double?) -> Bool {
-        leftoverHoldWriteOk(sharpness: sharpness)
+    static func leftoverTrailWriteOk(sharpness: Double?, yawAbs: Double? = nil) -> Bool {
+        leftoverHoldWriteOk(sharpness: sharpness, yawAbs: yawAbs)
     }
 
     /// Zweiter leerer Frame: previous schon []. used∪dropped wischt Kalman. Ghosts+Hold halten.
@@ -2368,8 +2401,9 @@ enum MatchMath {
     }
 
     /// Open-Set: Bester Galerie-Centroid unter leftover-Floor — Overlay, keine Taufe.
-    static func unknownCentroid(bestCosine: Double?, floor: Double = leftoverPrintGenuine) -> Bool {
-        (bestCosine ?? -1) < floor
+    static func unknownCentroid(bestCosine: Double?, floor: Double = leftoverPrintGenuine, capture: Double? = nil) -> Bool {
+        let used = leftoverSessionFloor(yawAbs: nil, capture: capture)
+        return (bestCosine ?? -1) < min(floor, used)
     }
 
     /// leftover ohne Baptize-Print zeigt keinen eingeschriebenen Namen.
@@ -2870,14 +2904,13 @@ enum MatchMath {
         sample: Double,
         onto table: [String: (samples: [Double], at: TimeInterval)],
         now: TimeInterval,
-        cap: Int = 5,
-        sharpness: Double? = nil
+        cap: Int = 8,
+        sharpness: Double? = nil,
+        yawAbs: Double? = nil
     ) -> [String: (samples: [Double], at: TimeInterval)] {
         var next = leftoverTrailPrune(table, now: now)
-        if !leftoverTrailWriteOk(sharpness: sharpness) { return next }
-        var row = next[hash]?.samples ?? []
-        row.append(sample)
-        if row.count > cap { row.removeFirst(row.count - cap) }
+        if !leftoverTrailWriteOk(sharpness: sharpness, yawAbs: yawAbs) { return next }
+        let row = leftoverCosineSparkPut(sample, onto: next[hash]?.samples ?? [], cap: cap)
         next[hash] = (row, now)
         return next
     }

@@ -752,6 +752,9 @@ struct FaceOverlay: View {
                             cosine: store.leftoverHold[face.id],
                             sharpness: face.quality.sharpness
                         ) {
+                            if let spark = store.leftoverSparkChip(faceId: face.id) {
+                                return "\(base) · \(hold) · \(spark)"
+                            }
                             return "\(base) · \(hold)"
                         }
                         if let tap = store.tapLockChip(faceId: face.id) {
@@ -881,11 +884,17 @@ struct FaceOverlay: View {
     ) -> String {
         if let holdCos = store.leftoverHold[faceId], !MatchMath.leftoverShowsName(cosine: holdCos) {
             let hold = MatchMath.leftoverHoldLabel(cosine: holdCos) ?? MatchMath.unknownRejectNote()
+            if let spark = store.leftoverSparkChip(faceId: faceId) {
+                return "\(store.guestName(for: faceId)) · \(hold) · \(spark)"
+            }
             return "\(store.guestName(for: faceId)) · \(hold)"
         }
         if pinned, let owner {
             let held = store.liveHeldIds.contains(faceId)
             if let hold = MatchMath.leftoverHoldLabel(cosine: store.leftoverHold[faceId]) {
+                if let spark = store.leftoverSparkChip(faceId: faceId) {
+                    return "\(owner.name) \(Int(pct))% · \(hold) · \(spark)"
+                }
                 return "\(owner.name) \(Int(pct))% · \(hold)"
             }
             return "\(owner.name) \(Int(pct))% · \(MatchMath.trackHoldLabel(held: held))"

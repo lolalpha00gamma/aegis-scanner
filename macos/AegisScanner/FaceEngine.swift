@@ -1235,9 +1235,18 @@ enum FaceEngine {
     static func meanPrintVector(_ faces: [FaceObservation]) -> [Double] {
         let clear = faces.filter { !lowerFaceOccluded($0) }
         let pool = clear.isEmpty ? faces : clear
+        let liveW = pool.map {
+            MatchMath.leftoverLiveWeight(
+                sharpness: $0.quality.sharpness,
+                frontal: $0.quality.frontal,
+                yawAbs: abs($0.quality.yaw)
+            )
+        }
+        let bestW = liveW.max() ?? 0
         var acc: [Double] = []
         var wsum = 0.0
-        for f in pool {
+        for (i, f) in pool.enumerated() {
+            guard MatchMath.liveCentroidKeepsPrint(weight: liveW[i], best: bestW) else { continue }
             let v = embedding(of: f)
             guard v.count >= 32 else { continue }
             let w = MatchMath.centroidWeight(

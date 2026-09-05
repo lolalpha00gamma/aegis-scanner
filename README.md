@@ -1,4 +1,4 @@
-# Aegis **2.1.86 alpha**
+# Aegis **2.1.87 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,17 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.87 alpha
+
+2.1.86 Detector-Score. Session-Floor am Ghost. unknownCentroid 0,62 hart. Profil-EMA. Spark tot. Order 40 px auf 4K.
+
+- **`leftoverSessionCapture(old:live:)`.** min(Ghost, Live).
+- **`unknownCentroid(capture:)`.** Nacht-Floor 0,60.
+- **`leftoverHoldWriteOk(yawAbs:)`.** Profil kein Hold-EMA.
+- **`leftoverCosineSparkPut` / `leftoverCosineSparkLabel`.** Overlay `0,64→0,90`.
+- **`leftoverBoxOrderGap` 4 % + `liveCentroidKeepsPrint`.**
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.87 (Build 113).
 
 ## Neu in 2.1.86 alpha
 

@@ -1143,6 +1143,10 @@ final class LibraryStore: ObservableObject {
         MatchMath.unknownStickyName(index: MatchMath.guestIndex(of: id, order: guestOrder))
     }
 
+    func leftoverSparkChip(faceId: UUID) -> String? {
+        MatchMath.leftoverCosineSparkLabel(leftoverHoldTrail[faceId] ?? [])
+    }
+
     func leftoverAdoptProgress(faceId: UUID) -> String? {
         if MatchMath.leftoverWipeMutes(
             until: leftoverWipeUntil[faceId],
@@ -2378,7 +2382,11 @@ final class LibraryStore: ObservableObject {
                     boxX: boxX,
                     leftoverX: old.box.x,
                     otherX: adopted.filter { $0.id != old.id }.map { $0.box.x },
-                    sessionCapture: old.quality.capture
+                    sessionCapture: MatchMath.leftoverSessionCapture(
+                        old: old.quality.capture,
+                        live: remaining.map { adopted[$0.index].quality.capture }
+                    ),
+                    imageW: Double(image.width)
                 ) else {
                     let twin = aegisHit?.pairCosine
                     if let twinLabel = MatchMath.leftoverTwinPairLabel(pairCosine: twin) {
@@ -2452,16 +2460,19 @@ final class LibraryStore: ObservableObject {
                         now: now,
                         ttl: MatchMath.dropoutTTL(dt: liveDt)
                     )
-                    if MatchMath.leftoverTrailWriteOk(sharpness: adopted[bestJ].quality.sharpness) {
-                        trail.append(cos)
-                        if trail.count > 5 { trail.removeFirst(trail.count - 5) }
+                    if MatchMath.leftoverTrailWriteOk(
+                        sharpness: adopted[bestJ].quality.sharpness,
+                        yawAbs: abs(adopted[bestJ].quality.yaw)
+                    ) {
+                        trail = MatchMath.leftoverCosineSparkPut(cos, onto: trail)
                         leftoverHoldTrail[old.id] = trail
                         leftoverHoldTrailByHash = MatchMath.leftoverTrailPut(
                             hash: boxHash,
                             sample: cos,
                             onto: leftoverHoldTrailByHash,
                             now: now,
-                            sharpness: adopted[bestJ].quality.sharpness
+                            sharpness: adopted[bestJ].quality.sharpness,
+                            yawAbs: abs(adopted[bestJ].quality.yaw)
                         )
                     }
                     if MatchMath.printMADBlocks(trail) {
@@ -2538,7 +2549,10 @@ final class LibraryStore: ObservableObject {
                     )
                         ?? leftoverPending[adopted[bestJ].id]
                     leftoverPins += 1
-                    if let cos = pinCos, MatchMath.leftoverHoldWriteOk(sharpness: adopted[bestJ].quality.sharpness) {
+                    if let cos = pinCos, MatchMath.leftoverHoldWriteOk(
+                        sharpness: adopted[bestJ].quality.sharpness,
+                        yawAbs: abs(adopted[bestJ].quality.yaw)
+                    ) {
                         leftoverHoldByHash = MatchMath.leftoverHoldPut(
                             hash: leftoverLiveHash(
                                 kalmanX: boxKalman[adopted[bestJ].id]?.x,
@@ -2601,7 +2615,10 @@ final class LibraryStore: ObservableObject {
                 leftoverPins += 1
                 if let cos = pinCos {
                     let spike = MatchMath.leftoverBaptizeSpike(raw: cos, prev: holdPrev)
-                    if !spike, MatchMath.leftoverHoldWriteOk(sharpness: adopted[bestJ].quality.sharpness) {
+                    if !spike, MatchMath.leftoverHoldWriteOk(
+                        sharpness: adopted[bestJ].quality.sharpness,
+                        yawAbs: abs(adopted[bestJ].quality.yaw)
+                    ) {
                         leftoverHoldByHash = MatchMath.leftoverHoldPut(
                             hash: putHash,
                             cosine: cos,

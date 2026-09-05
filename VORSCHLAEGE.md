@@ -1,8 +1,19 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.86 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.87 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 
-Neu in 2.1.86: 4K-Nachbar nicht geclippt. Detector-Score. L/R-Box-Order. Session-Floor. Centroid frontal×yaw.
+Neu in 2.1.87: Live-Capture statt Ghost. unknownCentroid Session-Floor. Profil kein Hold-EMA. Cosine-Spark Overlay. 4K-Order-Gap. Profil raus aus Live-Centroid.
+
+## In 2.1.87 wirklich im Code
+
+2.1.86 Detector-Score, L/R, Session-Floor-Math, Centroid Pose, 4K-Nachbar. Floor am Ghost. unknownCentroid 0,62 hart. Profil-EMA. Spark tot. Order 40 px.
+
+1. **`leftoverSessionCapture(old:live:)`.**
+2. **`unknownCentroid(capture:)`.**
+3. **`leftoverHoldWriteOk(yawAbs:)`.**
+4. **`leftoverCosineSparkPut` / `leftoverCosineSparkLabel`.**
+5. **`leftoverBoxOrderGap` / `liveCentroidKeepsPrint`.**
+6. Tests + VERSION = Models = MARKETING_VERSION 2.1.87 (Build 113).
 
 ## In 2.1.86 wirklich im Code
 
