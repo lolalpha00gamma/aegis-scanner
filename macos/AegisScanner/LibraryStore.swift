@@ -20,6 +20,7 @@ final class LibraryStore: ObservableObject {
     @Published var selectedMediaId: UUID?
     @Published var selectedFaceId: UUID?
     @Published var threshold: Double = 78
+    @Published var holdTTLFloor: Double = 1.2
     @Published var strategy: StrategyID = .aegis
     @Published var showAnatomy = true
     @Published var showNMSDebug = false
@@ -116,10 +117,14 @@ final class LibraryStore: ObservableObject {
     private var leftoverHoldSeenSlow = false
     private var leftoverHoldFastFor: TimeInterval = 0
     private var leftoverHoldTTL: TimeInterval {
-        MatchMath.leftoverHoldTTLPref(MatchMath.dropoutTTLSticky(dt: liveDt, seenSlow: leftoverHoldSeenSlow))
+        MatchMath.leftoverHoldTTLOf(seenSlow: leftoverHoldSeenSlow, pref: holdTTLFloor)
     }
+    private var leftoverLiveHashTick: [UUID: String] = [:]
     private func leftoverOccupiedHashes(except id: UUID? = nil) -> [String] {
-        leftoverLastHash.compactMap { key, value in key == id ? nil : value }
+        MatchMath.leftoverOccupiedMerge(
+            stored: leftoverLastHash.compactMap { key, value in key == id ? nil : value },
+            live: leftoverLiveHashTick.compactMap { key, value in key == id ? nil : value }
+        )
     }
     private var leftoverNameLockUntil: [UUID: TimeInterval] = [:]
     private var leftoverNameLockHeld: [UUID: String] = [:]
@@ -172,6 +177,10 @@ final class LibraryStore: ObservableObject {
            let c = CameraChoice(rawValue: raw)
         {
             cameraChoice = c
+        }
+        let ttlStored = UserDefaults.standard.double(forKey: "aegis.holdTTLFloor")
+        if ttlStored > 0 {
+            holdTTLFloor = MatchMath.leftoverHoldTTLPref(ttlStored)
         }
         liveCapture.choice = cameraChoice
         let digest = GalleryFile.digestStatus()
@@ -259,6 +268,7 @@ final class LibraryStore: ObservableObject {
         liveDtSamples = []
         leftoverHoldSeenSlow = false
         leftoverHoldFastFor = 0
+        leftoverLiveHashTick = [:]
         leftoverNameLockUntil = [:]
         leftoverNameLockHeld = [:]
         liveNameVoteAt = [:]
@@ -1232,6 +1242,11 @@ final class LibraryStore: ObservableObject {
         }
     }
 
+    func setHoldTTLFloor(_ v: Double) {
+        holdTTLFloor = MatchMath.leftoverHoldTTLPref(v)
+        UserDefaults.standard.set(holdTTLFloor, forKey: "aegis.holdTTLFloor")
+    }
+
     func voteProgress(faceId: UUID) -> String? {
         let hist = liveNameHist[faceId] ?? []
         let hit = matches.first { $0.faceId == faceId }?.hits.first { $0.strategy == .aegis }
@@ -1580,6 +1595,7 @@ final class LibraryStore: ObservableObject {
         liveDtSamples = []
         leftoverHoldSeenSlow = false
         leftoverHoldFastFor = 0
+        leftoverLiveHashTick = [:]
         leftoverNameLockUntil = [:]
         leftoverNameLockHeld = [:]
         liveNameVoteAt = [:]
@@ -2555,6 +2571,17 @@ final class LibraryStore: ObservableObject {
             }
             var leftoverItems: [(old: FaceObservation, bestCos: Double?, cands: [(index: Int, iou: Double, cosine: Double?)])] = []
             leftoverItems.reserveCapacity(leftoverPinned.count)
+            leftoverLiveHashTick = [:]
+            for face in adopted {
+                leftoverLiveHashTick[face.id] = leftoverLiveHash(
+                    kalmanX: boxKalman[face.id]?.x,
+                    kalmanY: boxKalman[face.id]?.y,
+                    kalmanW: boxKalman[face.id]?.w,
+                    kalmanH: boxKalman[face.id]?.h,
+                    fallback: face.box,
+                    image: image
+                )
+            }
             for old in leftoverPinned {
                 var cands: [(index: Int, iou: Double, cosine: Double?)] = []
                 let ov = old.printVec.count >= 32 ? old.printVec : FaceEngine.embedding(of: old)

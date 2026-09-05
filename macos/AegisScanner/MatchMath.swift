@@ -1151,9 +1151,13 @@ enum MatchMath {
         until.compactMap { leftoverNameLockBlocks(until: $0.value, now: now) ? $0.key : nil }
     }
 
-    /// Pref 1,2–4,0 statt nur Takt.
+    /// Pref 1,2–4,0 statt nur Takt. Indoor-Sticky bleibt 4 s.
     static func leftoverHoldTTLPref(_ pref: TimeInterval) -> TimeInterval {
         min(leftoverLatch, max(leftoverAdoptSec, pref))
+    }
+
+    static func leftoverHoldTTLOf(seenSlow: Bool, pref: TimeInterval) -> TimeInterval {
+        seenSlow ? leftoverLatch : leftoverHoldTTLPref(pref)
     }
 
     /// Hamming-2 Neighbor-Veto wenn zwei Gesichter live. Twin stiehlt sonst Hash-Nachbar.
@@ -1172,6 +1176,16 @@ enum MatchMath {
     /// Gleiche Bin, zwei Live-Kisten: Exact-Hold tot. Twin liest sonst 0,80 vom selben Key.
     static func leftoverHashOwnOccupied(live: [String], hash: String) -> Bool {
         live.contains(hash)
+    }
+
+    /// leftoverLastHash ist Vor-Tick. Erster Twin-Frame: stored leer, Exact-Steal.
+    static func leftoverOccupiedMerge(stored: [String], live: [String]) -> [String] {
+        var seen = Set<String>()
+        var out: [String] = []
+        for h in stored + live where !h.isEmpty {
+            if seen.insert(h).inserted { out.append(h) }
+        }
+        return out
     }
 
     /// Hash-Key ohne `#bin`. Lookup-Dist sonst 99.

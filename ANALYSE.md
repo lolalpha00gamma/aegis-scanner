@@ -1,3 +1,24 @@
+# Helios + Aegis — Analyse 2026-09-05 (2.1.119)
+
+Helios **1.5.103** (Build 123). Aegis **2.1.119 alpha** (Build 145). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.118: Hamming-1 Veto, Exact occupied, Name-Lock Overlay. leftoverHoldTTLPref Clamp um Sticky 1,2/4,0 — Slider tot. Occupied nur leftoverLastHash — erster Twin-Frame stiehlt Exact.
+
+## 2.1.118 → 2.1.119 (warum Holds nach 1,2 s und beim ersten Twin noch sprangen)
+
+1. **leftoverHoldTTLPref tot.** Clamp um dropoutTTLSticky 1,2 oder 4,0. Kein Slider. 24 fps Hold stirbt nach 1,2 s.
+2. **Occupied nur Vor-Tick.** leftoverLastHash leer beim ersten Twin-Frame. leftoverHashOwnOccupied false → Exact 0,80 tauft.
+
+## Was 2.1.119 ändert
+
+1. **`leftoverHoldTTLOf`.** Indoor 4 s, 24 fps Slider 1,2–4,0 persist.
+2. **`leftoverOccupiedMerge`.** stored + live diesen Tick. Exact occupied ab Frame 0.
+3. Tests + VERSION = Models = MARKETING_VERSION 2.1.119 (Build 145).
+
+Helios 1.5.103: Tip-Restore tot, live PAD, Wi-Fi-Veto. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-05 (2.1.118)
 
 Helios **1.5.102** (Build 122). Aegis **2.1.118 alpha** (Build 144). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

@@ -97,6 +97,20 @@ struct ContentView: View {
                 .font(.caption2.monospacedDigit())
                 .foregroundStyle(.secondary)
                 .help("Effektiver Floor: Galerie-Größe plus Slider-Bias um 78.")
+            Slider(
+                value: Binding(
+                    get: { store.holdTTLFloor },
+                    set: { store.setHoldTTLFloor($0) }
+                ),
+                in: 1.2 ... 4.0,
+                step: 0.2
+            )
+            .frame(width: 90)
+            .help("Hold-TTL bei 24 fps. Indoor 8 fps bleibt 4 s. Twin nach Licht-an stirbt sonst nach 1,2 s.")
+            Text(String(format: "Hold %.1f s", store.holdTTLFloor))
+                .font(.caption2.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .help("24 fps Hold-TTL. Indoor-Latch bleibt 4 s.")
             if !store.revisionWarning.isEmpty {
                 Text(store.revisionWarning)
                     .font(.caption2)

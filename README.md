@@ -1,4 +1,4 @@
-# Aegis **2.1.118 alpha**
+# Aegis **2.1.119 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,14 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.119 alpha
+
+Hold-TTL Pref Clamp ohne Slider. Occupied nur leftoverLastHash — erster Twin-Frame stiehlt Exact.
+
+- **`leftoverHoldTTLOf` + Slider 1,2–4,0.** Indoor 4 s.
+- **`leftoverOccupiedMerge`.** stored + live diesen Tick. Exact occupied ab Frame 0.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.119 (Build 145).
 
 ## Neu in 2.1.118 alpha
 

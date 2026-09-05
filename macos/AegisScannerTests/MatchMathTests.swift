@@ -2356,6 +2356,23 @@ enum MatchMathTests {
         ok(abs(MatchMath.leftoverNameLockSecPref(3) - 2) < 0.001, "LOCK Pref Cap 2")
         ok(abs(MatchMath.leftoverAdoptSecLockPref(0.2) - 0.6) < 0.001, "Adopt Pref Floor 0,6")
         ok(abs(MatchMath.leftoverAdoptSecLockPref(2) - 1.4) < 0.001, "Adopt Pref Cap 1,4")
+        near(MatchMath.leftoverHoldTTLOf(seenSlow: true, pref: 1.2), 4.0, 0.001, "Indoor TTL 4")
+        near(MatchMath.leftoverHoldTTLOf(seenSlow: false, pref: 2.4), 2.4, 0.001, "24 fps Pref 2,4")
+        near(MatchMath.leftoverHoldTTLOf(seenSlow: false, pref: 0.5), 1.2, 0.001, "24 fps Pref Floor")
+        ok(MatchMath.leftoverOccupiedMerge(stored: [], live: ["1.2.0.0"]) == ["1.2.0.0"], "Live Tick Occupied")
+        ok(MatchMath.leftoverOccupiedMerge(stored: ["1.2.0.0"], live: ["1.2.0.0"]) == ["1.2.0.0"], "Merge unique")
+        ok(MatchMath.leftoverOccupiedMerge(stored: ["1.2.0.0"], live: ["9.9.9.9"]).sorted() == ["1.2.0.0", "9.9.9.9"].sorted(), "Merge beide")
+        ok(MatchMath.leftoverHashOwnOccupied(
+            live: MatchMath.leftoverOccupiedMerge(stored: [], live: ["5.5.4.6"]),
+            hash: "5.5.4.6"
+        ), "erster Twin-Frame occupied")
+        let firstTwin = MatchMath.leftoverHoldPut(hash: "5.5.4.6", cosine: 0.80, onto: [:], now: 10)
+        ok(MatchMath.leftoverHoldLookup(
+            hash: "5.5.4.6",
+            table: firstTwin,
+            now: 10,
+            occupied: MatchMath.leftoverOccupiedMerge(stored: [], live: ["5.5.4.6"])
+        ) == nil, "erster Twin Exact tot")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)
