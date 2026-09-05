@@ -261,6 +261,7 @@ enum MatchMath {
         leftoverX: Double? = nil,
         otherX: [Double] = [],
         sessionCapture: Double? = nil,
+        capture: [Int: Double] = [:],
         imageW: Double = 0
     ) -> Int? {
         if leftoverLookawayBlocks(yawAbs: lookawayYaw, enrolled: lookawayEnrolled) {
@@ -276,7 +277,7 @@ enum MatchMath {
                 cosine: leftoverPickPrint(raw: $0.cosine, smoothed: nil),
                 sharpness: sharpness[$0.index],
                 yawAbs: yawAbs[$0.index],
-                capture: sessionCapture
+                capture: leftoverSessionCaptureBox(old: sessionCapture, live: capture[$0.index])
             )
         }
         let smoothed: [(index: Int, iou: Double, cosine: Double?)] = ok.map {
@@ -302,7 +303,13 @@ enum MatchMath {
             }
         }
         guard !printable.isEmpty else { return nil }
-        if printable.allSatisfy({ unknownCentroid(bestCosine: $0.cosine, capture: sessionCapture) }) {
+        if printable.allSatisfy({
+            unknownCentroid(
+                bestCosine: $0.cosine,
+                capture: leftoverSessionCaptureBox(old: sessionCapture, live: capture[$0.index]),
+                yawAbs: yawAbs[$0.index]
+            )
+        }) {
             return nil
         }
         let slotted = printable.filter { sameSlot[$0.index] == true }
@@ -588,6 +595,12 @@ enum MatchMath {
     static func leftoverSessionCapture(old: Double?, live: [Double]) -> Double? {
         let liveOk = live.filter { $0 > 0 }
         if !liveOk.isEmpty { return liveOk.min() }
+        return old
+    }
+
+    /// Gast im Schatten 0,18 senkt nicht Annas Floor. Box behält ihren Capture.
+    static func leftoverSessionCaptureBox(old: Double?, live: Double?) -> Double? {
+        if let live, live > 0 { return live }
         return old
     }
 
@@ -2089,12 +2102,27 @@ enum MatchMath {
 
     /// leftover-Hold EMA: ein scharfer Twin 0,70 tauft nicht.
     /// 8 fps: alpha an dt, sonst Spike 0,06 in einem Tick.
+    static let leftoverHoldCaptureJump: Double = 0.20
+    static let leftoverHoldAlphaAE: Double = 0.08
+
+    /// AE-Sprung 0,20: Hold-EMA träge, nicht 0,35.
+    static func leftoverHoldAlphaJump(_ jump: Double, floor: Double = leftoverHoldCaptureJump) -> Bool {
+        jump >= floor
+    }
+
+    static func leftoverCaptureJump(prev: Double?, next: Double?) -> Double {
+        guard let prev, let next else { return 0 }
+        return abs(next - prev)
+    }
+
     static func leftoverHoldAlpha(
         dt: TimeInterval,
         base: Double = liveScoreAlpha,
-        ref: TimeInterval = 0.016
+        ref: TimeInterval = 0.016,
+        captureJump: Double = 0
     ) -> Double {
-        let a = min(1, max(0, base))
+        var a = min(1, max(0, base))
+        if leftoverHoldAlphaJump(captureJump) { a = min(a, leftoverHoldAlphaAE) }
         guard dt > ref, ref > 0 else { return a }
         return 1 - pow(1 - a, ref / dt)
     }
@@ -2414,9 +2442,16 @@ enum MatchMath {
     }
 
     /// Open-Set: Bester Galerie-Centroid unter leftover-Floor — Overlay, keine Taufe.
-    static func unknownCentroid(bestCosine: Double?, floor: Double = leftoverPrintGenuine, capture: Double? = nil) -> Bool {
-        let used = leftoverSessionFloor(yawAbs: nil, capture: capture)
-        return (bestCosine ?? -1) < min(floor, used)
+    /// Profil-Floor 0,70 darf nicht an Genuine 0,62 scheitern. min(floor, session) tat das.
+    static func unknownCentroid(bestCosine: Double?, floor: Double = leftoverPrintGenuine, capture: Double? = nil, yawAbs: Double? = nil) -> Bool {
+        let session = leftoverSessionFloor(yawAbs: yawAbs, capture: capture)
+        let bar: Double
+        if yawAbs != nil || capture != nil {
+            bar = session
+        } else {
+            bar = min(floor, session)
+        }
+        return (bestCosine ?? -1) < bar
     }
 
     /// leftover ohne Baptize-Print zeigt keinen eingeschriebenen Namen.

@@ -1,30 +1,26 @@
-# Helios + Aegis — Analyse 2026-09-05 (2.1.88)
+# Helios + Aegis — Analyse 2026-09-05 (2.1.89)
 
-Helios **1.5.72** (Build 92). Aegis **2.1.88 alpha** (Build 114). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`. `bugfix` (2.1.15) hinter main, nichts nachziehen.
+Helios **1.5.73** (Build 93). Aegis **2.1.89 alpha** (Build 115). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`. `bugfix` (2.1.15) hinter main, nichts nachziehen.
 
-## Warum Namen nach 2.1.87 noch sprangen / tot wirkten
+## Warum Namen nach 2.1.88 noch sprangen / tot wirkten
 
-2.1.87 hält Live-min mit Ghost, unknownCentroid-Floor, Profil-EMA 0,45, Spark Overlay, 4K-Gap. Fünf Löcher blieben:
+2.1.88 hält Live-Tag über Ghost, ¾ kein Hold-EMA, Print-Floor roh, Nacht-Climb kein Spike, FaceEngine Capture. Drei Löcher blieben:
 
-1. **Ghost-Nacht im Floor.** `leftoverSessionCapture` min(Ghost 0,18, Live 0,70) = 0,18. Tag bleibt Nacht-Floor. Twin 0,61 tauft.
-2. **¾ schreibt Hold-EMA.** leftoverHoldWriteOk erst ab Profil 0,45 rad. ¾ 0,35 zieht Frontal-Hold 0,80 auf 0,70. Nächster Frontal spike-blockt.
-3. **Print-Floor auf Smooth.** leftoverPick filtert leftoverPrintOk(smoothed). Impostor 0,50 ∧ Hold 0,80 → 0,70. Name klebt am Falschen.
-4. **Nacht-Climb = Twin-Spike.** Hold 0,61 → 0,66 ist +0,05. leftoverHoldBlocks wirft Anna beim Hellwerden weg.
-5. **FaceEngine unknownCentroid ohne Capture.** Live-Name-Pfad Floor 0,62 hart. Nacht 0,61 → decidedId nil, Overlay tot obwohl leftoverPick halten würde.
+1. **Session-Capture = min(alle Live).** Gast im Schatten 0,18 + Anna 0,70 → Floor 0,60. Twin 0,61 tauft Anna. per-Box fehlte.
+2. **unknownCentroid ohne Yaw.** `min(Genuine 0,62, session)` macht Profil-Floor 0,70 zunichte. 0,65 im ¾ ist „bekannt“. Twin im Profil.
+3. **Hold-EMA α ignoriert AE-Sprung.** Capture 0,70→0,18, α 0,35 schreibt den Hold in einem Tick um. Nächster Frontal spike-blockt oder tauft falsch.
 
-## Was 2.1.88 wirklich ändert
+## Was 2.1.89 wirklich ändert
 
-1. **`leftoverSessionCapture`.** Live nonempty ignoriert Ghost. Tag 0,70 bleibt 0,70.
-2. **`leftoverHoldWriteOk`.** Yaw-Skip bei leftoverLookawayYaw 0,28, nicht erst 0,45.
-3. **`leftoverPickPrint`.** leftoverPrintOk auf RAW. Smooth nur Score.
-4. **`leftoverHoldClimb`.** prev < 0,62 kein Spike-Block.
-5. **FaceEngine `unknownCentroid(capture:)`.** Nacht-Floor 0,60 auch im Live-Namen.
-6. Tests + VERSION = Models = MARKETING_VERSION 2.1.88 (Build 114).
+1. **`leftoverSessionCaptureBox`.** Box behält ihren Capture. leftoverPick `capture: [Int: Double]`.
+2. **`unknownCentroid(yawAbs:)`.** Profil-Floor 0,70 bleibt. FaceEngine reicht Yaw.
+3. **`leftoverHoldAlpha(captureJump:)`.** Sprung ≥ 0,20 → α 0,08.
+4. Tests + VERSION = Models = MARKETING_VERSION 2.1.89 (Build 115).
 
-2.1.87 bleibt: Live-min (Nacht), unknownCentroid Session-Math, Profil-Helfer, Spark Overlay, 4K-Gap, Live-Centroid ohne Profil-Mix.
+2.1.88 bleibt: Live-Tag schlägt Ghost, Print-Floor roh, Nacht-Climb, FaceEngine Capture.
 
-Was Masse noch bringen würde: Frame-Pump mit Helios, CLAHE auf den Buffer, Drop-in `.mlmodel`, DBSCAN vor Merge, Yaw-binned Print-Bank, Blink-Liveness, per-Box Capture statt min(alle Live).
+Was Masse noch bringen würde: Frame-Pump mit Helios, CLAHE auf den Buffer, Drop-in `.mlmodel`, DBSCAN vor Merge, Yaw-binned Print-Bank, Blink-Liveness, Iris-Twin-Veto.
 
-Helios 1.5.72: Display-Link nicht compounden, Freeze vel 0, Fill tot bei Hold, Totzone MAD, Kamera rebased. Siehe `bpms9cmnxc-debug/Helios`.
+Helios 1.5.73: Fill tot bei Still, Y-Vel × Höhe, Screen-px Vel, Kalman-Q aus MAD. Siehe `bpms9cmnxc-debug/Helios`.
 
 `bugfix` mergen oder fortsetzen: nein. Nur `main`.

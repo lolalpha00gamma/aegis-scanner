@@ -805,7 +805,8 @@ enum FaceEngine {
             } else if let bid = best?.identityId, let vec = modelVec[bid],
                       MatchMath.unknownCentroid(
                         bestCosine: pv.count == vec.count ? cosine(pv, vec) : nil,
-                        capture: face.quality.capture
+                        capture: face.quality.capture,
+                        yawAbs: abs(face.quality.yaw)
                       )
             {
                 decidedId = nil

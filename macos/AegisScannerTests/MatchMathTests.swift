@@ -1722,6 +1722,39 @@ enum MatchMathTests {
             !MatchMath.unknownCentroid(bestCosine: 0.61, capture: 0.18),
             "FaceEngine Nacht-Capture 0,61 bekannt"
         )
+        ok(
+            MatchMath.unknownCentroid(bestCosine: 0.65, yawAbs: 0.50),
+            "Profil 0,65 unbekannt"
+        )
+        ok(
+            !MatchMath.unknownCentroid(bestCosine: 0.65, yawAbs: 0.10),
+            "Frontal 0,65 bekannt"
+        )
+        near(MatchMath.leftoverSessionCaptureBox(old: 0.70, live: 0.70) ?? -1, 0.70, 0.001, "Anna-Box Tag")
+        near(MatchMath.leftoverSessionCaptureBox(old: 0.70, live: 0.18) ?? -1, 0.18, 0.001, "Gast-Box Nacht")
+        near(MatchMath.leftoverSessionCaptureBox(old: 0.70, live: nil) ?? -1, 0.70, 0.001, "ohne Live Ghost")
+        ok(
+            MatchMath.leftoverPick(
+                candidates: [(0, 0.50, 0.61)],
+                sharpness: [0: 0.40],
+                sessionCapture: MatchMath.leftoverSessionCapture(old: 0.70, live: [0.70, 0.18]),
+                capture: [0: 0.70]
+            ) == nil,
+            "Anna-Box Tag: 0,61 trotz Gast-Nacht unbekannt"
+        )
+        ok(
+            MatchMath.leftoverPick(
+                candidates: [(0, 0.50, 0.61)],
+                sharpness: [0: 0.40],
+                sessionCapture: 0.70,
+                capture: [0: 0.18]
+            ) == 0,
+            "diese Box Nacht: 0,61 bleibt"
+        )
+        ok(MatchMath.leftoverHoldAlphaJump(0.25), "AE-Sprung")
+        ok(!MatchMath.leftoverHoldAlphaJump(0.05), "kein Sprung")
+        near(MatchMath.leftoverHoldAlpha(dt: 0.016, captureJump: 0.25), 0.08, 0.001, "AE-EMA 0,08")
+        near(MatchMath.leftoverCaptureJump(prev: 0.70, next: 0.18), 0.52, 0.001, "Jump-Delta")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

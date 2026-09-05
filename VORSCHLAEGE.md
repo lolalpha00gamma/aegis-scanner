@@ -1,8 +1,19 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.88 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.89 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 
-Neu in 2.1.88: Live-Tag schlägt Ghost. ¾ kein Hold-EMA. Print-Floor roh. Nacht-Climb kein Spike. FaceEngine Capture.
+Neu in 2.1.89: per-Box Capture. unknownCentroid Yaw. Hold-EMA α aus Capture-Jump.
+
+## In 2.1.89 wirklich im Code
+
+2.1.88 Live-Tag, ¾-EMA, Print-Floor roh, Nacht-Climb, FaceEngine Capture. Gast-Schatten senkte Floor. Profil 0,65 bekannt. AE-Sprung schrieb Hold.
+
+1. **`leftoverSessionCaptureBox`.**
+2. **`leftoverPick capture:`**
+3. **`unknownCentroid(yawAbs:)`.**
+4. **`leftoverHoldAlpha(captureJump:)`.**
+5. FaceEngine reicht Yaw.
+6. Tests + VERSION = Models = MARKETING_VERSION 2.1.89 (Build 115).
 
 ## In 2.1.88 wirklich im Code
 

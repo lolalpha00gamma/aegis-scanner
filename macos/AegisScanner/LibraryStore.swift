@@ -2386,6 +2386,9 @@ final class LibraryStore: ObservableObject {
                         old: old.quality.capture,
                         live: remaining.map { adopted[$0.index].quality.capture }
                     ),
+                    capture: Dictionary(uniqueKeysWithValues: remaining.map {
+                        ($0.index, adopted[$0.index].quality.capture)
+                    }),
                     imageW: Double(image.width)
                 ) else {
                     let twin = aegisHit?.pairCosine
@@ -2569,7 +2572,13 @@ final class LibraryStore: ObservableObject {
                         leftoverHold[old.id] = MatchMath.leftoverHoldEMA(
                             prev: leftoverHold[old.id] ?? holdNow,
                             next: cos,
-                            alpha: MatchMath.leftoverHoldAlpha(dt: liveDt)
+                            alpha: MatchMath.leftoverHoldAlpha(
+                                dt: liveDt,
+                                captureJump: MatchMath.leftoverCaptureJump(
+                                    prev: old.quality.capture,
+                                    next: adopted[bestJ].quality.capture
+                                )
+                            )
                         )
                     }
                     continue
@@ -2630,7 +2639,13 @@ final class LibraryStore: ObservableObject {
                         leftoverHold[adopted[bestJ].id] = MatchMath.leftoverHoldEMA(
                             prev: leftoverHold[adopted[bestJ].id] ?? leftoverHold[old.id],
                             next: cos,
-                            alpha: MatchMath.leftoverHoldAlpha(dt: liveDt)
+                            alpha: MatchMath.leftoverHoldAlpha(
+                                dt: liveDt,
+                                captureJump: MatchMath.leftoverCaptureJump(
+                                    prev: old.quality.capture,
+                                    next: adopted[bestJ].quality.capture
+                                )
+                            )
                         )
                         leftoverWipeUntil[adopted[bestJ].id] = MatchMath.leftoverWipeMuteUntil(now: now)
                         if transfer {

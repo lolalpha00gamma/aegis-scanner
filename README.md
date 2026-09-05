@@ -1,4 +1,4 @@
-# Aegis **2.1.88 alpha**
+# Aegis **2.1.89 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.89 alpha
+
+2.1.88 Live-Tag über Ghost. ¾ kein Hold-EMA. Print-Floor roh. Nacht-Climb. FaceEngine Capture.
+
+- **`leftoverSessionCaptureBox`.** per-Box Capture. Gast-Schatten senkt Annas Floor nicht.
+- **`leftoverPick capture:`** `[Int: Double]` statt min(alle Live).
+- **`unknownCentroid(yawAbs:)`.** Profil 0,65 unbekannt. FaceEngine reicht Yaw.
+- **`leftoverHoldAlpha(captureJump:)`.** AE-Sprung ≥ 0,20 → α 0,08.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.89 (Build 115).
 
 ## Neu in 2.1.88 alpha
 
