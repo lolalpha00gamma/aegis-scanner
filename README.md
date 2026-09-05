@@ -1,4 +1,4 @@
-# Aegis **2.1.102 alpha**
+# Aegis **2.1.103 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,13 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.103 alpha
+
+2.1.102 Match-Math grün, xcodebuild tot: Swift-Overlay ohne `availableVideoCVPixelFormatTypes`.
+
+- **`availableVideoPixelFormatTypes`.** 420f → 420v → 422 → BGRA. Parameter `videoOut`.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.103 (Build 129).
 
 ## Neu in 2.1.102 alpha
 

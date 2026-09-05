@@ -1,3 +1,13 @@
+# Nachtrag 2026-09-05 (2.1.103)
+
+Siehe ANALYSE.md. **2.1.103** Swift Pixel-Format-Overlay. 2.1.102: leftoverBaptizeBoth ohne `?? raw`, Overlay ¾.
+
+## In 2.1.103 gelandet
+
+1. `availableVideoPixelFormatTypes` statt ObjC-CV-Infix — xcodebuild 2.1.101/102 tot
+2. Parameter `videoOut`, nicht `output` (AVPlayerItemVideoOutput)
+3. VERSION = Models = MARKETING_VERSION 2.1.103 (Build 129)
+
 # Nachtrag 2026-09-05 (2.1.102)
 
 Siehe ANALYSE.md. **2.1.102** leftoverBaptizeBoth ohne `?? raw`, Overlay ¾, leftoverNameFromHold. 2.1.101: HOLD compact, Nacht-Softmax, Center-Stage.
@@ -98,5 +108,8 @@ Neu:
 - leftoverHoldOverlayChipOf — sitzt.
 - leftoverTrailNowOf — sitzt.
 - leftoverNameFromHold — sitzt.
+- ** VideoStabilization aus** auf Continuity — Landmark-Warp, HOLD tanzt.
+- ** leftoverBaptize Qualitätstor** sharp + yaw + blink, nicht nur Score.
+- ** availableVideoPixelFormatTypes** sitzt (2.1.103). Overlay-Name, nicht ObjC-CV.
 
 Nur main.

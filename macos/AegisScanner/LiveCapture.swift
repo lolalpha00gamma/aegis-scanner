@@ -231,24 +231,18 @@ final class LiveCapture: NSObject {
     }
 
     /// Continuity 15–30 nur als 420f. 32BGRA + CGContext war 8 fps und tot auf Planar.
-    private func applyNativePixelFormat(_ output: AVCaptureVideoDataOutput) {
-        let types = output.availableVideoCVPixelFormatTypes
-        func has(_ t: OSType) -> Bool {
-            types.contains { Int(truncating: $0) == Int(t) }
-        }
-        let fmt: OSType
-        if has(kCVPixelFormatType_420YpCbCr8BiPlanarFullRange) {
-            fmt = kCVPixelFormatType_420YpCbCr8BiPlanarFullRange
-        } else if has(kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange) {
-            fmt = kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
-        } else if has(kCVPixelFormatType_422YpCbCr8) {
-            fmt = kCVPixelFormatType_422YpCbCr8
-        } else if has(kCVPixelFormatType_32BGRA) {
-            fmt = kCVPixelFormatType_32BGRA
-        } else {
-            return
-        }
-        output.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: fmt]
+    /// Swift-Overlay: `availableVideoPixelFormatTypes` ([OSType]), nicht ObjC-CV-Infix.
+    /// Parameter nicht `output` — Klasse hat `AVPlayerItemVideoOutput? output`.
+    private func applyNativePixelFormat(_ videoOut: AVCaptureVideoDataOutput) {
+        let preferred: [OSType] = [
+            kCVPixelFormatType_420YpCbCr8BiPlanarFullRange,
+            kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange,
+            kCVPixelFormatType_422YpCbCr8,
+            kCVPixelFormatType_32BGRA,
+        ]
+        let types = videoOut.availableVideoPixelFormatTypes
+        guard let fmt = preferred.first(where: { types.contains($0) }) ?? types.first else { return }
+        videoOut.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: fmt]
     }
 
     private func applyBestFormat(_ device: AVCaptureDevice) {

@@ -1,3 +1,20 @@
+# Helios + Aegis — Analyse 2026-09-05 (2.1.103)
+
+Helios **1.5.87** (Build 107). Aegis **2.1.103 alpha** (Build 129). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+## 2.1.102 → 2.1.103 (CI tot)
+
+Match-Math grün, xcodebuild rot: `AVCaptureVideoDataOutput` hat im Swift-Overlay von Xcode 26.6 kein `availableVideoCVPixelFormatTypes`. Name: `availableVideoPixelFormatTypes`. Klasse hat `output: AVPlayerItemVideoOutput?` — Parameter heißt `videoOut`.
+
+## Was 2.1.103 ändert
+
+1. `availableVideoPixelFormatTypes` + Parameter `videoOut`.
+2. VERSION = Models = MARKETING_VERSION 2.1.103 (Build 129).
+
+Helios 1.5.87: `ptrPred`, gleiches Overlay. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-05 (2.1.102)
 
 Helios **1.5.86** (Build 106). Aegis **2.1.102 alpha** (Build 128). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
