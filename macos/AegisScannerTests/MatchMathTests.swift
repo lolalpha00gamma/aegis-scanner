@@ -2465,6 +2465,16 @@ enum MatchMathTests {
         ok(abs((lockArm ?? 0) - 10.6) < 0.001, "LOCK Pref 0,6")
         near(MatchMath.leftoverAdoptNeedSec(dt: 0.016, lockPref: 1.0), 1.0, 0.001, "Adopt Pref 1,0")
         near(MatchMath.leftoverAdoptNeedSec(dt: 0.016), 0.80, 0.001, "Adopt Default 0,80")
+        let xa = UUID(), xb = UUID()
+        ok(MatchMath.leftoverHoldXMatch(liveX: 0.70, holds: [(id: xa, x: 0.20), (id: xb, x: 0.72)]) == xb, "x-order nächster Hold")
+        ok(MatchMath.leftoverHoldXMatch(liveX: 0.10, holds: []) == nil, "ohne Holds nil")
+        let fillX = MatchMath.leftoverAssignFillX(assigned: [nil, nil], liveX: [0.20, 0.80], holdX: [0.22, 0.78])
+        ok(fillX[0] == 0 && fillX[1] == 1, "FillX x-order")
+        let fillKeep = MatchMath.leftoverAssignFillX(assigned: [1, 0], liveX: [0.20, 0.80], holdX: [0.22, 0.78])
+        ok(fillKeep[0] == 1 && fillKeep[1] == 0, "FillX hält Print-Assign")
+        ok(MatchMath.leftoverAssignFillX(assigned: [nil], liveX: [], holdX: [0.5])[0] == nil, "ohne liveX nil")
+        ok(MatchMath.overlayChipCap(["HASH", "LOCK", "NBR", "FAST", "INDOOR", "TWIN", "JPEG"]).count == 6, "Gate Chip Cap 6")
+        ok(MatchMath.overlayChipCap(["", "LOCK"]).count == 1, "leere Chips raus")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

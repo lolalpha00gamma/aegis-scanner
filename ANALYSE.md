@@ -1,3 +1,26 @@
+# Helios + Aegis — Analyse 2026-09-05 (2.1.123)
+
+Helios **1.5.106** (Build 126). Aegis **2.1.123 alpha** (Build 149). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.122: Twin-Rank Exact `#101`, Occupied others, LastHash empty-Wipe. leftoverAssign Print tot nach Restart. Gate-Chips unbegrenzt.
+
+## 2.1.122 → 2.1.123
+
+1. **leftoverAssign nur Print.** Restart mintet IDs, Embedding leer, Nil-Zeilen bleiben tot. Nächster Hold ist der nach x.
+2. **Gate-Chip-String wuchs.** HASH/LOCK/NBR/FAST/INDOOR/TWIN/JPEG deckt die Box.
+
+## Was 2.1.123 ändert
+
+1. **`leftoverHoldXMatch` + `leftoverAssignFillX`.** Nil-Zeilen nach x, Print-Assign bleibt.
+2. **`overlayChipCap` 6** in leftoverGateChip.
+3. Tests + VERSION = Models = MARKETING_VERSION 2.1.123 (Build 149).
+
+Nicht: Hash-Floor 0,64. dropoutTTLSticky tot. leftoverHoldsTrack während LOCK. Schema 7 Name-Lock persist.
+
+Helios 1.5.106: destEdge Screen-At, Chip-Cap, slotLateralityDist. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-05 (2.1.122)
 
 Helios **1.5.105** (Build 125). Aegis **2.1.122 alpha** (Build 148). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

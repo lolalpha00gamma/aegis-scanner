@@ -1291,6 +1291,46 @@ enum MatchMath {
         return s
     }
 
+    /// Nächster Hold nach x, nicht UUID. Restart mintet neue Vision-IDs.
+    static func leftoverHoldXMatch(liveX: Double, holds: [(id: UUID, x: Double)]) -> UUID? {
+        guard !holds.isEmpty else { return nil }
+        return holds.min { abs($0.x - liveX) < abs($1.x - liveX) }?.id
+    }
+
+    /// leftoverAssign nil-Zeilen: x-order, nicht Print. Restart / Dropout ohne Embedding.
+    static func leftoverAssignFillX(assigned: [Int?], liveX: [Double], holdX: [Double]) -> [Int?] {
+        var out = assigned
+        if out.count < holdX.count {
+            out += Array(repeating: Optional<Int>.none, count: holdX.count - out.count)
+        }
+        var used = Set(out.compactMap { $0 })
+        for r in 0..<holdX.count {
+            if r < out.count, out[r] != nil { continue }
+            var bestC: Int?
+            var bestD = Double.infinity
+            var tied = false
+            for c in 0..<liveX.count where !used.contains(c) {
+                let d = abs(liveX[c] - holdX[r])
+                if d < bestD - 1e-12 {
+                    bestD = d
+                    bestC = c
+                    tied = false
+                } else if abs(d - bestD) <= 1e-12 {
+                    tied = true
+                }
+            }
+            if let bestC, !tied {
+                out[r] = bestC
+                used.insert(bestC)
+            }
+        }
+        return out
+    }
+
+    static func overlayChipCap(_ chips: [String], cap: Int = 6) -> [String] {
+        Array(chips.filter { !$0.isEmpty }.prefix(max(0, cap)))
+    }
+
     static func leftoverLiveHashTickWipes(empty: Bool) -> Bool { empty }
 
     static func leftoverHoldIndoorChip(seenSlow: Bool, ttl: TimeInterval) -> String? {

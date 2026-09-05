@@ -1,4 +1,4 @@
-# Aegis **2.1.122 alpha**
+# Aegis **2.1.123 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,14 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.123 alpha
+
+leftoverAssign Print tot nach Restart. Gate-Chips unbegrenzt.
+
+- **leftoverHoldXMatch + leftoverAssignFillX.** Nil-Zeilen nach x, Print-Assign bleibt.
+- **Gate Chip Cap 6.** HASH/LOCK/NBR/FAST/INDOOR/TWIN sonst Overlay tot.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.123 (Build 149).
 
 ## Neu in 2.1.122 alpha
 

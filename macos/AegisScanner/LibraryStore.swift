@@ -1360,7 +1360,8 @@ final class LibraryStore: ObservableObject {
         if let chip = MatchMath.leftoverHoldNeighborChip(facesInFrame: faces.count, dist: neighborDist) {
             bits.append(chip)
         }
-        return bits.isEmpty ? nil : bits.joined(separator: " · ")
+        let capped = MatchMath.overlayChipCap(bits)
+        return capped.isEmpty ? nil : capped.joined(separator: " · ")
     }
 
     /// Ohne Mutation — SwiftUI-Body darf das lesen.
@@ -2452,9 +2453,13 @@ final class LibraryStore: ObservableObject {
                     }
                     scores.append(row)
                 }
-                let assigned = MatchMath.leftoverAssignDropAmbiguous(
-                    scores: scores,
-                    assigned: MatchMath.leftoverAssign(scores: scores)
+                let assigned = MatchMath.leftoverAssignFillX(
+                    assigned: MatchMath.leftoverAssignDropAmbiguous(
+                        scores: scores,
+                        assigned: MatchMath.leftoverAssign(scores: scores)
+                    ),
+                    liveX: unnamedLeft.map { adopted[$0].box.x },
+                    holdX: unusedLeft.map { leftoverStreakBox[$0.id]?.x ?? $0.box.x }
                 )
                 var takenCols = Set<Int>()
                 for (r, col) in assigned.enumerated() {
