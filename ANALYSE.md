@@ -1,3 +1,28 @@
+# Helios + Aegis — Analyse 2026-09-05 (2.1.125)
+
+Helios **1.5.107** (Build 127). Aegis **2.1.125 alpha** (Build 151). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.124: AssignLive, Capture-Hist Rank-Lookup, Cap Keep. FillX ohne Dist-Cap. Gate prefix droppt TWIN/NBR. Twin-Chip nur L/R.
+
+## 2.1.124 → 2.1.125
+
+1. **leftoverAssignFillX / leftoverHoldXMatch ohne Pad.** AssignLive rettet Twin-Veto, nicht Far: 0,90 tauft Hold 0,10 nach Restart.
+2. **overlayChipCap prefix.** HASH/JPEG/FAST/INDOOR füllen 6, TWIN/NBR tot.
+3. **leftoverHashTwinChip L/R.** Drei Gesichter: Mitte und Rechts beide `TWIN R`.
+
+## Was 2.1.125 ändert
+
+1. **`leftoverFillXPad` 0,12.** leftoverHoldXMatch + leftoverAssignFillX. Far tot. AssignLive erbt das.
+2. **`overlayChipKeep`.** JUMP/LOCK/TWIN/NBR zuerst, unique.
+3. **`leftoverHashTwinChip`.** Zwei Gesichter L/R, Crowd `TWIN 1/2/3`.
+4. Tests + VERSION = Models = MARKETING_VERSION 2.1.125 (Build 151).
+
+Nicht: Hash-Floor 0,64. leftoverHold UUID-Remint Dictionary. Schema 7 Name-Lock persist.
+
+Helios 1.5.107: destEdge exact+Cross, Laterality-Veto, Chip-Keep. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-05 (2.1.124)
 
 Helios **1.5.106** (Build 126). Aegis **2.1.124 alpha** (Build 150). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

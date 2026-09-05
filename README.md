@@ -1,4 +1,4 @@
-# Aegis **2.1.124 alpha**
+# Aegis **2.1.125 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.125 alpha
+
+FillX tauft Far nach Restart. Gate prefix droppt TWIN/NBR. Drei Gesichter beide TWIN R.
+
+- **`leftoverFillXPad` 0,12.** leftoverHoldXMatch + leftoverAssignFillX. Far tot. AssignLive erbt das.
+- **`overlayChipKeep`.** JUMP/LOCK/TWIN/NBR zuerst, unique.
+- **`leftoverHashTwinChip`.** Crowd `TWIN 1/2/3`, Zwei-Gesicht L/R.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.125 (Build 151).
 
 ## Neu in 2.1.124 alpha
 

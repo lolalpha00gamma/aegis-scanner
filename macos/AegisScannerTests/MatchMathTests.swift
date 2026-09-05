@@ -2476,6 +2476,17 @@ enum MatchMathTests {
         let fillKeep = MatchMath.leftoverAssignFillX(assigned: [1, 0], liveX: [0.20, 0.80], holdX: [0.22, 0.78])
         ok(fillKeep[0] == 1 && fillKeep[1] == 0, "FillX hält Print-Assign")
         ok(MatchMath.leftoverAssignFillX(assigned: [nil], liveX: [], holdX: [0.5])[0] == nil, "ohne liveX nil")
+        ok(MatchMath.leftoverHoldXMatch(liveX: 0.90, holds: [(id: xa, x: 0.10)]) == nil, "FillX Pad 0,12 Far tot")
+        let fillFar = MatchMath.leftoverAssignFillX(assigned: [nil], liveX: [0.90], holdX: [0.10])
+        ok(fillFar[0] == nil, "FillX Pad hält Far")
+        let restartFar: [[Double?]] = [[nil, nil]]
+        ok(MatchMath.leftoverAssignLive(scores: restartFar, liveX: [0.90], holdX: [0.10])[0] == nil, "AssignLive Far tot")
+        ok(MatchMath.leftoverHashTwinChip(x: 0.20, others: [0.50, 0.80]) == "TWIN 1", "Crowd TWIN 1")
+        ok(MatchMath.leftoverHashTwinChip(x: 0.50, others: [0.20, 0.80]) == "TWIN 2", "Crowd TWIN 2")
+        ok(MatchMath.leftoverHashTwinChip(x: 0.80, others: [0.20, 0.50]) == "TWIN 3", "Crowd TWIN 3")
+        let gateKeep = MatchMath.overlayChipCap(["HASH", "JPEG", "FAST", "INDOOR", "X", "Y", "TWIN L", "NBR"])
+        ok(gateKeep.contains(where: { $0.hasPrefix("TWIN") }) && gateKeep.contains("NBR"), "TWIN/NBR überleben Cap")
+        ok(MatchMath.overlayChipCap(["LOCK", "LOCK", "NBR"]).count == 2, "Gate unique")
         let twinScores: [[Double?]] = [[0.70, 0.69], [0.88, 0.40]]
         let liveFill = MatchMath.leftoverAssignLive(scores: twinScores, liveX: [0.20, 0.80], holdX: [0.22, 0.78])
         ok(liveFill[0] == nil, "FillX hebt Twin-Veto nicht")

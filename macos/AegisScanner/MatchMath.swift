@@ -1224,7 +1224,10 @@ enum MatchMath {
 
     static func leftoverHashTwinChip(x: Double, others: [Double]) -> String? {
         guard !others.isEmpty else { return nil }
-        return leftoverHashTwinLeft(x: x, others: others) ? "TWIN L" : "TWIN R"
+        if others.count == 1 {
+            return leftoverHashTwinLeft(x: x, others: others) ? "TWIN L" : "TWIN R"
+        }
+        return "TWIN \(leftoverHashTwinRank(x: x, others: others) + 1)"
     }
 
     /// Twin R braucht einen eigenen Exact-Key. Hamming-0 sonst beide Occupied.
@@ -1292,14 +1295,24 @@ enum MatchMath {
     }
 
     /// Nächster Hold nach x, nicht UUID. Restart mintet neue Vision-IDs.
-    static func leftoverHoldXMatch(liveX: Double, holds: [(id: UUID, x: Double)]) -> UUID? {
+    /// Ohne Pad tauft 0,90 den Hold bei 0,10.
+    static let leftoverFillXPad = 0.12
+
+    static func leftoverHoldXMatch(liveX: Double, holds: [(id: UUID, x: Double)], pad: Double = leftoverFillXPad) -> UUID? {
         guard !holds.isEmpty else { return nil }
-        return holds.min { abs($0.x - liveX) < abs($1.x - liveX) }?.id
+        guard let best = holds.min(by: { abs($0.x - liveX) < abs($1.x - liveX) }) else { return nil }
+        if abs(best.x - liveX) > pad { return nil }
+        return best.id
     }
 
     /// leftoverAssign nil-Zeilen: x-order, nicht Print. Restart / Dropout ohne Embedding.
     /// Vor leftoverAssignDropAmbiguous aufrufen — sonst Twin-Spread 0,08 wieder zu.
-    static func leftoverAssignFillX(assigned: [Int?], liveX: [Double], holdX: [Double]) -> [Int?] {
+    static func leftoverAssignFillX(
+        assigned: [Int?],
+        liveX: [Double],
+        holdX: [Double],
+        pad: Double = leftoverFillXPad
+    ) -> [Int?] {
         var out = assigned
         if out.count < holdX.count {
             out += Array(repeating: Optional<Int>.none, count: holdX.count - out.count)
@@ -1320,7 +1333,7 @@ enum MatchMath {
                     tied = true
                 }
             }
-            if let bestC, !tied {
+            if let bestC, !tied, bestD <= pad {
                 out[r] = bestC
                 used.insert(bestC)
             }
@@ -1344,8 +1357,28 @@ enum MatchMath {
         )
     }
 
+    static func overlayChipKeep(_ chip: String) -> Int {
+        let u = chip.uppercased()
+        if u.hasPrefix("JUMP") || u.hasPrefix("LOCK") || u.hasPrefix("TWIN") || u.hasPrefix("NBR") { return 0 }
+        if u.hasPrefix("HASH") || u.hasPrefix("JPEG") { return 1 }
+        return 2
+    }
+
     static func overlayChipCap(_ chips: [String], cap: Int = 6) -> [String] {
-        Array(chips.filter { !$0.isEmpty }.prefix(max(0, cap)))
+        var seen = Set<String>()
+        var unique: [String] = []
+        for c in chips where !c.isEmpty {
+            if seen.insert(c).inserted { unique.append(c) }
+        }
+        let n = max(0, cap)
+        if unique.count <= n { return unique }
+        let ranked = unique.enumerated().sorted { a, b in
+            let pa = overlayChipKeep(a.element)
+            let pb = overlayChipKeep(b.element)
+            if pa != pb { return pa < pb }
+            return a.offset < b.offset
+        }
+        return Array(ranked.prefix(n).map(\.element))
     }
 
     static func leftoverLiveHashTickWipes(empty: Bool) -> Bool { empty }
