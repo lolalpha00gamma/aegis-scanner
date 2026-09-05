@@ -1,6 +1,16 @@
-# Nachtrag 2026-09-05 (2.1.85)
+# Nachtrag 2026-09-05 (2.1.86)
 
-Siehe ANALYSE.md. **2.1.85** schließt leftoverHoldLookup Identity-Swap, 4K-Bins, ROI-Miss, Ghost-Aspect, Kalman-Q aus Capture.
+Siehe ANALYSE.md. **2.1.86** schließt 4K-Nachbar-Clip, Detector-Score, L/R-Box-Order, Session-Floor, Centroid frontal×yaw.
+
+## In 2.1.86 gelandet
+
+1. leftoverBoxHashNeighbors max(24, inferred) — Bin 11 → 12
+2. leftoverScore(detScore) + leftoverPick detScore
+3. leftoverBoxOrderKeeps — Anna links bleibt links
+4. leftoverSessionFloor Capture < 0,28 → −0,02
+5. centroidWeight(frontal:yawAbs:) verdrahtet
+6. leftoverCosineSparkPut / leftoverLiveWeight
+7. VERSION = Models = MARKETING_VERSION 2.1.86 (Build 112)
 
 ## In 2.1.85 gelandet
 
@@ -11,13 +21,6 @@ Siehe ANALYSE.md. **2.1.85** schließt leftoverHoldLookup Identity-Swap, 4K-Bins
 5. leftoverGhostAspectLock
 6. boxKalmanQ(captureJump)
 7. VERSION = Models = MARKETING_VERSION 2.1.85 (Build 111)
-
-## In 2.1.84 gelandet
-
-1. leftoverBoxUnit / Hash imageW/H — Pixel nicht ein Bin
-2. leftoverLiveHash — Hold/Trail dieselbe Normierung
-3. leftoverTrailPut(sharpness:) — Blur kein Append
-4. VERSION = Models = MARKETING_VERSION 2.1.84 (Build 110)
 
 ## Offen (nicht Pflaster)
 
@@ -50,12 +53,12 @@ Siehe ANALYSE.md. **2.1.85** schließt leftoverHoldLookup Identity-Swap, 4K-Bins
 32. Capture-Hist in gallery.json Schema 5
 33. EMA-α Pref (träge / normal / flink)
 34. Twin-Hard-Veto Pref 0,90 / 0,92 / 0,94
-35. Detector-Score ins leftoverPick als dritter Term
+35. Detector-Score ins leftoverPick als dritter Term — sitzt
 36. Continuity Desk-View: Yaw-Floor 0,36 statt 0,28
 37. Per-Identität Floor-Offset (±4) nach 3 False-Accepts
 38. Keyboard-Return tauft Gast analog zweitem Tap
 39. Face-ID an der Kiste (kurz, 6 Zeichen) analog Helios S1
-40. Quality-weighted Gallery-Centroid (Schärfe × Frontal) — Math sitzt, leftover-Trail ist Cosine
+40. Quality-weighted Gallery-Centroid (Schärfe × Frontal × 1−|yaw|) — sitzt
 41. Temporal print bank (5 Slots) Pose-Keys statt einer leftoverHold-EMA
 42. Same-shot Twin: zwei Gesichter im Frame → leftoverTwinHard schon bei 0,88 — sitzt
 43. Aegis.dmg nicht ins Git — nur CI-Artefakt
@@ -73,7 +76,7 @@ Siehe ANALYSE.md. **2.1.85** schließt leftoverHoldLookup Identity-Swap, 4K-Bins
 55. Exposure-Lock nach Latch-Reconnect 0,8 s — sitzt
 56. ROI-Expand: Crop leer → 1,4×, dann volles Bild — sitzt
 57. Kalman-Q aus Capture-Jump — sitzt
-58. Left/Right-Box-Order als Twin-Prior (Anna links bleibt links)
+58. Left/Right-Box-Order als Twin-Prior — sitzt
 59. Shared AVCaptureSession via XPC mit Helios
 60. CLAHE nur im ROI, nicht Full-Frame
 61. Print-Bank 5 Pose-Slots (front/left/right/up/down) gewichtet
@@ -83,14 +86,21 @@ Siehe ANALYSE.md. **2.1.85** schließt leftoverHoldLookup Identity-Swap, 4K-Bins
 65. Ghost-Box Aspect-Lock: Predict ändert cx/cy, nicht w/h — sitzt
 66. Unbekannte zweite Kiste: ROI aus, Full-Frame ein Tick — sitzt
 67. leftoverKalman-Q aus Capture analog Helios luma-Q — sitzt (boxKalmanQ)
-68. Quality-weighted Live-Centroid (Schärfe × Frontal × 1−|yaw|)
-69. Detector-Score als dritter leftoverPick-Term
+68. Quality-weighted Live-Centroid (Schärfe × Frontal × 1−|yaw|) — sitzt
+69. Detector-Score als dritter leftoverPick-Term — sitzt
 70. leftoverHoldLookup Exact vor Nachbar — sitzt
-71. **Cosine-Spark 8 Frames im Overlay.** Hold 0,64→0,90 sichtbar, nicht nur Label.
-72. **JPEG-Recompress-Probe.** Print vor/nach 70 % JPEG — instabiler Print nicht taufen.
-73. **Session-Prior Licht, nicht Demografie.** Indoor-Luma hält Floor −2 für 30 s.
-74. **Yaw-binned Print-Bank** 5 Slots, leftoverHold nur frontal, Profil eigener Slot.
-75. **Softmax-Temperatur 16** auf Gallery-Scores, platt bei 0,70–0,90.
-76. **Walk-in Full-Frame alle 8 Ticks** — sitzt (liveRoiPeriodicFull).
+71. Cosine-Spark 8 Frames — Math sitzt, Overlay folgt
+72. JPEG-Recompress-Probe. Print vor/nach 70 % JPEG — instabiler Print nicht taufen.
+73. Session-Prior Licht — sitzt (leftoverSessionFloor)
+74. Yaw-binned Print-Bank 5 Slots, leftoverHold nur frontal, Profil eigener Slot.
+75. Softmax-Temperatur 16 auf Gallery-Scores, platt bei 0,70–0,90.
+76. Walk-in Full-Frame alle 8 Ticks — sitzt (liveRoiPeriodicFull).
+77. **Blink-Liveness.** Lid-Gap 2 Frames — Foto an der Wand tauft nicht.
+78. **Pupillenabstand als Scale-Prior.** Geo unabhängig von Box-Größe.
+79. **Galerie Auto-Split** nach 8 leftoverAmbiguous auf dieselbe UUID.
+80. **HomeKit-Klingel als RTSP-Quelle.**
+81. **Gang als Soft-ReID.** Box-Velocity-Signatur 1,2 s, nie Taufe allein.
+82. **White-Balance Freeze** nach Latch analog Faust-AE.
+83. 4K-Nachbar nicht geclippt — sitzt.
 
 Nur main.

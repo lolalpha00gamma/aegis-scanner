@@ -2282,6 +2282,8 @@ final class LibraryStore: ObservableObject {
                 var sameSlot: [Int: Bool] = [:]
                 var yawAbs: [Int: Double] = [:]
                 var aspectOk: [Int: Bool] = [:]
+                var detScore: [Int: Double] = [:]
+                var boxX: [Int: Double] = [:]
                 let old = item.old
                 if leftoverTried.contains(old.id) { continue }
                 let oldRaw = FaceEngine.poseSlot(old).rawValue
@@ -2291,6 +2293,8 @@ final class LibraryStore: ObservableObject {
                 for cand in remaining {
                     sharp[cand.index] = adopted[cand.index].quality.sharpness
                     yawAbs[cand.index] = abs(adopted[cand.index].quality.yaw)
+                    detScore[cand.index] = adopted[cand.index].score
+                    boxX[cand.index] = adopted[cand.index].box.x
                     let box = adopted[cand.index].box
                     aspectOk[cand.index] = MatchMath.boxAspectFrontal(width: box.width, height: box.height)
                     let raw = FaceEngine.poseSlot(adopted[cand.index]).rawValue
@@ -2369,7 +2373,12 @@ final class LibraryStore: ObservableObject {
                     dt: liveDt,
                     lookawayEnrolled: namedTracks.contains(old.id) || enrolled.contains(old.id),
                     lookawayYaw: lookYaw,
-                    facesInFrame: adopted.count
+                    facesInFrame: adopted.count,
+                    detScore: detScore,
+                    boxX: boxX,
+                    leftoverX: old.box.x,
+                    otherX: adopted.filter { $0.id != old.id }.map { $0.box.x },
+                    sessionCapture: old.quality.capture
                 ) else {
                     let twin = aegisHit?.pairCosine
                     if let twinLabel = MatchMath.leftoverTwinPairLabel(pairCosine: twin) {

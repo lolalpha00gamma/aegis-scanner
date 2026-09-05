@@ -1,8 +1,19 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.85 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.86 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 
-Neu in 2.1.85: leftoverHoldLookup Exact vor Nachbar. 4K-Bins. ROI-Miss Full. Ghost-Aspect. Kalman-Q aus Capture.
+Neu in 2.1.86: 4K-Nachbar nicht geclippt. Detector-Score. L/R-Box-Order. Session-Floor. Centroid frontal×yaw.
+
+## In 2.1.86 wirklich im Code
+
+2.1.85 Exact-Lookup. Nachbar-Clip. leftoverPick ohne Detector. Kein L/R. Nacht-Floor tot. Centroid ohne Pose.
+
+1. **`leftoverBoxHashNeighbors` max(24).**
+2. **`leftoverScore(detScore:)` / leftoverPick `detScore`.**
+3. **`leftoverBoxOrderKeeps`.**
+4. **`leftoverSessionFloor`.**
+5. **`centroidWeight(frontal:yawAbs:)`.**
+6. Tests + VERSION = Models = MARKETING_VERSION 2.1.86 (Build 112).
 
 ## In 2.1.85 wirklich im Code
 

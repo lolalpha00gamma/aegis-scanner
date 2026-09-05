@@ -255,7 +255,12 @@ enum MatchMath {
         dt: TimeInterval = 0.016,
         lookawayEnrolled: Bool = false,
         lookawayYaw: Double? = nil,
-        facesInFrame: Int = 1
+        facesInFrame: Int = 1,
+        detScore: [Int: Double] = [:],
+        boxX: [Int: Double] = [:],
+        leftoverX: Double? = nil,
+        otherX: [Double] = [],
+        sessionCapture: Double? = nil
     ) -> Int? {
         if leftoverLookawayBlocks(yawAbs: lookawayYaw, enrolled: lookawayEnrolled) {
             return nil
@@ -269,7 +274,12 @@ enum MatchMath {
             (index: $0.index, iou: $0.iou, cosine: leftoverHoldSmooth(raw: $0.cosine, prev: holdPrev, dt: dt))
         }
         var printable = smoothed.filter {
-            leftoverPrintOk(cosine: $0.cosine, sharpness: sharpness[$0.index], yawAbs: yawAbs[$0.index])
+            leftoverPrintOk(
+                cosine: $0.cosine,
+                sharpness: sharpness[$0.index],
+                yawAbs: yawAbs[$0.index],
+                capture: sessionCapture
+            )
         }
         if leftoverTwinBlocksBox(pairCosine: twinPair, printCosine: nil) {
             printable = printable.filter { leftoverBaptize(cosine: $0.cosine) }
@@ -294,7 +304,7 @@ enum MatchMath {
             return nil
         }
         let slotted = printable.filter { sameSlot[$0.index] == true }
-        let pool: [(index: Int, iou: Double, cosine: Double?)]
+        var pool: [(index: Int, iou: Double, cosine: Double?)]
         if !slotted.isEmpty {
             pool = slotted
         } else if sameSlot.isEmpty {
@@ -306,8 +316,23 @@ enum MatchMath {
             if cross.isEmpty { return nil }
             pool = cross
         }
+        if let leftoverX {
+            let ordered = pool.filter { cand in
+                leftoverBoxOrderKeeps(
+                    prevX: leftoverX,
+                    candX: boxX[cand.index] ?? leftoverX,
+                    others: otherX
+                )
+            }
+            if !ordered.isEmpty { pool = ordered }
+        }
         let scored = pool.map {
-            leftoverScore(cosine: $0.cosine ?? -1, sharpness: sharpness[$0.index], yawAbs: yawAbs[$0.index] ?? 0)
+            leftoverScore(
+                cosine: $0.cosine ?? -1,
+                sharpness: sharpness[$0.index],
+                yawAbs: yawAbs[$0.index] ?? 0,
+                detScore: detScore[$0.index]
+            )
         }
         let raw = pool.map { $0.cosine ?? -1 }
         if leftoverAmbiguousBlocks(raw: raw, scored: scored) { return nil }
@@ -539,11 +564,26 @@ enum MatchMath {
         (yawAbs ?? 0) >= leftoverPrintProfileYaw ? leftoverPrintProfile : leftoverPrintGenuine
     }
 
-    static func leftoverPrintOk(cosine: Double?, sharpness: Double? = nil, floor: Double = leftoverPrintCosine, yawAbs: Double? = nil) -> Bool {
+    /// Indoor/Nacht: Floor −0,02 Cosine für 30 s Session. Twin im Dunkeln sonst tot.
+    static let leftoverSessionCaptureLow: Double = 0.28
+    static let leftoverSessionFloorDrop: Double = 0.02
+
+    static func leftoverSessionLumaLow(_ capture: Double?) -> Bool {
+        guard let capture else { return false }
+        return capture < leftoverSessionCaptureLow
+    }
+
+    static func leftoverSessionFloor(yawAbs: Double?, capture: Double?) -> Double {
+        var f = leftoverPrintFloor(yawAbs: yawAbs)
+        if leftoverSessionLumaLow(capture) { f -= leftoverSessionFloorDrop }
+        return f
+    }
+
+    static func leftoverPrintOk(cosine: Double?, sharpness: Double? = nil, floor: Double = leftoverPrintCosine, yawAbs: Double? = nil, capture: Double? = nil) -> Bool {
         guard let cosine else { return false }
         if leftoverBaptize(cosine: cosine) { return true }
         if leftoverBlurBlocks(sharpness: sharpness, cosine: cosine) { return false }
-        let genuine = leftoverPrintFloor(yawAbs: yawAbs)
+        let genuine = leftoverSessionFloor(yawAbs: yawAbs, capture: capture)
         if cosine >= max(floor, genuine) { return true }
         if cosine >= genuine, let s = sharpness, s >= leftoverPrintSharp { return true }
         return false
@@ -560,7 +600,7 @@ enum MatchMath {
     static let leftoverSharpBonus = 0.05
     static let leftoverYawPenalty = 0.12
 
-    static func leftoverScore(cosine: Double, sharpness: Double?, yawAbs: Double = 0) -> Double {
+    static func leftoverScore(cosine: Double, sharpness: Double?, yawAbs: Double = 0, detScore: Double? = nil) -> Double {
         var s: Double
         if let sh = sharpness {
             let t = min(1, max(0, (sh - leftoverPrintSharp) / 0.20))
@@ -569,7 +609,36 @@ enum MatchMath {
             s = cosine
         }
         s -= leftoverYawPenalty * min(1, max(0, yawAbs / 0.50))
+        if let d = detScore {
+            let n = d > 1 ? d / 100 : d
+            s += leftoverDetBonus * min(1, max(0, n))
+        }
         return s
+    }
+
+    static let leftoverDetBonus = 0.04
+
+    /// Twin: Anna links bleibt links. Gast-Kiste rechts stiehlt nicht.
+    static func leftoverBoxOrderKeeps(prevX: Double, candX: Double, others: [Double], minGap: Double = 40) -> Bool {
+        guard let other = others.min(by: { abs($0 - prevX) < abs($1 - prevX) }) else { return true }
+        if abs(prevX - other) < minGap { return true }
+        let wasLeft = prevX < other
+        return wasLeft ? candX <= other : candX >= other
+    }
+
+    /// Overlay: Hold 0,64 → 0,90 als 8 Samples, nicht nur Label.
+    static func leftoverCosineSparkPut(_ sample: Double, onto trail: [Double], cap: Int = 8) -> [Double] {
+        var t = trail
+        t.append(sample)
+        if t.count > cap { t.removeFirst(t.count - cap) }
+        return t
+    }
+
+    static func leftoverLiveWeight(sharpness: Double?, frontal: Double?, yawAbs: Double?) -> Double {
+        let s = max(0, sharpness ?? 0)
+        let f = max(0.15, frontal ?? 1)
+        let y = 1 - min(1, max(0, (yawAbs ?? 0) / 0.50))
+        return s * f * max(0.15, y)
     }
 
     /// Bewegung + Unschärfe: neuen Print nicht übernehmen. Scharfes Nicken (IoU 0,75) darf.
@@ -2559,8 +2628,11 @@ enum MatchMath {
 
     static func clusterSplitNote() -> String { "SPLIT" }
 
-    static func centroidWeight(capture: Double, sharpness: Double) -> Double {
-        max(0.08, capture * (0.35 + 0.65 * max(0, sharpness)))
+    static func centroidWeight(capture: Double, sharpness: Double, frontal: Double = 1, yawAbs: Double = 0) -> Double {
+        let base = max(0.08, capture * (0.35 + 0.65 * max(0, sharpness)))
+        let front = max(0.15, frontal)
+        let yaw = 1 - min(1, max(0, yawAbs / 0.50))
+        return base * front * max(0.15, yaw)
     }
 
     /// BOX, PRINT, GEO, LOCK: gemessene Stimmen einig, sonst keine Taufe.
@@ -2704,7 +2776,7 @@ enum MatchMath {
         let far = w <= 2 || h <= 2
         let rPos = far ? 2 : 1
         let rSize = far ? 2 : 1
-        let used = max(bins, leftoverBoxHashBinsInferred(hash))
+        let used = max(24, bins, leftoverBoxHashBinsInferred(hash))
         var out: [String] = []
         out.reserveCapacity((2 * rPos + 1) * (2 * rPos + 1) * (2 * rSize + 1) * (2 * rSize + 1))
         for dx in -rPos...rPos {

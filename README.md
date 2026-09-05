@@ -1,4 +1,4 @@
-# Aegis **2.1.85 alpha**
+# Aegis **2.1.86 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,17 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.86 alpha
+
+2.1.85 Exact-Lookup. 4K-Nachbar an Bin 11 geclippt. leftoverPick ohne Detector. Kein L/R-Prior. Nacht-Floor tot. Centroid ohne Frontal/Yaw.
+
+- **`leftoverBoxHashNeighbors` max(24).** Bin 11 → Nachbar 12.
+- **`leftoverScore(detScore:)` / leftoverPick `detScore`.**
+- **`leftoverBoxOrderKeeps`.** Anna links bleibt links.
+- **`leftoverSessionFloor`.** Capture < 0,28 → Floor −0,02.
+- **`centroidWeight(frontal:yawAbs:)`.** Profil weniger Gewicht.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.86 (Build 112).
 
 ## Neu in 2.1.85 alpha
 

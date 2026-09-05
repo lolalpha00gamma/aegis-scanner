@@ -1598,6 +1598,65 @@ enum MatchMathTests {
         let calm = MatchMath.boxKalman(prev: 200, meas: 400, p: 0.04, dt: 0.125, q: MatchMath.boxKalmanQ(captureJump: false))
         ok(abs(jumped.x - 400) < abs(calm.x - 400), "AE folgt stärker")
 
+        ok(
+            MatchMath.leftoverBoxOrderKeeps(prevX: 100, candX: 110, others: [400]),
+            "Anna links bleibt links"
+        )
+        ok(
+            !MatchMath.leftoverBoxOrderKeeps(prevX: 100, candX: 410, others: [400]),
+            "Gast rechts stiehlt nicht"
+        )
+        ok(
+            MatchMath.leftoverBoxOrderKeeps(prevX: 200, candX: 210, others: [220], minGap: 40),
+            "Überlapp kein Order"
+        )
+        let leftPick = MatchMath.leftoverPick(
+            candidates: [(0, 0.50, 0.66), (1, 0.50, 0.66)],
+            boxX: [0: 110, 1: 410],
+            leftoverX: 100,
+            otherX: [400]
+        )
+        ok(leftPick == 0, "Twin-Order nimmt links")
+        let detHi = MatchMath.leftoverScore(cosine: 0.70, sharpness: 0.40, yawAbs: 0, detScore: 0.95)
+        let detLo = MatchMath.leftoverScore(cosine: 0.70, sharpness: 0.40, yawAbs: 0, detScore: 0.20)
+        ok(detHi > detLo, "Detector-Score hebt leftover")
+        let detPick = MatchMath.leftoverPick(
+            candidates: [(0, 0.50, 0.67), (1, 0.50, 0.66)],
+            sharpness: [0: 0.40, 1: 0.40],
+            detScore: [0: 0.20, 1: 0.95]
+        )
+        ok(detPick == 1, "höherer Detector dreht bei 0,01 Spread")
+        ok(MatchMath.leftoverSessionLumaLow(0.18), "Nacht Capture")
+        ok(!MatchMath.leftoverSessionLumaLow(0.70), "Tag Capture")
+        near(MatchMath.leftoverSessionFloor(yawAbs: 0, capture: 0.18), MatchMath.leftoverPrintGenuine - 0.02, 0.001, "Session Floor −0,02")
+        near(MatchMath.leftoverSessionFloor(yawAbs: 0, capture: 0.70), MatchMath.leftoverPrintGenuine, 0.001, "Tag Floor bleibt")
+        ok(
+            MatchMath.leftoverPrintOk(cosine: 0.61, sharpness: 0.40, yawAbs: 0, capture: 0.18),
+            "Nacht 0,61 darf Hold"
+        )
+        ok(
+            !MatchMath.leftoverPrintOk(cosine: 0.61, sharpness: 0.40, yawAbs: 0, capture: 0.70),
+            "Tag 0,61 tot"
+        )
+        let spark = MatchMath.leftoverCosineSparkPut(0.90, onto: [0.64, 0.66, 0.70])
+        ok(spark.last == 0.90 && spark.count == 4, "Cosine-Spark append")
+        let fullSpark = MatchMath.leftoverCosineSparkPut(0.91, onto: Array(repeating: 0.70, count: 8))
+        ok(fullSpark.count == 8 && fullSpark.last == 0.91, "Spark Cap 8")
+        ok(
+            MatchMath.leftoverLiveWeight(sharpness: 0.50, frontal: 1, yawAbs: 0)
+                > MatchMath.leftoverLiveWeight(sharpness: 0.50, frontal: 0.20, yawAbs: 0.40),
+            "Live-Gewicht frontal vor Profil"
+        )
+        ok(
+            MatchMath.centroidWeight(capture: 1, sharpness: 1, frontal: 1, yawAbs: 0)
+                > MatchMath.centroidWeight(capture: 1, sharpness: 1, frontal: 0.2, yawAbs: 0.45),
+            "Centroid Profil weniger Gewicht"
+        )
+        let edge = "11.11.3.2"
+        let neigh = MatchMath.leftoverBoxHashNeighbors(edge)
+        ok(neigh.contains("12.11.3.2"), "4K Bin 11 Nachbar 12 nicht geclippt")
+        ok(MatchMath.leftoverBoxHashNeighbors("5.4.3.2").contains("6.4.3.2"), "HD Nachbar bleibt")
+
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)
             exit(1)

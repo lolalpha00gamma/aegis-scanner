@@ -1240,7 +1240,12 @@ enum FaceEngine {
         for f in pool {
             let v = embedding(of: f)
             guard v.count >= 32 else { continue }
-            let w = MatchMath.centroidWeight(capture: f.quality.capture, sharpness: f.quality.sharpness)
+            let w = MatchMath.centroidWeight(
+                capture: f.quality.capture,
+                sharpness: f.quality.sharpness,
+                frontal: f.quality.frontal,
+                yawAbs: abs(f.quality.yaw)
+            )
             if acc.isEmpty {
                 acc = v.map { $0 * w }
             } else if acc.count == v.count {
@@ -1289,7 +1294,12 @@ enum FaceEngine {
         for f in faces {
             let v = partialEmbedding(of: f)
             guard v.count >= 32 else { continue }
-            let w = MatchMath.centroidWeight(capture: f.quality.capture, sharpness: f.quality.sharpness)
+            let w = MatchMath.centroidWeight(
+                capture: f.quality.capture,
+                sharpness: f.quality.sharpness,
+                frontal: f.quality.frontal,
+                yawAbs: abs(f.quality.yaw)
+            )
             if acc.isEmpty {
                 acc = v.map { $0 * w }
             } else if acc.count == v.count {
@@ -1306,7 +1316,12 @@ enum FaceEngine {
     static func printWeights(_ faces: [FaceObservation]) -> [(id: UUID, weight: Double, slot: String)] {
         faces.map { f in
             let has = f.printVec.count >= 32 || !f.featurePrint.isEmpty
-            let w = has ? MatchMath.centroidWeight(capture: f.quality.capture, sharpness: f.quality.sharpness) : 0
+            let w = has ? MatchMath.centroidWeight(
+                capture: f.quality.capture,
+                sharpness: f.quality.sharpness,
+                frontal: f.quality.frontal,
+                yawAbs: abs(f.quality.yaw)
+            ) : 0
             return (f.id, w, poseSlot(f).titleDE)
         }
     }
