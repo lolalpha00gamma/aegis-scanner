@@ -463,7 +463,7 @@ private func visionOrientation(_ connection: AVCaptureConnection, override: Stri
     default: break
     }
     if !MatchMath.physicalCaptureRotation() {
-        let raw = MatchMath.liveOrientationRaw(width: width, height: height)
+        let raw = MatchMath.liveBufferOrientation(width: width, height: height)
         return CGImagePropertyOrientation(rawValue: raw) ?? .up
     }
     let angle: CGFloat

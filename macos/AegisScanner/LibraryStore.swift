@@ -126,6 +126,8 @@ final class LibraryStore: ObservableObject {
         identities = packed.identities
         faces = packed.faces
         leftoverStreakSince = MatchMath.leftoverStreakSinceDecode(packed.leftoverStreakSince)
+        leftoverHoldBins = MatchMath.leftoverHoldBinsDecode(packed.leftoverHoldBins)
+        leftoverHoldTrailBins = MatchMath.leftoverHoldTrailBinsDecode(packed.leftoverHoldTrailBins)
         if let stored = packed.printRevision, stored != MatchMath.printRevision {
             revisionWarning = "Galerie-Print \(stored), App \(MatchMath.printRevision) — Scores können springen. Neu scannen."
         }
@@ -165,7 +167,9 @@ final class LibraryStore: ObservableObject {
         GalleryFile.save(
             identities: identities,
             faces: faces,
-            leftoverStreakSince: MatchMath.leftoverStreakSinceEncode(leftoverStreakSince)
+            leftoverStreakSince: MatchMath.leftoverStreakSinceEncode(leftoverStreakSince),
+            leftoverHoldBins: MatchMath.leftoverHoldBinsEncode(leftoverHoldBins),
+            leftoverHoldTrailBins: MatchMath.leftoverHoldTrailBinsEncode(leftoverHoldTrailBins)
         )
         refreshMergeHint()
     }
@@ -210,6 +214,8 @@ final class LibraryStore: ObservableObject {
         identities = packed.identities
         faces = packed.faces
         leftoverStreakSince = MatchMath.leftoverStreakSinceDecode(packed.leftoverStreakSince)
+        leftoverHoldBins = MatchMath.leftoverHoldBinsDecode(packed.leftoverHoldBins)
+        leftoverHoldTrailBins = MatchMath.leftoverHoldTrailBinsDecode(packed.leftoverHoldTrailBins)
         liveNameHist = [:]
         liveNameLock = [:]
         liveScoreEma = [:]
@@ -1627,7 +1633,8 @@ final class LibraryStore: ObservableObject {
         now: TimeInterval,
         holdPrev: Double? = nil,
         boxId: UUID? = nil,
-        dt: TimeInterval = 0.016
+        dt: TimeInterval = 0.016,
+        yawAbs: Double? = nil
     ) -> (ready: Bool, label: String?) {
         let hashed = MatchMath.leftoverStreakBoxWrite(
             kalmanX: boxKalman[boxId ?? oldId]?.x,
@@ -1654,7 +1661,7 @@ final class LibraryStore: ObservableObject {
         leftoverStreak[oldId] = next
         leftoverStreakBox[oldId] = hashed
         let elapsed = now - (leftoverStreakSince[oldId] ?? now)
-        let needSec = MatchMath.leftoverAdoptNeedSec(dt: dt)
+        let needSec = MatchMath.leftoverAdoptNeedSec(dt: dt, yawAbs: yawAbs)
         return (
             MatchMath.leftoverAdoptReady(elapsed: elapsed, streak: next, needSec: needSec, holdPrev: holdPrev),
             MatchMath.leftoverStreakLabel(elapsed: elapsed, needSec: needSec)
@@ -2217,7 +2224,7 @@ final class LibraryStore: ObservableObject {
                     guard maj.ready else { continue }
                     leftoverPairCommit[old.id] = maj.commit
                     leftoverDisagree[old.id] = 0
-                    let step = leftoverAdvance(oldId: old.id, box: adopted[i].box, now: now, boxId: adopted[i].id, dt: liveDt)
+                    let step = leftoverAdvance(oldId: old.id, box: adopted[i].box, now: now, boxId: adopted[i].id, dt: liveDt, yawAbs: abs(adopted[i].quality.yaw))
                     if let label = step.label {
                         leftoverPending[adopted[i].id] = label
                     }
@@ -2563,7 +2570,7 @@ final class LibraryStore: ObservableObject {
                     now: now,
                     ttl: MatchMath.dropoutTTL(dt: liveDt)
                 )
-                let step = leftoverAdvance(oldId: old.id, box: adopted[bestJ].box, now: now, holdPrev: holdPrev, boxId: adopted[bestJ].id, dt: liveDt)
+                let step = leftoverAdvance(oldId: old.id, box: adopted[bestJ].box, now: now, holdPrev: holdPrev, boxId: adopted[bestJ].id, dt: liveDt, yawAbs: abs(adopted[bestJ].quality.yaw))
                 if let label = step.label {
                     leftoverPending[adopted[bestJ].id] = label
                 }
@@ -2685,6 +2692,15 @@ final class LibraryStore: ObservableObject {
                 }
                 let stillFor = liveStillFor[old.id] ?? liveStillFor[adopted[bestJ].id] ?? 0
                 let blinkBlocked = (liveOpenStreak[old.id] ?? liveOpenStreak[adopted[bestJ].id] ?? 0) < 2
+                let boxIoU = FaceEngine.iou(old.box, adopted[bestJ].box)
+                var jpegDelta: Double?
+                if MatchMath.leftoverBaptize(cosine: pinCos), !adopted[bestJ].featurePrint.isEmpty {
+                    jpegDelta = FaceEngine.jpegProbeDelta(
+                        print: adopted[bestJ].featurePrint,
+                        image: image,
+                        box: adopted[bestJ].box
+                    )
+                }
                 let transfer = MatchMath.leftoverTransfersId(
                     cosine: pinCos,
                     holdPrev: holdNow,
@@ -2694,7 +2710,9 @@ final class LibraryStore: ObservableObject {
                     stillFor: stillFor,
                     sharpness: adopted[bestJ].quality.sharpness,
                     yawAbs: abs(adopted[bestJ].quality.yaw),
-                    blink: blinkBlocked
+                    blink: blinkBlocked,
+                    jpegDelta: jpegDelta,
+                    iou: boxIoU
                 )
                 if MatchMath.leftoverHoldsTrack(
                     cosine: pinCos,
@@ -2705,7 +2723,9 @@ final class LibraryStore: ObservableObject {
                     stillFor: stillFor,
                     sharpness: adopted[bestJ].quality.sharpness,
                     yawAbs: abs(adopted[bestJ].quality.yaw),
-                    blink: blinkBlocked
+                    blink: blinkBlocked,
+                    jpegDelta: jpegDelta,
+                    iou: boxIoU
                 ) {
                     leftoverPending[adopted[bestJ].id] = MatchMath.leftoverHoldLabel(
                         cosine: pinCos,

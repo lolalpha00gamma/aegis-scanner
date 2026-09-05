@@ -1,3 +1,30 @@
+# Helios + Aegis — Analyse 2026-09-05 (2.1.109)
+
+Helios **1.5.93** (Build 113). Aegis **2.1.109 alpha** (Build 135). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.108: Spark-Peek, PickLuma, BaptizeGate, Blink-Streak, Name-AND. JPEG-Gate tot ohne Probe. Hold-Bins sterben mit dem Prozess. Box-Steal tauft. ¾ Adopt 0,80 s. Portrait .right bei 0°.
+
+## 2.1.108 → 2.1.109 (warum Namen nach Restart und bei Twins noch sprangen)
+
+1. **`leftoverBaptizeJpegOk(nil) = true`.** Gate sitzt, FaceEngine misst nicht — Poster taufen.
+2. **leftoverHoldTrailBins nur RAM.** Schema 4, App-Neustart = Spark/HOLD tot, erste Taufe hungert.
+3. **IoU-Sprung keine Taufe-Sperre.** Twin stiehlt die Box, leftoverTransfersId 0,82 tauft den Nachbarn.
+4. **`leftoverAdoptNeedSec` ignoriert Yaw.** ¾ bei 15 fps 0,80 s = 12 Frames, Twin in Pose.
+5. **`liveOrientationRaw` height>width → .right.** Capture 0°, Box 90° nach Desk-View.
+
+## Was 2.1.109 ändert
+
+1. **`FaceEngine.jpegProbeDelta`.** JPEG 70 % Reextract, `leftoverJpegProbe` in leftoverTransfersId.
+2. **gallery.json Schema 5.** leftoverHoldBins + leftoverHoldTrailBins persist.
+3. **`leftoverIoUJumpBlocks` 0,40.** Box-Steal keine Taufe, HoldsTrack auch tot.
+4. **`leftoverAdoptNeedSec(dt:yawAbs:)`.** ¾ 1,2 s, frontal Lock 0,80 s.
+5. **`liveBufferOrientation`.** 0° Capture .up.
+6. Tests + VERSION = Models = MARKETING_VERSION 2.1.109 (Build 135).
+
+Helios 1.5.93: STEAL-HUD, 0° Vision, Hochpass je Hand. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-05 (2.1.108)
 
 Helios **1.5.92** (Build 112). Aegis **2.1.108 alpha** (Build 134). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

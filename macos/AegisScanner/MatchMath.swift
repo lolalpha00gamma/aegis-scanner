@@ -86,8 +86,8 @@ enum MatchMath {
     /// ¾/Profil: Maße vs. Frontal-Centroid lügen. Print ≥ 80 nicht vetoen.
     static let geoVetoYawSkip = 0.28
     static let geoVetoYawPrint = 80.0
-    /// gallery.json Schema neben printRevision. 3 = Gast als persistente Klasse.
-    static let gallerySchema = 4
+    /// gallery.json Schema neben printRevision. 5 = Hold-Bins über App-Neustart.
+    static let gallerySchema = 5
     /// Box-IoU unter dem Wert: Bewegung. Mit Schärfe: kleines Nicken darf den Print.
     static let holdStillIoU = 0.70
     static let holdStillSharp = 0.18
@@ -754,10 +754,12 @@ enum MatchMath {
         sharpness: Double? = nil,
         yawAbs: Double? = nil,
         blink: Bool = false,
-        jpegDelta: Double? = nil
+        jpegDelta: Double? = nil,
+        iou: Double? = nil
     ) -> Bool {
         if tapNameLockBlocks(until: tapUntil, now: now) { return false }
         if leftoverBaptizeStillBlocks(stillFor: stillFor, cosine: cosine, holdPrev: holdPrev) { return false }
+        if leftoverIoUJumpBlocks(iou) { return false }
         guard leftoverBaptize(cosine: cosine) else { return false }
         if !leftoverBaptizeQuality(sharpness: sharpness, yawAbs: yawAbs, blink: blink) { return false }
         if printMADBlocks(trail) { return false }
@@ -999,6 +1001,41 @@ enum MatchMath {
     /// Portrait-Buffer → .right (6), sonst .up (1). Kein Coordinator.
     static func liveOrientationRaw(width: Int, height: Int) -> UInt32 {
         height > width ? 6 : 1
+    }
+
+    /// 0° Capture: Pixel stehen. height>width nicht .right — sonst 90° Box nach Format-Hop.
+    static func liveBufferOrientation(width: Int, height: Int) -> UInt32 {
+        physicalCaptureRotation() ? liveOrientationRaw(width: width, height: height) : 1
+    }
+
+    /// Box-Steal: IoU-Sprung unter 0,40 keine Taufe. Analog Helios grabAbortHold.
+    static let leftoverIoUJump = 0.40
+
+    static func leftoverIoUJumpBlocks(_ iou: Double?) -> Bool {
+        guard let iou else { return false }
+        return iou + 1e-12 < leftoverIoUJump
+    }
+
+    /// JPEG 70 % Cosine-Drop. 1 − cos(raw, jpeg). Poster fällt > 0,06.
+    static func leftoverJpegProbe(raw: [Double], jpeg: [Double]) -> Double {
+        guard raw.count >= 32, raw.count == jpeg.count else { return 1 }
+        return max(0, 1 - cosine(raw, jpeg))
+    }
+
+    static func leftoverHoldBinsEncode(_ bins: [String: Double]) -> [String: Double] {
+        bins.filter { $0.value > 0 }
+    }
+
+    static func leftoverHoldTrailBinsEncode(_ bins: [String: [Double]]) -> [String: [Double]] {
+        bins.filter { !$0.value.isEmpty }
+    }
+
+    static func leftoverHoldBinsDecode(_ raw: [String: Double]?) -> [String: Double] {
+        raw ?? [:]
+    }
+
+    static func leftoverHoldTrailBinsDecode(_ raw: [String: [Double]]?) -> [String: [Double]] {
+        raw ?? [:]
     }
 
     /// 720p @ 15–30 schlägt 360p @ 60 und 800p @ 8. Desk-View 4:3 bis 1920×1440.
@@ -1869,16 +1906,18 @@ enum MatchMath {
         dropoutTTL(dt: dt)
     }
 
-    static func leftoverAdoptNeed(dt: TimeInterval) -> Int {
-        let step = max(0.008, min(0.20, dt <= 0 ? 0.125 : dt))
-        let frames = Int(ceil(leftoverAdoptNeedSec(dt: dt) / step))
-        return max(leftoverAdoptFrames, min(leftoverAdoptCap, frames))
-    }
-
     /// 8 fps: 1,2 s ist 10 Frames — Walker fällt durch. 15/24 fps Lock 0,80 s (12 Frames bei 15).
-    static func leftoverAdoptNeedSec(dt: TimeInterval) -> TimeInterval {
+    /// ¾/Profil bleibt 1,2 s auch bei 15 fps — sonst Twin-Taufe in Pose.
+    static func leftoverAdoptNeedSec(dt: TimeInterval, yawAbs: Double? = nil) -> TimeInterval {
+        if leftoverHoldBin(yawAbs: yawAbs ?? 0) != 0 { return leftoverAdoptSec }
         if dt <= 0 || dt >= 0.08 { return leftoverAdoptSec }
         return leftoverAdoptSecLock
+    }
+
+    static func leftoverAdoptNeed(dt: TimeInterval, yawAbs: Double? = nil) -> Int {
+        let step = max(0.008, min(0.20, dt <= 0 ? 0.125 : dt))
+        let frames = Int(ceil(leftoverAdoptNeedSec(dt: dt, yawAbs: yawAbs) / step))
+        return max(leftoverAdoptFrames, min(leftoverAdoptCap, frames))
     }
 
     static func leftoverAdoptReady(streak: Int, need: Int) -> Bool {
@@ -2922,11 +2961,14 @@ enum MatchMath {
         stillFor: TimeInterval = 1,
         sharpness: Double? = nil,
         yawAbs: Double? = nil,
-        blink: Bool = false
+        blink: Bool = false,
+        jpegDelta: Double? = nil,
+        iou: Double? = nil
     ) -> Bool {
-        leftoverPrintOk(cosine: cosine, sharpness: sharpness) && !leftoverTransfersId(
+        if leftoverIoUJumpBlocks(iou) { return false }
+        return leftoverPrintOk(cosine: cosine, sharpness: sharpness) && !leftoverTransfersId(
             cosine: cosine, holdPrev: holdPrev, trail: trail, tapUntil: tapUntil, now: now, stillFor: stillFor,
-            sharpness: sharpness, yawAbs: yawAbs, blink: blink
+            sharpness: sharpness, yawAbs: yawAbs, blink: blink, jpegDelta: jpegDelta, iou: iou
         )
     }
 

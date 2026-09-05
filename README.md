@@ -1,4 +1,4 @@
-# Aegis **2.1.108 alpha**
+# Aegis **2.1.109 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,14 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.109 alpha
+
+2.1.108 JPEG-Gate tot ohne Probe. Hold-Bins starben mit dem Prozess. Twin stahl die Box. ¾ Adopt 0,80 s. Portrait .right bei 0°.
+
+- **`FaceEngine.jpegProbeDelta` / leftoverJpegProbe.** Gate misst.
+- **Schema 5 leftoverHoldBins persist.** leftoverIoUJump 0,40. Per-Bin Adopt. liveBufferOrientation.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.109 (Build 135).
 
 ## Neu in 2.1.108 alpha
 

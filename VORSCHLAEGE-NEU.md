@@ -1,6 +1,15 @@
-# Nachtrag 2026-09-05 (2.1.108)
+# Nachtrag 2026-09-05 (2.1.109)
 
-Siehe ANALYSE.md. **2.1.108** Spark-Peek, PickLuma verdrahtet, BaptizeGate, Blink-Streak, Name-AND, Score-Tick, Thermal. 2.1.107: Hash-Spark, Spark-Hold im Body.
+Siehe ANALYSE.md. **2.1.109** JPEG-Probe, Schema 5 Hold-Bins, IoU-Jump, Per-Bin Adopt, 0° Orient. 2.1.108: Spark-Peek, PickLuma, BaptizeGate.
+
+## In 2.1.109 gelandet
+
+1. FaceEngine.jpegProbeDelta — JPEG 70 % Reextract in leftoverTransfersId
+2. gallery.json Schema 5 leftoverHoldBins + leftoverHoldTrailBins persist
+3. leftoverIoUJumpBlocks 0,40 — Box-Steal keine Taufe
+4. leftoverAdoptNeedSec(dt:yawAbs:) — ¾ 1,2 s, frontal 0,80 s
+5. liveBufferOrientation — 0° Capture .up
+6. VERSION = Models = MARKETING_VERSION 2.1.109 (Build 135)
 
 ## In 2.1.108 gelandet
 
@@ -134,7 +143,35 @@ Siehe ANALYSE.md. **2.1.108** Spark-Peek, PickLuma verdrahtet, BaptizeGate, Blin
 
 Neu:
 
-- leftoverLastHash je FaceId — sitzt als leftoverHoldTrailBins (2.1.105). Spark/HOLD ohne Box-Hash.
+- ** leftoverHoldBins persist** Schema 5. — sitzt (2.1.109).
+- ** FaceEngine JPEG-Print cosine-drop** nach 70 % Recompress — sitzt Probe (2.1.109).
+- ** IoU-Sprung 0,40 Taufe-Veto** analog Helios grabAbortHold. — sitzt (2.1.109).
+- ** Per-Bin leftoverAdoptNeedSec** (¾ 1,2 s, frontal 0,80). — sitzt (2.1.109).
+- ** Shared XPC mit Helios 1.5.93** eine TCC, ein Buffer, dieselbe 0°-Geometrie.
+- ** FaceEngine auf outputQueue**, nicht Main. Detect ist detached; CGImage hoppt noch über Main.
+- ** RTSP 420f**, Player-Pfad bleibt 32BGRA.
+- ** Overlay VoiceOver HOLD roh/smooth** „gehalten null acht null“.
+- ** Per-Box CLAHE** statt Full-Frame.
+- ** leftoverAdoptSecLock Pref 0,6–1,4.**
+- ** Continuity Desk-View yaw-floor 0,36** analog leftoverPrintProfileYaw.
+- ** Gallery print decay:** ungenutzte 14-Tage-Prints downweight.
+- ** Partial-Print P-Slot** ohne Augen für Schal/Maske.
+- ** Burst-AE 5-Frame Pref** Continuity-Nacht.
+- ** Print-Bank 5 Pose-Slots** front/left/right/up/down gewichtet.
+- ** DBSCAN vor Merge.**
+- ** Watch-Folder PhotoKit.**
+- ** Encrypted gallery export `.aegis`.**
+- ** Iris-Textur-Slot als Twin-Veto.**
+- ** Specular-Highlight auf Stirn als Card-Photo-Veto.**
+- ** Continuity LiDAR-Z als Twin-Trennung.**
+- ** Masken-/Schal-Slot.**
+- ** RTSP-Reconnect Exponential-Backoff.**
+- ** Tests splitted.**
+- ** Aegis.dmg nicht ins Git** — nur CI-Artefakt.
+- ** Overlay VoiceOver Spark** „null acht null nach null acht zwei“.
+- ** Brille-Slot.**
+- ** Temporal ReID-Graph über Hold-Trail.**
+- ** PnP 6DoF, Slot folgt der Nase.**
 - ** leftoverAdopt Lock 0,80 s** — sitzt (2.1.106). 15/24 fps 12 Frames.
 - ** Hunt 10 fps bis leftoverStreak ≥ 1** — sitzt setFacesPresent(streak:) (2.1.108).
 - ** FaceEngine auf outputQueue**, nicht Main. 15 fps auf Main kann UI-Jank.

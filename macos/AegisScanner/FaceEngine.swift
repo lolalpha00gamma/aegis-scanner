@@ -1530,6 +1530,26 @@ enum FaceEngine {
         return image.cropping(to: CGRect(x: x, y: y, width: max(1, w), height: max(1, h)))
     }
 
+    /// JPEG 70 % Reextract. Cosine-Drop — Poster fällt, Gesicht hält. Gate war tot ohne Probe.
+    static func jpegProbeDelta(print: Data, image: CGImage, box: FaceBox) -> Double? {
+        guard !print.isEmpty, let face = crop(image, box: box, pad: 0.08) else { return nil }
+        guard let jpeg = jpegRecompress(face, quality: 0.70) else { return nil }
+        guard let probe = facePrintOnly(of: jpeg) else { return nil }
+        let va = printVector(print)
+        let vb = printVector(probe)
+        guard va.count >= 32 else { return nil }
+        return MatchMath.leftoverJpegProbe(raw: va, jpeg: vb)
+    }
+
+    private static func jpegRecompress(_ image: CGImage, quality: Double) -> CGImage? {
+        let data = NSMutableData()
+        guard let dest = CGImageDestinationCreateWithData(data, "public.jpeg" as CFString, 1, nil) else { return nil }
+        CGImageDestinationAddImage(dest, image, [kCGImageDestinationLossyCompressionQuality: quality] as CFDictionary)
+        guard CGImageDestinationFinalize(dest) else { return nil }
+        guard let src = CGImageSourceCreateWithData(data, nil) else { return nil }
+        return CGImageSourceCreateImageAtIndex(src, 0, nil)
+    }
+
     static func lowerFaceOccluded(_ face: FaceObservation) -> Bool {
         let eyes = face.strokes.contains { $0.label.hasPrefix("Auge") && $0.points.count >= 4 }
         let mouth = face.strokes.contains { ($0.label == "Mund" || $0.label == "Lippen") && $0.points.count >= 4 }
