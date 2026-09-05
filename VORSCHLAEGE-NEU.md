@@ -1,6 +1,16 @@
-# Nachtrag 2026-09-05 (2.1.91)
+# Nachtrag 2026-09-05 (2.1.92)
 
-Siehe ANALYSE.md. **2.1.91** schließt leftoverHold[id:bin], Capture-Hist in leftoverPick, ¾ erbt nicht Frontal-Hold.
+Siehe ANALYSE.md. **2.1.92** schließt leftoverHoldByHash je Bin, leftoverPick Hash-Hold, Frame-Luma vs Box, Overlay BIN.
+
+## In 2.1.92 gelandet
+
+1. leftoverHoldHashKey / leftoverHoldPut(bin:) / leftoverHoldLookup(bin:)
+2. leftoverHoldPrevOf hash — Dropout ¾ liest Hash-Bin
+3. leftoverPick holdHash + holdHashTable + frameCapture
+4. leftoverSessionCapturePrefersFrame — Center Stage Box tot
+5. leftoverHoldBinChip / leftoverHoldLabel yawAbs
+6. LibraryStore BinWriteOk schreibt Hash
+7. VERSION = Models = MARKETING_VERSION 2.1.92 (Build 118)
 
 ## In 2.1.91 gelandet
 
@@ -19,15 +29,6 @@ Siehe ANALYSE.md. **2.1.91** schließt leftoverHold[id:bin], Capture-Hist in lef
 4. leftoverSessionCaptureMedian / Box(hist)
 5. leftoverHoldBin 0/1/2
 6. VERSION = Models = MARKETING_VERSION 2.1.90 (Build 116)
-
-## In 2.1.89 gelandet
-
-1. leftoverSessionCaptureBox — per-Box Capture
-2. leftoverPick capture: [Int: Double]
-3. unknownCentroid(yawAbs) — Profil 0,65 unbekannt
-4. leftoverHoldAlpha(captureJump) — AE 0,20 → α 0,08
-5. FaceEngine reicht Yaw
-6. VERSION = Models = MARKETING_VERSION 2.1.89 (Build 115)
 
 ## Offen (nicht Pflaster)
 
@@ -75,7 +76,6 @@ Siehe ANALYSE.md. **2.1.91** schließt leftoverHold[id:bin], Capture-Hist in lef
 61. Print-Bank 5 Pose-Slots (front/left/right/up/down) gewichtet
 62. Overlay Ghost-Opacity = leftoverEmptySince / latch
 72. JPEG-Recompress-Probe. Print vor/nach 70 % JPEG — instabiler Print nicht taufen.
-74. Yaw-binned Print-Bank 5 Slots, leftoverHold nur frontal, Profil eigener Slot.
 75. Softmax-Temperatur 16 auf Gallery-Scores, platt bei 0,70–0,90.
 77. Blink-Liveness. Lid-Gap 2 Frames — Foto an der Wand tauft nicht.
 78. Pupillenabstand als Scale-Prior. Geo unabhängig von Box-Größe.
@@ -88,8 +88,6 @@ Siehe ANALYSE.md. **2.1.91** schließt leftoverHold[id:bin], Capture-Hist in lef
 86. **Audio-Doorbell Sync** — Klingel-Frame bekommt leftoverLatch extra 1,2 s.
 87. **Print-Drift Alarm** nach OS-Update, nicht nur Banner.
 88. **Kalman-Box 3D** aus yaw/pitch, Ghost folgt der Kopfdrehung.
-96. **Session-Luma aus Frame-Histogram**, nicht aus Box-Capture. Center Stage täuscht Box-Luma.
-98. **Overlay „HOLD roh/smooth“** zwei Zahlen, Smooth-Taufe sichtbar.
 99. **Face-Print Byte-Salt** nach OS-Update, alte gallery.json nicht still matchen.
 103. **Specular-Highlight auf Stirn** als Card-Photo-Veto. Poster/Ausweis tauft nicht.
 104. **Identity-Night-Floor.** Anna immer indoor: Session-Drop nur für Unbekannte, nicht für sie.
@@ -101,9 +99,13 @@ Siehe ANALYSE.md. **2.1.91** schließt leftoverHold[id:bin], Capture-Hist in lef
 114. **ArcFace temperature 16** auf leftoverScore, platt 0,70–0,90.
 115. **Blink 2-Frame Lid-Gap** vor Taufe — Poster.
 116. **JPEG 70 % Probe** vor leftoverBaptize.
-117. **Overlay BIN 0/1/2** neben HOLD — sonst ¾ unsichtbar.
-118. **leftoverHoldByHash je Bin**, nicht nur Kalman-Box. Dropout verliert sonst ¾.
 119. **Capture-Hist 8 in gallery.json** Schema 5, Session über App-Neustart.
+120. **FaceEngine Frame-Histogram** in leftoverPick `frameCapture`. Math sitzt, Store reicht noch Box.
+121. **leftoverHold hash# bins in gallery.json** — ¾ nach App-Neustart, TTL 8 s sonst.
+122. **Overlay HOLD roh/smooth** zwei Zahlen, Smooth-Taufe sichtbar.
+123. **Hash-Nachbar nur gleicher Bin.** Spatial-Nachbar frontal darf ¾ nicht füttern — Lookup sitzt, Trail analog.
+124. **Yaw-binned Print-Bank 5 Slots**, leftoverHold nur frontal, Profil eigener Slot. Hash-Bin ist EMA, nicht Print.
+125. **Session-Luma aus dem ganzen Buffer**, nicht Box. Center Stage täuscht Box — prefersFrame sitzt, Quelle fehlt.
 - Pick-EMA AE — sitzt.
 - Twin-Score — sitzt.
 - Galerie frontal — sitzt.
@@ -112,5 +114,9 @@ Siehe ANALYSE.md. **2.1.91** schließt leftoverHold[id:bin], Capture-Hist in lef
 - leftoverHold[id:bin] — sitzt.
 - Capture-Hist in leftoverPick — sitzt.
 - ¾ erbt nicht Frontal — sitzt.
+- leftoverHoldByHash je Bin — sitzt.
+- leftoverPick Hash-Hold — sitzt.
+- Frame-Luma vs Box (Math) — sitzt.
+- Overlay BIN — sitzt.
 
 Nur main.

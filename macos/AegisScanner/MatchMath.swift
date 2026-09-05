@@ -264,13 +264,22 @@ enum MatchMath {
         capture: [Int: Double] = [:],
         imageW: Double = 0,
         captureHist: [Double] = [],
-        holdBins: [String: Double] = [:]
+        holdBins: [String: Double] = [:],
+        holdHash: String? = nil,
+        holdHashTable: [String: (cosine: Double, at: TimeInterval)] = [:],
+        holdAt: TimeInterval = 0,
+        holdTTL: TimeInterval = leftoverAdoptSec,
+        frameCapture: Double? = nil
     ) -> Int? {
         if leftoverLookawayBlocks(yawAbs: lookawayYaw, enrolled: lookawayEnrolled) {
             return nil
         }
         if leftoverTwinHardBlocks(pairCosine: twinPair, veto: leftoverTwinHardVetoNow(facesInFrame: facesInFrame)) {
             return nil
+        }
+        let session = leftoverSessionCapturePrefersFrame(frame: frameCapture, box: sessionCapture)
+        func liveCap(_ i: Int) -> Double? {
+            leftoverSessionCapturePrefersFrame(frame: frameCapture, box: capture[i])
         }
         var ok = candidates.filter { leftoverPin(iou: $0.iou, floor: floor) }
         ok = ok.filter {
@@ -280,7 +289,11 @@ enum MatchMath {
                     frontal: holdPrev,
                     yawAbs: yawAbs[$0.index],
                     bins: holdBins,
-                    id: leftoverId
+                    id: leftoverId,
+                    hash: holdHash,
+                    hashTable: holdHashTable,
+                    now: holdAt,
+                    ttl: holdTTL
                 )
             )
         }
@@ -290,8 +303,8 @@ enum MatchMath {
                 sharpness: sharpness[$0.index],
                 yawAbs: yawAbs[$0.index],
                 capture: leftoverSessionCaptureBox(
-                    old: sessionCapture,
-                    live: capture[$0.index],
+                    old: session,
+                    live: liveCap($0.index),
                     hist: captureHist
                 )
             )
@@ -306,10 +319,14 @@ enum MatchMath {
                         frontal: holdPrev,
                         yawAbs: yawAbs[$0.index],
                         bins: holdBins,
-                        id: leftoverId
+                        id: leftoverId,
+                        hash: holdHash,
+                        hashTable: holdHashTable,
+                        now: holdAt,
+                        ttl: holdTTL
                     ),
                     dt: dt,
-                    captureJump: leftoverCaptureJump(prev: sessionCapture, next: capture[$0.index])
+                    captureJump: leftoverCaptureJump(prev: session, next: liveCap($0.index))
                 )
             )
         }
@@ -337,8 +354,8 @@ enum MatchMath {
             unknownCentroid(
                 bestCosine: $0.cosine,
                 capture: leftoverSessionCaptureBox(
-                    old: sessionCapture,
-                    live: capture[$0.index],
+                    old: session,
+                    live: liveCap($0.index),
                     hist: captureHist
                 ),
                 yawAbs: yawAbs[$0.index]
@@ -536,7 +553,7 @@ enum MatchMath {
 
     /// Overlay: leftover-Print sichtbar, sonst wirkt 0,64 „tot“. Komma wie die restliche UI.
     /// 0,62 scharf hält den Track — Label muss dieselbe Bandbreite zeigen, nicht nil.
-    static func leftoverHoldLabel(cosine: Double?, sharpness: Double? = nil) -> String? {
+    static func leftoverHoldLabel(cosine: Double?, sharpness: Double? = nil, yawAbs: Double? = nil) -> String? {
         guard let cosine else { return nil }
         let ok = leftoverPrintOk(cosine: cosine, sharpness: sharpness) || cosine >= leftoverPrintGenuine
         guard ok else { return nil }
@@ -544,7 +561,11 @@ enum MatchMath {
         let whole = hundredths / 100
         let frac = abs(hundredths % 100)
         let fracStr = frac < 10 ? "0\(frac)" : "\(frac)"
-        return "gehalten \(whole),\(fracStr)"
+        let hold = "gehalten \(whole),\(fracStr)"
+        if let yawAbs {
+            return "\(hold) · \(leftoverHoldBinChip(leftoverHoldBin(yawAbs: yawAbs)))"
+        }
+        return hold
     }
 
     /// Overlay darf den Track halten. Taufe erst ab Pin-Print 0,80 — sonst erbt der Nachbar den Namen.
@@ -654,6 +675,15 @@ enum MatchMath {
     static func leftoverSessionCaptureStable(old: Double?, live: Double?, hist: [Double] = []) -> Double? {
         leftoverSessionCaptureBox(old: old, live: live, hist: hist)
     }
+
+    /// Center Stage croppt die Box. Frame-Luma bleibt, Box springt. Floor folgt dem Frame.
+    static func leftoverSessionCapturePrefersFrame(frame: Double?, box: Double?, jump: Double = leftoverHoldCaptureJump) -> Double? {
+        guard let frame, let box else { return frame ?? box }
+        if abs(frame - box) >= jump { return frame }
+        return box
+    }
+
+    static func leftoverHoldBinChip(_ bin: Int) -> String { "BIN \(bin)" }
 
     static func leftoverPrintOk(cosine: Double?, sharpness: Double? = nil, floor: Double = leftoverPrintCosine, yawAbs: Double? = nil, capture: Double? = nil) -> Bool {
         guard let cosine else { return false }
@@ -1554,6 +1584,11 @@ enum MatchMath {
         "\(id.uuidString).\(bin)"
     }
 
+    /// Hash-Bin, `#` damit Spatial-Dots nicht mit dem Bin kollidieren.
+    static func leftoverHoldHashKey(hash: String, bin: Int) -> String {
+        "\(hash)#\(bin)"
+    }
+
     static func leftoverHoldId(from key: String) -> UUID? {
         guard let dot = key.lastIndex(of: ".") else { return UUID(uuidString: key) }
         return UUID(uuidString: String(key[..<dot]))
@@ -1568,10 +1603,19 @@ enum MatchMath {
         frontal: Double?,
         yawAbs: Double?,
         bins: [String: Double] = [:],
-        id: UUID? = nil
+        id: UUID? = nil,
+        hash: String? = nil,
+        hashTable: [String: (cosine: Double, at: TimeInterval)] = [:],
+        now: TimeInterval = 0,
+        ttl: TimeInterval = leftoverAdoptSec
     ) -> Double? {
         let bin = leftoverHoldBin(yawAbs: yawAbs ?? 0)
         if let id, let v = leftoverHoldBinRead(bins: bins, id: id, bin: bin) {
+            return v
+        }
+        if let hash, !hashTable.isEmpty,
+           let v = leftoverHoldLookup(hash: hash, table: hashTable, now: now, ttl: ttl, bin: bin)
+        {
             return v
         }
         if bin == 0 { return frontal }
@@ -3147,8 +3191,29 @@ enum MatchMath {
         hash: String,
         table: [String: (cosine: Double, at: TimeInterval)],
         now: TimeInterval,
-        ttl: TimeInterval = leftoverAdoptSec
+        ttl: TimeInterval = leftoverAdoptSec,
+        bin: Int? = nil
     ) -> Double? {
+        if let bin {
+            let key = leftoverHoldHashKey(hash: hash, bin: bin)
+            if let row = table[key], now - row.at <= ttl {
+                return row.cosine
+            }
+            var best: (cosine: Double, at: TimeInterval, dist: Int)?
+            for h in leftoverBoxHashNeighbors(hash) where h != hash {
+                let nk = leftoverHoldHashKey(hash: h, bin: bin)
+                guard let row = table[nk], now - row.at <= ttl else { continue }
+                let d = leftoverBoxHashDistance(hash, h)
+                if best == nil || d < best!.dist || (d == best!.dist && row.at > best!.at) {
+                    best = (row.cosine, row.at, d)
+                }
+            }
+            if let best { return best.cosine }
+            if bin == 0 {
+                return leftoverHoldLookup(hash: hash, table: table, now: now, ttl: ttl, bin: nil)
+            }
+            return nil
+        }
         if let row = table[hash], now - row.at <= ttl {
             return row.cosine
         }
@@ -3175,10 +3240,14 @@ enum MatchMath {
         hash: String,
         cosine: Double,
         onto table: [String: (cosine: Double, at: TimeInterval)],
-        now: TimeInterval
+        now: TimeInterval,
+        bin: Int = 0
     ) -> [String: (cosine: Double, at: TimeInterval)] {
         var next = leftoverHoldPrune(table, now: now)
-        next[hash] = (cosine, now)
+        next[leftoverHoldHashKey(hash: hash, bin: bin)] = (cosine, now)
+        if bin == 0 {
+            next[hash] = (cosine, now)
+        }
         return next
     }
 

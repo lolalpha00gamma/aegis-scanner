@@ -1,8 +1,18 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.91 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.92 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 
-Neu in 2.1.91: leftoverHold[id:bin]. Capture-Hist in leftoverPick. ¾ erbt nicht Frontal-Hold.
+Neu in 2.1.92: leftoverHoldByHash je Bin. leftoverPick Hash-Hold. Frame-Luma vs Box. Overlay BIN.
+
+## In 2.1.92 wirklich im Code
+
+2.1.91 leftoverHold[id:bin], Capture-Hist, ¾ erbt nicht Frontal. Hash unbinned. Dropout verliert ¾. Center Stage Box senkt Floor.
+
+1. **`leftoverHoldHashKey` / `leftoverHoldPut(bin:)` / `leftoverHoldLookup(bin:)`.**
+2. **leftoverHoldPrevOf + leftoverPick `holdHash`.**
+3. **`leftoverSessionCapturePrefersFrame`.** leftoverPick `frameCapture`.
+4. **`leftoverHoldBinChip`.** leftoverHoldLabel yawAbs.
+5. Tests + VERSION = Models = MARKETING_VERSION 2.1.92 (Build 118).
 
 ## In 2.1.91 wirklich im Code
 

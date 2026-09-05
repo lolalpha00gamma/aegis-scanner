@@ -1827,6 +1827,49 @@ enum MatchMathTests {
             0.001,
             "Median nach Put bleibt Tag"
         )
+        ok(MatchMath.leftoverHoldBinChip(0) == "BIN 0", "frontal Chip")
+        ok(MatchMath.leftoverHoldBinChip(1) == "BIN 1", "¾ Chip")
+        ok(MatchMath.leftoverHoldLabel(cosine: 0.64, yawAbs: 0.35) == "gehalten 0,64 · BIN 1", "Hold + BIN")
+        near(MatchMath.leftoverSessionCapturePrefersFrame(frame: 0.70, box: 0.18) ?? -1, 0.70, 0.001, "Center Stage Box tot, Frame bleibt")
+        near(MatchMath.leftoverSessionCapturePrefersFrame(frame: 0.70, box: 0.68) ?? -1, 0.68, 0.001, "einig Box")
+        ok(MatchMath.leftoverSessionCapturePrefersFrame(frame: nil, box: 0.40) == 0.40, "ohne Frame Box")
+        let cropPick = MatchMath.leftoverPick(
+            candidates: [(0, 0.50, 0.61)],
+            sharpness: [0: 0.40],
+            sessionCapture: 0.18,
+            capture: [0: 0.18],
+            frameCapture: 0.70
+        )
+        ok(cropPick == nil, "Frame 0,70: 0,61 gegen Tag-Floor tot")
+        let hashKey = MatchMath.leftoverHoldHashKey(hash: "1.2.3.4", bin: 1)
+        ok(hashKey == "1.2.3.4#1", "Hash-Bin Key")
+        var hashTab: [String: (cosine: Double, at: TimeInterval)] = [:]
+        hashTab = MatchMath.leftoverHoldPut(hash: "1.2.3.4", cosine: 0.66, onto: hashTab, now: 10, bin: 1)
+        ok(MatchMath.leftoverHoldLookup(hash: "1.2.3.4", table: hashTab, now: 10.1, bin: 1) == 0.66, "¾ Hash-Hold")
+        ok(MatchMath.leftoverHoldLookup(hash: "1.2.3.4", table: hashTab, now: 10.1, bin: 0) == nil, "frontal erbt nicht ¾-Hash")
+        ok(MatchMath.leftoverHoldLookup(hash: "1.2.3.4", table: hashTab, now: 10.1) == nil, "unbinned leer bei ¾")
+        hashTab = MatchMath.leftoverHoldPut(hash: "1.2.3.4", cosine: 0.80, onto: hashTab, now: 10, bin: 0)
+        ok(MatchMath.leftoverHoldLookup(hash: "1.2.3.4", table: hashTab, now: 10.1) == 0.80, "frontal unbinned bleibt")
+        let dropPrev = MatchMath.leftoverHoldPrevOf(
+            frontal: 0.80,
+            yawAbs: 0.35,
+            bins: [:],
+            id: nil,
+            hash: "1.2.3.4",
+            hashTable: hashTab,
+            now: 10.1
+        )
+        ok(abs((dropPrev ?? -1) - 0.66) < 0.001, "Dropout: ¾ liest Hash-Bin, nicht Frontal")
+        let dropPick = MatchMath.leftoverPick(
+            candidates: [(0, 0.50, 0.70)],
+            sharpness: [0: 0.40],
+            yawAbs: [0: 0.35],
+            holdPrev: 0.80,
+            holdHash: "1.2.3.4",
+            holdHashTable: hashTab,
+            holdAt: 10.1
+        )
+        ok(dropPick == nil, "¾ roh 0,70 gegen Hash-Hold 0,66 Spike")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

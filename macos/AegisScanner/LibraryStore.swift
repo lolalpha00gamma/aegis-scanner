@@ -2392,7 +2392,18 @@ final class LibraryStore: ObservableObject {
                     }),
                     imageW: Double(image.width),
                     captureHist: liveCaptureHist[old.id] ?? [],
-                    holdBins: leftoverHoldBins
+                    holdBins: leftoverHoldBins,
+                    holdHash: leftoverLiveHash(
+                        kalmanX: boxKalman[old.id]?.x,
+                        kalmanY: boxKalman[old.id]?.y,
+                        kalmanW: boxKalman[old.id]?.w,
+                        kalmanH: boxKalman[old.id]?.h,
+                        fallback: old.box,
+                        image: image
+                    ),
+                    holdHashTable: leftoverHoldByHash,
+                    holdAt: now,
+                    holdTTL: MatchMath.dropoutTTL(dt: liveDt)
                 ) else {
                     let twin = aegisHit?.pairCosine
                     if let twinLabel = MatchMath.leftoverTwinPairLabel(pairCosine: twin) {
@@ -2551,7 +2562,8 @@ final class LibraryStore: ObservableObject {
                 ) {
                     leftoverPending[adopted[bestJ].id] = MatchMath.leftoverHoldLabel(
                         cosine: pinCos,
-                        sharpness: adopted[bestJ].quality.sharpness
+                        sharpness: adopted[bestJ].quality.sharpness,
+                        yawAbs: abs(adopted[bestJ].quality.yaw)
                     )
                         ?? leftoverPending[adopted[bestJ].id]
                     leftoverPins += 1
@@ -2570,7 +2582,8 @@ final class LibraryStore: ObservableObject {
                             ),
                             cosine: cos,
                             onto: leftoverHoldByHash,
-                            now: now
+                            now: now,
+                            bin: MatchMath.leftoverHoldBin(yawAbs: abs(adopted[bestJ].quality.yaw))
                         )
                         leftoverHold[old.id] = MatchMath.leftoverHoldEMA(
                             prev: leftoverHold[old.id] ?? holdNow,
@@ -2604,6 +2617,20 @@ final class LibraryStore: ObservableObject {
                                 prev: old.quality.capture,
                                 next: adopted[bestJ].quality.capture
                             )
+                        )
+                        leftoverHoldByHash = MatchMath.leftoverHoldPut(
+                            hash: leftoverLiveHash(
+                                kalmanX: boxKalman[adopted[bestJ].id]?.x,
+                                kalmanY: boxKalman[adopted[bestJ].id]?.y,
+                                kalmanW: boxKalman[adopted[bestJ].id]?.w,
+                                kalmanH: boxKalman[adopted[bestJ].id]?.h,
+                                fallback: adopted[bestJ].box,
+                                image: image
+                            ),
+                            cosine: cos,
+                            onto: leftoverHoldByHash,
+                            now: now,
+                            bin: MatchMath.leftoverHoldBin(yawAbs: abs(adopted[bestJ].quality.yaw))
                         )
                     }
                     continue
@@ -2657,7 +2684,8 @@ final class LibraryStore: ObservableObject {
                             hash: putHash,
                             cosine: cos,
                             onto: leftoverHoldByHash,
-                            now: now
+                            now: now,
+                            bin: MatchMath.leftoverHoldBin(yawAbs: abs(adopted[bestJ].quality.yaw))
                         )
                     }
                     if MatchMath.leftoverWipeHist(cosine: cos) {
@@ -2692,6 +2720,13 @@ final class LibraryStore: ObservableObject {
                                     prev: old.quality.capture,
                                     next: adopted[bestJ].quality.capture
                                 )
+                            )
+                            leftoverHoldByHash = MatchMath.leftoverHoldPut(
+                                hash: putHash,
+                                cosine: cos,
+                                onto: leftoverHoldByHash,
+                                now: now,
+                                bin: MatchMath.leftoverHoldBin(yawAbs: abs(adopted[bestJ].quality.yaw))
                             )
                         }
                         leftoverWipeUntil[adopted[bestJ].id] = MatchMath.leftoverWipeMuteUntil(now: now)
