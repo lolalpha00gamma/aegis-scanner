@@ -1,4 +1,4 @@
-# Aegis **2.1.103 alpha**
+# Aegis **2.1.104 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,17 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.104 alpha
+
+2.1.103 Overlay-Name. Live-Tap 5 fps, RotationCoordinator drehte den Buffer, leftoverTrailWriteOk blockte ¾, Spark mischte Frontal-UUID, Desk-View 4:3 tot.
+
+- **`liveMinInterval` Hunt 8/10, Lock 12/15.** leftoverAdopt 1,2 s hat Frames.
+- **Kein RotationCoordinator.** Capture 0°. Portrait-Buffer `.right`.
+- **`leftoverTrailWriteOk` ohne Yaw-Block.** leftoverHoldTrail[id] nur frontal. leftoverSparkChip ¾ ohne UUID-Mix.
+- **`leftoverHoldOverlayChipOf`.** ¾ Chip bleibt Bin-Hold, kein Frontal-Trail.
+- **`captureFormatScore` 4:3** bis 1920×1440. reselectFormat CS+Format zweimal.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.104 (Build 130).
 
 ## Neu in 2.1.103 alpha
 

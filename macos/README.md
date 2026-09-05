@@ -1,7 +1,7 @@
 # Aegis
 
 Lokaler Image- & Video-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**  
-Version **2.1.102 alpha**.
+Version **2.1.104 alpha**.
 
 ## Image-Datei
 
@@ -12,6 +12,14 @@ Version **2.1.102 alpha**.
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Die Datei ist ad-hoc signiert (kein Apple-Developer-Account) — deshalb der Rechtsklick beim ersten Start.
+
+## Neu in 2.1.104 alpha
+
+Live 15 fps, kein RotationCoordinator, leftoverTrailWriteOk ohne Yaw-Block, Spark ¾ ohne UUID-Mix.
+
+## Neu in 2.1.103 alpha
+
+availableVideoPixelFormatTypes, videoOut — xcodebuild 2.1.101/102 tot.
 
 ## Neu in 2.1.102 alpha
 

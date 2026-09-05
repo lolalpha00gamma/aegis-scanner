@@ -622,8 +622,8 @@ enum MatchMath {
     }
 
     /// ¾-Trail nicht mit Frontal-UUID mischen. Hash-Bin sitzt, UUID-Trail bleibt frontal.
-    static func leftoverHoldTrailOf(uuidTrail: [Double], yawAbs: Double? = nil) -> [Double] {
-        leftoverHoldBin(yawAbs: yawAbs ?? 0) == 0 ? uuidTrail : []
+    static func leftoverHoldTrailOf(uuidTrail: [Double], yawAbs: Double? = nil, binTrail: [Double] = []) -> [Double] {
+        leftoverHoldBin(yawAbs: yawAbs ?? 0) == 0 ? uuidTrail : binTrail
     }
 
     /// ¾: UUID-Trail ist Frontal. Chip sonst „HOLD 80/64 · BIN 1“.
@@ -892,11 +892,30 @@ enum MatchMath {
 
     static func sessionPresetClampsContinuity(_ continuity: Bool) -> Bool { continuity }
 
-    /// 720p @ 15–30 schlägt 360p @ 60 und 800p @ 8. Analog Helios formatScore.
+    /// Helios 1.5.58: Coordinator drehte jeden Frame. Box 90°, leftover stiehlt.
+    static func physicalCaptureRotation() -> Bool { false }
+
+    static func videoRotationAngleFallback() -> CGFloat { 0 }
+
+    /// Hunt 8/10 fps, Lock 12/15. 5 fps ließ leftoverAdopt 1,2 s bei 6 Frames sterben.
+    static func liveMinInterval(continuity: Bool, faces: Bool) -> TimeInterval {
+        if faces { return continuity ? 1.0 / 15.0 : 1.0 / 12.0 }
+        return continuity ? 1.0 / 10.0 : 1.0 / 8.0
+    }
+
+    /// Portrait-Buffer → .right (6), sonst .up (1). Kein Coordinator.
+    static func liveOrientationRaw(width: Int, height: Int) -> UInt32 {
+        height > width ? 6 : 1
+    }
+
+    /// 720p @ 15–30 schlägt 360p @ 60 und 800p @ 8. Desk-View 4:3 bis 1920×1440.
+    /// Analog Helios formatScore.
     static func captureFormatScore(width: Double, height: Double, fps: Double) -> Double {
-        guard width >= 640, height >= 360, width <= 1920, height <= 1080, fps >= 7 else { return -1 }
-        let near720 = 1.0 - min(abs(height - 720) / 720, 1)
-        let res = near720 * 80 + min(width / 1280, 1.1) * 20
+        let long = max(width, height)
+        let short = min(width, height)
+        guard short >= 360, long >= 640, long <= 1920, short <= 1440, fps >= 7 else { return -1 }
+        let near720 = 1.0 - min(abs(short - 720) / 720, 1)
+        let res = near720 * 80 + min(long / 1280, 1.1) * 20
         let fpsTerm: Double
         if fps >= 24 {
             fpsTerm = 55 + min(fps, 30) - 24
@@ -908,8 +927,10 @@ enum MatchMath {
             fpsTerm = fps * 1.5
         }
         let lowFpsPenalty = fps < 12 ? 40.0 : 0
-        let tinyPenalty = height < 480 ? 50.0 : 0
-        return res + fpsTerm - lowFpsPenalty - tinyPenalty
+        let tinyPenalty = short < 480 ? 50.0 : 0
+        let aspect = long / max(1, short)
+        let deskBonus = (aspect > 1.20 && aspect < 1.45 && fps >= 15) ? 12.0 : 0
+        return res + fpsTerm - lowFpsPenalty - tinyPenalty + deskBonus
     }
 
     static let captureFourCC420f: UInt32 = 0x34323066
@@ -1962,7 +1983,7 @@ enum MatchMath {
 
     /// Trail-Append dieselbe Schwelle. Roh 0,70 blur pollutet MAD.
     static func leftoverTrailWriteOk(sharpness: Double?, yawAbs: Double? = nil) -> Bool {
-        leftoverHoldWriteOk(sharpness: sharpness, yawAbs: yawAbs)
+        leftoverHoldBinWriteOk(sharpness: sharpness, yawAbs: yawAbs ?? 0)
     }
 
     /// Zweiter leerer Frame: previous schon []. used∪dropped wischt Kalman. Ghosts+Hold halten.

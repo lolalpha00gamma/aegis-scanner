@@ -761,7 +761,7 @@ struct FaceOverlay: View {
                             yawAbs: abs(face.quality.yaw)
                         ) {
                             var tail = "\(base) · \(hold)"
-                            if let spark = store.leftoverSparkChip(faceId: face.id) {
+                            if let spark = store.leftoverSparkChip(faceId: face.id, yawAbs: abs(face.quality.yaw)) {
                                 tail += " · \(spark)"
                             }
                             if let cap = MatchMath.leftoverCaptureChip(face.quality.capture) {
@@ -905,7 +905,7 @@ struct FaceOverlay: View {
             yawAbs: yawAbs
         ) {
             let hold = store.leftoverHoldChip(faceId: faceId, yawAbs: yawAbs) ?? MatchMath.unknownRejectNote()
-            if let spark = store.leftoverSparkChip(faceId: faceId) {
+            if let spark = store.leftoverSparkChip(faceId: faceId, yawAbs: yawAbs) {
                 return "\(store.guestName(for: faceId)) · \(hold) · \(spark)"
             }
             return "\(store.guestName(for: faceId)) · \(hold)"
@@ -913,7 +913,7 @@ struct FaceOverlay: View {
         if pinned, let owner {
             let held = store.liveHeldIds.contains(faceId)
             if let hold = store.leftoverHoldChip(faceId: faceId, yawAbs: yawAbs) {
-                if let spark = store.leftoverSparkChip(faceId: faceId) {
+                if let spark = store.leftoverSparkChip(faceId: faceId, yawAbs: yawAbs) {
                     return "\(owner.name) \(Int(pct))% · \(hold) · \(spark)"
                 }
                 return "\(owner.name) \(Int(pct))% · \(hold)"

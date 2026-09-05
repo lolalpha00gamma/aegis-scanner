@@ -1,45 +1,34 @@
-# Helios + Aegis — Analyse 2026-09-05 (2.1.103)
+# Helios + Aegis — Analyse 2026-09-05 (2.1.104)
 
-Helios **1.5.87** (Build 107). Aegis **2.1.103 alpha** (Build 129). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+Helios **1.5.88** (Build 108). Aegis **2.1.104 alpha** (Build 130). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
 
-## 2.1.102 → 2.1.103 (CI tot)
+## 2.1.103 → 2.1.104
 
-Match-Math grün, xcodebuild rot: `AVCaptureVideoDataOutput` hat im Swift-Overlay von Xcode 26.6 kein `availableVideoCVPixelFormatTypes`. Name: `availableVideoPixelFormatTypes`. Klasse hat `output: AVPlayerItemVideoOutput?` — Parameter heißt `videoOut`.
+2.1.103 (main): CI-Fix. Swift-Overlay `availableVideoPixelFormatTypes`, Parameter `videoOut` (nicht `output` / AVPlayerItemVideoOutput). Live: Tap 5 fps, RotationCoordinator dreht den Buffer, leftoverTrailWriteOk blockt Yaw ≥ 0,28, Spark liest Frontal-UUID in ¾, Desk-View 4:3 tot, reselectFormat Queue-Hop.
 
-## Was 2.1.103 ändert
+## Warum Namen nach 2.1.103 noch sprangen / tot wirkten
 
-1. `availableVideoPixelFormatTypes` + Parameter `videoOut`.
-2. VERSION = Models = MARKETING_VERSION 2.1.103 (Build 129).
-
-Helios 1.5.87: `ptrPred`, gleiches Overlay. Siehe `bpms9cmnxc-debug/Helios`.
-
-`bugfix` mergen: nein. Nur `main`.
-
-# Helios + Aegis — Analyse 2026-09-05 (2.1.102)
-
-Helios **1.5.86** (Build 106). Aegis **2.1.102 alpha** (Build 128). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
-
-## 2.1.101 → 2.1.102
-
-2.1.101: HOLD compact, leftoverHoldTrailOf, Nacht-Softmax, Center-Stage. **leftoverBaptizeBoth fällt auf roh zurück** wenn Smooth nil. overlayName `if let leftoverHoldNow` zeigt Frontal-Namen in ¾ ohne Bin. Transfer-Trail bleibt `leftoverHoldTrail[id] ?? lookup`.
-
-## Warum Namen nach 2.1.101 noch sprangen
-
-1. **`leftoverBaptizeBoth(smooth ?? raw)`.** Dropout-nil + Frame 0,82 tauft den Nachbarn.
-2. **`leftoverTransfersId` ohne Hold.** leftoverAdopt 1,2 s ist der echte Pfad.
-3. **overlayName `if let holdCos`.** ¾ ohne Bin → Owner-Name aus Frontal-Taufe.
-4. **Transfer-Trail UUID.** ¾ trailMean 0,81 tauft trotz leftoverHoldTrailOf am Chip.
+1. **`FrameTap minInterval` 0,20 / 0,125.** Hunt 5 fps, Lock 8 fps. leftoverAdoptNeedSec 1,2 s = 6–10 Frames. EMA und Taufe hungern. Helios pumpt jeden Frame.
+2. **`RotationCoordinator` Horizon-Level.** Helios 1.5.58 hat das getötet: physisches Drehen, Box 90°, leftover stiehlt. Aegis hatte denselben Pfad noch.
+3. **`leftoverTrailWriteOk` Yaw ≥ 0,28.** leftoverHoldBinWriteOk schreibt ¾-Hold, Trail nicht. leftoverTrailNowOf ¾ = [] — Taufe ohne Bin-Trail.
+4. **`leftoverSparkChip` ohne Yaw.** Overlay ¾ zeigt Frontal-UUID-Spark `0,80→0,82`.
+5. **`captureFormatScore` height ≤ 1080.** Desk-View 1920×1440 Score −1.
+6. **`reselectFormat` outputQueue → MainActor.** Device-Lock nach Sample, CS nicht zweimal.
 
 `bugfix` (familyBump / Score-EMA / Gallery-Prune) hinter main, nichts nachziehen.
 
-## Was 2.1.102 wirklich ändert
+## Was 2.1.104 wirklich ändert
 
-1. **`leftoverBaptizeBoth` roh UND smooth, kein `?? raw`.**
-2. **`leftoverHoldOverlayChipOf`.** ¾ Chip nur Bin-Hold.
-3. **`leftoverTrailNowOf`.** Transfer-Trail ¾ = Hash-Bin.
-4. **`leftoverNameFromHold`.** leftover aktiv + Pose ohne Taufe → Gast.
-5. Tests + VERSION = Models = MARKETING_VERSION 2.1.102 (Build 128).
+1. liveMinInterval Hunt 8/10, Lock 12/15. Continuity 15 fps sobald ein Track sitzt.
+2. physicalCaptureRotation aus. Capture 0°. Portrait-Buffer `.right`, sonst `.up`.
+3. leftoverTrailWriteOk ohne Yaw-Block. leftoverHoldTrail[id] nur frontal. leftoverSparkChip ¾ leer statt UUID-Mix.
+4. leftoverHoldOverlayChipOf bleibt ¾-Chip (Bin-Hold, kein Frontal-Trail).
+5. captureFormatScore 4:3 1920×1440. reselectFormat CS+Format zweimal auf Main.
+6. Tests + VERSION = Models = MARKETING_VERSION 2.1.104 (Build 130).
 
-Helios 1.5.86: Warp-Smooth je Achse, Fill-Cap je Achse, MAP≠STEAL.
+2.1.103 bleibt: `availableVideoPixelFormatTypes` + `videoOut`.
+2.1.102 bleibt: leftoverBaptizeBoth roh UND smooth, leftoverHoldOverlayChipOf, leftoverTrailNowOf, leftoverNameFromHold.
+
+Helios 1.5.88: 15-fps-Pinch, 420v-Luma, Desk-View 4:3, Enhance-Skip, WARP-HUD. Siehe `bpms9cmnxc-debug/Helios`.
 
 `bugfix` mergen: nein. Nur `main`.

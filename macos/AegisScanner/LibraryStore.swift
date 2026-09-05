@@ -1145,8 +1145,13 @@ final class LibraryStore: ObservableObject {
         MatchMath.unknownStickyName(index: MatchMath.guestIndex(of: id, order: guestOrder))
     }
 
-    func leftoverSparkChip(faceId: UUID) -> String? {
-        MatchMath.leftoverCosineSparkLabel(leftoverHoldTrail[faceId] ?? [])
+    func leftoverSparkChip(faceId: UUID, yawAbs: Double? = nil) -> String? {
+        MatchMath.leftoverCosineSparkLabel(
+            MatchMath.leftoverHoldTrailOf(
+                uuidTrail: leftoverHoldTrail[faceId] ?? [],
+                yawAbs: yawAbs
+            )
+        )
     }
 
     func leftoverHoldNow(faceId: UUID, yawAbs: Double? = nil) -> Double? {
@@ -2497,28 +2502,44 @@ final class LibraryStore: ObservableObject {
                         fallback: adopted[bestJ].box,
                         image: image
                     )
-                    var trail = leftoverHoldTrail[old.id] ?? MatchMath.leftoverTrailLookup(
-                        hash: boxHash,
-                        table: leftoverHoldTrailByHash,
-                        now: now,
-                        ttl: MatchMath.dropoutTTL(dt: liveDt),
-                        bin: MatchMath.leftoverHoldBin(yawAbs: abs(adopted[bestJ].quality.yaw))
+                    let yawNow = abs(adopted[bestJ].quality.yaw)
+                    let bin = MatchMath.leftoverHoldBin(yawAbs: yawNow)
+                    var trail = MatchMath.leftoverTrailNowOf(
+                        idTrail: leftoverHoldTrail[old.id] ?? [],
+                        binTrail: MatchMath.leftoverTrailLookup(
+                            hash: boxHash,
+                            table: leftoverHoldTrailByHash,
+                            now: now,
+                            ttl: MatchMath.dropoutTTL(dt: liveDt),
+                            bin: bin
+                        ),
+                        yawAbs: yawNow
                     )
                     if MatchMath.leftoverTrailWriteOk(
                         sharpness: adopted[bestJ].quality.sharpness,
-                        yawAbs: abs(adopted[bestJ].quality.yaw)
+                        yawAbs: yawNow
                     ) {
-                        trail = MatchMath.leftoverCosineSparkPut(cos, onto: trail)
-                        leftoverHoldTrail[old.id] = trail
                         leftoverHoldTrailByHash = MatchMath.leftoverTrailPut(
                             hash: boxHash,
                             sample: cos,
                             onto: leftoverHoldTrailByHash,
                             now: now,
                             sharpness: adopted[bestJ].quality.sharpness,
-                            yawAbs: abs(adopted[bestJ].quality.yaw),
-                            bin: MatchMath.leftoverHoldBin(yawAbs: abs(adopted[bestJ].quality.yaw))
+                            yawAbs: yawNow,
+                            bin: bin
                         )
+                        if bin == 0 {
+                            trail = MatchMath.leftoverCosineSparkPut(cos, onto: trail)
+                            leftoverHoldTrail[old.id] = trail
+                        } else {
+                            trail = MatchMath.leftoverTrailLookup(
+                                hash: boxHash,
+                                table: leftoverHoldTrailByHash,
+                                now: now,
+                                ttl: MatchMath.dropoutTTL(dt: liveDt),
+                                bin: bin
+                            )
+                        }
                     }
                     if MatchMath.printMADBlocks(trail) {
                         leftoverPending[adopted[bestJ].id] = MatchMath.printMADNote()

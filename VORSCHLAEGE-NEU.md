@@ -1,16 +1,22 @@
-# Nachtrag 2026-09-05 (2.1.103)
+# Nachtrag 2026-09-05 (2.1.104)
 
-Siehe ANALYSE.md. **2.1.103** Swift Pixel-Format-Overlay. 2.1.102: leftoverBaptizeBoth ohne `?? raw`, Overlay ¾.
+Siehe ANALYSE.md. **2.1.104** Live 15 fps, kein Coordinator, leftoverTrailWriteOk ohne Yaw-Block, Spark ¾ ohne UUID-Mix. 2.1.103: `availableVideoPixelFormatTypes`, `videoOut`. 2.1.102: leftoverBaptizeBoth ohne `?? raw`, Overlay ¾, leftoverNameFromHold.
+
+## In 2.1.104 gelandet
+
+1. liveMinInterval Hunt 8/10, Lock 12/15 — nicht mehr 5/8
+2. physicalCaptureRotation aus, Portrait `.right`
+3. leftoverTrailWriteOk ohne Yaw-Block — ¾-Trail schreibt Hash-Bin
+4. leftoverHoldTrail[id] nur frontal — Spark ¾ kein UUID-Mix
+5. leftoverHoldOverlayChipOf bleibt ¾-Chip (Bin-Hold)
+6. captureFormatScore 4:3, reselectFormat CS+Format zweimal
+7. VERSION = Models = MARKETING_VERSION 2.1.104 (Build 130)
 
 ## In 2.1.103 gelandet
 
 1. `availableVideoPixelFormatTypes` statt ObjC-CV-Infix — xcodebuild 2.1.101/102 tot
 2. Parameter `videoOut`, nicht `output` (AVPlayerItemVideoOutput)
 3. VERSION = Models = MARKETING_VERSION 2.1.103 (Build 129)
-
-# Nachtrag 2026-09-05 (2.1.102)
-
-Siehe ANALYSE.md. **2.1.102** leftoverBaptizeBoth ohne `?? raw`, Overlay ¾, leftoverNameFromHold. 2.1.101: HOLD compact, Nacht-Softmax, Center-Stage.
 
 ## In 2.1.102 gelandet
 
@@ -28,13 +34,6 @@ Siehe ANALYSE.md. **2.1.102** leftoverBaptizeBoth ohne `?? raw`, Overlay ¾, lef
 3. Center Stage aus vor Format, Continuity Preset aus, lock 24
 4. SHARP + BAND Chips, 420v Sharp-Lift, 422 vor BGRA
 5. VERSION = Models = MARKETING_VERSION 2.1.101 (Build 127)
-
-## In 2.1.100 gelandet
-
-1. leftoverScore capture: — Nacht-Rampe ab leftoverPrintSharpOf 0,12
-2. leftoverPick reicht Box-Capture in leftoverScore
-3. captureLockFrameLo Band 15–30
-4. VERSION = Models = MARKETING_VERSION 2.1.100 (Build 126)
 
 ## Offen (nicht Pflaster)
 
@@ -68,7 +67,6 @@ Siehe ANALYSE.md. **2.1.102** leftoverBaptizeBoth ohne `?? raw`, Overlay ¾, lef
 119. Capture-Hist 8 in gallery.json Schema 5
 121. leftoverHold hash# bins persist
 124. Yaw-binned Print-Bank 5 Slots
-126. leftoverHoldTrail[id] je Bin verdrahten — Math sitzt (¾ leer), Store speichert noch kein Bin-Trail
 137. leftoverHoldBins persist App-Neustart
 139. Tests splitted
 147. Aegis.dmg nicht ins Git
@@ -76,8 +74,18 @@ Siehe ANALYSE.md. **2.1.102** leftoverBaptizeBoth ohne `?? raw`, Overlay ¾, lef
 152. CIImage createCGImage Farbe 420v messen
 158. FaceEngine capture an leftoverPick wenn Frame-Luma nil
 159. RTSP 420f analog LiveCapture
+- liveMinInterval 8–15 — sitzt.
+- physicalCaptureRotation aus — sitzt.
+- leftoverTrailWriteOk ohne Yaw — sitzt.
+- leftoverHoldTrail[id] frontal — sitzt.
+- leftoverSparkChip ¾ leer — sitzt.
+- leftoverHoldOverlayChipOf — sitzt.
+- leftoverBaptizeBoth ohne ?? raw — sitzt.
+- leftoverTrailNowOf — sitzt.
+- leftoverNameFromHold — sitzt.
+- captureFormatScore 4:3 — sitzt.
+- reselectFormat CS zweimal — sitzt.
 - leftoverHoldChip compact — sitzt.
-- leftoverHoldTrailOf ¾ kein UUID-Mix — sitzt.
 - leftoverScoreHeatMid Nacht — sitzt.
 - leftoverSoftmaxFloorOf — sitzt.
 - Center Stage aus — sitzt.
@@ -86,30 +94,27 @@ Siehe ANALYSE.md. **2.1.102** leftoverBaptizeBoth ohne `?? raw`, Overlay ¾, lef
 - SHARP Chip — sitzt.
 - BAND Chip — sitzt.
 - 420v Sharp-Lift — sitzt.
-- leftoverScore capture — sitzt.
-- captureLockFrameLo — sitzt.
-- leftoverHoldNow leftoverHoldPrevOf — sitzt.
-- pinByPrint ≥ — sitzt.
-- leftoverPrintSharpOf — sitzt.
-- Capture 420f — sitzt.
+- availableVideoPixelFormatTypes — sitzt.
 
 Neu:
 
-- ** Bin-Trail in leftoverHoldTrailByHash `#bin` schreiben**, nicht nur filtern. leftoverTrailWriteOk blockt Yaw ≥ 0,28 — leftoverTrailNowOf liefert [] bis das sitzt.
+- ** leftoverLastHash je FaceId.** Overlay-Spark ohne Spatial-Hash-Steal — leftoverTrailLookup braucht den Box-Hash, Chip hat nur UUID.
+- ** leftoverAdopt Lock 0,80 s** bei 15 fps (12 Frames) statt hart 1,2 s.
+- ** Hunt 10 fps bis leftoverStreak ≥ 1**, nicht 8 — erste Taufe sonst weiter hungernd.
+- ** FaceEngine auf outputQueue**, nicht Main. 15 fps auf Main kann UI-Jank.
+- ** RTSP 420f**, Player-Pfad bleibt 32BGRA.
+- ** Shared XPC mit Helios 1.5.88** eine TCC, ein Buffer, dieselbe 0°-Geometrie.
 - ** Overlay VoiceOver HOLD roh/smooth** „gehalten null acht null“.
 - ** JPEG 70 % + Blink 2-Frame** vor leftoverBaptize — Poster tauft nicht.
 - ** gallery.json Schema 5 Capture-Hist + Hold-Bins** über App-Neustart.
 - ** Per-Box CLAHE** statt Full-Frame.
-- ** Shared XPC mit Helios** eine TCC, ein Buffer.
 - **Score-EMA 3-Tick / Live-Name 3-Tick / Gallery-Prune** aus bugfix 2.1.15, nicht mergen — hinter Pref.
-- **leftoverSparkChip je Bin.** Spark liest noch leftoverHoldTrail[id] frontal bei ¾.
-- **leftoverAdopt bleibt Taufe-Pfad.** 1,2 s sitzt. leftoverTransfersId ohne Smooth tauft nicht mehr.
-- leftoverBaptizeBoth ohne ?? raw — sitzt.
-- leftoverHoldOverlayChipOf — sitzt.
-- leftoverTrailNowOf — sitzt.
-- leftoverNameFromHold — sitzt.
+- ** liveMinInterval thermal** 8 fps 2 s halten analog Helios, nicht hart Hunt.
+- ** Center Stage nach Continuity-Reconnect** nochmal aus — CS kommt mit dem Gerät zurück.
+- ** leftoverSparkChip peak-hold 2 Frames** sonst 8 fps Overlay flackert.
+- ** FaceEngine capture an leftoverPick** wenn Frame-Luma nil — Indoor 420v sonst Nacht-Softmax.
+- ** leftoverAdopt bleibt Taufe-Pfad.** 1,2 s sitzt. leftoverTransfersId ohne Smooth tauft nicht mehr.
 - ** VideoStabilization aus** auf Continuity — Landmark-Warp, HOLD tanzt.
 - ** leftoverBaptize Qualitätstor** sharp + yaw + blink, nicht nur Score.
-- ** availableVideoPixelFormatTypes** sitzt (2.1.103). Overlay-Name, nicht ObjC-CV.
 
 Nur main.
