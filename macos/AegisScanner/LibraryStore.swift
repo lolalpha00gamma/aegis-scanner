@@ -40,6 +40,7 @@ final class LibraryStore: ObservableObject {
     private var leftoverHoldBins: [String: Double] = [:]
     @Published var leftoverPending: [UUID: String] = [:]
     @Published var cameraChoice: CameraChoice = .auto
+    @Published var liveFormatChip: String = ""
     @Published var freezeAxis: [UUID: String] = [:]
     @Published var swapFlashUntil: TimeInterval = 0
     @Published var headCountFlashUntil: TimeInterval = 0
@@ -1160,9 +1161,10 @@ final class LibraryStore: ObservableObject {
     func leftoverHoldChip(faceId: UUID, sharpness: Double? = nil, yawAbs: Double? = nil) -> String? {
         MatchMath.leftoverHoldOverlayChip(
             hold: leftoverHoldNow(faceId: faceId, yawAbs: yawAbs),
-            trail: leftoverHoldTrail[faceId] ?? [],
+            trail: MatchMath.leftoverHoldTrailOf(uuidTrail: leftoverHoldTrail[faceId] ?? [], yawAbs: yawAbs),
             yawAbs: yawAbs,
-            sharpness: sharpness
+            sharpness: sharpness,
+            compact: true
         )
     }
 
@@ -1504,6 +1506,7 @@ final class LibraryStore: ObservableObject {
             await MainActor.run { [weak self] in
                 guard let self else { return }
                 self.lastLiveVisMs = visMs
+                self.liveFormatChip = self.liveCapture.formatChip
                 if !self.liveActive || self.liveMediaId != mediaId {
                     self.liveBusy = false
                     self.livePending = nil

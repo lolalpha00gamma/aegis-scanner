@@ -66,6 +66,12 @@ struct ContentView: View {
             .pickerStyle(.menu)
             .frame(width: 150)
             .help("Built-in zuerst, sonst Continuity. Analog Helios.")
+            if !store.liveFormatChip.isEmpty {
+                Text(store.liveFormatChip)
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(.orange)
+                    .help("Capture-Format. BGRA 8 = Continuity tot.")
+            }
             Button("Erkennen") { Task { await store.scan() } }
                 .disabled(store.busy || store.media.isEmpty)
             if store.busy {
@@ -760,6 +766,9 @@ struct FaceOverlay: View {
                             }
                             if let cap = MatchMath.leftoverCaptureChip(face.quality.capture) {
                                 tail += " · \(cap)"
+                            }
+                            if let sharp = MatchMath.leftoverSharpChip(face.quality.sharpness) {
+                                tail += " · \(sharp)"
                             }
                             return tail
                         }

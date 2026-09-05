@@ -1,4 +1,4 @@
-# Aegis **2.1.100 alpha**
+# Aegis **2.1.101 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.101 alpha
+
+2.1.100 Overlay lang, ¾ mischte Frontal-Trail, Center Stage an, Preset clampte Continuity, Softmax nachts wie Tag.
+
+- **`leftoverHoldChip` compact `HOLD 80/64`.** ¾-Trail nicht UUID-Mix.
+- **`leftoverScoreHeatMid` Nacht 0,60.** Softmax-Floor 0,47 nachts.
+- **Center Stage aus + kein Continuity-Preset.** lock 24 statt 30. 422 vor BGRA.
+- **SHARP + BAND Chips.** 420v Sharp-Lift. Format-Chip in der Toolbar.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.101 (Build 127).
 
 ## Neu in 2.1.100 alpha
 

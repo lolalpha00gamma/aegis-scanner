@@ -44,6 +44,7 @@ final class LiveCapture: NSObject {
     private(set) var cameraUniqueID: String = ""
     private(set) var orientOverride: String = "auto"
     private(set) var isContinuity = false
+    private(set) var formatChip = ""
     var choice: CameraChoice = .auto
 
     static func orientKey(_ uniqueID: String) -> String { "aegis.camOrient.\(uniqueID)" }
@@ -119,7 +120,6 @@ final class LiveCapture: NSObject {
 
     private func configureCamera() {
         let session = AVCaptureSession()
-        session.sessionPreset = .hd1280x720
         guard
             let device = preferredCamera(),
             let input = try? AVCaptureDeviceInput(device: device)
@@ -133,6 +133,10 @@ final class LiveCapture: NSObject {
         } else {
             isContinuity = device.deviceType == .continuityCamera
         }
+        if !MatchMath.sessionPresetClampsContinuity(isContinuity) {
+            session.sessionPreset = .hd1280x720
+        }
+        applyCenterStage(force: true)
         if let stored = UserDefaults.standard.string(forKey: Self.orientKey(device.uniqueID)) {
             orientOverride = stored
         }
@@ -148,6 +152,7 @@ final class LiveCapture: NSObject {
         self.tap = delegate
         out.setSampleBufferDelegate(delegate, queue: outputQueue)
         if session.canAddOutput(out) { session.addOutput(out) }
+        applyCenterStage(force: true)
         applyBestFormat(device)
         applyNativePixelFormat(out)
         if let conn = out.connection(with: .video) {
@@ -236,6 +241,8 @@ final class LiveCapture: NSObject {
             fmt = kCVPixelFormatType_420YpCbCr8BiPlanarFullRange
         } else if has(kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange) {
             fmt = kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
+        } else if has(kCVPixelFormatType_422YpCbCr8) {
+            fmt = kCVPixelFormatType_422YpCbCr8
         } else if has(kCVPixelFormatType_32BGRA) {
             fmt = kCVPixelFormatType_32BGRA
         } else {
@@ -252,8 +259,8 @@ final class LiveCapture: NSObject {
             if let range = device.activeFormat.videoSupportedFrameRateRanges.max(by: {
                 $0.maxFrameRate < $1.maxFrameRate
             }) {
-                let hi = MatchMath.captureLockFrameRate(range.maxFrameRate)
-                let lo = MatchMath.captureLockFrameLo(range.maxFrameRate, rangeMin: range.minFrameRate)
+                let hi = MatchMath.captureLockFrameRate(range.maxFrameRate, continuity: self.isContinuity)
+                let lo = MatchMath.captureLockFrameLo(range.maxFrameRate, rangeMin: range.minFrameRate, continuity: self.isContinuity)
                 var minDur = CMTimeMake(value: 1, timescale: CMTimeScale(max(1, Int(hi.rounded()))))
                 var maxDur = CMTimeMake(value: 1, timescale: CMTimeScale(max(1, Int(lo.rounded()))))
                 if minDur < range.minFrameDuration { minDur = range.minFrameDuration }
@@ -261,9 +268,33 @@ final class LiveCapture: NSObject {
                 if minDur > maxDur { minDur = maxDur }
                 device.activeVideoMinFrameDuration = minDur
                 device.activeVideoMaxFrameDuration = maxDur
+                let osType = CMFormatDescriptionGetMediaSubType(device.activeFormat.formatDescription)
+                let chip = MatchMath.captureBandChip(osType: osType, lo: lo, hi: hi)
+                Task { @MainActor in self.formatChip = chip }
             }
             device.unlockForConfiguration()
         } catch { }
+    }
+
+    private func applyCenterStage(force: Bool = false) {
+        guard MatchMath.centerStageOff else { return }
+        if #available(macOS 12.3, *) {
+            if force || MatchMath.centerStageNeedsReassert(enabled: AVCaptureDevice.isCenterStageEnabled) {
+                AVCaptureDevice.isCenterStageEnabled = false
+            }
+        }
+    }
+
+    func reselectFormat() {
+        outputQueue.async { [weak self] in
+            guard let self, let session = self.session else { return }
+            let device = session.inputs.compactMap { ($0 as? AVCaptureDeviceInput)?.device }.first
+            guard let device else { return }
+            Task { @MainActor in
+                self.applyCenterStage(force: true)
+                self.applyBestFormat(device)
+            }
+        }
     }
 
     private static func bestFormat(on device: AVCaptureDevice) -> AVCaptureDevice.Format? {

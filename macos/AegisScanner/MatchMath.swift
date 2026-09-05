@@ -414,7 +414,7 @@ enum MatchMath {
         }
         let raw = pool.map { $0.cosine ?? -1 }
         if leftoverAmbiguousBlocks(raw: raw, scored: scored) { return nil }
-        if leftoverSoftmaxBlocks(leftoverScoreSoftmax(scored)) { return nil }
+        if leftoverSoftmaxBlocks(leftoverScoreSoftmax(scored), capture: session) { return nil }
         if let i = scored.enumerated().max(by: { $0.element < $1.element })?.offset {
             let idx = pool[i].index
             if !conflictTickAgrees(
@@ -570,13 +570,15 @@ enum MatchMath {
     /// Overlay: leftover-Print sichtbar, sonst wirkt 0,64 „tot“. Komma wie die restliche UI.
     /// 0,62 scharf hält den Track — Label muss dieselbe Bandbreite zeigen, nicht nil.
     /// Smooth neben Roh: Taufe 0,80 bei EMA 0,64 sonst unsichtbar.
-    static func leftoverHoldLabel(cosine: Double?, sharpness: Double? = nil, yawAbs: Double? = nil, smooth: Double? = nil) -> String? {
+    static func leftoverHoldLabel(cosine: Double?, sharpness: Double? = nil, yawAbs: Double? = nil, smooth: Double? = nil, compact: Bool = false) -> String? {
         guard let cosine else { return nil }
         let ok = leftoverPrintOk(cosine: cosine, sharpness: sharpness) || cosine >= leftoverPrintGenuine
         guard ok else { return nil }
         let raw = leftoverHoldFrac(cosine)
         let hold: String
-        if let smooth, leftoverHoldFrac(smooth) != raw {
+        if compact {
+            hold = leftoverHoldCompactFrac(raw: cosine, smooth: smooth)
+        } else if let smooth, leftoverHoldFrac(smooth) != raw {
             hold = "gehalten \(raw) / \(leftoverHoldFrac(smooth))"
         } else {
             hold = "gehalten \(raw)"
@@ -597,14 +599,31 @@ enum MatchMath {
         hold: Double?,
         trail: [Double] = [],
         yawAbs: Double? = nil,
-        sharpness: Double? = nil
+        sharpness: Double? = nil,
+        compact: Bool = false
     ) -> String? {
         leftoverHoldLabel(
             cosine: leftoverHoldRawOf(trail: trail, hold: hold),
             sharpness: sharpness,
             yawAbs: yawAbs,
-            smooth: hold
+            smooth: hold,
+            compact: compact
         )
+    }
+
+    /// Overlay compact `HOLD 80/64` neben `gehalten 0,80 / 0,64`.
+    static func leftoverHoldCompactFrac(raw: Double, smooth: Double?) -> String {
+        let r = Int((raw * 100).rounded())
+        if let s = smooth {
+            let sv = Int((s * 100).rounded())
+            if sv != r { return "HOLD \(r)/\(sv)" }
+        }
+        return "HOLD \(r)"
+    }
+
+    /// ¾-Trail nicht mit Frontal-UUID mischen. Hash-Bin sitzt, UUID-Trail bleibt frontal.
+    static func leftoverHoldTrailOf(uuidTrail: [Double], yawAbs: Double? = nil) -> [Double] {
+        leftoverHoldBin(yawAbs: yawAbs ?? 0) == 0 ? uuidTrail : []
     }
 
     /// Overlay darf den Track halten. Taufe erst ab Pin-Print 0,80 — sonst erbt der Nachbar den Namen.
@@ -792,6 +811,39 @@ enum MatchMath {
         return "CAP \(leftoverHoldFrac(c))"
     }
 
+    static func leftoverSharpChip(_ sharpness: Double?) -> String? {
+        guard let s = sharpness, s > 0 else { return nil }
+        return "SHARP \(leftoverHoldFrac(s))"
+    }
+
+    /// 420v VideoRange Offset 16. Laplacian wirkt 0,10 zu dunkel.
+    static func leftoverSharpnessOf(_ sharpness: Double?, videoRange: Bool = false) -> Double? {
+        guard let s = sharpness else { return nil }
+        return videoRange ? min(1, s + 16.0 / 219.0) : s
+    }
+
+    static func captureFourCCName(_ osType: UInt32) -> String {
+        if osType == captureFourCC420f { return "420f" }
+        if osType == captureFourCC420v { return "420v" }
+        if osType == captureFourCCBGRA { return "BGRA" }
+        return "PIX"
+    }
+
+    static func captureBandChip(osType: UInt32, lo: Double, hi: Double, fps: Double? = nil) -> String {
+        if let fps, fps > 0, fps < 12 {
+            return String(format: "%@ %.0f", captureFourCCName(osType), fps)
+        }
+        return String(format: "%@ %.0f–%.0f", captureFourCCName(osType), lo, hi)
+    }
+
+    static func captureLockFrameRate(_ maxFps: Double, continuity: Bool = false) -> Double {
+        if continuity, maxFps >= 24 { return min(24, maxFps) }
+        if maxFps >= 30 { return 30 }
+        if maxFps >= 24 { return max(24, min(30, maxFps)) }
+        if maxFps >= 15 { return max(15, min(24, maxFps)) }
+        return max(7, maxFps)
+    }
+
     static func leftoverPrintOk(cosine: Double?, sharpness: Double? = nil, floor: Double = leftoverPrintCosine, yawAbs: Double? = nil, capture: Double? = nil) -> Bool {
         guard let cosine else { return false }
         if leftoverBaptize(cosine: cosine) { return true }
@@ -808,22 +860,23 @@ enum MatchMath {
         return leftoverPrintSharp
     }
 
-    /// Continuity 15–30. 8 bleibt 8, 60 wird 30.
-    static func captureLockFrameRate(_ maxFps: Double) -> Double {
-        if maxFps >= 30 { return 30 }
-        if maxFps >= 24 { return max(24, min(30, maxFps)) }
-        if maxFps >= 15 { return max(15, min(24, maxFps)) }
-        return max(7, maxFps)
-    }
-
     /// Continuity 1–30 hart auf 30 droppt auf 8. Band Floor 15 atmet.
     static let captureLockFloor: Double = 15
 
-    static func captureLockFrameLo(_ maxFps: Double, rangeMin: Double) -> Double {
-        let hi = captureLockFrameRate(maxFps)
+    static func captureLockFrameLo(_ maxFps: Double, rangeMin: Double, continuity: Bool = false) -> Double {
+        let hi = captureLockFrameRate(maxFps, continuity: continuity)
         if hi + 1e-9 < captureLockFloor { return hi }
         return min(hi, max(rangeMin, captureLockFloor))
     }
+
+    /// Continuity Center Stage croppt der Box hinterher. Aus, sonst leftoverSteal.
+    static let centerStageOff = true
+
+    static func centerStageNeedsReassert(enabled: Bool) -> Bool {
+        centerStageOff && enabled
+    }
+
+    static func sessionPresetClampsContinuity(_ continuity: Bool) -> Bool { continuity }
 
     /// 720p @ 15–30 schlägt 360p @ 60 und 800p @ 8. Analog Helios formatScore.
     static func captureFormatScore(width: Double, height: Double, fps: Double) -> Double {
@@ -884,7 +937,7 @@ enum MatchMath {
         if let t = twinPair, t >= leftoverTwinSameShot {
             s -= leftoverTwinScorePenalty * min(1, max(0, (t - leftoverTwinSameShot) / 0.04))
         }
-        s += leftoverScoreTempK * leftoverScoreHeat(cosine)
+        s += leftoverScoreTempK * leftoverScoreHeat(cosine, mid: leftoverScoreHeatMid(capture: capture))
         return s
     }
 
@@ -893,6 +946,11 @@ enum MatchMath {
     static let leftoverScoreTemp: Double = 16
     static let leftoverScoreTempK: Double = 0.10
     static let leftoverScoreTempMid: Double = 0.72
+
+    /// Nacht Heat-Mid 0,60. Tag 0,72 ließ Genuine 0,62 tot.
+    static func leftoverScoreHeatMid(capture: Double? = nil) -> Double {
+        leftoverSessionLumaLow(capture) ? 0.60 : leftoverScoreTempMid
+    }
 
     static func leftoverScoreHeat(_ cosine: Double, t: Double = leftoverScoreTemp, mid: Double = leftoverScoreTempMid) -> Double {
         let z = t * (cosine - mid)
@@ -916,9 +974,14 @@ enum MatchMath {
 
     static let leftoverSoftmaxFloor: Double = 0.55
 
-    static func leftoverSoftmaxBlocks(_ p: [Double], floor: Double = leftoverSoftmaxFloor) -> Bool {
+    static func leftoverSoftmaxFloorOf(capture: Double? = nil) -> Double {
+        leftoverSessionLumaLow(capture) ? leftoverSoftmaxFloor - 0.08 : leftoverSoftmaxFloor
+    }
+
+    static func leftoverSoftmaxBlocks(_ p: [Double], floor: Double? = nil, capture: Double? = nil) -> Bool {
         guard p.count >= 2 else { return false }
-        return (p.max() ?? 0) < floor
+        let f = floor ?? leftoverSoftmaxFloorOf(capture: capture)
+        return (p.max() ?? 0) < f
     }
 
     /// Twin: Anna links bleibt links. Gast-Kiste rechts stiehlt nicht.

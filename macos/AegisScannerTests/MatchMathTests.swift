@@ -2015,6 +2015,26 @@ enum MatchMathTests {
         let nightMul14 = MatchMath.leftoverScore(cosine: 0.72, sharpness: 0.14, capture: 0.15)
         let dayMul14 = MatchMath.leftoverScore(cosine: 0.72, sharpness: 0.14)
         ok(nightMul14 > dayMul14, "Nacht Laplacian 0,14 ohne 0,88-Strafe")
+        ok(
+            MatchMath.leftoverHoldOverlayChip(hold: 0.64, trail: [0.80], compact: true) == "HOLD 80/64",
+            "HOLD compact 80/64"
+        )
+        ok(
+            MatchMath.leftoverHoldOverlayChip(hold: 0.66, trail: [0.64], yawAbs: 0.35, compact: true) == "HOLD 64/66 · BIN 1",
+            "HOLD compact BIN"
+        )
+        ok(MatchMath.leftoverSharpChip(0.12) == "SHARP 0,12", "SHARP Chip")
+        ok(MatchMath.captureBandChip(osType: MatchMath.captureFourCC420f, lo: 15, hi: 24) == "420f 15–24", "BAND 420f")
+        ok(MatchMath.captureBandChip(osType: MatchMath.captureFourCCBGRA, lo: 8, hi: 8, fps: 8) == "BGRA 8", "BAND BGRA 8")
+        ok(abs((MatchMath.leftoverSharpnessOf(0.12, videoRange: true) ?? 0) - (0.12 + 16.0 / 219.0)) < 0.001, "420v Sharp-Lift")
+        ok(abs(MatchMath.leftoverScoreHeatMid(capture: 0.15) - 0.60) < 0.001, "Nacht Heat-Mid 0,60")
+        ok(abs(MatchMath.leftoverScoreHeatMid() - 0.72) < 0.001, "Tag Heat-Mid 0,72")
+        ok(abs(MatchMath.leftoverSoftmaxFloorOf(capture: 0.15) - 0.47) < 0.001, "Nacht Softmax-Floor 0,47")
+        ok(MatchMath.leftoverHoldTrailOf(uuidTrail: [0.80], yawAbs: 0).count == 1, "Frontal-Trail")
+        ok(MatchMath.leftoverHoldTrailOf(uuidTrail: [0.80], yawAbs: 0.35).isEmpty, "¾ kein UUID-Mix")
+        ok(MatchMath.captureLockFrameRate(30, continuity: true) == 24, "Continuity 24 statt 30")
+        ok(MatchMath.centerStageOff, "Center Stage aus")
+        ok(MatchMath.sessionPresetClampsContinuity(true), "Continuity Preset aus")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)
