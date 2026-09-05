@@ -362,12 +362,15 @@ final class LiveCapture: NSObject {
     private func startTimer() {
         timer?.invalidate()
         let interval = MatchMath.liveMinInterval(continuity: isContinuity, faces: facesPresent)
-        timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
+        let t = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
             let capture = self
             Task { @MainActor in
                 capture?.grab()
             }
         }
+        t.tolerance = min(0.008, interval * 0.15)
+        RunLoop.main.add(t, forMode: .common)
+        timer = t
     }
 
     private func grab() {

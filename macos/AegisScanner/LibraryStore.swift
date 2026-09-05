@@ -113,6 +113,10 @@ final class LibraryStore: ObservableObject {
     private var leftoverHoldTrailByHash: [String: (samples: [Double], at: TimeInterval)] = [:]
     private var leftoverLastHash: [UUID: String] = [:]
     private var leftoverSparkChipHeld: [UUID: (chip: String, hold: Int)] = [:]
+    private var leftoverJpegDelta: [UUID: Double] = [:]
+    private var leftoverJpegAt: [UUID: TimeInterval] = [:]
+    private var leftoverJpegHash: [UUID: String] = [:]
+    private var leftoverJpegCos: [UUID: Double] = [:]
     private var leftoverEmptySince: TimeInterval?
     private var guestOrder: [UUID] = []
     private var guestSeenAt: [UUID: TimeInterval] = [:]
@@ -1460,6 +1464,10 @@ final class LibraryStore: ObservableObject {
         leftoverHoldTrailByHash = [:]
         leftoverLastHash = [:]
         leftoverSparkChipHeld = [:]
+        leftoverJpegDelta = [:]
+        leftoverJpegAt = [:]
+        leftoverJpegHash = [:]
+        leftoverJpegCos = [:]
         leftoverHoldTrailBins = [:]
         leftoverEmptySince = nil
         leftoverWipeUntil = [:]
@@ -2694,12 +2702,30 @@ final class LibraryStore: ObservableObject {
                 let blinkBlocked = (liveOpenStreak[old.id] ?? liveOpenStreak[adopted[bestJ].id] ?? 0) < 2
                 let boxIoU = FaceEngine.iou(old.box, adopted[bestJ].box)
                 var jpegDelta: Double?
-                if MatchMath.leftoverBaptize(cosine: pinCos), !adopted[bestJ].featurePrint.isEmpty {
-                    jpegDelta = FaceEngine.jpegProbeDelta(
-                        print: adopted[bestJ].featurePrint,
-                        image: image,
-                        box: adopted[bestJ].box
-                    )
+                let printReady = !adopted[bestJ].featurePrint.isEmpty
+                if MatchMath.leftoverBaptize(cosine: pinCos), printReady {
+                    let probeId = adopted[bestJ].id
+                    let boxHash = leftoverLastHash[probeId] ?? leftoverLastHash[old.id]
+                    if MatchMath.leftoverJpegProbeReuse(
+                        now: now,
+                        last: leftoverJpegAt[probeId] ?? leftoverJpegAt[old.id],
+                        hash: boxHash,
+                        cachedHash: leftoverJpegHash[probeId] ?? leftoverJpegHash[old.id],
+                        cosine: pinCos,
+                        cachedCosine: leftoverJpegCos[probeId] ?? leftoverJpegCos[old.id]
+                    ) {
+                        jpegDelta = MatchMath.leftoverJpegProbeGet(leftoverJpegDelta[probeId] ?? leftoverJpegDelta[old.id])
+                    } else {
+                        jpegDelta = FaceEngine.jpegProbeDelta(
+                            print: adopted[bestJ].featurePrint,
+                            image: image,
+                            box: adopted[bestJ].box
+                        )
+                        leftoverJpegDelta[probeId] = MatchMath.leftoverJpegProbePut(jpegDelta)
+                        leftoverJpegAt[probeId] = now
+                        if let boxHash { leftoverJpegHash[probeId] = boxHash }
+                        if let pinCos { leftoverJpegCos[probeId] = pinCos }
+                    }
                 }
                 let transfer = MatchMath.leftoverTransfersId(
                     cosine: pinCos,
@@ -2712,7 +2738,8 @@ final class LibraryStore: ObservableObject {
                     yawAbs: abs(adopted[bestJ].quality.yaw),
                     blink: blinkBlocked,
                     jpegDelta: jpegDelta,
-                    iou: boxIoU
+                    iou: boxIoU,
+                    jpegRequired: printReady
                 )
                 if MatchMath.leftoverHoldsTrack(
                     cosine: pinCos,
@@ -2725,7 +2752,8 @@ final class LibraryStore: ObservableObject {
                     yawAbs: abs(adopted[bestJ].quality.yaw),
                     blink: blinkBlocked,
                     jpegDelta: jpegDelta,
-                    iou: boxIoU
+                    iou: boxIoU,
+                    jpegRequired: printReady
                 ) {
                     leftoverPending[adopted[bestJ].id] = MatchMath.leftoverHoldLabel(
                         cosine: pinCos,
@@ -2945,6 +2973,18 @@ final class LibraryStore: ObservableObject {
                 liveIds.contains($0.key) || (leftoverIds.contains($0.key) && !used.contains($0.key))
             }
             leftoverLastHash = leftoverLastHash.filter {
+                liveIds.contains($0.key) || (leftoverIds.contains($0.key) && !used.contains($0.key))
+            }
+            leftoverJpegDelta = leftoverJpegDelta.filter {
+                liveIds.contains($0.key) || (leftoverIds.contains($0.key) && !used.contains($0.key))
+            }
+            leftoverJpegAt = leftoverJpegAt.filter {
+                liveIds.contains($0.key) || (leftoverIds.contains($0.key) && !used.contains($0.key))
+            }
+            leftoverJpegHash = leftoverJpegHash.filter {
+                liveIds.contains($0.key) || (leftoverIds.contains($0.key) && !used.contains($0.key))
+            }
+            leftoverJpegCos = leftoverJpegCos.filter {
                 liveIds.contains($0.key) || (leftoverIds.contains($0.key) && !used.contains($0.key))
             }
             leftoverSparkChipHeld = leftoverSparkChipHeld.filter {

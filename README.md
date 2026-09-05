@@ -1,4 +1,4 @@
-# Aegis **2.1.109 alpha**
+# Aegis **2.1.110 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,14 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.110 alpha
+
+2.1.109 JPEG-Probe nil = Taufe. Probe jede Frame auf Main. Timer .default. Cache ohne Hash. Crop-Fail Retry.
+
+- **`leftoverBaptizeJpegOk required`.** Print da, Probe Pflicht. Gate denselben Schalter.
+- **`leftoverJpegProbeReuse` 0,80 s Hash/Cosine.** Miss −1. Timer `.common`.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.110 (Build 136).
 
 ## Neu in 2.1.109 alpha
 

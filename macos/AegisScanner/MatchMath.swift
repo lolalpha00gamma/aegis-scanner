@@ -648,10 +648,36 @@ enum MatchMath {
         frame ?? capture
     }
 
-    /// JPEG-Probe optional. nil = kein Block (FaceEngine hat nicht gemessen).
-    static func leftoverBaptizeJpegOk(_ delta: Double?) -> Bool {
-        guard let delta else { return true }
-        return leftoverBaptizeJpeg(delta: delta)
+    /// JPEG-Probe optional. nil = kein Block, außer required (Print da, Probe tot = Poster).
+    static func leftoverBaptizeJpegOk(_ delta: Double?, required: Bool = false) -> Bool {
+        if let delta { return leftoverBaptizeJpeg(delta: delta) }
+        return !required
+    }
+
+    /// Probe 0,80 s cachen. FaceEngine JPEG+Print auf Main sonst 15 fps Jank.
+    /// Hash- oder Cosine-Sprung: Poster in derselben Box, Cache tot.
+    static func leftoverJpegProbeReuse(
+        now: TimeInterval,
+        last: TimeInterval?,
+        ttl: TimeInterval = 0.80,
+        hash: String? = nil,
+        cachedHash: String? = nil,
+        cosine: Double? = nil,
+        cachedCosine: Double? = nil,
+        cosineJump: Double = 0.04
+    ) -> Bool {
+        if let hash, let cachedHash, hash != cachedHash { return false }
+        if let c = cosine, let p = cachedCosine, abs(c - p) >= cosineJump { return false }
+        guard let last else { return false }
+        return now - last >= 0 && now - last < ttl
+    }
+
+    /// Crop-Fail als −1 merken. Sonst jede Frame reextract.
+    static func leftoverJpegProbePut(_ delta: Double?) -> Double { delta ?? -1 }
+
+    static func leftoverJpegProbeGet(_ stored: Double?) -> Double? {
+        guard let stored, stored >= 0 else { return nil }
+        return stored
     }
 
     /// Mehrheit UND 3 gleiche Ticks. Mehrheit allein springt Geschwister.
@@ -723,10 +749,11 @@ enum MatchMath {
         sharpness: Double? = nil,
         yawAbs: Double? = nil,
         blink: Bool = false,
-        jpegDelta: Double? = nil
+        jpegDelta: Double? = nil,
+        jpegRequired: Bool = false
     ) -> Bool {
         leftoverBaptizeBoth(raw: raw, smooth: smooth, sharpness: sharpness, yawAbs: yawAbs, blink: blink)
-            && leftoverBaptizeJpegOk(jpegDelta)
+            && leftoverBaptizeJpegOk(jpegDelta, required: jpegRequired)
     }
 
     /// Twin 0,80 nach Hold 0,64: Spike, kein Steal. 0,80 nach 0,80 bleibt Taufe.
@@ -755,20 +782,22 @@ enum MatchMath {
         yawAbs: Double? = nil,
         blink: Bool = false,
         jpegDelta: Double? = nil,
-        iou: Double? = nil
+        iou: Double? = nil,
+        jpegRequired: Bool = false
     ) -> Bool {
         if tapNameLockBlocks(until: tapUntil, now: now) { return false }
         if leftoverBaptizeStillBlocks(stillFor: stillFor, cosine: cosine, holdPrev: holdPrev) { return false }
         if leftoverIoUJumpBlocks(iou) { return false }
         guard leftoverBaptize(cosine: cosine) else { return false }
         if !leftoverBaptizeQuality(sharpness: sharpness, yawAbs: yawAbs, blink: blink) { return false }
+        if !leftoverBaptizeJpegOk(jpegDelta, required: jpegRequired) { return false }
         if printMADBlocks(trail) { return false }
         let trailMean: Double? = trail.isEmpty ? nil : trail.reduce(0, +) / Double(trail.count)
         if leftoverBaptizeSpike(raw: cosine, prev: holdPrev) {
             let n = trail.filter { leftoverBaptize(cosine: $0) }.count
-            return n >= 3 && leftoverBaptizeGate(raw: cosine, smooth: trailMean, sharpness: sharpness, yawAbs: yawAbs, blink: blink, jpegDelta: jpegDelta)
+            return n >= 3 && leftoverBaptizeGate(raw: cosine, smooth: trailMean, sharpness: sharpness, yawAbs: yawAbs, blink: blink, jpegDelta: jpegDelta, jpegRequired: jpegRequired)
         }
-        return leftoverBaptizeGate(raw: cosine, smooth: holdPrev, sharpness: sharpness, yawAbs: yawAbs, blink: blink, jpegDelta: jpegDelta)
+        return leftoverBaptizeGate(raw: cosine, smooth: holdPrev, sharpness: sharpness, yawAbs: yawAbs, blink: blink, jpegDelta: jpegDelta, jpegRequired: jpegRequired)
     }
 
     static let leftoverBaptizeStillNeed: TimeInterval = 0.45
@@ -2963,12 +2992,14 @@ enum MatchMath {
         yawAbs: Double? = nil,
         blink: Bool = false,
         jpegDelta: Double? = nil,
-        iou: Double? = nil
+        iou: Double? = nil,
+        jpegRequired: Bool = false
     ) -> Bool {
         if leftoverIoUJumpBlocks(iou) { return false }
         return leftoverPrintOk(cosine: cosine, sharpness: sharpness) && !leftoverTransfersId(
             cosine: cosine, holdPrev: holdPrev, trail: trail, tapUntil: tapUntil, now: now, stillFor: stillFor,
-            sharpness: sharpness, yawAbs: yawAbs, blink: blink, jpegDelta: jpegDelta, iou: iou
+            sharpness: sharpness, yawAbs: yawAbs, blink: blink, jpegDelta: jpegDelta, iou: iou,
+            jpegRequired: jpegRequired
         )
     }
 

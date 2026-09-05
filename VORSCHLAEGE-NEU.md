@@ -1,3 +1,52 @@
+# Nachtrag 2026-09-05 (2.1.110)
+
+Siehe ANALYSE.md. **2.1.110** JPEG required, Probe-Cache 0,80 s Hash/Cosine, Miss −1, Timer .common, Gate required.
+
+## In 2.1.110 gelandet
+
+1. leftoverBaptizeJpegOk required — Print ohne Probe keine Taufe
+2. leftoverJpegProbeReuse 0,80 s — Hash- oder Cosine-Sprung tot
+3. leftoverJpegProbePut Miss −1 — Crop-Fail nicht jede Frame
+4. leftoverTransfersId jpegRequired — Gate denselben Schalter
+5. LiveCapture Timer .common
+6. VERSION = Models = MARKETING_VERSION 2.1.110 (Build 136)
+
+## Offen (nicht Pflaster)
+
+- Helios Frame-Pump, eine TCC. Shared XPC mit Helios 1.5.94.
+- FaceEngine auf outputQueue, nicht Main. JPEG-Cache sitzt (2.1.110), Detect hoppt noch nach Main für leftoverTransfersId Cosine — Probe selbst cached.
+- RTSP 420f, Player-Pfad bleibt 32BGRA.
+- Overlay VoiceOver HOLD/Spark.
+- Per-Box CLAHE statt Full-Frame.
+- leftoverAdoptSecLock Pref 0,6–1,4.
+- Continuity Desk-View yaw-floor 0,36.
+- Gallery print decay: ungenutzte 14-Tage-Prints downweight.
+- Partial-Print P-Slot ohne Augen (Schal/Maske).
+- Burst-AE 5-Frame Pref Continuity-Nacht.
+- Print-Bank 5 Pose-Slots front/left/right/up/down.
+- DBSCAN vor Merge.
+- Watch-Folder PhotoKit.
+- Encrypted gallery export `.aegis`.
+- Iris-Textur-Slot als Twin-Veto.
+- Specular-Highlight auf Stirn als Card-Photo-Veto.
+- Continuity LiDAR-Z als Twin-Trennung.
+- Masken-/Schal-Slot. Brille-Slot.
+- RTSP-Reconnect Exponential-Backoff.
+- Tests splitted.
+- Aegis.dmg nicht ins Git — nur CI-Artefakt.
+- Temporal ReID-Graph über Hold-Trail.
+- PnP 6DoF, Slot folgt der Nase.
+- leftoverBaptizeJpegOk required — sitzt (2.1.110).
+- leftoverJpegProbeReuse Hash/Cosine / Miss −1 — sitzt (2.1.110).
+- Timer .common — sitzt (2.1.110).
+- leftoverBaptizeGate jpegRequired — sitzt (2.1.110).
+- ** Overlay-Chip `JPEG` wenn Probe drop > 0,06.**
+- ** FaceEngine.jpegProbeDelta in Task.detached neben Detect, nicht Main.**
+- ** leftoverJpegProbeReuse TTL Pref 0,25–1,2.**
+
+Nur main.
+
+
 # Nachtrag 2026-09-05 (2.1.109)
 
 Siehe ANALYSE.md. **2.1.109** JPEG-Probe, Schema 5 Hold-Bins, IoU-Jump, Per-Bin Adopt, 0° Orient. 2.1.108: Spark-Peek, PickLuma, BaptizeGate.
