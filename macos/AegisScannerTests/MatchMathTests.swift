@@ -1885,6 +1885,52 @@ enum MatchMathTests {
         ok(MatchMath.leftoverScoreHeat(0.80) > MatchMath.leftoverScoreHeat(0.70), "Temp 16 steiler")
         ok(MatchMath.leftoverCaptureChip(0.18) == "CAP 0,18", "CAP-Chip Nacht")
         ok(MatchMath.leftoverCaptureChip(0.70) == nil, "kein CAP am Tag")
+        ok(MatchMath.leftoverHoldLabel(cosine: 0.80, smooth: 0.64) == "gehalten 0,80 / 0,64", "HOLD roh/smooth")
+        ok(MatchMath.leftoverHoldLabel(cosine: 0.64, smooth: 0.64) == "gehalten 0,64", "gleich eine Zahl")
+        ok(
+            MatchMath.leftoverHoldLabel(cosine: 0.80, yawAbs: 0.35, smooth: 0.64) == "gehalten 0,80 / 0,64 · BIN 1",
+            "HOLD roh/smooth + BIN"
+        )
+        let nightBytes = [UInt8](repeating: 46, count: 64)
+        near(MatchMath.leftoverFrameCaptureByte(nightBytes, width: 8, height: 8) ?? -1, 46.0 / 255.0, 0.001, "8×8 Nacht-Luma")
+        let dayBytes = [UInt8](repeating: 178, count: 64)
+        near(MatchMath.leftoverFrameCaptureByte(dayBytes, width: 8, height: 8) ?? -1, 178.0 / 255.0, 0.001, "8×8 Tag-Luma")
+        ok(MatchMath.leftoverFrameCaptureByte([], width: 8, height: 8) == nil, "leerer Buffer kein Frame")
+        var binTrail: [String: (samples: [Double], at: TimeInterval)] = [:]
+        binTrail = MatchMath.leftoverTrailPut(
+            hash: "1.2.3.4", sample: 0.80, onto: binTrail, now: 10, sharpness: 0.40, bin: 0
+        )
+        ok(
+            abs((MatchMath.leftoverTrailLookup(hash: "1.2.3.4", table: binTrail, now: 10.2, bin: 0).last ?? -1) - 0.80) < 0.001,
+            "frontal Trail Exact"
+        )
+        ok(
+            MatchMath.leftoverTrailLookup(hash: "1.3.3.4", table: binTrail, now: 10.2, bin: 1).isEmpty,
+            "¾ liest nicht Frontal-Nachbar"
+        )
+        ok(
+            abs((MatchMath.leftoverTrailLookup(hash: "1.3.3.4", table: binTrail, now: 10.2, bin: 0).last ?? -1) - 0.80) < 0.001,
+            "frontal Nachbar gleicher Bin"
+        )
+        binTrail = MatchMath.leftoverTrailPut(
+            hash: "1.3.3.4", sample: 0.64, onto: binTrail, now: 10.1, sharpness: 0.40, bin: 1
+        )
+        ok(
+            abs((MatchMath.leftoverTrailLookup(hash: "1.3.3.4", table: binTrail, now: 10.2, bin: 1).last ?? -1) - 0.64) < 0.001,
+            "¾ Trail eigener Bin"
+        )
+        ok(
+            abs((MatchMath.leftoverTrailLookup(hash: "1.3.3.4", table: binTrail, now: 10.2, bin: 0).last ?? -1) - 0.80) < 0.001,
+            "frontal Lookup bleibt Frontal, nicht ¾"
+        )
+        let cropLive = MatchMath.leftoverPick(
+            candidates: [(0, 0.50, 0.61)],
+            sharpness: [0: 0.40],
+            sessionCapture: 0.18,
+            capture: [0: 0.18],
+            frameCapture: MatchMath.leftoverFrameCaptureByte(dayBytes, width: 8, height: 8)
+        )
+        ok(cropLive == nil, "live Frame-Luma 0,70: 0,61 gegen Tag-Floor tot")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

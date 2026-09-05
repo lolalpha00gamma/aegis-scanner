@@ -1672,6 +1672,7 @@ final class LibraryStore: ObservableObject {
             liveDt = MatchMath.medianLiveDt(liveDtSamples, fallback: liveDt)
         }
         liveLastStamp = now
+        let liveFrameCapture = MatchMath.leftoverFrameCapture(image)
         let enrolled = Set(identities.flatMap(\.faceIds))
         let previous = faces.filter { $0.mediaId == mediaId }
         var foundIouMax = 0.0
@@ -2406,7 +2407,8 @@ final class LibraryStore: ObservableObject {
                     ),
                     holdHashTable: leftoverHoldByHash,
                     holdAt: now,
-                    holdTTL: MatchMath.dropoutTTL(dt: liveDt)
+                    holdTTL: MatchMath.dropoutTTL(dt: liveDt),
+                    frameCapture: liveFrameCapture
                 ) else {
                     let twin = aegisHit?.pairCosine
                     if let twinLabel = MatchMath.leftoverTwinPairLabel(pairCosine: twin) {
@@ -2478,7 +2480,8 @@ final class LibraryStore: ObservableObject {
                         hash: boxHash,
                         table: leftoverHoldTrailByHash,
                         now: now,
-                        ttl: MatchMath.dropoutTTL(dt: liveDt)
+                        ttl: MatchMath.dropoutTTL(dt: liveDt),
+                        bin: MatchMath.leftoverHoldBin(yawAbs: abs(adopted[bestJ].quality.yaw))
                     )
                     if MatchMath.leftoverTrailWriteOk(
                         sharpness: adopted[bestJ].quality.sharpness,
@@ -2492,7 +2495,8 @@ final class LibraryStore: ObservableObject {
                             onto: leftoverHoldTrailByHash,
                             now: now,
                             sharpness: adopted[bestJ].quality.sharpness,
-                            yawAbs: abs(adopted[bestJ].quality.yaw)
+                            yawAbs: abs(adopted[bestJ].quality.yaw),
+                            bin: MatchMath.leftoverHoldBin(yawAbs: abs(adopted[bestJ].quality.yaw))
                         )
                     }
                     if MatchMath.printMADBlocks(trail) {
@@ -2539,7 +2543,8 @@ final class LibraryStore: ObservableObject {
                     ),
                     table: leftoverHoldTrailByHash,
                     now: now,
-                    ttl: MatchMath.dropoutTTL(dt: liveDt)
+                    ttl: MatchMath.dropoutTTL(dt: liveDt),
+                    bin: MatchMath.leftoverHoldBin(yawAbs: abs(adopted[bestJ].quality.yaw))
                 )
                 let tapUntil = tapNameLockUntil[old.id] ?? tapNameLockUntil[adopted[bestJ].id]
                 if let tap = MatchMath.tapNameLockLabel(until: tapUntil, now: now) {
@@ -2566,7 +2571,8 @@ final class LibraryStore: ObservableObject {
                     leftoverPending[adopted[bestJ].id] = MatchMath.leftoverHoldLabel(
                         cosine: pinCos,
                         sharpness: adopted[bestJ].quality.sharpness,
-                        yawAbs: abs(adopted[bestJ].quality.yaw)
+                        yawAbs: abs(adopted[bestJ].quality.yaw),
+                        smooth: leftoverHold[old.id] ?? holdNow
                     )
                         ?? leftoverPending[adopted[bestJ].id]
                     leftoverPins += 1

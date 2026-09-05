@@ -561,15 +561,18 @@ enum MatchMath {
 
     /// Overlay: leftover-Print sichtbar, sonst wirkt 0,64 „tot“. Komma wie die restliche UI.
     /// 0,62 scharf hält den Track — Label muss dieselbe Bandbreite zeigen, nicht nil.
-    static func leftoverHoldLabel(cosine: Double?, sharpness: Double? = nil, yawAbs: Double? = nil) -> String? {
+    /// Smooth neben Roh: Taufe 0,80 bei EMA 0,64 sonst unsichtbar.
+    static func leftoverHoldLabel(cosine: Double?, sharpness: Double? = nil, yawAbs: Double? = nil, smooth: Double? = nil) -> String? {
         guard let cosine else { return nil }
         let ok = leftoverPrintOk(cosine: cosine, sharpness: sharpness) || cosine >= leftoverPrintGenuine
         guard ok else { return nil }
-        let hundredths = Int((cosine * 100).rounded())
-        let whole = hundredths / 100
-        let frac = abs(hundredths % 100)
-        let fracStr = frac < 10 ? "0\(frac)" : "\(frac)"
-        let hold = "gehalten \(whole),\(fracStr)"
+        let raw = leftoverHoldFrac(cosine)
+        let hold: String
+        if let smooth, leftoverHoldFrac(smooth) != raw {
+            hold = "gehalten \(raw) / \(leftoverHoldFrac(smooth))"
+        } else {
+            hold = "gehalten \(raw)"
+        }
         if let yawAbs {
             return "\(hold) · \(leftoverHoldBinChip(leftoverHoldBin(yawAbs: yawAbs)))"
         }
@@ -689,6 +692,53 @@ enum MatchMath {
         guard let frame, let box else { return frame ?? box }
         if abs(frame - box) >= jump { return frame }
         return box
+    }
+
+    /// 8×8-Grid auf dem Byte-Buffer. Center Stage Box 0,18, Frame bleibt ~0,70.
+    static func leftoverFrameCaptureByte(
+        _ bytes: [UInt8],
+        width: Int,
+        height: Int,
+        stride: Int? = nil,
+        samples: Int = 8
+    ) -> Double? {
+        guard width > 0, height > 0, !bytes.isEmpty else { return nil }
+        let row = max(width, stride ?? width)
+        let n = min(max(1, samples), width, height)
+        var sum = 0.0
+        var count = 0
+        for j in 0 ..< n {
+            let y = min(height - 1, (j * height) / n)
+            for i in 0 ..< n {
+                let x = min(width - 1, (i * width) / n)
+                let idx = y * row + x
+                guard idx >= 0, idx < bytes.count else { continue }
+                sum += Double(bytes[idx])
+                count += 1
+            }
+        }
+        guard count > 0 else { return nil }
+        return sum / (Double(count) * 255.0)
+    }
+
+    /// Session-Luma aus dem ganzen Buffer, nicht der Face-Box.
+    static func leftoverFrameCapture(_ image: CGImage, samples: Int = 8) -> Double? {
+        let n = max(2, samples)
+        guard image.width > 1, image.height > 1, let ctx = CGContext(
+            data: nil,
+            width: n,
+            height: n,
+            bitsPerComponent: 8,
+            bytesPerRow: n,
+            space: CGColorSpaceCreateDeviceGray(),
+            bitmapInfo: CGImageAlphaInfo.none.rawValue
+        ) else { return nil }
+        ctx.interpolationQuality = .low
+        ctx.draw(image, in: CGRect(x: 0, y: 0, width: n, height: n))
+        guard let data = ctx.data else { return nil }
+        let buf = data.bindMemory(to: UInt8.self, capacity: n * n)
+        let bytes = Array(UnsafeBufferPointer(start: buf, count: n * n))
+        return leftoverFrameCaptureByte(bytes, width: n, height: n, samples: n)
     }
 
     static func leftoverHoldBinChip(_ bin: Int) -> String { "BIN \(bin)" }
@@ -3208,12 +3258,17 @@ enum MatchMath {
         now: TimeInterval,
         cap: Int = 8,
         sharpness: Double? = nil,
-        yawAbs: Double? = nil
+        yawAbs: Double? = nil,
+        bin: Int? = nil
     ) -> [String: (samples: [Double], at: TimeInterval)] {
         var next = leftoverTrailPrune(table, now: now)
         if !leftoverTrailWriteOk(sharpness: sharpness, yawAbs: yawAbs) { return next }
-        let row = leftoverCosineSparkPut(sample, onto: next[hash]?.samples ?? [], cap: cap)
-        next[hash] = (row, now)
+        let key = bin.map { leftoverHoldHashKey(hash: hash, bin: $0) } ?? hash
+        let row = leftoverCosineSparkPut(sample, onto: next[key]?.samples ?? [], cap: cap)
+        next[key] = (row, now)
+        if bin == 0 {
+            next[hash] = (row, now)
+        }
         return next
     }
 
@@ -3221,8 +3276,29 @@ enum MatchMath {
         hash: String,
         table: [String: (samples: [Double], at: TimeInterval)],
         now: TimeInterval,
-        ttl: TimeInterval = leftoverAdoptSec
+        ttl: TimeInterval = leftoverAdoptSec,
+        bin: Int? = nil
     ) -> [Double] {
+        if let bin {
+            let key = leftoverHoldHashKey(hash: hash, bin: bin)
+            if let row = table[key], now - row.at <= ttl {
+                return row.samples
+            }
+            var best: (samples: [Double], at: TimeInterval, dist: Int)?
+            for h in leftoverBoxHashNeighbors(hash) where h != hash {
+                let nk = leftoverHoldHashKey(hash: h, bin: bin)
+                guard let row = table[nk], now - row.at <= ttl else { continue }
+                let d = leftoverBoxHashDistance(hash, h)
+                if best == nil || d < best!.dist || (d == best!.dist && row.at > best!.at) {
+                    best = (row.samples, row.at, d)
+                }
+            }
+            if let best { return best.samples }
+            if bin == 0 {
+                return leftoverTrailLookup(hash: hash, table: table, now: now, ttl: ttl, bin: nil)
+            }
+            return []
+        }
         if let row = table[hash], now - row.at <= ttl {
             return row.samples
         }

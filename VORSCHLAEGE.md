@@ -1,8 +1,19 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.93 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.94 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 
-Neu in 2.1.93: Capture-Hist je Box. CAP-Chip. Score-Softmax. HUD BIN wired.
+Neu in 2.1.94: Frame-Luma live. Trail je Bin. HOLD roh/smooth.
+
+## In 2.1.94 wirklich im Code
+
+2.1.93 Capture-Hist je Box, CAP-Chip, Score-Softmax, HUD BIN. Frame-Luma tot im Store. Trail unbinned. HOLD eine Zahl.
+
+1. **`leftoverFrameCapture` / `leftoverFrameCaptureByte`.** leftoverPick `frameCapture` live.
+2. **`leftoverTrailPut(bin:)` / `leftoverTrailLookup(bin:)`.**
+3. **`leftoverHoldLabel(smooth:)`.**
+4. Tests + VERSION = Models = MARKETING_VERSION 2.1.94 (Build 120).
+
+Offen nach 2.1.94: leftoverHoldTrail[id] je Bin. Taufe roh UND smooth ≥ 0,80. Trail Profil-TTL 2 s. CAP Frame/Box. Frame-Luma in gallery.json. VoiceOver HOLD roh/smooth. lumaStats ±0,08.
 
 ## In 2.1.93 wirklich im Code
 

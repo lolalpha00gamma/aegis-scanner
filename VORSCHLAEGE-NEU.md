@@ -1,6 +1,13 @@
-# Nachtrag 2026-09-05 (2.1.93)
+# Nachtrag 2026-09-05 (2.1.94)
 
-Siehe ANALYSE.md. **2.1.93** schließt Capture-Hist je Box, CAP-Chip, Score-Softmax, HUD BIN wired.
+Siehe ANALYSE.md. **2.1.94** schließt Frame-Luma live, Trail je Bin, HOLD roh/smooth.
+
+## In 2.1.94 gelandet
+
+1. leftoverFrameCapture / leftoverFrameCaptureByte — 8×8 Buffer, leftoverPick frameCapture live
+2. leftoverTrailPut(bin:) / leftoverTrailLookup(bin:) — ¾ liest nicht Frontal-Nachbar
+3. leftoverHoldLabel(smooth:) — gehalten 0,80 / 0,64
+4. VERSION = Models = MARKETING_VERSION 2.1.94 (Build 120)
 
 ## In 2.1.93 gelandet
 
@@ -107,12 +114,19 @@ Siehe ANALYSE.md. **2.1.93** schließt Capture-Hist je Box, CAP-Chip, Score-Soft
 115. **Blink 2-Frame Lid-Gap** vor Taufe — Poster.
 116. **JPEG 70 % Probe** vor leftoverBaptize.
 119. **Capture-Hist 8 in gallery.json** Schema 5, Session über App-Neustart.
-120. **FaceEngine Frame-Histogram** in leftoverPick `frameCapture`. Math sitzt, Store reicht noch Box.
+120. **FaceEngine Frame-Histogram** in leftoverPick `frameCapture`. Math sitzt, Store reicht noch Box. **→ 2.1.94 leftoverFrameCapture live.**
 121. **leftoverHold hash# bins in gallery.json** — ¾ nach App-Neustart, TTL 8 s sonst.
-122. **Overlay HOLD roh/smooth** zwei Zahlen, Smooth-Taufe sichtbar.
-123. **Hash-Nachbar nur gleicher Bin.** Spatial-Nachbar frontal darf ¾ nicht füttern — Lookup sitzt, Trail analog.
+122. **Overlay HOLD roh/smooth** zwei Zahlen, Smooth-Taufe sichtbar. **→ 2.1.94 leftoverHoldLabel(smooth:).**
+123. **Hash-Nachbar nur gleicher Bin.** Spatial-Nachbar frontal darf ¾ nicht füttern — Lookup sitzt, Trail analog. **→ 2.1.94 leftoverTrailPut/Lookup(bin:).**
 124. **Yaw-binned Print-Bank 5 Slots**, leftoverHold nur frontal, Profil eigener Slot. Hash-Bin ist EMA, nicht Print.
-125. **Session-Luma aus dem ganzen Buffer**, nicht Box. Center Stage täuscht Box — prefersFrame sitzt, Quelle fehlt.
+125. **Session-Luma aus dem ganzen Buffer**, nicht Box. Center Stage täuscht Box — prefersFrame sitzt, Quelle fehlt. **→ 2.1.94 leftoverFrameCapture.**
+126. **leftoverHoldTrail[id] je Bin** analog Hash. UUID-Trail mischt Frontal+¾ wenn der Kopf dreht.
+127. **Taufe nur roh UND smooth ≥ 0,80.** Overlay zeigt beide, Pick tauft noch auf Roh.
+128. **leftoverTrail Profil-TTL 2 s**, Frontal 8 s. ¾-Ghosts kleben sonst.
+129. **CAP-Chip Frame/Box** `CAP 0,70/0,18` wenn Center Stage springt.
+130. **leftoverFrameCapture in gallery.json** Session über App-Neustart, analog Capture-Hist.
+131. **VoiceOver HOLD roh/smooth** getrennt: „gehalten null acht null, geglättet null sechs vier“.
+132. **leftoverFrameCapture vs FaceEngine lumaStats** ±0,08 — sonst zwei Nacht-Quellen.
 - Pick-EMA AE — sitzt.
 - Twin-Score — sitzt.
 - Galerie frontal — sitzt.
@@ -125,5 +139,8 @@ Siehe ANALYSE.md. **2.1.93** schließt Capture-Hist je Box, CAP-Chip, Score-Soft
 - leftoverPick Hash-Hold — sitzt.
 - Frame-Luma vs Box (Math) — sitzt.
 - Overlay BIN — sitzt.
+- Frame-Luma live — sitzt.
+- Trail je Bin — sitzt.
+- HOLD roh/smooth — sitzt.
 
 Nur main.
