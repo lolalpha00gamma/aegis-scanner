@@ -1,4 +1,4 @@
-# Aegis **2.1.90 alpha**
+# Aegis **2.1.91 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.91 alpha
+
+2.1.90 Pick-EMA AE. Twin-Score. Galerie frontal. Capture-Median-Helfer. Hold-Bin-Helfer. Bin tot im Store. Hist nicht in leftoverPick. ¾ Smooth mit Frontal 0,80.
+
+- **`leftoverHoldKey` / `leftoverHoldPrevOf`.** ¾ erbt nicht Frontal-Hold.
+- **`leftoverHoldBins`.** LibraryStore Put / Survive / Drop.
+- **leftoverPick `captureHist` + `holdBins`.** liveCaptureHist, Flash-Median.
+- **`leftoverHoldBinWriteOk`.** ¾ schreibt Bin, leftoverHold[id] bleibt frontal.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.91 (Build 117).
 
 ## Neu in 2.1.90 alpha
 

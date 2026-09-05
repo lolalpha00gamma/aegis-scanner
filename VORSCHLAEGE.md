@@ -1,8 +1,18 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.90 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.91 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 
-Neu in 2.1.90: Pick-EMA AE. Twin-Score. Galerie nur frontal. Capture-Median. Hold-Bin.
+Neu in 2.1.91: leftoverHold[id:bin]. Capture-Hist in leftoverPick. ¾ erbt nicht Frontal-Hold.
+
+## In 2.1.91 wirklich im Code
+
+2.1.90 Pick-EMA AE, Twin-Score, Galerie-frontal, Capture-Median-Helfer, Hold-Bin-Helfer. Bin tot im Store. Hist nicht in leftoverPick. ¾ Smooth mit Frontal.
+
+1. **`leftoverHoldKey` / `leftoverHoldPrevOf`.**
+2. **`leftoverHoldBins`.** Put / Survive / Drop.
+3. **leftoverPick `captureHist` + `holdBins`.**
+4. **`leftoverHoldBinWriteOk`.**
+5. Tests + VERSION = Models = MARKETING_VERSION 2.1.91 (Build 117).
 
 ## In 2.1.90 wirklich im Code
 

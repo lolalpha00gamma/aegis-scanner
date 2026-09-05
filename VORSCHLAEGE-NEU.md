@@ -1,6 +1,15 @@
-# Nachtrag 2026-09-05 (2.1.90)
+# Nachtrag 2026-09-05 (2.1.91)
 
-Siehe ANALYSE.md. **2.1.90** schließt Pick-EMA AE, Twin-Score, Galerie-frontal, Capture-Median, Hold-Bin.
+Siehe ANALYSE.md. **2.1.91** schließt leftoverHold[id:bin], Capture-Hist in leftoverPick, ¾ erbt nicht Frontal-Hold.
+
+## In 2.1.91 gelandet
+
+1. leftoverHoldKey / leftoverHoldPrevOf — ¾ kein Frontal-Smooth
+2. leftoverHoldBins im LibraryStore — Put / Survive / Drop
+3. leftoverPick(captureHist:holdBins:) — liveCaptureHist, Flash-Median
+4. leftoverHoldBinWriteOk — ¾ schreibt Bin, leftoverHold[id] bleibt frontal
+5. leftoverCaptureHistPut
+6. VERSION = Models = MARKETING_VERSION 2.1.91 (Build 117)
 
 ## In 2.1.90 gelandet
 
@@ -43,7 +52,6 @@ Siehe ANALYSE.md. **2.1.90** schließt Pick-EMA AE, Twin-Score, Galerie-frontal,
 26. Temporal ReID-Graph über Hold-Trail
 27. Overlay VoiceOver für Hold-Wert
 28. Partial-Print für Profil (P-Slot ohne Augen)
-29. Gallery-Centroid nur Frames mit leftoverPrintSharp — sitzt als leftoverCentroidOk.
 30. Burst-AE 5-Frame-Fenster Pref für Continuity-Nacht
 31. Dropout-TTL Pref (kurz/normal/lang)
 32. Capture-Hist in gallery.json Schema 5
@@ -80,29 +88,29 @@ Siehe ANALYSE.md. **2.1.90** schließt Pick-EMA AE, Twin-Score, Galerie-frontal,
 86. **Audio-Doorbell Sync** — Klingel-Frame bekommt leftoverLatch extra 1,2 s.
 87. **Print-Drift Alarm** nach OS-Update, nicht nur Banner.
 88. **Kalman-Box 3D** aus yaw/pitch, Ghost folgt der Kopfdrehung.
-94. **Gallery-Print nur leftoverPrintSharp ∧ frontal>0.7.** — sitzt.
-95. **Twin-Pair Cosine in leftoverScore** als vierter Term — sitzt.
 96. **Session-Luma aus Frame-Histogram**, nicht aus Box-Capture. Center Stage täuscht Box-Luma.
 98. **Overlay „HOLD roh/smooth“** zwei Zahlen, Smooth-Taufe sichtbar.
 99. **Face-Print Byte-Salt** nach OS-Update, alte gallery.json nicht still matchen.
 103. **Specular-Highlight auf Stirn** als Card-Photo-Veto. Poster/Ausweis tauft nicht.
 104. **Identity-Night-Floor.** Anna immer indoor: Session-Drop nur für Unbekannte, nicht für sie.
-105. **Capture-Histogram 8 Frames.** Flash 1 Tick senkt nicht den Floor. Median — sitzt als Helfer, Store-Hist noch offen.
 106. **Outdoor-WB als Capture-Prior.** 5600 K + hohe Luma = Tag, auch wenn Box dunkel (Gegenlicht).
 107. **Continuity LiDAR-Z** als Twin-Trennung. Zwei Köpfe, Δz > 0,35 m, kein leftoverSteal.
 108. **Overlay Capture-Chip `CAP 0,18`** neben HOLD — Nacht-Floor sichtbar.
 109. **gallery.json printRevision.** VNFaceLandmarks-Bump → Banner, alte Prints nicht matchen.
 110. **Per-Box CLAHE** nur auf die Face-ROI, Full-Frame frisst AE.
-111. **Yaw-binned leftoverHold** 3 Slots — Bin-Helfer sitzt, Store-Key noch eine EMA.
-112. **LibraryStore leftoverHold[id:bin]** statt leftoverHold[id]. Sonst Bin tot.
-113. **Capture-Hist 8 je Box** in LibraryStore, sonst Median ohne Samples.
 114. **ArcFace temperature 16** auf leftoverScore, platt 0,70–0,90.
 115. **Blink 2-Frame Lid-Gap** vor Taufe — Poster.
 116. **JPEG 70 % Probe** vor leftoverBaptize.
+117. **Overlay BIN 0/1/2** neben HOLD — sonst ¾ unsichtbar.
+118. **leftoverHoldByHash je Bin**, nicht nur Kalman-Box. Dropout verliert sonst ¾.
+119. **Capture-Hist 8 in gallery.json** Schema 5, Session über App-Neustart.
 - Pick-EMA AE — sitzt.
 - Twin-Score — sitzt.
 - Galerie frontal — sitzt.
 - Capture-Median Helfer — sitzt.
 - Hold-Bin Helfer — sitzt.
+- leftoverHold[id:bin] — sitzt.
+- Capture-Hist in leftoverPick — sitzt.
+- ¾ erbt nicht Frontal — sitzt.
 
 Nur main.

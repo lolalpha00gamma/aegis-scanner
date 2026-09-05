@@ -37,6 +37,7 @@ final class LibraryStore: ObservableObject {
     @Published var cameraUniqueID: String = ""
     @Published var liveHeldIds: Set<UUID> = []
     @Published var leftoverHold: [UUID: Double] = [:]
+    private var leftoverHoldBins: [String: Double] = [:]
     @Published var leftoverPending: [UUID: String] = [:]
     @Published var cameraChoice: CameraChoice = .auto
     @Published var freezeAxis: [UUID: String] = [:]
@@ -1359,6 +1360,7 @@ final class LibraryStore: ObservableObject {
         leftoverPending = [:]
         tapGuestPending = []
         leftoverHold = [:]
+        leftoverHoldBins = [:]
         leftoverHoldByHash = [:]
         leftoverHoldTrailByHash = [:]
         leftoverEmptySince = nil
@@ -2009,6 +2011,7 @@ final class LibraryStore: ObservableObject {
                         liveNameHist.removeValue(forKey: id)
                         liveNameLock.removeValue(forKey: id)
                         leftoverHold.removeValue(forKey: id)
+                        leftoverHoldBins = MatchMath.leftoverHoldBinDrop(bins: leftoverHoldBins, id: id)
                         liveNameVoteAt.removeValue(forKey: id)
                         liveScoreEma.removeValue(forKey: id)
                         liveYaw.removeValue(forKey: id)
@@ -2148,7 +2151,7 @@ final class LibraryStore: ObservableObject {
             used: used,
             dropped: dropped,
             ghosts: ghostIds,
-            hold: emptyLatch ? Array(leftoverHold.keys) : []
+            hold: emptyLatch ? Array(Set(leftoverHold.keys).union(MatchMath.leftoverHoldIds(leftoverHoldBins))) : []
         )
         boxEuro = boxEuro.filter { keepBoxes.contains($0.key) }
         boxKalman = boxKalman.filter { keepBoxes.contains($0.key) }
@@ -2167,6 +2170,7 @@ final class LibraryStore: ObservableObject {
         liveBlinkSeen = liveBlinkSeen.filter { keepBoxes.contains($0.key) }
         let holdBefore = leftoverHold.count
         leftoverHold = MatchMath.leftoverHoldSurvive(hold: leftoverHold, ghosts: ghostIds, live: liveIds, emptyKeeps: emptyLatch, emptyFor: emptyFor)
+        leftoverHoldBins = MatchMath.leftoverHoldSurviveBins(hold: leftoverHoldBins, ghosts: ghostIds, live: liveIds, emptyKeeps: emptyLatch, emptyFor: emptyFor)
         leftoverHoldTrail = MatchMath.leftoverHoldSurvive(hold: leftoverHoldTrail, ghosts: ghostIds, live: liveIds, emptyKeeps: emptyLatch, emptyFor: emptyFor)
         liveSlotHold = MatchMath.leftoverHoldSurvive(hold: liveSlotHold, ghosts: ghostIds, live: liveIds, emptyKeeps: emptyLatch, emptyFor: emptyFor)
         leftoverMissFrames = MatchMath.leftoverHoldSurvive(hold: leftoverMissFrames, ghosts: ghostIds, live: liveIds, emptyKeeps: emptyLatch, emptyFor: emptyFor)
@@ -2382,14 +2386,13 @@ final class LibraryStore: ObservableObject {
                     boxX: boxX,
                     leftoverX: old.box.x,
                     otherX: adopted.filter { $0.id != old.id }.map { $0.box.x },
-                    sessionCapture: MatchMath.leftoverSessionCapture(
-                        old: old.quality.capture,
-                        live: remaining.map { adopted[$0.index].quality.capture }
-                    ),
+                    sessionCapture: old.quality.capture,
                     capture: Dictionary(uniqueKeysWithValues: remaining.map {
                         ($0.index, adopted[$0.index].quality.capture)
                     }),
-                    imageW: Double(image.width)
+                    imageW: Double(image.width),
+                    captureHist: liveCaptureHist[old.id] ?? [],
+                    holdBins: leftoverHoldBins
                 ) else {
                     let twin = aegisHit?.pairCosine
                     if let twinLabel = MatchMath.leftoverTwinPairLabel(pairCosine: twin) {
@@ -2581,6 +2584,28 @@ final class LibraryStore: ObservableObject {
                             )
                         )
                     }
+                    if let cos = pinCos, MatchMath.leftoverHoldBinWriteOk(
+                        sharpness: adopted[bestJ].quality.sharpness,
+                        yawAbs: abs(adopted[bestJ].quality.yaw)
+                    ) {
+                        leftoverHoldBins = MatchMath.leftoverHoldBinPut(
+                            bins: leftoverHoldBins,
+                            id: old.id,
+                            yawAbs: abs(adopted[bestJ].quality.yaw),
+                            next: cos,
+                            prev: MatchMath.leftoverHoldPrevOf(
+                                frontal: leftoverHold[old.id] ?? holdNow,
+                                yawAbs: abs(adopted[bestJ].quality.yaw),
+                                bins: leftoverHoldBins,
+                                id: old.id
+                            ),
+                            dt: liveDt,
+                            captureJump: MatchMath.leftoverCaptureJump(
+                                prev: old.quality.capture,
+                                next: adopted[bestJ].quality.capture
+                            )
+                        )
+                    }
                     continue
                 }
                 if !MatchMath.leftoverStreakKeepsLive(transferred: transfer) {
@@ -2647,6 +2672,28 @@ final class LibraryStore: ObservableObject {
                                 )
                             )
                         )
+                        if MatchMath.leftoverHoldBinWriteOk(
+                            sharpness: adopted[bestJ].quality.sharpness,
+                            yawAbs: abs(adopted[bestJ].quality.yaw)
+                        ) {
+                            leftoverHoldBins = MatchMath.leftoverHoldBinPut(
+                                bins: leftoverHoldBins,
+                                id: adopted[bestJ].id,
+                                yawAbs: abs(adopted[bestJ].quality.yaw),
+                                next: cos,
+                                prev: MatchMath.leftoverHoldPrevOf(
+                                    frontal: leftoverHold[adopted[bestJ].id] ?? leftoverHold[old.id],
+                                    yawAbs: abs(adopted[bestJ].quality.yaw),
+                                    bins: leftoverHoldBins,
+                                    id: adopted[bestJ].id
+                                ),
+                                dt: liveDt,
+                                captureJump: MatchMath.leftoverCaptureJump(
+                                    prev: old.quality.capture,
+                                    next: adopted[bestJ].quality.capture
+                                )
+                            )
+                        }
                         leftoverWipeUntil[adopted[bestJ].id] = MatchMath.leftoverWipeMuteUntil(now: now)
                         if transfer {
                             liveNameHist.removeValue(forKey: old.id)
@@ -2657,12 +2704,16 @@ final class LibraryStore: ObservableObject {
                         }
                     } else {
                         leftoverHold.removeValue(forKey: adopted[bestJ].id)
+                        leftoverHoldBins = MatchMath.leftoverHoldBinDrop(bins: leftoverHoldBins, id: adopted[bestJ].id)
                     }
                 }
             }
             let liveIds = Set(adopted.map(\.id))
             let leftoverIds = Set(leftoverPinned.map(\.id))
             leftoverHold = leftoverHold.filter { liveIds.contains($0.key) || leftoverIds.contains($0.key) }
+            leftoverHoldBins = leftoverHoldBins.filter { row in
+                MatchMath.leftoverHoldId(from: row.key).map { liveIds.contains($0) || leftoverIds.contains($0) } ?? false
+            }
             leftoverHoldByHash = MatchMath.leftoverHoldPrune(leftoverHoldByHash, now: now)
             leftoverHoldTrailByHash = MatchMath.leftoverTrailPrune(leftoverHoldTrailByHash, now: now)
             leftoverPending = leftoverPending.filter { liveIds.contains($0.key) }

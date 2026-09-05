@@ -1789,6 +1789,44 @@ enum MatchMathTests {
         ok(MatchMath.leftoverHoldBin(yawAbs: 0.10) == 0, "frontal Bin")
         ok(MatchMath.leftoverHoldBin(yawAbs: 0.35) == 1, "¾ Bin")
         ok(MatchMath.leftoverHoldBin(yawAbs: 0.50) == 2, "Profil Bin")
+        let anna = UUID(uuidString: "AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA")!
+        ok(MatchMath.leftoverHoldPrevOf(frontal: 0.80, yawAbs: 0.10) == 0.80, "frontal Prev")
+        ok(MatchMath.leftoverHoldPrevOf(frontal: 0.80, yawAbs: 0.35) == nil, "¾ erbt nicht Frontal")
+        let binKey = MatchMath.leftoverHoldKey(id: anna, bin: 1)
+        ok(
+            MatchMath.leftoverHoldPrevOf(frontal: 0.80, yawAbs: 0.35, bins: [binKey: 0.66], id: anna) == 0.66,
+            "¾ liest eigenen Bin"
+        )
+        ok(MatchMath.leftoverHoldBinWriteOk(sharpness: 0.40, yawAbs: 0.35), "¾ schreibt Bin")
+        ok(!MatchMath.leftoverHoldBinWriteOk(sharpness: 0.10, yawAbs: 0.10), "Blur kein Bin")
+        ok(MatchMath.leftoverHoldId(from: binKey) == anna, "Key → UUID")
+        let dropped = MatchMath.leftoverHoldBinDrop(bins: [binKey: 0.66], id: anna)
+        ok(dropped.isEmpty, "Drop alle Bins der UUID")
+        let flashPick = MatchMath.leftoverPick(
+            candidates: [(0, 0.50, 0.61)],
+            sharpness: [0: 0.40],
+            sessionCapture: 0.70,
+            capture: [0: 0.18],
+            captureHist: [0.70, 0.70, 0.70]
+        )
+        ok(flashPick == nil, "Flash-Hist: 0,61 gegen Tag-Floor tot")
+        ok(
+            MatchMath.leftoverPick(
+                candidates: [(0, 0.50, 0.68)],
+                sharpness: [0: 0.40],
+                yawAbs: [0: 0.35],
+                holdPrev: 0.80
+            ) == 0,
+            "¾ roh 0,68, nicht Smooth 0,76"
+        )
+        let histPut = MatchMath.leftoverCaptureHistPut(0.18, onto: [0.70, 0.70, 0.70])
+        ok(histPut.count == 4, "Capture-Hist wächst")
+        near(
+            MatchMath.leftoverSessionCaptureBox(old: 0.70, live: 0.18, hist: histPut) ?? -1,
+            0.70,
+            0.001,
+            "Median nach Put bleibt Tag"
+        )
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

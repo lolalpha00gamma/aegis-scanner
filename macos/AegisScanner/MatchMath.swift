@@ -262,7 +262,9 @@ enum MatchMath {
         otherX: [Double] = [],
         sessionCapture: Double? = nil,
         capture: [Int: Double] = [:],
-        imageW: Double = 0
+        imageW: Double = 0,
+        captureHist: [Double] = [],
+        holdBins: [String: Double] = [:]
     ) -> Int? {
         if leftoverLookawayBlocks(yawAbs: lookawayYaw, enrolled: lookawayEnrolled) {
             return nil
@@ -271,13 +273,27 @@ enum MatchMath {
             return nil
         }
         var ok = candidates.filter { leftoverPin(iou: $0.iou, floor: floor) }
-        ok = ok.filter { !leftoverHoldBlocks(raw: $0.cosine, prev: holdPrev) }
+        ok = ok.filter {
+            !leftoverHoldBlocks(
+                raw: $0.cosine,
+                prev: leftoverHoldPrevOf(
+                    frontal: holdPrev,
+                    yawAbs: yawAbs[$0.index],
+                    bins: holdBins,
+                    id: leftoverId
+                )
+            )
+        }
         ok = ok.filter {
             leftoverPrintOk(
                 cosine: leftoverPickPrint(raw: $0.cosine, smoothed: nil),
                 sharpness: sharpness[$0.index],
                 yawAbs: yawAbs[$0.index],
-                capture: leftoverSessionCaptureBox(old: sessionCapture, live: capture[$0.index])
+                capture: leftoverSessionCaptureBox(
+                    old: sessionCapture,
+                    live: capture[$0.index],
+                    hist: captureHist
+                )
             )
         }
         let smoothed: [(index: Int, iou: Double, cosine: Double?)] = ok.map {
@@ -286,7 +302,12 @@ enum MatchMath {
                 iou: $0.iou,
                 cosine: leftoverHoldSmooth(
                     raw: $0.cosine,
-                    prev: holdPrev,
+                    prev: leftoverHoldPrevOf(
+                        frontal: holdPrev,
+                        yawAbs: yawAbs[$0.index],
+                        bins: holdBins,
+                        id: leftoverId
+                    ),
                     dt: dt,
                     captureJump: leftoverCaptureJump(prev: sessionCapture, next: capture[$0.index])
                 )
@@ -315,7 +336,11 @@ enum MatchMath {
         if printable.allSatisfy({
             unknownCentroid(
                 bestCosine: $0.cosine,
-                capture: leftoverSessionCaptureBox(old: sessionCapture, live: capture[$0.index]),
+                capture: leftoverSessionCaptureBox(
+                    old: sessionCapture,
+                    live: capture[$0.index],
+                    hist: captureHist
+                ),
                 yawAbs: yawAbs[$0.index]
             )
         }) {
@@ -1523,6 +1548,88 @@ enum MatchMath {
         if yawAbs >= leftoverPrintProfileYaw { return 2 }
         if yawAbs >= leftoverLookawayYaw { return 1 }
         return 0
+    }
+
+    static func leftoverHoldKey(id: UUID, bin: Int) -> String {
+        "\(id.uuidString).\(bin)"
+    }
+
+    static func leftoverHoldId(from key: String) -> UUID? {
+        guard let dot = key.lastIndex(of: ".") else { return UUID(uuidString: key) }
+        return UUID(uuidString: String(key[..<dot]))
+    }
+
+    static func leftoverHoldBinRead(bins: [String: Double], id: UUID, bin: Int) -> Double? {
+        bins[leftoverHoldKey(id: id, bin: bin)]
+    }
+
+    /// ¾/Profil erben nicht den Frontal-Hold. Sonst Smooth 0,68←0,80 tauft den Twin.
+    static func leftoverHoldPrevOf(
+        frontal: Double?,
+        yawAbs: Double?,
+        bins: [String: Double] = [:],
+        id: UUID? = nil
+    ) -> Double? {
+        let bin = leftoverHoldBin(yawAbs: yawAbs ?? 0)
+        if let id, let v = leftoverHoldBinRead(bins: bins, id: id, bin: bin) {
+            return v
+        }
+        if bin == 0 { return frontal }
+        return nil
+    }
+
+    static func leftoverHoldBinWriteOk(sharpness: Double?, yawAbs: Double = 0) -> Bool {
+        leftoverHoldWriteOk(sharpness: sharpness)
+    }
+
+    static func leftoverHoldBinPut(
+        bins: [String: Double],
+        id: UUID,
+        yawAbs: Double,
+        next: Double,
+        prev: Double? = nil,
+        dt: TimeInterval = 0.016,
+        captureJump: Double = 0
+    ) -> [String: Double] {
+        var out = bins
+        let key = leftoverHoldKey(id: id, bin: leftoverHoldBin(yawAbs: yawAbs))
+        out[key] = leftoverHoldEMA(
+            prev: prev ?? out[key],
+            next: next,
+            alpha: leftoverHoldAlpha(dt: dt, captureJump: captureJump)
+        )
+        return out
+    }
+
+    static func leftoverHoldBinDrop(bins: [String: Double], id: UUID) -> [String: Double] {
+        bins.filter { leftoverHoldId(from: $0.key) != id }
+    }
+
+    static func leftoverHoldIds(_ bins: [String: Double]) -> [UUID] {
+        Array(Set(bins.keys.compactMap { leftoverHoldId(from: $0) }))
+    }
+
+    static func leftoverHoldSurviveBins(
+        hold: [String: Double],
+        ghosts: [UUID],
+        live: [UUID] = [],
+        emptyKeeps: Bool = false,
+        emptyFor: TimeInterval = 0
+    ) -> [String: Double] {
+        let keep = Set(ghosts + live)
+        if keep.isEmpty {
+            if emptyKeeps && leftoverLatchKeeps(emptyFor: emptyFor) { return hold }
+            return [:]
+        }
+        return hold.filter { row in
+            leftoverHoldId(from: row.key).map { keep.contains($0) } ?? false
+        }
+    }
+
+    static let leftoverCaptureHistCap = 8
+
+    static func leftoverCaptureHistPut(_ sample: Double, onto trail: [Double], cap: Int = leftoverCaptureHistCap) -> [Double] {
+        leftoverCosineSparkPut(sample, onto: trail, cap: cap)
     }
 
     /// Trail-Append dieselbe Schwelle. Roh 0,70 blur pollutet MAD.
