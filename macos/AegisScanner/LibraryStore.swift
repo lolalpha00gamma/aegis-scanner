@@ -109,6 +109,8 @@ final class LibraryStore: ObservableObject {
     private var leftoverHoldTrailBins: [String: [Double]] = [:]
     private var leftoverHoldByHash: [String: (cosine: Double, at: TimeInterval)] = [:]
     private var leftoverHoldTrailByHash: [String: (samples: [Double], at: TimeInterval)] = [:]
+    private var leftoverLastHash: [UUID: String] = [:]
+    private var leftoverSparkChipHeld: [UUID: (chip: String, hold: Int)] = [:]
     private var leftoverEmptySince: TimeInterval?
     private var guestOrder: [UUID] = []
     private var guestSeenAt: [UUID: TimeInterval] = [:]
@@ -1149,11 +1151,39 @@ final class LibraryStore: ObservableObject {
     func leftoverSparkChip(faceId: UUID, yawAbs: Double? = nil) -> String? {
         let bin = MatchMath.leftoverHoldBin(yawAbs: yawAbs ?? 0)
         let binTrail = leftoverHoldTrailBins[MatchMath.leftoverHoldKey(id: faceId, bin: bin)] ?? []
-        return MatchMath.leftoverCosineSparkLabelOf(
-            idTrail: leftoverHoldTrail[faceId] ?? [],
+        let idTrail = leftoverHoldTrail[faceId] ?? []
+        var nowChip = MatchMath.leftoverCosineSparkLabelOf(
+            idTrail: idTrail,
             binTrail: binTrail,
             yawAbs: yawAbs
         )
+        if nowChip == nil {
+            let hash = leftoverLastHash[faceId]
+            let hashTrail = hash.map {
+                MatchMath.leftoverTrailLookup(
+                    hash: $0,
+                    table: leftoverHoldTrailByHash,
+                    now: liveLastStamp,
+                    ttl: MatchMath.dropoutTTL(dt: liveDt),
+                    bin: bin
+                )
+            } ?? []
+            nowChip = MatchMath.leftoverCosineSparkLabel(
+                MatchMath.leftoverSparkTrailOf(
+                    uuidTrail: idTrail,
+                    hashTrail: hashTrail,
+                    yawAbs: yawAbs
+                )
+            )
+        }
+        let prev = leftoverSparkChipHeld[faceId]
+        let held = MatchMath.leftoverSparkChipHold(prev: prev?.chip, now: nowChip, hold: prev?.hold ?? 0)
+        if let chip = held.chip {
+            leftoverSparkChipHeld[faceId] = (chip: chip, hold: held.hold)
+        } else {
+            leftoverSparkChipHeld.removeValue(forKey: faceId)
+        }
+        return held.chip
     }
 
     func leftoverHoldNow(faceId: UUID, yawAbs: Double? = nil) -> Double? {
@@ -1397,6 +1427,8 @@ final class LibraryStore: ObservableObject {
         leftoverHoldBins = [:]
         leftoverHoldByHash = [:]
         leftoverHoldTrailByHash = [:]
+        leftoverLastHash = [:]
+        leftoverSparkChipHeld = [:]
         leftoverHoldTrailBins = [:]
         leftoverEmptySince = nil
         leftoverWipeUntil = [:]
@@ -2509,6 +2541,10 @@ final class LibraryStore: ObservableObject {
                         fallback: adopted[bestJ].box,
                         image: image
                     )
+                    leftoverLastHash[adopted[bestJ].id] = MatchMath.leftoverLastHashKeeps(
+                        prev: leftoverLastHash[adopted[bestJ].id] ?? leftoverLastHash[old.id],
+                        next: boxHash
+                    )
                     let yawNow = abs(adopted[bestJ].quality.yaw)
                     let bin = MatchMath.leftoverHoldBin(yawAbs: yawNow)
                     var trail = MatchMath.leftoverTrailNowOf(
@@ -2848,6 +2884,12 @@ final class LibraryStore: ObservableObject {
                 liveIds.contains($0.key) || (leftoverIds.contains($0.key) && !used.contains($0.key))
             }
             leftoverStreakSince = leftoverStreakSince.filter {
+                liveIds.contains($0.key) || (leftoverIds.contains($0.key) && !used.contains($0.key))
+            }
+            leftoverLastHash = leftoverLastHash.filter {
+                liveIds.contains($0.key) || (leftoverIds.contains($0.key) && !used.contains($0.key))
+            }
+            leftoverSparkChipHeld = leftoverSparkChipHeld.filter {
                 liveIds.contains($0.key) || (leftoverIds.contains($0.key) && !used.contains($0.key))
             }
             leftoverPairLast = leftoverPairLast.filter { leftoverIds.contains($0.key) && !used.contains($0.key) }

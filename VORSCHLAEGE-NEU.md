@@ -1,6 +1,13 @@
-# Nachtrag 2026-09-05 (2.1.106)
+# Nachtrag 2026-09-05 (2.1.107)
 
-Siehe ANALYSE.md. **2.1.106** leftoverAdopt Lock 0,80 s, Hunt 10 fps, Spark peak-hold, JPEG/Blink, Thermal, CS-Reconnect. 2.1.105: leftoverHoldTrailBins.
+Siehe ANALYSE.md. **2.1.107** Hash-Spark, Spark-Hold verdrahtet, leftoverPickLuma. 2.1.106: leftoverAdopt Lock 0,80 s, Hunt 10 fps, overlayChipPeakHold Math.
+
+## In 2.1.107 gelandet
+
+1. leftoverSparkTrailOf / leftoverLastHashKeeps — Hash überlebt UUID-Steal
+2. leftoverSparkChipHold verdrahtet overlayChipPeakHold
+3. leftoverBaptizeGate / leftoverPickLuma / videoStabilizationApplies
+4. VERSION = Models = MARKETING_VERSION 2.1.107 (Build 133)
 
 ## In 2.1.106 gelandet
 

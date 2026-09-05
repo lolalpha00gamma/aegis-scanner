@@ -183,6 +183,13 @@ final class LiveCapture: NSObject {
                 }
                 delegate.horizonLevel = false
             }
+            #if os(iOS) || os(tvOS)
+            if !MatchMath.videoStabilizationApplies(continuity: isContinuity),
+               conn.isVideoStabilizationSupported
+            {
+                conn.preferredVideoStabilizationMode = .off
+            }
+            #endif
         }
         self.session = session
         outputQueue.async { session.startRunning() }

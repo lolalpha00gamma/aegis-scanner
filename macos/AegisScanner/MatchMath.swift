@@ -626,6 +626,28 @@ enum MatchMath {
         leftoverHoldBin(yawAbs: yawAbs ?? 0) == 0 ? uuidTrail : binTrail
     }
 
+    /// Spark: Hash-Trail überlebt UUID-Steal. ¾ nur Hash, frontal Hash vor UUID.
+    static func leftoverSparkTrailOf(uuidTrail: [Double], hashTrail: [Double] = [], yawAbs: Double? = nil) -> [Double] {
+        if leftoverHoldBin(yawAbs: yawAbs ?? 0) != 0 { return hashTrail }
+        return hashTrail.isEmpty ? uuidTrail : hashTrail
+    }
+
+    static func leftoverLastHashKeeps(prev: String?, next: String?) -> String? {
+        if let next, !next.isEmpty { return next }
+        return prev
+    }
+
+    /// 8 fps Overlay sonst flackert Spark. Wrapper um overlayChipPeakHold.
+    static func leftoverSparkChipHold(prev: String?, now: String?, hold: Int, need: Int = 2) -> (chip: String?, hold: Int) {
+        let r = overlayChipPeakHold(current: now, held: prev, remaining: hold, need: need)
+        return (r.chip, r.remaining)
+    }
+
+    /// Frame-Luma nil: Capture-Luma, sonst Indoor 420v Nacht-Softmax.
+    static func leftoverPickLuma(frame: Double?, capture: Double?) -> Double? {
+        frame ?? capture
+    }
+
     /// ¾: UUID-Trail ist Frontal. Chip sonst „HOLD 80/64 · BIN 1“.
     /// binTrail: ¾ roh aus Pose-Bin, nicht leftoverHold EMA allein.
     static func leftoverHoldOverlayChipOf(
@@ -670,6 +692,16 @@ enum MatchMath {
         leftoverBaptize(cosine: raw)
             && leftoverBaptize(cosine: smooth)
             && leftoverBaptizeQuality(sharpness: sharpness, yawAbs: yawAbs, blink: blink)
+    }
+
+    static func leftoverBaptizeGate(
+        raw: Double?,
+        smooth: Double?,
+        sharpness: Double? = nil,
+        yawAbs: Double? = nil,
+        blink: Bool = false
+    ) -> Bool {
+        leftoverBaptizeBoth(raw: raw, smooth: smooth, sharpness: sharpness, yawAbs: yawAbs, blink: blink)
     }
 
     /// Twin 0,80 nach Hold 0,64: Spike, kein Steal. 0,80 nach 0,80 bleibt Taufe.
@@ -922,6 +954,9 @@ enum MatchMath {
     static func physicalCaptureRotation() -> Bool { false }
 
     static func videoRotationAngleFallback() -> CGFloat { 0 }
+
+    /// Continuity-Stabilizer warpt Box, leftover tanzt. Built-in darf. macOS-API fehlt.
+    static func videoStabilizationApplies(continuity: Bool) -> Bool { !continuity }
 
     /// Hunt 10 fps bis leftoverStreak / Face sitzt. Built-in 8 hungerte erste Taufe.
     /// Lock Continuity 15, Built-in 12. streak ≥ 1 = erste Begegnung, nicht erst facesPresent.

@@ -1,4 +1,28 @@
+# Helios + Aegis — Analyse 2026-09-05 (2.1.107)
+
+Helios **1.5.91** (Build 111). Aegis **2.1.107 alpha** (Build 133). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.106: leftoverAdopt Lock 0,80 s, Hunt 10 fps, overlayChipPeakHold Math. Spark-HUD nicht verdrahtet. UUID-Steal leert Bin-Trail.
+
+## 2.1.106 → 2.1.107 (warum Spark nach Steal und 8 fps noch tot/flackerte)
+
+1. **leftoverSparkChip nur leftoverHoldTrailBins[id.bin].** UUID-Steal: neuer id, leerer Bin. leftoverLastHash + leftoverSparkTrailOf halten Hash.
+2. **overlayChipPeakHold nicht in leftoverSparkChip.** 8 fps Overlay flackert.
+3. **Frame-Luma nil.** Capture-Luma ungenutzt.
+
+## Was 2.1.107 ändert
+
+1. **`leftoverSparkTrailOf` / leftoverLastHashKeeps.** Hash überlebt UUID-Steal.
+2. **`leftoverSparkChipHold`** verdrahtet overlayChipPeakHold.
+3. **`leftoverBaptizeGate` / leftoverPickLuma / videoStabilizationApplies** (`#if os(iOS)`).
+4. Tests + VERSION = Models = MARKETING_VERSION 2.1.107 (Build 133).
+
+Helios 1.5.91: native 420-Ring, flingFromTrail, Klappe-Wake. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-05 (2.1.106)
+
 
 Helios **1.5.90** (Build 110). Aegis **2.1.106 alpha** (Build 132). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`. `bugfix` ist 2.1.15 — nichts mergen, Ideen nachgezogen.
 

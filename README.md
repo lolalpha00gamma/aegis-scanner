@@ -1,4 +1,4 @@
-# Aegis **2.1.106 alpha**
+# Aegis **2.1.107 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.107 alpha
+
+2.1.106 Lock 0,80 s / Hunt 10 / Spark peak-hold Math. overlayChipPeakHold nicht verdrahtet. UUID-Steal verlor Hash-Spark.
+
+- **`leftoverSparkTrailOf` / leftoverLastHashKeeps.** Hash-Trail überlebt UUID-Steal.
+- **`leftoverSparkChipHold`** verdrahtet overlayChipPeakHold 2 Frames.
+- **`leftoverBaptizeGate` / leftoverPickLuma / videoStabilizationApplies.**
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.107 (Build 133).
 
 ## Neu in 2.1.106 alpha
 
