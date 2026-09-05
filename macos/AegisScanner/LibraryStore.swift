@@ -21,6 +21,8 @@ final class LibraryStore: ObservableObject {
     @Published var selectedFaceId: UUID?
     @Published var threshold: Double = 78
     @Published var holdTTLFloor: Double = 1.2
+    @Published var nameLockSec: Double = 1.2
+    @Published var adoptLockSec: Double = 0.8
     @Published var strategy: StrategyID = .aegis
     @Published var showAnatomy = true
     @Published var showNMSDebug = false
@@ -121,10 +123,19 @@ final class LibraryStore: ObservableObject {
     }
     private var leftoverLiveHashTick: [UUID: String] = [:]
     private func leftoverOccupiedHashes(except id: UUID? = nil) -> [String] {
-        MatchMath.leftoverOccupiedMerge(
+        let merged = MatchMath.leftoverOccupiedMerge(
             stored: leftoverLastHash.compactMap { key, value in key == id ? nil : value },
             live: leftoverLiveHashTick.compactMap { key, value in key == id ? nil : value }
         )
+        guard let id else { return merged }
+        let hash = leftoverLiveHashTick[id] ?? leftoverLastHash[id] ?? ""
+        let x = boxKalman[id]?.x ?? faces.first(where: { $0.id == id })?.box.x ?? 0
+        let others: [(hash: String, x: Double)] = leftoverLiveHashTick.compactMap { key, value in
+            if key == id { return nil }
+            let ox = boxKalman[key]?.x ?? faces.first(where: { $0.id == key })?.box.x ?? 0
+            return (hash: value, x: ox)
+        }
+        return MatchMath.leftoverHashTwinOccupied(occupied: merged, hash: hash, x: x, others: others)
     }
     private var leftoverNameLockUntil: [UUID: TimeInterval] = [:]
     private var leftoverNameLockHeld: [UUID: String] = [:]
@@ -181,6 +192,14 @@ final class LibraryStore: ObservableObject {
         let ttlStored = UserDefaults.standard.double(forKey: "aegis.holdTTLFloor")
         if ttlStored > 0 {
             holdTTLFloor = MatchMath.leftoverHoldTTLPref(ttlStored)
+        }
+        let lockStored = UserDefaults.standard.double(forKey: "aegis.nameLockSec")
+        if lockStored > 0 {
+            nameLockSec = MatchMath.leftoverNameLockSecPref(lockStored)
+        }
+        let adoptStored = UserDefaults.standard.double(forKey: "aegis.adoptLockSec")
+        if adoptStored > 0 {
+            adoptLockSec = MatchMath.leftoverAdoptSecLockPref(adoptStored)
         }
         liveCapture.choice = cameraChoice
         let digest = GalleryFile.digestStatus()
@@ -1247,6 +1266,16 @@ final class LibraryStore: ObservableObject {
         UserDefaults.standard.set(holdTTLFloor, forKey: "aegis.holdTTLFloor")
     }
 
+    func setNameLockSec(_ v: Double) {
+        nameLockSec = MatchMath.leftoverNameLockSecPref(v)
+        UserDefaults.standard.set(nameLockSec, forKey: "aegis.nameLockSec")
+    }
+
+    func setAdoptLockSec(_ v: Double) {
+        adoptLockSec = MatchMath.leftoverAdoptSecLockPref(v)
+        UserDefaults.standard.set(adoptLockSec, forKey: "aegis.adoptLockSec")
+    }
+
     func voteProgress(faceId: UUID) -> String? {
         let hist = liveNameHist[faceId] ?? []
         let hit = matches.first { $0.faceId == faceId }?.hits.first { $0.strategy == .aegis }
@@ -1297,6 +1326,23 @@ final class LibraryStore: ObservableObject {
         }
         if let chip = MatchMath.leftoverHoldFastChip(seenSlow: leftoverHoldSeenSlow, dt: liveDt) {
             bits.append(chip)
+        }
+        if let chip = MatchMath.leftoverHoldIndoorChip(seenSlow: leftoverHoldSeenSlow, ttl: leftoverHoldTTL) {
+            bits.append(chip)
+        }
+        let twinHash = leftoverLiveHashTick[faceId] ?? leftoverLastHash[faceId]
+        if let twinHash {
+            let oxs: [Double] = leftoverLiveHashTick.compactMap { key, value in
+                if key == faceId { return nil }
+                if MatchMath.leftoverHoldHashBare(value) != MatchMath.leftoverHoldHashBare(twinHash) { return nil }
+                return boxKalman[key]?.x ?? faces.first(where: { $0.id == key })?.box.x
+            }
+            if let chip = MatchMath.leftoverHashTwinChip(
+                x: boxKalman[faceId]?.x ?? faces.first(where: { $0.id == faceId })?.box.x ?? 0,
+                others: oxs
+            ) {
+                bits.append(chip)
+            }
         }
         let neighborDist: Int = {
             guard let hash = leftoverLastHash[faceId] else { return 0 }
@@ -1831,7 +1877,7 @@ final class LibraryStore: ObservableObject {
         leftoverStreak[oldId] = next
         leftoverStreakBox[oldId] = hashed
         let elapsed = now - (leftoverStreakSince[oldId] ?? now)
-        let needSec = MatchMath.leftoverAdoptNeedSec(dt: dt, yawAbs: yawAbs)
+        let needSec = MatchMath.leftoverAdoptNeedSec(dt: dt, yawAbs: yawAbs, lockPref: adoptLockSec)
         return (
             MatchMath.leftoverAdoptReady(elapsed: elapsed, streak: next, needSec: needSec, holdPrev: holdPrev),
             MatchMath.leftoverStreakLabel(elapsed: elapsed, needSec: needSec)
@@ -2514,6 +2560,9 @@ final class LibraryStore: ObservableObject {
             leftoverPredictHeld(keep: keepBoxes, skip: used)
         }
         if found.isEmpty {
+            if MatchMath.leftoverLiveHashTickWipes(empty: true) {
+                leftoverLiveHashTick = [:]
+            }
             if !MatchMath.leftoverEmptyKeepsOverlay(liveEmpty: true) || !emptyChip {
                 liveHeldIds = []
                 leftoverPending = [:]
@@ -2940,7 +2989,8 @@ final class LibraryStore: ObservableObject {
                 leftoverNameLockUntil[old.id] = MatchMath.leftoverNameLockArm(
                     jump: MatchMath.leftoverIoUJumpBlocks(boxIoU),
                     now: now,
-                    prev: leftoverNameLockUntil[old.id] ?? leftoverNameLockUntil[adopted[bestJ].id]
+                    prev: leftoverNameLockUntil[old.id] ?? leftoverNameLockUntil[adopted[bestJ].id],
+                    sec: nameLockSec
                 )
                 leftoverNameLockUntil[adopted[bestJ].id] = leftoverNameLockUntil[old.id]
                 if MatchMath.leftoverNameLockBlocks(until: leftoverNameLockUntil[old.id], now: now) {

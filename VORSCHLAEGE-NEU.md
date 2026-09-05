@@ -1,3 +1,54 @@
+# Nachtrag 2026-09-05 (2.1.120)
+
+Siehe ANALYSE.md. **2.1.120** Twin x-order, empty Hash-Wipe, INDOOR/LOCK/Adopt Slider.
+
+## In 2.1.120 gelandet
+
+1. leftoverHashTwinOccupied — Twin L Exact, Twin R Occupied, HUD TWIN L/R
+2. leftoverLiveHashTickWipes empty
+3. leftoverNameLockArm(sec:) + Slider 0,6–2,0
+4. leftoverAdoptNeedSec(lockPref:) + Slider 0,6–1,4
+5. leftoverHoldIndoorChip HUD INDOOR 4s
+6. VERSION = Models = MARKETING_VERSION 2.1.120 (Build 146)
+
+## Nächste, zusätzlich
+
+- Twin persist `hash#100+rank` damit Twin R auch Exact hat, nicht nur Occupied.
+- leftoverHold x-order UUID-Match (letzter x der Hold-Trail), stärker als nur L/R.
+- leftoverJpegProbeReuse TTL Pref 0,25–1,2.
+- FaceEngine jpegProbe detached queue. Cache sitzt, Detect hoppt noch nach Main.
+- PhotoKit Live Photos Frame 0, nicht Poster.
+- printRevision je Identity.
+- gallery.json.bak rotate 3.
+- VNDetectFaceRectangles revision pin.
+- leftoverHashHold VoiceOver.
+- leftoverJumpName VoiceOver.
+- Schema 5 UUID-Bins nach Schema 6 behalten (kein Wipe).
+- Helios Frame-Pump, eine TCC. Shared XPC mit Helios 1.5.104.
+- Overlay VoiceOver HOLD/Spark/HASH/LOCK/NBR/FAST/INDOOR/TWIN.
+- Per-Box CLAHE statt Full-Frame.
+- Continuity Desk-View yaw-floor 0,36.
+- Gallery print decay: ungenutzte 14-Tage-Prints downweight.
+- Partial-Print P-Slot ohne Augen (Schal/Maske).
+- Burst-AE 5-Frame Pref Continuity-Nacht.
+- Print-Bank 5 Pose-Slots front/left/right/up/down.
+- DBSCAN vor Merge.
+- Watch-Folder PhotoKit.
+- Encrypted gallery export `.aegis`.
+- Iris-Textur-Slot als Twin-Veto.
+- Specular-Highlight auf Stirn als Card-Photo-Veto.
+- Continuity LiDAR-Z als Twin-Trennung.
+- Masken-/Schal-Slot. Brille-Slot.
+- Tests splitted.
+- Merge-Undo Stack 8.
+- IdentityDesk 9-Tuple → GalleryPayload direkt.
+- **Per-Hold TTL in Schema 7.** `at` + `ttl` je Zeile, nicht Session-Sticky.
+- Temporal ReID-Graph über Hold-Trail.
+- PnP 6DoF, Slot folgt der Nase.
+- leftoverNameLockHeld persist Schema 7.
+
+Nur main.
+
 # Nachtrag 2026-09-05 (2.1.119)
 
 Siehe ANALYSE.md. **2.1.119** leftoverHoldTTL Slider, Occupied live diesen Tick.

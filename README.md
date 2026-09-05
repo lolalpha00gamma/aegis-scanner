@@ -1,4 +1,4 @@
-# Aegis **2.1.119 alpha**
+# Aegis **2.1.120 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.120 alpha
+
+Occupied tötete Hamming-0 Twins beide. leftoverLiveHashTick nach empty tot. LOCK/Adopt hart.
+
+- **`leftoverHashTwinOccupied`.** x-order Twin L Exact, Twin R Occupied. HUD `TWIN L`/`R`.
+- **`leftoverLiveHashTickWipes`.** empty → Tick leer.
+- **LOCK/Adopt Slider** 0,6–2,0 / 0,6–1,4. Arm und Need lesen Pref.
+- **`leftoverHoldIndoorChip` `INDOOR 4s`.**
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.120 (Build 146).
 
 ## Neu in 2.1.119 alpha
 

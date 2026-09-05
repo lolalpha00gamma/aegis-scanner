@@ -111,6 +111,32 @@ struct ContentView: View {
                 .font(.caption2.monospacedDigit())
                 .foregroundStyle(.secondary)
                 .help("24 fps Hold-TTL. Indoor-Latch bleibt 4 s.")
+            Slider(
+                value: Binding(
+                    get: { store.nameLockSec },
+                    set: { store.setNameLockSec($0) }
+                ),
+                in: 0.6 ... 2.0,
+                step: 0.2
+            )
+            .frame(width: 80)
+            .help("Namens-LOCK nach Box-JUMP. Twin tauft sonst in 1,2 s.")
+            Text(String(format: "LOCK %.1f s", store.nameLockSec))
+                .font(.caption2.monospacedDigit())
+                .foregroundStyle(.secondary)
+            Slider(
+                value: Binding(
+                    get: { store.adoptLockSec },
+                    set: { store.setAdoptLockSec($0) }
+                ),
+                in: 0.6 ... 1.4,
+                step: 0.2
+            )
+            .frame(width: 80)
+            .help("Adopt-Lock bei 15/24 fps. Walker vs Taufe.")
+            Text(String(format: "Adopt %.1f s", store.adoptLockSec))
+                .font(.caption2.monospacedDigit())
+                .foregroundStyle(.secondary)
             if !store.revisionWarning.isEmpty {
                 Text(store.revisionWarning)
                     .font(.caption2)

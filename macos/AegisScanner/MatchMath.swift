@@ -1126,8 +1126,8 @@ enum MatchMath {
     /// Twin stiehlt den Namen nach Box-JUMP. 1,2 s Lock, Chip sitzt.
     static let leftoverNameLockSec: TimeInterval = 1.20
 
-    static func leftoverNameLockArm(jump: Bool, now: TimeInterval, prev: TimeInterval? = nil) -> TimeInterval? {
-        if jump { return now + leftoverNameLockSec }
+    static func leftoverNameLockArm(jump: Bool, now: TimeInterval, prev: TimeInterval? = nil, sec: TimeInterval = leftoverNameLockSec) -> TimeInterval? {
+        if jump { return now + leftoverNameLockSecPref(sec) }
         if let prev, now < prev { return prev }
         return nil
     }
@@ -1186,6 +1186,38 @@ enum MatchMath {
             if seen.insert(h).inserted { out.append(h) }
         }
         return out
+    }
+
+    /// Hamming-0 Twins: links behält Exact, rechts Occupied. Sonst beide tot.
+    static func leftoverHashTwinLeft(x: Double, others: [Double]) -> Bool {
+        others.allSatisfy { x <= $0 + 1e-9 }
+    }
+
+    static func leftoverHashTwinOccupied(
+        occupied: [String],
+        hash: String,
+        x: Double,
+        others: [(hash: String, x: Double)]
+    ) -> [String] {
+        let bare = leftoverHoldHashBare(hash)
+        guard !bare.isEmpty else { return occupied }
+        let twins = others.filter { leftoverHoldHashBare($0.hash) == bare }
+        guard !twins.isEmpty else { return occupied }
+        if leftoverHashTwinLeft(x: x, others: twins.map(\.x)) {
+            return occupied.filter { leftoverHoldHashBare($0) != bare }
+        }
+        return occupied
+    }
+
+    static func leftoverHashTwinChip(x: Double, others: [Double]) -> String? {
+        guard !others.isEmpty else { return nil }
+        return leftoverHashTwinLeft(x: x, others: others) ? "TWIN L" : "TWIN R"
+    }
+
+    static func leftoverLiveHashTickWipes(empty: Bool) -> Bool { empty }
+
+    static func leftoverHoldIndoorChip(seenSlow: Bool, ttl: TimeInterval) -> String? {
+        seenSlow ? String(format: "INDOOR %.0fs", ttl) : nil
     }
 
     /// Hash-Key ohne `#bin`. Lookup-Dist sonst 99.
@@ -2155,15 +2187,15 @@ enum MatchMath {
 
     /// 8 fps: 1,2 s ist 10 Frames — Walker fällt durch. 15/24 fps Lock 0,80 s (12 Frames bei 15).
     /// ¾/Profil bleibt 1,2 s auch bei 15 fps — sonst Twin-Taufe in Pose.
-    static func leftoverAdoptNeedSec(dt: TimeInterval, yawAbs: Double? = nil) -> TimeInterval {
+    static func leftoverAdoptNeedSec(dt: TimeInterval, yawAbs: Double? = nil, lockPref: TimeInterval = leftoverAdoptSecLock) -> TimeInterval {
         if leftoverHoldBin(yawAbs: yawAbs ?? 0) != 0 { return leftoverAdoptSec }
         if dt <= 0 || dt >= 0.08 { return leftoverAdoptSec }
-        return leftoverAdoptSecLock
+        return leftoverAdoptSecLockPref(lockPref)
     }
 
-    static func leftoverAdoptNeed(dt: TimeInterval, yawAbs: Double? = nil) -> Int {
+    static func leftoverAdoptNeed(dt: TimeInterval, yawAbs: Double? = nil, lockPref: TimeInterval = leftoverAdoptSecLock) -> Int {
         let step = max(0.008, min(0.20, dt <= 0 ? 0.125 : dt))
-        let frames = Int(ceil(leftoverAdoptNeedSec(dt: dt, yawAbs: yawAbs) / step))
+        let frames = Int(ceil(leftoverAdoptNeedSec(dt: dt, yawAbs: yawAbs, lockPref: lockPref) / step))
         return max(leftoverAdoptFrames, min(leftoverAdoptCap, frames))
     }
 

@@ -1,3 +1,28 @@
+# Helios + Aegis — Analyse 2026-09-05 (2.1.120)
+
+Helios **1.5.104** (Build 124). Aegis **2.1.120 alpha** (Build 146). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.119: Hold-TTL Slider, Occupied live diesen Tick. Occupied tötete beide Hamming-0 Twins. leftoverLiveHashTick nach empty tot. LOCK/Adopt Clamp ohne Slider. INDOOR unsichtbar.
+
+## 2.1.119 → 2.1.120 (warum Twins noch beide tot / Holds nach Dropout / LOCK 1,2 hart)
+
+1. **Occupied Hamming-0 beide.** leftoverHashOwnOccupied true für links und rechts. Exact tot, Majority tauft.
+2. **leftoverLiveHashTick nach empty.** found.isEmpty wischte nicht. Occupied-Geister blocken Re-Entry.
+3. **LOCK/Adopt Pref Clamp ohne Arm.** leftoverNameLockArm hart 1,20. leftoverAdoptNeedSec hart 0,80. Slider tot.
+4. **Indoor-Latch ohne HUD.** FAST nur nach Hop, 4 s unsichtbar.
+
+## Was 2.1.120 ändert
+
+1. **`leftoverHashTwinOccupied`.** x-order: Twin L Exact, Twin R Occupied. HUD `TWIN L`/`TWIN R`.
+2. **`leftoverLiveHashTickWipes`.** empty → Tick leer.
+3. **`leftoverNameLockArm(sec:)` + Slider 0,6–2,0. `leftoverAdoptNeedSec(lockPref:)` + Slider 0,6–1,4.**
+4. **`leftoverHoldIndoorChip` HUD `INDOOR 4s`.**
+5. Tests + VERSION = Models = MARKETING_VERSION 2.1.120 (Build 146).
+
+Helios 1.5.104: Occlusion 2-Tick, Relativ-Snap, JUMP-Slow, Laterality 3 Ticks. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-05 (2.1.119)
 
 Helios **1.5.103** (Build 123). Aegis **2.1.119 alpha** (Build 145). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

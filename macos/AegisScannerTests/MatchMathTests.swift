@@ -2373,6 +2373,35 @@ enum MatchMathTests {
             now: 10,
             occupied: MatchMath.leftoverOccupiedMerge(stored: [], live: ["5.5.4.6"])
         ) == nil, "erster Twin Exact tot")
+        ok(MatchMath.leftoverHashTwinLeft(x: 0.20, others: [0.70]), "links vor rechts")
+        ok(!MatchMath.leftoverHashTwinLeft(x: 0.70, others: [0.20]), "rechts nicht links")
+        let twinOcc = MatchMath.leftoverHashTwinOccupied(
+            occupied: ["5.5.4.6"],
+            hash: "5.5.4.6",
+            x: 0.20,
+            others: [(hash: "5.5.4.6", x: 0.70)]
+        )
+        ok(twinOcc.isEmpty, "Twin L Exact frei")
+        let twinRight = MatchMath.leftoverHashTwinOccupied(
+            occupied: ["5.5.4.6"],
+            hash: "5.5.4.6",
+            x: 0.70,
+            others: [(hash: "5.5.4.6", x: 0.20)]
+        )
+        ok(twinRight == ["5.5.4.6"], "Twin R Occupied")
+        ok(MatchMath.leftoverHoldLookup(hash: "5.5.4.6", table: firstTwin, now: 10, occupied: twinOcc) != nil, "Twin L Exact hält")
+        ok(MatchMath.leftoverHoldLookup(hash: "5.5.4.6", table: firstTwin, now: 10, occupied: twinRight) == nil, "Twin R Exact tot")
+        ok(MatchMath.leftoverHashTwinChip(x: 0.20, others: [0.70]) == "TWIN L", "HUD TWIN L")
+        ok(MatchMath.leftoverHashTwinChip(x: 0.70, others: [0.20]) == "TWIN R", "HUD TWIN R")
+        ok(MatchMath.leftoverHashTwinChip(x: 0.20, others: []) == nil, "allein kein TWIN")
+        ok(MatchMath.leftoverLiveHashTickWipes(empty: true), "empty wischt Live-Hash")
+        ok(!MatchMath.leftoverLiveHashTickWipes(empty: false), "live hält Hash")
+        ok(MatchMath.leftoverHoldIndoorChip(seenSlow: true, ttl: 4) == "INDOOR 4s", "HUD INDOOR")
+        ok(MatchMath.leftoverHoldIndoorChip(seenSlow: false, ttl: 1.2) == nil, "24 fps kein INDOOR")
+        let lockArm = MatchMath.leftoverNameLockArm(jump: true, now: 10, sec: 0.6)
+        ok(abs((lockArm ?? 0) - 10.6) < 0.001, "LOCK Pref 0,6")
+        near(MatchMath.leftoverAdoptNeedSec(dt: 0.016, lockPref: 1.0), 1.0, 0.001, "Adopt Pref 1,0")
+        near(MatchMath.leftoverAdoptNeedSec(dt: 0.016), 0.80, 0.001, "Adopt Default 0,80")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)
