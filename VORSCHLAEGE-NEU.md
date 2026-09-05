@@ -1,6 +1,11 @@
-# Nachtrag 2026-09-05 (2.1.97)
+# Nachtrag 2026-09-05 (2.1.98)
 
-Siehe ANALYSE.md. **2.1.97** schließt leftoverBaptizeBoth EMA ≥ 0,80, Adopt 1,2 s, Blur 0,12, ROI 0,10.
+Siehe ANALYSE.md. **2.1.98** leftoverHoldBlocks IEEE-Epsilon. Exact 0,04 ist Spike.
+
+## In 2.1.98 gelandet
+
+1. leftoverHoldBlocks / leftoverBaptizeSpike +1e-9
+2. VERSION = Models = MARKETING_VERSION 2.1.98 (Build 124)
 
 ## In 2.1.97 gelandet
 
@@ -131,6 +136,7 @@ Siehe ANALYSE.md. **2.1.97** schließt leftoverBaptizeBoth EMA ≥ 0,80, Adopt 1
 146. **MatchMathTests split** — eine `run()`, Force-Unwrap liveRoiBox crasht den Rest.
 147. **Aegis.dmg nicht ins Git** — nur CI-Artefakt.
 148. **Shared AVCaptureSession XPC** mit Helios, eine TCC.
+- leftoverHoldBlocks IEEE 1e-9 — sitzt.
 - leftoverTransfersId leftoverBaptizeBoth — sitzt.
 - leftoverBaptizeBoth EMA ≥ 0,80 — sitzt.
 - leftoverAdoptNeedSec 1,2 s — sitzt.

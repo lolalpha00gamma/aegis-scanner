@@ -617,7 +617,7 @@ enum MatchMath {
     ) -> Bool {
         guard leftoverBaptize(cosine: raw), let prev else { return false }
         if leftoverBaptize(cosine: prev) { return false }
-        return raw! - prev >= spike
+        return raw! - prev + 1e-9 >= spike
     }
 
     /// UUID/Print nur bei Baptize 0,80 ohne Twin-Spike und ohne MAD.
@@ -2493,7 +2493,7 @@ enum MatchMath {
         if leftoverBaptize(cosine: raw) { return false }
         guard let prev else { return false }
         if leftoverHoldClimb(prev: prev) { return false }
-        return raw - prev >= spike
+        return raw - prev + 1e-9 >= spike
     }
 
     /// Centroid 0,89–0,94: Merge-Wizard, nie still taufen.

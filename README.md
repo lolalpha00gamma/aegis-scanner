@@ -1,4 +1,4 @@
-# Aegis **2.1.97 alpha**
+# Aegis **2.1.98 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,13 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.98 alpha
+
+2.1.97 leftoverHoldBlocks 0,70−0,66 < 0,04 wegen IEEE. ¾-Spike ließ Twin durch.
+
+- **`leftoverHoldBlocks` / `leftoverBaptizeSpike` +1e-9.** Exact 0,04 ist Spike.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.98 (Build 124).
 
 ## Neu in 2.1.97 alpha
 

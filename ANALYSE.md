@@ -1,6 +1,10 @@
-# Helios + Aegis — Analyse 2026-09-05 (2.1.97)
+# Helios + Aegis — Analyse 2026-09-05 (2.1.98)
 
-Helios **1.5.81** (Build 101). Aegis **2.1.97 alpha** (Build 123). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+Helios **1.5.82** (Build 102). Aegis **2.1.98 alpha** (Build 124). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+## 2.1.97 → 2.1.98
+
+Tests liefen durch bis leftoverPick ¾. **leftoverHoldBlocks** `0,70 − 0,66 >= 0,04` ist IEEE-nein (`0,0399…`). Twin im ¾ mit Exact-Spike 0,04 stiehlt. `+1e-9` analog kalmanNmsDrops.
 
 ## Warum Namen nach 2.1.96 noch sprangen / tot wirkten
 
@@ -13,16 +17,14 @@ Helios **1.5.81** (Build 101). Aegis **2.1.97 alpha** (Build 123). Kein Xcode-La
 
 `bugfix` (2.1.15) hinter main, nichts nachziehen.
 
-## Was 2.1.97 wirklich ändert
+## Was 2.1.98 wirklich ändert
 
-1. **leftoverBaptizeBoth** roh `>` 0,80, smooth ≥ 0,80. EMA genau 0,80 tauft.
-2. **leftoverAdoptNeedSec** immer 1,2 s. 8 fps = 10 Frames.
-3. **leftoverBlurBlocks / leftoverHoldWriteOk** sharpnessFloor 0,12. leftoverPrintSharp bleibt Genuine 0,62.
-4. **liveRoiBox** min 0,10. Typische HD-Kiste Crop.
-5. VERSION = Models = MARKETING_VERSION 2.1.97 (Build 123).
+1. leftoverHoldBlocks / leftoverBaptizeSpike `+1e-9`.
+2. VERSION = Models = MARKETING_VERSION 2.1.98 (Build 124).
 
-2.1.96 bleibt: leftoverTransfersId leftoverBaptizeBoth verdrahtet, leftoverHoldPrevOf live, Lookaway Bin 0, leftoverHoldLookupYaw nil yaw.
+2.1.97 bleibt: leftoverBaptizeBoth ≥ 0,80, Adopt 1,2 s, sharpnessFloor 0,12, liveRoi 0,10.
+2.1.96 bleibt: leftoverTransfersId leftoverBaptizeBoth verdrahtet, leftoverHoldPrevOf live, Lookaway Bin 0.
 
-Helios 1.5.81: GestureTests frameDt + [CGFloat]. Siehe `bpms9cmnxc-debug/Helios`.
+Helios 1.5.82: 24 fps Kalman-Test. Siehe `bpms9cmnxc-debug/Helios`.
 
 `bugfix` mergen: nein. Nur `main`.
