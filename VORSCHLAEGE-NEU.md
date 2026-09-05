@@ -1,3 +1,60 @@
+# Nachtrag 2026-09-05 (2.1.122)
+
+Siehe ANALYSE.md. **2.1.122** Twin-Rank Exact `hash#101`, Occupied others live+stored, leftoverLastHash empty-Wipe.
+
+## In 2.1.122 gelandet
+
+1. leftoverHashTwinRanked / leftoverHoldHashTwinKey — Twin L Bare, Twin R hash#101
+2. leftoverHoldPut/Trail/Lookup/LastHash den Rank, nicht Spatial boxHash
+3. leftoverOccupiedOthers live+stored, live vor stored
+4. leftoverLastHashWipes empty, Overlay-Keep hält
+5. leftoverRankedHashOf Tick vor Last vor Spatial
+6. leftoverHoldHashSpatial — NBR Dist nicht 99
+7. VERSION = Models = MARKETING_VERSION 2.1.122 (Build 148)
+
+## Nächste, zusätzlich
+
+- leftoverHold x-order UUID-Match (letzter x der Hold-Trail), stärker als nur L/R.
+- Triple-Face HUD `TWIN 1`/`2`/`3` statt nur L/R.
+- leftoverLastHash wipe Pref vs Overlay-Keep (0,4–2,0 s empty).
+- leftoverLiveHashTick nach Transfer kopieren (newId → old.id), sonst Rank 1 Frame tot.
+- leftoverJpegProbeReuse TTL Pref 0,25–1,2.
+- FaceEngine jpegProbe detached queue.
+- PhotoKit Live Photos Frame 0, nicht Poster.
+- printRevision je Identity.
+- gallery.json.bak rotate 3.
+- VNDetectFaceRectangles revision pin.
+- leftoverHashHold VoiceOver.
+- leftoverJumpName VoiceOver.
+- Schema 5 UUID-Bins nach Schema 6 behalten (kein Wipe).
+- Helios Frame-Pump, eine TCC. Shared XPC mit Helios 1.5.105.
+- Overlay VoiceOver HOLD/Spark/HASH/LOCK/NBR/FAST/INDOOR/TWIN.
+- Per-Box CLAHE statt Full-Frame.
+- Continuity Desk-View yaw-floor 0,36.
+- Gallery print decay: ungenutzte 14-Tage-Prints downweight.
+- Partial-Print P-Slot ohne Augen (Schal/Maske).
+- Burst-AE 5-Frame Pref Continuity-Nacht.
+- Print-Bank 5 Pose-Slots front/left/right/up/down.
+- DBSCAN vor Merge.
+- Watch-Folder PhotoKit.
+- Encrypted gallery export `.aegis`.
+- Iris-Textur-Slot als Twin-Veto.
+- Specular-Highlight auf Stirn als Card-Photo-Veto.
+- Continuity LiDAR-Z als Twin-Trennung.
+- Masken-/Schal-Slot. Brille-Slot.
+- Tests splitted.
+- Merge-Undo Stack 8.
+- IdentityDesk 9-Tuple → GalleryPayload direkt.
+- **Per-Hold TTL in Schema 7.** `at` + `ttl` je Zeile, nicht Session-Sticky.
+- Temporal ReID-Graph über Hold-Trail.
+- PnP 6DoF, Slot folgt der Nase.
+- leftoverNameLockHeld persist Schema 7.
+- Rank-Keys persist Schema 7, Spatial-Migration beim Load.
+- leftoverHashHoldFloor bleibt 0,64 (kein Sharpness im Persist).
+- leftoverHoldsTrack LOCK halten — JUMP bricht.
+
+Nur main.
+
 # Nachtrag 2026-09-05 (2.1.121)
 
 Siehe ANALYSE.md. **2.1.121** Capture-Hist/Trail Cap 64, Twin-Gleichstand Occupied, Nachbar-Walk Twin aus.

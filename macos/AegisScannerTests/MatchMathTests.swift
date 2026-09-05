@@ -2416,6 +2416,47 @@ enum MatchMathTests {
         ok(MatchMath.leftoverHashTwinChip(x: 0.20, others: [0.70]) == "TWIN L", "HUD TWIN L")
         ok(MatchMath.leftoverHashTwinChip(x: 0.70, others: [0.20]) == "TWIN R", "HUD TWIN R")
         ok(MatchMath.leftoverHashTwinChip(x: 0.20, others: []) == nil, "allein kein TWIN")
+        ok(MatchMath.leftoverHashTwinRank(x: 0.20, others: [0.70]) == 0, "Twin L Rank 0")
+        ok(MatchMath.leftoverHashTwinRank(x: 0.70, others: [0.20]) == 1, "Twin R Rank 1")
+        ok(MatchMath.leftoverHoldHashTwinKey(hash: "5.5.4.6", rank: 0) == "5.5.4.6", "Rank 0 Bare")
+        ok(MatchMath.leftoverHoldHashTwinKey(hash: "5.5.4.6", rank: 1) == "5.5.4.6#101", "Rank 1 Key")
+        ok(MatchMath.leftoverHashTwinRanked(hash: "5.5.4.6", x: 0.20, others: [(hash: "5.5.4.6", x: 0.70)]) == "5.5.4.6", "Twin L persist Bare")
+        ok(MatchMath.leftoverHashTwinRanked(hash: "5.5.4.6", x: 0.70, others: [(hash: "5.5.4.6", x: 0.20)]) == "5.5.4.6#101", "Twin R persist 101")
+        ok(MatchMath.leftoverHashTwinRanked(hash: "5.5.4.6", x: 0.20, others: []) == "5.5.4.6", "allein kein Rank")
+        let rankedR = MatchMath.leftoverHashTwinRanked(hash: "5.5.4.6", x: 0.70, others: [(hash: "5.5.4.6", x: 0.20)])
+        let putRanked = MatchMath.leftoverHoldPut(hash: rankedR, cosine: 0.80, onto: [:], now: 10)
+        ok(MatchMath.leftoverHoldLookup(hash: rankedR, table: putRanked, now: 10, occupied: ["5.5.4.6"]) != nil, "Twin R Exact hält")
+        ok(MatchMath.leftoverHoldLookup(hash: rankedR, table: putRanked, now: 10, occupied: [rankedR]) == nil, "Twin R Occupied tot")
+        let twinIdL = UUID()
+        let twinIdR = UUID()
+        let occOthers = MatchMath.leftoverOccupiedOthers(
+            live: [(id: twinIdL, hash: "5.5.4.6", x: 0.20)],
+            stored: [(id: twinIdR, hash: "5.5.4.6#101", x: 0.70)],
+            except: twinIdL
+        )
+        ok(occOthers.count == 1, "Occupied others stored")
+        ok(occOthers.first?.hash == "5.5.4.6#101", "Occupied others Twin R")
+        let occLiveFirst = MatchMath.leftoverOccupiedOthers(
+            live: [(id: twinIdL, hash: "5.5.4.6", x: 0.20)],
+            stored: [(id: twinIdL, hash: "old", x: 0.20)],
+            except: twinIdR
+        )
+        ok(occLiveFirst.count == 1, "Occupied others live vor stored")
+        ok(occLiveFirst.first?.hash == "5.5.4.6", "Occupied others live gewinnt")
+        ok(MatchMath.leftoverLastHashWipes(empty: true), "empty wischt Last-Hash")
+        ok(!MatchMath.leftoverLastHashWipes(empty: true, overlayKeep: true), "Overlay hält Last-Hash")
+        ok(!MatchMath.leftoverLastHashWipes(empty: false), "live hält Last-Hash")
+        ok(MatchMath.leftoverRankedHashOf(tick: "5.5.4.6#101", last: "5.5.4.6", fallback: "x") == "5.5.4.6#101", "Tick vor Last")
+        ok(MatchMath.leftoverRankedHashOf(tick: nil, last: "5.5.4.6#101", fallback: "x") == "5.5.4.6#101", "Last vor Spatial")
+        ok(MatchMath.leftoverRankedHashOf(tick: "", last: nil, fallback: "5.5.4.6") == "5.5.4.6", "Spatial Fallback")
+        ok(MatchMath.leftoverHoldHashSpatial("5.5.4.6#101#0") == "5.5.4.6", "Spatial strip Rank+Bin")
+        ok(MatchMath.leftoverHoldHashSpatial("5.5.4.6") == "5.5.4.6", "Spatial nackt")
+        let nbrTwin: [String: (cosine: Double, at: TimeInterval)] = [
+            "5.5.4.6#0": (0.80, nbrNow),
+            "5.5.4.6#101#0": (0.80, nbrNow)
+        ]
+        ok(MatchMath.leftoverHoldNeighborDist(hash: "5.5.4.6#101", table: nbrTwin, now: nbrNow) == 0, "Twin R kein NBR")
+        ok(MatchMath.leftoverHoldNeighborDist(hash: "5.5.4.6", table: nbrTwin, now: nbrNow) == 0, "Twin L kein NBR")
         ok(MatchMath.leftoverLiveHashTickWipes(empty: true), "empty wischt Live-Hash")
         ok(!MatchMath.leftoverLiveHashTickWipes(empty: false), "live hält Hash")
         ok(MatchMath.leftoverHoldIndoorChip(seenSlow: true, ttl: 4) == "INDOOR 4s", "HUD INDOOR")

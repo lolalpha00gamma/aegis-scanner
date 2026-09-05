@@ -1227,6 +1227,70 @@ enum MatchMath {
         return leftoverHashTwinLeft(x: x, others: others) ? "TWIN L" : "TWIN R"
     }
 
+    /// Twin R braucht einen eigenen Exact-Key. Hamming-0 sonst beide Occupied.
+    static let leftoverHashTwinRankBase = 100
+
+    static func leftoverHashTwinRank(x: Double, others: [Double]) -> Int {
+        others.filter { $0 < x - 1e-9 }.count
+    }
+
+    static func leftoverHoldHashTwinKey(hash: String, rank: Int) -> String {
+        let bare = leftoverHoldHashBare(hash)
+        if rank <= 0 { return bare }
+        return leftoverHoldHashKey(hash: bare, bin: leftoverHashTwinRankBase + rank)
+    }
+
+    static func leftoverHashTwinRanked(
+        hash: String,
+        x: Double,
+        others: [(hash: String, x: Double)]
+    ) -> String {
+        let bare = leftoverHoldHashBare(hash)
+        guard !bare.isEmpty else { return hash }
+        let twins = others.filter { leftoverHoldHashBare($0.hash) == bare }
+        guard !twins.isEmpty else { return hash }
+        return leftoverHoldHashTwinKey(hash: bare, rank: leftoverHashTwinRank(x: x, others: twins.map(\.x)))
+    }
+
+    /// leftoverLiveHashTick allein: Twin aus leftoverLastHash unsichtbar, erster Frame steals.
+    static func leftoverOccupiedOthers(
+        live: [(id: UUID, hash: String, x: Double)],
+        stored: [(id: UUID, hash: String, x: Double)],
+        except: UUID?
+    ) -> [(hash: String, x: Double)] {
+        var seen = Set<UUID>()
+        var out: [(hash: String, x: Double)] = []
+        for row in live + stored {
+            if row.id == except { continue }
+            if seen.contains(row.id) { continue }
+            seen.insert(row.id)
+            if row.hash.isEmpty { continue }
+            out.append((hash: row.hash, x: row.x))
+        }
+        return out
+    }
+
+    /// empty wischt leftoverLastHash. Ghost-Bins sonst blocken Re-Entry.
+    static func leftoverLastHashWipes(empty: Bool, overlayKeep: Bool = false) -> Bool {
+        empty && !overlayKeep
+    }
+
+    /// Tick vor Last vor Spatial. Twin R sonst leftoverHoldPut auf denselben Key.
+    static func leftoverRankedHashOf(tick: String?, last: String?, fallback: String) -> String {
+        if let tick, !tick.isEmpty { return tick }
+        if let last, !last.isEmpty { return last }
+        return fallback
+    }
+
+    /// Twin-Rank `#101` und Hold-Bin `#0` sind nicht Spatial. Dist sonst 99 = NBR.
+    static func leftoverHoldHashSpatial(_ key: String) -> String {
+        var s = key
+        while let i = s.lastIndex(of: "#") {
+            s = String(s[..<i])
+        }
+        return s
+    }
+
     static func leftoverLiveHashTickWipes(empty: Bool) -> Bool { empty }
 
     static func leftoverHoldIndoorChip(seenSlow: Bool, ttl: TimeInterval) -> String? {
@@ -1247,11 +1311,12 @@ enum MatchMath {
         ttl: TimeInterval = leftoverAdoptSec
     ) -> Int {
         var best = 0
+        let selfSpatial = leftoverHoldHashSpatial(hash)
         for (key, row) in table {
             guard now - row.at <= ttl else { continue }
-            let other = leftoverHoldHashBare(key)
-            if other == hash { continue }
-            let d = leftoverBoxHashDistance(hash, other)
+            let other = leftoverHoldHashSpatial(key)
+            if other == selfSpatial { continue }
+            let d = leftoverBoxHashDistance(selfSpatial, other)
             if d > 0 && (best == 0 || d < best) { best = d }
         }
         return best

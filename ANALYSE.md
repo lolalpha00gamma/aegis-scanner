@@ -1,3 +1,27 @@
+# Helios + Aegis — Analyse 2026-09-05 (2.1.122)
+
+Helios **1.5.105** (Build 125). Aegis **2.1.122 alpha** (Build 148). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.121: Capture-Hist/Trail Cap 64, Twin-Gleichstand Occupied, Nachbar-Walk aus. Twin R blieb Occupied (gleicher Spatial-Hash). leftoverOccupied others nur Live-Tick. leftoverLastHash nach empty tot.
+
+## 2.1.121 → 2.1.122 (warum Twin R namenlos / Ghost blockt Re-Entry)
+
+1. **Hamming-0 gleicher Key.** `leftoverHashTwinOccupied` gibt Twin R Occupied. Exact tot. Majority tauft. leftoverHoldPut schrieb Spatial `boxHash` — Rank nie persist.
+2. **Occupied others nur `leftoverLiveHashTick`.** Twin aus leftoverLastHash unsichtbar. Erster Frame / Ghost steals.
+3. **`leftoverLiveHashTickWipes` ohne leftoverLastHash.** empty wischt Tick, Last bleibt. `leftoverHashOwnOccupied` blockt Re-Entry in derselben Bin.
+
+## Was 2.1.122 ändert
+
+1. **`leftoverHashTwinRanked` / `leftoverHoldHashTwinKey`.** Twin L Bare, Twin R `hash#101`. leftoverHoldPut/Trail/Lookup/LastHash den Rank.
+2. **`leftoverOccupiedOthers`.** live+stored, live vor stored, except-self.
+3. **`leftoverLastHashWipes`.** empty → Last leer, außer Overlay-Keep. **`leftoverRankedHashOf`.** Tick vor Last vor Spatial.
+4. **`leftoverHoldHashSpatial`.** NBR Dist nicht 99 bei Rank+Bin.
+5. Tests + VERSION = Models = MARKETING_VERSION 2.1.122 (Build 148).
+
+Helios 1.5.105: Laterality kein Claim-Flip, OCC Tip folgt Palm, Pad max-Screen. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-05 (2.1.121)
 
 Helios **1.5.104** (Build 124). Aegis **2.1.121 alpha** (Build 147). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

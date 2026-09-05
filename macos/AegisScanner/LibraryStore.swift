@@ -130,11 +130,15 @@ final class LibraryStore: ObservableObject {
         guard let id else { return merged }
         let hash = leftoverLiveHashTick[id] ?? leftoverLastHash[id] ?? ""
         let x = boxKalman[id]?.x ?? faces.first(where: { $0.id == id })?.box.x ?? 0
-        let others: [(hash: String, x: Double)] = leftoverLiveHashTick.compactMap { key, value in
-            if key == id { return nil }
+        let liveRows: [(id: UUID, hash: String, x: Double)] = leftoverLiveHashTick.compactMap { key, value in
             let ox = boxKalman[key]?.x ?? faces.first(where: { $0.id == key })?.box.x ?? 0
-            return (hash: value, x: ox)
+            return (id: key, hash: value, x: ox)
         }
+        let storedRows: [(id: UUID, hash: String, x: Double)] = leftoverLastHash.compactMap { key, value in
+            let ox = boxKalman[key]?.x ?? faces.first(where: { $0.id == key })?.box.x ?? 0
+            return (id: key, hash: value, x: ox)
+        }
+        let others = MatchMath.leftoverOccupiedOthers(live: liveRows, stored: storedRows, except: id)
         return MatchMath.leftoverHashTwinOccupied(occupied: merged, hash: hash, x: x, others: others)
     }
     private var leftoverNameLockUntil: [UUID: TimeInterval] = [:]
@@ -1925,6 +1929,14 @@ final class LibraryStore: ObservableObject {
         )
     }
 
+    private func leftoverRankedHash(id: UUID, fallback: String) -> String {
+        MatchMath.leftoverRankedHashOf(
+            tick: leftoverLiveHashTick[id],
+            last: leftoverLastHash[id],
+            fallback: fallback
+        )
+    }
+
     private func leftoverPredictHeld(keep: Set<UUID>, skip: Set<UUID>) {
         for id in keep where !skip.contains(id) {
             guard let k = boxKalman[id] else { continue }
@@ -2571,6 +2583,9 @@ final class LibraryStore: ObservableObject {
             if MatchMath.leftoverLiveHashTickWipes(empty: true) {
                 leftoverLiveHashTick = [:]
             }
+            if MatchMath.leftoverLastHashWipes(empty: true, overlayKeep: emptyChip) {
+                leftoverLastHash = [:]
+            }
             if !MatchMath.leftoverEmptyKeepsOverlay(liveEmpty: true) || !emptyChip {
                 liveHeldIds = []
                 leftoverPending = [:]
@@ -2629,14 +2644,29 @@ final class LibraryStore: ObservableObject {
             var leftoverItems: [(old: FaceObservation, bestCos: Double?, cands: [(index: Int, iou: Double, cosine: Double?)])] = []
             leftoverItems.reserveCapacity(leftoverPinned.count)
             leftoverLiveHashTick = [:]
+            var rawLiveHash: [UUID: String] = [:]
+            var liveXs: [UUID: Double] = [:]
             for face in adopted {
-                leftoverLiveHashTick[face.id] = leftoverLiveHash(
+                rawLiveHash[face.id] = leftoverLiveHash(
                     kalmanX: boxKalman[face.id]?.x,
                     kalmanY: boxKalman[face.id]?.y,
                     kalmanW: boxKalman[face.id]?.w,
                     kalmanH: boxKalman[face.id]?.h,
                     fallback: face.box,
                     image: image
+                )
+                liveXs[face.id] = boxKalman[face.id]?.x ?? face.box.x
+            }
+            for face in adopted {
+                let hash = rawLiveHash[face.id] ?? ""
+                let others: [(hash: String, x: Double)] = rawLiveHash.compactMap { key, value in
+                    if key == face.id { return nil }
+                    return (hash: value, x: liveXs[key] ?? 0)
+                }
+                leftoverLiveHashTick[face.id] = MatchMath.leftoverHashTwinRanked(
+                    hash: hash,
+                    x: liveXs[face.id] ?? 0,
+                    others: others
                 )
             }
             for old in leftoverPinned {
@@ -2738,13 +2768,16 @@ final class LibraryStore: ObservableObject {
                        MatchMath.leftoverHoldBin(yawAbs: lookYaw ?? abs(old.quality.yaw)) == 0
                     {
                         leftoverHold[old.id] = MatchMath.leftoverHoldLookupYaw(
-                            hash: leftoverLiveHash(
-                                kalmanX: boxKalman[old.id]?.x,
-                                kalmanY: boxKalman[old.id]?.y,
-                                kalmanW: boxKalman[old.id]?.w,
-                                kalmanH: boxKalman[old.id]?.h,
-                                fallback: old.box,
-                                image: image
+                            hash: leftoverRankedHash(
+                                id: old.id,
+                                fallback: leftoverLiveHash(
+                                    kalmanX: boxKalman[old.id]?.x,
+                                    kalmanY: boxKalman[old.id]?.y,
+                                    kalmanW: boxKalman[old.id]?.w,
+                                    kalmanH: boxKalman[old.id]?.h,
+                                    fallback: old.box,
+                                    image: image
+                                )
                             ),
                             table: leftoverHoldByHash,
                             now: now,
@@ -2786,13 +2819,16 @@ final class LibraryStore: ObservableObject {
                         ($0.index, liveCaptureHist[adopted[$0.index].id] ?? [])
                     }),
                     holdBins: leftoverHoldBins,
-                    holdHash: leftoverLiveHash(
-                        kalmanX: boxKalman[old.id]?.x,
-                        kalmanY: boxKalman[old.id]?.y,
-                        kalmanW: boxKalman[old.id]?.w,
-                        kalmanH: boxKalman[old.id]?.h,
-                        fallback: old.box,
-                        image: image
+                    holdHash: leftoverRankedHash(
+                        id: old.id,
+                        fallback: leftoverLiveHash(
+                            kalmanX: boxKalman[old.id]?.x,
+                            kalmanY: boxKalman[old.id]?.y,
+                            kalmanW: boxKalman[old.id]?.w,
+                            kalmanH: boxKalman[old.id]?.h,
+                            fallback: old.box,
+                            image: image
+                        )
                     ),
                     holdHashTable: leftoverHoldByHash,
                     holdAt: now,
@@ -2838,13 +2874,17 @@ final class LibraryStore: ObservableObject {
                 }
                 leftoverTried.insert(old.id)
                 leftoverMissFrames[old.id] = MatchMath.leftoverMissAdvance(prev: leftoverMissFrames[old.id] ?? 0, hit: true)
-                let holdHash = leftoverLiveHash(
-                    kalmanX: boxKalman[old.id]?.x,
-                    kalmanY: boxKalman[old.id]?.y,
-                    kalmanW: boxKalman[old.id]?.w,
-                    kalmanH: boxKalman[old.id]?.h,
-                    fallback: old.box,
+                let boxHash = leftoverLiveHash(
+                    kalmanX: boxKalman[adopted[bestJ].id]?.x,
+                    kalmanY: boxKalman[adopted[bestJ].id]?.y,
+                    kalmanW: boxKalman[adopted[bestJ].id]?.w,
+                    kalmanH: boxKalman[adopted[bestJ].id]?.h,
+                    fallback: adopted[bestJ].box,
                     image: image
+                )
+                let holdHash = leftoverRankedHash(
+                    id: adopted[bestJ].id,
+                    fallback: leftoverRankedHash(id: old.id, fallback: boxHash)
                 )
                 let holdPrev = MatchMath.leftoverHoldPrevOf(
                     frontal: leftoverHold[old.id],
@@ -2864,18 +2904,11 @@ final class LibraryStore: ObservableObject {
                 }
                 guard step.ready else { continue }
                 if let cos = remaining.first(where: { $0.index == bestJ })?.cosine {
-                    let boxHash = leftoverLiveHash(
-                        kalmanX: boxKalman[adopted[bestJ].id]?.x,
-                        kalmanY: boxKalman[adopted[bestJ].id]?.y,
-                        kalmanW: boxKalman[adopted[bestJ].id]?.w,
-                        kalmanH: boxKalman[adopted[bestJ].id]?.h,
-                        fallback: adopted[bestJ].box,
-                        image: image
-                    )
                     leftoverLastHash[adopted[bestJ].id] = MatchMath.leftoverLastHashKeeps(
                         prev: leftoverLastHash[adopted[bestJ].id] ?? leftoverLastHash[old.id],
-                        next: boxHash
+                        next: holdHash
                     )
+                    leftoverLastHash[old.id] = leftoverLastHash[adopted[bestJ].id]
                     if liveCaptureHist[adopted[bestJ].id] == nil, let kept = leftoverCaptureHistByHash[boxHash], !kept.isEmpty {
                         liveCaptureHist[adopted[bestJ].id] = kept
                     }
@@ -2884,7 +2917,7 @@ final class LibraryStore: ObservableObject {
                     var trail = MatchMath.leftoverTrailNowOf(
                         idTrail: leftoverHoldTrail[old.id] ?? [],
                         binTrail: MatchMath.leftoverTrailLookup(
-                            hash: boxHash,
+                            hash: holdHash,
                             table: leftoverHoldTrailByHash,
                             now: now,
                             ttl: leftoverHoldTTL,
@@ -2899,7 +2932,7 @@ final class LibraryStore: ObservableObject {
                         yawAbs: yawNow
                     ) {
                         leftoverHoldTrailByHash = MatchMath.leftoverTrailPut(
-                            hash: boxHash,
+                            hash: holdHash,
                             sample: cos,
                             onto: leftoverHoldTrailByHash,
                             now: now,
@@ -2917,7 +2950,7 @@ final class LibraryStore: ObservableObject {
                                 cos, onto: leftoverHoldTrailBins[key] ?? []
                             )
                             trail = leftoverHoldTrailBins[key] ?? MatchMath.leftoverTrailLookup(
-                                hash: boxHash,
+                                hash: holdHash,
                                 table: leftoverHoldTrailByHash,
                                 now: now,
                                 ttl: leftoverHoldTTL,
@@ -2969,14 +3002,7 @@ final class LibraryStore: ObservableObject {
                 let trailNow = MatchMath.leftoverTrailNowOf(
                     idTrail: leftoverHoldTrail[old.id] ?? [],
                     binTrail: MatchMath.leftoverTrailLookup(
-                        hash: leftoverLiveHash(
-                            kalmanX: boxKalman[adopted[bestJ].id]?.x,
-                            kalmanY: boxKalman[adopted[bestJ].id]?.y,
-                            kalmanW: boxKalman[adopted[bestJ].id]?.w,
-                            kalmanH: boxKalman[adopted[bestJ].id]?.h,
-                            fallback: adopted[bestJ].box,
-                            image: image
-                        ),
+                        hash: holdHash,
                         table: leftoverHoldTrailByHash,
                         now: now,
                         ttl: leftoverHoldTTL,
@@ -3084,14 +3110,7 @@ final class LibraryStore: ObservableObject {
                         yawAbs: abs(adopted[bestJ].quality.yaw)
                     ) {
                         leftoverHoldByHash = MatchMath.leftoverHoldPut(
-                            hash: leftoverLiveHash(
-                                kalmanX: boxKalman[adopted[bestJ].id]?.x,
-                                kalmanY: boxKalman[adopted[bestJ].id]?.y,
-                                kalmanW: boxKalman[adopted[bestJ].id]?.w,
-                                kalmanH: boxKalman[adopted[bestJ].id]?.h,
-                                fallback: adopted[bestJ].box,
-                                image: image
-                            ),
+                            hash: holdHash,
                             cosine: cos,
                             onto: leftoverHoldByHash,
                             now: now,
@@ -3132,14 +3151,7 @@ final class LibraryStore: ObservableObject {
                             )
                         )
                         leftoverHoldByHash = MatchMath.leftoverHoldPut(
-                            hash: leftoverLiveHash(
-                                kalmanX: boxKalman[adopted[bestJ].id]?.x,
-                                kalmanY: boxKalman[adopted[bestJ].id]?.y,
-                                kalmanW: boxKalman[adopted[bestJ].id]?.w,
-                                kalmanH: boxKalman[adopted[bestJ].id]?.h,
-                                fallback: adopted[bestJ].box,
-                                image: image
-                            ),
+                            hash: holdHash,
                             cosine: cos,
                             onto: leftoverHoldByHash,
                             now: now,
@@ -3174,14 +3186,7 @@ final class LibraryStore: ObservableObject {
                     guestOrder = MatchMath.guestOrderAppend(id: adopted[bestJ].id, onto: guestOrder)
                     guestSeenAt[adopted[bestJ].id] = now
                 }
-                let putHash = leftoverLiveHash(
-                    kalmanX: boxKalman[adopted[bestJ].id]?.x ?? boxKalman[old.id]?.x,
-                    kalmanY: boxKalman[adopted[bestJ].id]?.y ?? boxKalman[old.id]?.y,
-                    kalmanW: boxKalman[adopted[bestJ].id]?.w ?? boxKalman[old.id]?.w,
-                    kalmanH: boxKalman[adopted[bestJ].id]?.h ?? boxKalman[old.id]?.h,
-                    fallback: adopted[bestJ].box,
-                    image: image
-                )
+                let putHash = holdHash
                 boxEuro.removeValue(forKey: old.id)
                 if !MatchMath.leftoverAdoptKeepsKalman() {
                     boxKalmanDrop(old.id)
