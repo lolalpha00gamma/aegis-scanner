@@ -1,4 +1,4 @@
-# Aegis **2.1.115 alpha**
+# Aegis **2.1.116 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.116 alpha
+
+Sticky blieb nach 8 s nur-24-fps. Hamming-2 stahl den Twin. IoU-JUMP tauft den Nachbarn.
+
+- **`dropoutSeenSlow(fastFor:)`.** 8 s 24 fps setzt Indoor-Latch zurück.
+- **`leftoverHoldNeighborOk`.** Zwei Gesichter, Hamming-2 tot.
+- **`leftoverNameLockArm` 1,2 s.** HUD `LOCK`. leftoverHoldsTrack hält, leftoverTransfersId tot.
+- **`leftoverHoldTTLPref` 1,2–4,0.**
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.116 (Build 142).
 
 ## Neu in 2.1.115 alpha
 

@@ -294,7 +294,8 @@ enum MatchMath {
                     hash: holdHash,
                     hashTable: holdHashTable,
                     now: holdAt,
-                    ttl: holdTTL
+                    ttl: holdTTL,
+                    facesInFrame: facesInFrame
                 )
             )
         }
@@ -327,7 +328,8 @@ enum MatchMath {
                         hash: holdHash,
                         hashTable: holdHashTable,
                         now: holdAt,
-                        ttl: holdTTL
+                        ttl: holdTTL,
+                        facesInFrame: facesInFrame
                     ),
                     dt: dt,
                     captureJump: leftoverCaptureJump(prev: session, next: liveCap($0.index))
@@ -783,9 +785,11 @@ enum MatchMath {
         blink: Bool = false,
         jpegDelta: Double? = nil,
         iou: Double? = nil,
-        jpegRequired: Bool = false
+        jpegRequired: Bool = false,
+        nameLockUntil: TimeInterval? = nil
     ) -> Bool {
         if tapNameLockBlocks(until: tapUntil, now: now) { return false }
+        if leftoverNameLockBlocks(until: nameLockUntil, now: now) { return false }
         if leftoverBaptizeStillBlocks(stillFor: stillFor, cosine: cosine, holdPrev: holdPrev) { return false }
         if leftoverIoUJumpBlocks(iou) { return false }
         guard leftoverBaptize(cosine: cosine) else { return false }
@@ -1112,6 +1116,40 @@ enum MatchMath {
 
     static func leftoverIoUJumpChip(_ iou: Double?) -> String? {
         leftoverIoUJumpBlocks(iou) ? "JUMP" : nil
+    }
+
+    /// Twin stiehlt den Namen nach Box-JUMP. 1,2 s Lock, Chip sitzt.
+    static let leftoverNameLockSec: TimeInterval = 1.20
+
+    static func leftoverNameLockArm(jump: Bool, now: TimeInterval, prev: TimeInterval? = nil) -> TimeInterval? {
+        if jump { return now + leftoverNameLockSec }
+        if let prev, now < prev { return prev }
+        return nil
+    }
+
+    static func leftoverNameLockBlocks(until: TimeInterval?, now: TimeInterval) -> Bool {
+        guard let until else { return false }
+        return now < until
+    }
+
+    static func leftoverNameLockChip(until: TimeInterval?, now: TimeInterval) -> String? {
+        leftoverNameLockBlocks(until: until, now: now) ? "LOCK" : nil
+    }
+
+    static func leftoverNameLockLive(until: [UUID: TimeInterval], now: TimeInterval) -> [UUID] {
+        until.compactMap { leftoverNameLockBlocks(until: $0.value, now: now) ? $0.key : nil }
+    }
+
+    /// Pref 1,2–4,0 statt nur Takt.
+    static func leftoverHoldTTLPref(_ pref: TimeInterval) -> TimeInterval {
+        min(leftoverLatch, max(leftoverAdoptSec, pref))
+    }
+
+    /// Hamming-2 Neighbor-Veto wenn zwei Gesichter live. Twin stiehlt sonst Hash-Nachbar.
+    static func leftoverHoldNeighborOk(facesInFrame: Int, dist: Int) -> Bool {
+        if dist <= 0 { return true }
+        if facesInFrame >= 2, dist >= 2 { return false }
+        return dist < 99
     }
 
     static func leftoverCaptureHistTableEncode(_ table: [String: [Double]]) -> [String: [Double]] {
@@ -2015,8 +2053,20 @@ enum MatchMath {
     }
 
     /// Fallback liveDt 0,125 darf nicht sticky machen. Erst 8 Samples.
-    static func dropoutSeenSlow(dt: TimeInterval, samples: Int, prev: Bool = false) -> Bool {
-        if prev { return true }
+    /// Sticky nach Licht-an nicht Session-ewig: 8 s nur-24-fps = Reset.
+    static let dropoutSeenSlowReset: TimeInterval = 8.0
+
+    static func dropoutSeenSlow(
+        dt: TimeInterval,
+        samples: Int,
+        prev: Bool = false,
+        fastFor: TimeInterval = 0,
+        need: TimeInterval = dropoutSeenSlowReset
+    ) -> Bool {
+        if prev {
+            if dt < 0.08, fastFor + 1e-9 >= need { return false }
+            return true
+        }
         guard samples >= 8 else { return false }
         return dt >= 0.08
     }
@@ -2205,14 +2255,15 @@ enum MatchMath {
         hash: String? = nil,
         hashTable: [String: (cosine: Double, at: TimeInterval)] = [:],
         now: TimeInterval = 0,
-        ttl: TimeInterval = leftoverAdoptSec
+        ttl: TimeInterval = leftoverAdoptSec,
+        facesInFrame: Int = 1
     ) -> Double? {
         let bin = leftoverHoldBin(yawAbs: yawAbs ?? 0)
         if let id, let v = leftoverHoldBinRead(bins: bins, id: id, bin: bin) {
             return v
         }
         if let hash, !hashTable.isEmpty,
-           let v = leftoverHoldLookup(hash: hash, table: hashTable, now: now, ttl: ttl, bin: bin)
+           let v = leftoverHoldLookup(hash: hash, table: hashTable, now: now, ttl: ttl, bin: bin, facesInFrame: facesInFrame)
         {
             return v
         }
@@ -2262,9 +2313,10 @@ enum MatchMath {
         ghosts: [UUID],
         live: [UUID] = [],
         emptyKeeps: Bool = false,
-        emptyFor: TimeInterval = 0
+        emptyFor: TimeInterval = 0,
+        locked: [UUID] = []
     ) -> [String: Double] {
-        leftoverHoldSurviveBinMap(hold: hold, ghosts: ghosts, live: live, emptyKeeps: emptyKeeps, emptyFor: emptyFor)
+        leftoverHoldSurviveBinMap(hold: hold, ghosts: ghosts, live: live, emptyKeeps: emptyKeeps, emptyFor: emptyFor, locked: locked)
     }
 
     static func leftoverHoldSurviveBinMap<Value>(
@@ -2272,9 +2324,10 @@ enum MatchMath {
         ghosts: [UUID],
         live: [UUID] = [],
         emptyKeeps: Bool = false,
-        emptyFor: TimeInterval = 0
+        emptyFor: TimeInterval = 0,
+        locked: [UUID] = []
     ) -> [String: Value] {
-        let keep = Set(ghosts + live)
+        let keep = Set(ghosts + live + locked)
         if keep.isEmpty {
             if emptyKeeps && leftoverLatchKeeps(emptyFor: emptyFor) { return hold }
             return [:]
@@ -3091,13 +3144,15 @@ enum MatchMath {
         blink: Bool = false,
         jpegDelta: Double? = nil,
         iou: Double? = nil,
-        jpegRequired: Bool = false
+        jpegRequired: Bool = false,
+        nameLockUntil: TimeInterval? = nil
     ) -> Bool {
         if leftoverIoUJumpBlocks(iou) { return false }
+        if leftoverNameLockBlocks(until: nameLockUntil, now: now) { return true }
         return leftoverPrintOk(cosine: cosine, sharpness: sharpness) && !leftoverTransfersId(
             cosine: cosine, holdPrev: holdPrev, trail: trail, tapUntil: tapUntil, now: now, stillFor: stillFor,
             sharpness: sharpness, yawAbs: yawAbs, blink: blink, jpegDelta: jpegDelta, iou: iou,
-            jpegRequired: jpegRequired
+            jpegRequired: jpegRequired, nameLockUntil: nameLockUntil
         )
     }
 
@@ -3108,9 +3163,10 @@ enum MatchMath {
         ghosts: [UUID],
         live: [UUID] = [],
         emptyKeeps: Bool = false,
-        emptyFor: TimeInterval = 0
+        emptyFor: TimeInterval = 0,
+        locked: [UUID] = []
     ) -> [UUID: Value] {
-        let keep = Set(ghosts + live)
+        let keep = Set(ghosts + live + locked)
         if keep.isEmpty {
             if emptyKeeps && leftoverLatchKeeps(emptyFor: emptyFor) { return hold }
             return [:]
@@ -3808,7 +3864,8 @@ enum MatchMath {
         table: [String: (samples: [Double], at: TimeInterval)],
         now: TimeInterval,
         ttl: TimeInterval = leftoverAdoptSec,
-        bin: Int? = nil
+        bin: Int? = nil,
+        facesInFrame: Int = 1
     ) -> [Double] {
         if let bin {
             let key = leftoverHoldHashKey(hash: hash, bin: bin)
@@ -3820,13 +3877,14 @@ enum MatchMath {
                 let nk = leftoverHoldHashKey(hash: h, bin: bin)
                 guard let row = table[nk], now - row.at <= ttl else { continue }
                 let d = leftoverBoxHashDistance(hash, h)
+                if !leftoverHoldNeighborOk(facesInFrame: facesInFrame, dist: d) { continue }
                 if best == nil || d < best!.dist || (d == best!.dist && row.at > best!.at) {
                     best = (row.samples, row.at, d)
                 }
             }
             if let best { return best.samples }
             if bin == 0 {
-                return leftoverTrailLookup(hash: hash, table: table, now: now, ttl: ttl, bin: nil)
+                return leftoverTrailLookup(hash: hash, table: table, now: now, ttl: ttl, bin: nil, facesInFrame: facesInFrame)
             }
             return []
         }
@@ -3841,6 +3899,7 @@ enum MatchMath {
             let row = table[h] ?? table[leftoverHoldHashKey(hash: h, bin: 0)]
             guard let row, now - row.at <= ttl else { continue }
             let d = leftoverBoxHashDistance(hash, h)
+            if !leftoverHoldNeighborOk(facesInFrame: facesInFrame, dist: d) { continue }
             if best == nil || d < best!.dist || (d == best!.dist && row.at > best!.at) {
                 best = (row.samples, row.at, d)
             }
@@ -3863,7 +3922,8 @@ enum MatchMath {
         table: [String: (cosine: Double, at: TimeInterval)],
         now: TimeInterval,
         ttl: TimeInterval = leftoverAdoptSec,
-        bin: Int? = nil
+        bin: Int? = nil,
+        facesInFrame: Int = 1
     ) -> Double? {
         if let bin {
             let key = leftoverHoldHashKey(hash: hash, bin: bin)
@@ -3875,13 +3935,14 @@ enum MatchMath {
                 let nk = leftoverHoldHashKey(hash: h, bin: bin)
                 guard let row = table[nk], now - row.at <= ttl else { continue }
                 let d = leftoverBoxHashDistance(hash, h)
+                if !leftoverHoldNeighborOk(facesInFrame: facesInFrame, dist: d) { continue }
                 if best == nil || d < best!.dist || (d == best!.dist && row.at > best!.at) {
                     best = (row.cosine, row.at, d)
                 }
             }
             if let best { return best.cosine }
             if bin == 0 {
-                return leftoverHoldLookup(hash: hash, table: table, now: now, ttl: ttl, bin: nil)
+                return leftoverHoldLookup(hash: hash, table: table, now: now, ttl: ttl, bin: nil, facesInFrame: facesInFrame)
             }
             return nil
         }
@@ -3896,6 +3957,7 @@ enum MatchMath {
             let row = table[h] ?? table[leftoverHoldHashKey(hash: h, bin: 0)]
             guard let row, now - row.at <= ttl else { continue }
             let d = leftoverBoxHashDistance(hash, h)
+            if !leftoverHoldNeighborOk(facesInFrame: facesInFrame, dist: d) { continue }
             if best == nil || d < best!.dist || (d == best!.dist && row.at > best!.at) {
                 best = (row.cosine, row.at, d)
             }
@@ -3910,7 +3972,8 @@ enum MatchMath {
         table: [String: (cosine: Double, at: TimeInterval)],
         now: TimeInterval,
         ttl: TimeInterval = leftoverAdoptSec,
-        yawAbs: Double?
+        yawAbs: Double?,
+        facesInFrame: Int = 1
     ) -> Double? {
         guard let yaw = yawAbs else { return nil }
         return leftoverHoldLookup(
@@ -3918,7 +3981,8 @@ enum MatchMath {
             table: table,
             now: now,
             ttl: ttl,
-            bin: leftoverHoldBin(yawAbs: yaw)
+            bin: leftoverHoldBin(yawAbs: yaw),
+            facesInFrame: facesInFrame
         )
     }
 

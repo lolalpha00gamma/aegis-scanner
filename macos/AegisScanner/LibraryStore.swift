@@ -114,9 +114,11 @@ final class LibraryStore: ObservableObject {
     private var leftoverHashNeedsRebase = false
     private var leftoverHashRebasedTick = false
     private var leftoverHoldSeenSlow = false
+    private var leftoverHoldFastFor: TimeInterval = 0
     private var leftoverHoldTTL: TimeInterval {
-        MatchMath.dropoutTTLSticky(dt: liveDt, seenSlow: leftoverHoldSeenSlow)
+        MatchMath.leftoverHoldTTLPref(MatchMath.dropoutTTLSticky(dt: liveDt, seenSlow: leftoverHoldSeenSlow))
     }
+    private var leftoverNameLockUntil: [UUID: TimeInterval] = [:]
     private var leftoverLastHash: [UUID: String] = [:]
     private var leftoverCaptureHistByHash: [String: [Double]] = [:]
     private var leftoverLastIoU: [UUID: Double] = [:]
@@ -252,6 +254,8 @@ final class LibraryStore: ObservableObject {
         liveDt = 0.125
         liveDtSamples = []
         leftoverHoldSeenSlow = false
+        leftoverHoldFastFor = 0
+        leftoverNameLockUntil = [:]
         liveNameVoteAt = [:]
         tapNameLockUntil = [:]
         liveFaceStreak = 0
@@ -1265,6 +1269,9 @@ final class LibraryStore: ObservableObject {
         if let chip = MatchMath.leftoverIoUJumpChip(leftoverLastIoU[faceId]) {
             bits.append(chip)
         }
+        if let chip = MatchMath.leftoverNameLockChip(until: leftoverNameLockUntil[faceId], now: liveLastStamp) {
+            bits.append(chip)
+        }
         return bits.isEmpty ? nil : bits.joined(separator: " · ")
     }
 
@@ -1286,7 +1293,8 @@ final class LibraryStore: ObservableObject {
                     table: leftoverHoldTrailByHash,
                     now: liveLastStamp,
                     ttl: leftoverHoldTTL,
-                    bin: bin
+                    bin: bin,
+                    facesInFrame: faces.count
                 )
             } ?? []
             nowChip = MatchMath.leftoverCosineSparkLabel(
@@ -1533,6 +1541,8 @@ final class LibraryStore: ObservableObject {
         liveDt = 0.125
         liveDtSamples = []
         leftoverHoldSeenSlow = false
+        leftoverHoldFastFor = 0
+        leftoverNameLockUntil = [:]
         liveNameVoteAt = [:]
         tapNameLockUntil = [:]
         liveFaceStreak = 0
@@ -1887,8 +1897,15 @@ final class LibraryStore: ObservableObject {
         leftoverHoldSeenSlow = MatchMath.dropoutSeenSlow(
             dt: liveDt,
             samples: liveDtSamples.count,
-            prev: leftoverHoldSeenSlow
+            prev: leftoverHoldSeenSlow,
+            fastFor: leftoverHoldFastFor
         )
+        if liveDt < 0.08 {
+            leftoverHoldFastFor += liveDt
+        } else {
+            leftoverHoldFastFor = 0
+        }
+        if !leftoverHoldSeenSlow { leftoverHoldFastFor = 0 }
         liveLastStamp = now
         let liveFrameCapture = MatchMath.leftoverPickLuma(
             frame: MatchMath.leftoverFrameCapture(image),
@@ -2406,12 +2423,14 @@ final class LibraryStore: ObservableObject {
         liveBlinkSeen = liveBlinkSeen.filter { keepBoxes.contains($0.key) }
         liveOpenStreak = liveOpenStreak.filter { keepBoxes.contains($0.key) }
         let holdBefore = leftoverHold.count
-        leftoverHold = MatchMath.leftoverHoldSurvive(hold: leftoverHold, ghosts: ghostIds, live: liveIds, emptyKeeps: emptyLatch, emptyFor: emptyFor)
-        leftoverHoldBins = MatchMath.leftoverHoldSurviveBins(hold: leftoverHoldBins, ghosts: ghostIds, live: liveIds, emptyKeeps: emptyLatch, emptyFor: emptyFor)
-        leftoverHoldTrail = MatchMath.leftoverHoldSurvive(hold: leftoverHoldTrail, ghosts: ghostIds, live: liveIds, emptyKeeps: emptyLatch, emptyFor: emptyFor)
-        leftoverHoldTrailBins = MatchMath.leftoverHoldSurviveBinMap(hold: leftoverHoldTrailBins, ghosts: ghostIds, live: liveIds, emptyKeeps: emptyLatch, emptyFor: emptyFor)
-        liveSlotHold = MatchMath.leftoverHoldSurvive(hold: liveSlotHold, ghosts: ghostIds, live: liveIds, emptyKeeps: emptyLatch, emptyFor: emptyFor)
-        leftoverMissFrames = MatchMath.leftoverHoldSurvive(hold: leftoverMissFrames, ghosts: ghostIds, live: liveIds, emptyKeeps: emptyLatch, emptyFor: emptyFor)
+        let lockedIds = MatchMath.leftoverNameLockLive(until: leftoverNameLockUntil, now: now)
+        leftoverNameLockUntil = leftoverNameLockUntil.filter { lockedIds.contains($0.key) }
+        leftoverHold = MatchMath.leftoverHoldSurvive(hold: leftoverHold, ghosts: ghostIds, live: liveIds, emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds)
+        leftoverHoldBins = MatchMath.leftoverHoldSurviveBins(hold: leftoverHoldBins, ghosts: ghostIds, live: liveIds, emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds)
+        leftoverHoldTrail = MatchMath.leftoverHoldSurvive(hold: leftoverHoldTrail, ghosts: ghostIds, live: liveIds, emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds)
+        leftoverHoldTrailBins = MatchMath.leftoverHoldSurviveBinMap(hold: leftoverHoldTrailBins, ghosts: ghostIds, live: liveIds, emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds)
+        liveSlotHold = MatchMath.leftoverHoldSurvive(hold: liveSlotHold, ghosts: ghostIds, live: liveIds, emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds)
+        leftoverMissFrames = MatchMath.leftoverHoldSurvive(hold: leftoverMissFrames, ghosts: ghostIds, live: liveIds, emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds)
         leftoverHoldByHash = MatchMath.leftoverHoldPrune(
             leftoverHoldByHash,
             now: now,
@@ -2602,7 +2621,8 @@ final class LibraryStore: ObservableObject {
                             table: leftoverHoldByHash,
                             now: now,
                             ttl: leftoverHoldTTL,
-                            yawAbs: lookYaw ?? abs(old.quality.yaw)
+                            yawAbs: lookYaw ?? abs(old.quality.yaw),
+                            facesInFrame: adopted.count
                         )
                     }
                     continue
@@ -2704,7 +2724,8 @@ final class LibraryStore: ObservableObject {
                     hash: holdHash,
                     hashTable: leftoverHoldByHash,
                     now: now,
-                    ttl: leftoverHoldTTL
+                    ttl: leftoverHoldTTL,
+                    facesInFrame: adopted.count
                 )
                 let step = leftoverAdvance(oldId: old.id, box: adopted[bestJ].box, now: now, holdPrev: holdPrev, boxId: adopted[bestJ].id, dt: liveDt, yawAbs: abs(adopted[bestJ].quality.yaw))
                 if let label = step.label {
@@ -2736,7 +2757,8 @@ final class LibraryStore: ObservableObject {
                             table: leftoverHoldTrailByHash,
                             now: now,
                             ttl: leftoverHoldTTL,
-                            bin: bin
+                            bin: bin,
+                            facesInFrame: adopted.count
                         ),
                         yawAbs: yawNow
                     )
@@ -2767,7 +2789,8 @@ final class LibraryStore: ObservableObject {
                                 table: leftoverHoldTrailByHash,
                                 now: now,
                                 ttl: leftoverHoldTTL,
-                                bin: bin
+                                bin: bin,
+                                facesInFrame: adopted.count
                             )
                         }
                     }
@@ -2806,7 +2829,8 @@ final class LibraryStore: ObservableObject {
                     hash: holdHash,
                     hashTable: leftoverHoldByHash,
                     now: now,
-                    ttl: leftoverHoldTTL
+                    ttl: leftoverHoldTTL,
+                    facesInFrame: adopted.count
                 )
                 let trailNow = MatchMath.leftoverTrailNowOf(
                     idTrail: leftoverHoldTrail[old.id] ?? [],
@@ -2822,7 +2846,8 @@ final class LibraryStore: ObservableObject {
                         table: leftoverHoldTrailByHash,
                         now: now,
                         ttl: leftoverHoldTTL,
-                        bin: MatchMath.leftoverHoldBin(yawAbs: abs(adopted[bestJ].quality.yaw))
+                        bin: MatchMath.leftoverHoldBin(yawAbs: abs(adopted[bestJ].quality.yaw)),
+                        facesInFrame: adopted.count
                     ),
                     yawAbs: abs(adopted[bestJ].quality.yaw)
                 )
@@ -2834,6 +2859,13 @@ final class LibraryStore: ObservableObject {
                 let blinkBlocked = (liveOpenStreak[old.id] ?? liveOpenStreak[adopted[bestJ].id] ?? 0) < 2
                 let boxIoU = FaceEngine.iou(old.box, adopted[bestJ].box)
                 leftoverLastIoU[adopted[bestJ].id] = boxIoU
+                leftoverNameLockUntil[old.id] = MatchMath.leftoverNameLockArm(
+                    jump: MatchMath.leftoverIoUJumpBlocks(boxIoU),
+                    now: now,
+                    prev: leftoverNameLockUntil[old.id] ?? leftoverNameLockUntil[adopted[bestJ].id]
+                )
+                leftoverNameLockUntil[adopted[bestJ].id] = leftoverNameLockUntil[old.id]
+                let nameLock = leftoverNameLockUntil[old.id]
                 var jpegDelta: Double?
                 let printReady = !adopted[bestJ].featurePrint.isEmpty
                 if MatchMath.leftoverBaptize(cosine: pinCos), printReady {
@@ -2872,7 +2904,8 @@ final class LibraryStore: ObservableObject {
                     blink: blinkBlocked,
                     jpegDelta: jpegDelta,
                     iou: boxIoU,
-                    jpegRequired: printReady
+                    jpegRequired: printReady,
+                    nameLockUntil: nameLock
                 )
                 if MatchMath.leftoverHoldsTrack(
                     cosine: pinCos,
@@ -2886,7 +2919,8 @@ final class LibraryStore: ObservableObject {
                     blink: blinkBlocked,
                     jpegDelta: jpegDelta,
                     iou: boxIoU,
-                    jpegRequired: printReady
+                    jpegRequired: printReady,
+                    nameLockUntil: nameLock
                 ) {
                     leftoverPending[adopted[bestJ].id] = MatchMath.leftoverHoldLabel(
                         cosine: pinCos,

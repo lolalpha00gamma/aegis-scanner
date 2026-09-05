@@ -1,3 +1,28 @@
+# Helios + Aegis — Analyse 2026-09-05 (2.1.116)
+
+Helios **1.5.100** (Build 120). Aegis **2.1.116 alpha** (Build 142). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.115: Indoor-TTL 4 s, Sticky nach fps-Hop. Sticky blieb Session-ewig nach 8 s nur-24-fps. Hamming-2 Nachbar stahl den Twin. IoU-JUMP ohne Namens-Lock.
+
+## 2.1.115 → 2.1.116 (warum Namen nach Licht-an und bei Twins noch sprangen)
+
+1. **`dropoutSeenSlow` ohne Reset.** 8 Samples Slow → Latch 4 s für immer, auch nach 8 s nur-24-fps. Holds 4 s in heller Szene, Gast n+1 stirbt langsam.
+2. **Hamming-2 Neighbor-Steal.** Zwei Gesichter live, Hash-Nachbar dist 2 erbt Annas Hold. Twin tauft.
+3. **IoU-JUMP ohne Namens-Lock.** leftoverTransfersId 0,82 tauft den Nachbarn sobald IoU wieder hoch ist. Chip `JUMP` sitzt, Lock nicht.
+4. **leftoverHoldTTL nur Takt.** Pref 1,2–4,0 fehlte — Slider/Clamp tot.
+
+## Was 2.1.116 ändert
+
+1. **`dropoutSeenSlow(fastFor:)`.** 8 s nur-24-fps setzt Sticky zurück.
+2. **`leftoverHoldNeighborOk`.** faces≥2 und dist≥2 = kein Neighbor-Hold.
+3. **`leftoverNameLockArm` 1,2 s nach JUMP.** leftoverTransfersId tot, leftoverHoldsTrack hält Overlay. HUD `LOCK`. leftoverHoldSurvive locked.
+4. **`leftoverHoldTTLPref` 1,2–4,0.** Clamp um leftoverHoldTTL.
+5. Tests + VERSION = Models = MARKETING_VERSION 2.1.116 (Build 142).
+
+Helios 1.5.100: Fill-Mute, Laterality, destEdgePad Slider, Joint-EMA, USB/WIFI. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-05 (2.1.115)
 
 Helios **1.5.99** (Build 119). Aegis **2.1.115 alpha** (Build 141). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

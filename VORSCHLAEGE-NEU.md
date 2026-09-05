@@ -1,3 +1,55 @@
+# Nachtrag 2026-09-05 (2.1.116)
+
+Siehe ANALYSE.md. **2.1.116** dropoutSeenSlow Reset, Hamming-2 Neighbor-Veto, Twin-name lock 1,2 s, leftoverHoldTTL Pref.
+
+## In 2.1.116 gelandet
+
+1. dropoutSeenSlow fastFor 8 s nur-24-fps = Sticky tot
+2. leftoverHoldNeighborOk faces≥2 dist≥2 tot
+3. leftoverNameLockArm 1,2 s nach JUMP, HUD `LOCK`, leftoverHoldsTrack hält
+4. leftoverHoldTTLPref 1,2–4,0
+5. VERSION = Models = MARKETING_VERSION 2.1.116 (Build 142)
+
+## Nächste, zusätzlich
+
+- leftoverAdoptSecLock Pref 0,6–1,4.
+- leftoverNameLockSec Pref 0,6–2,0.
+- leftoverNameLock auf leftoverPairCommit — Majority darf während LOCK nicht taufen.
+- Hamming-2 Veto HUD `NBR`.
+- leftoverHoldFastFor Overlay `FAST`.
+- leftoverHold ttl Slider 1,2–4,0 (Clamp sitzt).
+- FaceEngine jpegProbe detached queue. Cache sitzt, Detect hoppt noch nach Main.
+- PhotoKit Live Photos Frame 0, nicht Poster.
+- printRevision je Identity.
+- gallery.json.bak rotate 3.
+- VNDetectFaceRectangles revision pin.
+- leftoverHashHold VoiceOver.
+- Schema 5 UUID-Bins nach Schema 6 behalten (kein Wipe).
+- Helios Frame-Pump, eine TCC. Shared XPC mit Helios 1.5.100.
+- Overlay VoiceOver HOLD/Spark/HASH/LOCK.
+- Per-Box CLAHE statt Full-Frame.
+- Continuity Desk-View yaw-floor 0,36.
+- Gallery print decay: ungenutzte 14-Tage-Prints downweight.
+- Partial-Print P-Slot ohne Augen (Schal/Maske).
+- Burst-AE 5-Frame Pref Continuity-Nacht.
+- Print-Bank 5 Pose-Slots front/left/right/up/down.
+- DBSCAN vor Merge.
+- Watch-Folder PhotoKit.
+- Encrypted gallery export `.aegis`.
+- Iris-Textur-Slot als Twin-Veto.
+- Specular-Highlight auf Stirn als Card-Photo-Veto.
+- Continuity LiDAR-Z als Twin-Trennung.
+- Masken-/Schal-Slot. Brille-Slot.
+- Tests splitted.
+- Merge-Undo Stack 8.
+- IdentityDesk 9-Tuple → GalleryPayload direkt.
+- **Per-Hold TTL in Schema 7.** `at` + `ttl` je Zeile, nicht Session-Sticky.
+- leftoverJpegProbeReuse TTL Pref 0,25–1,2.
+- Temporal ReID-Graph über Hold-Trail.
+- PnP 6DoF, Slot folgt der Nase.
+
+Nur main.
+
 # Nachtrag 2026-09-05 (2.1.115)
 
 Siehe ANALYSE.md. **2.1.115** leftoverHoldPut Indoor-TTL 4 s, Transfers-Prune leftoverHoldTTL, Sticky nach fps-Hop.

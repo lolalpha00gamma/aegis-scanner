@@ -2261,6 +2261,36 @@ enum MatchMathTests {
         near(MatchMath.dropoutTTLSticky(dt: 0.04, seenSlow: true), 4.0, 0.001, "Hop 8→24 4 s")
         let hopHold = MatchMath.leftoverHoldPut(hash: "ab", cosine: 0.80, onto: [:], now: 10, ttl: MatchMath.dropoutTTLSticky(dt: 0.04, seenSlow: true))
         ok(MatchMath.leftoverHoldPrune(hopHold, now: 12, ttl: MatchMath.dropoutTTLSticky(dt: 0.04, seenSlow: true))["ab#0"] != nil, "Hop Put+Prune 4 s")
+        ok(!MatchMath.dropoutSeenSlow(dt: 0.04, samples: 8, prev: true, fastFor: 8.0), "8 s 24 fps Sticky tot")
+        ok(MatchMath.dropoutSeenSlow(dt: 0.04, samples: 8, prev: true, fastFor: 7.0), "7 s 24 fps Sticky hält")
+        ok(MatchMath.dropoutSeenSlow(dt: 0.125, samples: 8, prev: true, fastFor: 8.0), "8 fps Sticky trotz fastFor")
+        ok(MatchMath.leftoverHoldNeighborOk(facesInFrame: 1, dist: 2), "ein Gesicht Hamming-2")
+        ok(!MatchMath.leftoverHoldNeighborOk(facesInFrame: 2, dist: 2), "Twin Hamming-2 tot")
+        ok(MatchMath.leftoverHoldNeighborOk(facesInFrame: 2, dist: 1), "Twin Hamming-1 hält")
+        ok(MatchMath.leftoverHoldNeighborOk(facesInFrame: 2, dist: 0), "exakt hält")
+        let nbrTable = MatchMath.leftoverHoldPut(hash: "1.2.2.0", cosine: 0.80, onto: [:], now: 10)
+        ok(MatchMath.leftoverHoldLookup(hash: "1.2.0.0", table: nbrTable, now: 10, facesInFrame: 1) != nil, "ein Gesicht Hamming-2 Hold")
+        ok(MatchMath.leftoverHoldLookup(hash: "1.2.0.0", table: nbrTable, now: 10, facesInFrame: 2) == nil, "Twin Hamming-2 Hold tot")
+        let lockUntil = MatchMath.leftoverNameLockArm(jump: true, now: 10)
+        ok(abs((lockUntil ?? 0) - 11.2) < 0.001, "LOCK 1,2 s")
+        ok(MatchMath.leftoverNameLockBlocks(until: 11.2, now: 11), "LOCK hält")
+        ok(!MatchMath.leftoverNameLockBlocks(until: 11.2, now: 11.2), "LOCK tot")
+        ok(MatchMath.leftoverNameLockChip(until: 11.2, now: 11) == "LOCK", "HUD LOCK")
+        ok(!MatchMath.leftoverTransfersId(cosine: 0.82, holdPrev: 0.80, now: 11, nameLockUntil: 11.2), "LOCK keine Taufe")
+        ok(MatchMath.leftoverHoldsTrack(cosine: 0.82, holdPrev: 0.80, now: 11, nameLockUntil: 11.2), "LOCK Overlay halten")
+        ok(!MatchMath.leftoverHoldsTrack(cosine: 0.82, holdPrev: 0.80, now: 11, iou: 0.15, nameLockUntil: 11.2), "JUMP Frame kein Hold")
+        ok(abs(MatchMath.leftoverHoldTTLPref(0.5) - 1.2) < 0.001, "TTL Pref Floor 1,2")
+        ok(abs(MatchMath.leftoverHoldTTLPref(8) - 4) < 0.001, "TTL Pref Cap 4")
+        ok(abs(MatchMath.leftoverHoldTTLPref(2) - 2) < 0.001, "TTL Pref 2")
+        let lockKeep = MatchMath.leftoverHoldSurvive(
+            hold: [idHoldA: 0.70],
+            ghosts: [],
+            live: [],
+            locked: [idHoldA]
+        )
+        ok(lockKeep[idHoldA] == 0.70, "LOCK Hold überlebt")
+        ok(MatchMath.leftoverNameLockLive(until: [idHoldA: 11.2], now: 11) == [idHoldA], "LOCK live")
+        ok(MatchMath.leftoverNameLockLive(until: [idHoldA: 11.2], now: 12).isEmpty, "LOCK tot live")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)
