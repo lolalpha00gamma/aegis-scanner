@@ -396,7 +396,7 @@ enum MatchMathTests {
         ok(!MatchMath.leftoverNamedTrack(hadName: false), "namenlos kein leftover")
         ok(MatchMath.leftoverNeedsPrint(cosine: nil), "ohne Print kein leftover-Pin")
         ok(!MatchMath.leftoverNeedsPrint(cosine: 0.90), "mit Print leftover darf")
-        ok(MatchMath.gallerySchema == 5, "gallery.json Schema 5")
+        ok(MatchMath.gallerySchema == 6, "gallery.json Schema 6")
 
         ok(MatchMath.holdStillSkip(iou: 0.50), "Bewegung 0,50 skippt neuen Print")
         ok(!MatchMath.holdStillSkip(iou: 0.90), "Stillstand 0,90 nimmt Print")
@@ -2189,6 +2189,18 @@ enum MatchMathTests {
         ok(MatchMath.liveBufferOrientation(width: 720, height: 1280) == 1, "0° Portrait up")
         ok(MatchMath.liveOrientationRaw(width: 720, height: 1280) == 6, "Math Portrait right")
         ok(!MatchMath.leftoverHoldsTrack(cosine: 0.82, holdPrev: 0.80, iou: 0.15), "HoldsTrack IoU tot")
+        let hashEnc = MatchMath.leftoverHashHoldEncode(["ab#0": (cosine: 0.80, at: 1), "cd#0": (cosine: 0, at: 1)])
+        ok(hashEnc["ab#0"] == 0.80 && hashEnc["cd#0"] == nil, "Hash-Hold Encode")
+        let hashDec = MatchMath.leftoverHashHoldDecode(["ab#0": 0.80], now: 12)
+        ok(hashDec["ab#0"]?.cosine == 0.80 && hashDec["ab#0"]?.at == 12, "Hash-Hold Decode now")
+        ok(MatchMath.leftoverHashHoldDecode(nil, now: 1).isEmpty, "Hash-Hold nil")
+        let trailEnc = MatchMath.leftoverHashTrailEncode(["ab#0": (samples: [0.80], at: 1), "x": (samples: [], at: 1)])
+        ok(trailEnc["ab#0"] == [0.80] && trailEnc["x"] == nil, "Hash-Trail Encode")
+        let trailDec = MatchMath.leftoverHashTrailDecode(["ab#0": [0.80, 0.82]], now: 9)
+        ok(trailDec["ab#0"]?.samples == [0.80, 0.82] && trailDec["ab#0"]?.at == 9, "Hash-Trail Decode")
+        ok(MatchMath.leftoverCaptureHistEncode(Array(0..<12).map(Double.init)).count == 8, "Capture-Hist 8")
+        let rebased = MatchMath.leftoverHashHoldRebase(["ab#0": (cosine: 0.80, at: 1)], now: 50)
+        ok(rebased["ab#0"]?.at == 50 && rebased["ab#0"]?.cosine == 0.80, "Hash Rebase at")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

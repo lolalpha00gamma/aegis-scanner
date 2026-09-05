@@ -111,6 +111,7 @@ final class LibraryStore: ObservableObject {
     private var leftoverHoldTrailBins: [String: [Double]] = [:]
     private var leftoverHoldByHash: [String: (cosine: Double, at: TimeInterval)] = [:]
     private var leftoverHoldTrailByHash: [String: (samples: [Double], at: TimeInterval)] = [:]
+    private var leftoverHashNeedsRebase = false
     private var leftoverLastHash: [UUID: String] = [:]
     private var leftoverSparkChipHeld: [UUID: (chip: String, hold: Int)] = [:]
     private var leftoverJpegDelta: [UUID: Double] = [:]
@@ -132,6 +133,9 @@ final class LibraryStore: ObservableObject {
         leftoverStreakSince = MatchMath.leftoverStreakSinceDecode(packed.leftoverStreakSince)
         leftoverHoldBins = MatchMath.leftoverHoldBinsDecode(packed.leftoverHoldBins)
         leftoverHoldTrailBins = MatchMath.leftoverHoldTrailBinsDecode(packed.leftoverHoldTrailBins)
+        leftoverHoldByHash = MatchMath.leftoverHashHoldDecode(packed.leftoverHoldHash, now: Date().timeIntervalSince1970)
+        leftoverHoldTrailByHash = MatchMath.leftoverHashTrailDecode(packed.leftoverHoldTrailHash, now: Date().timeIntervalSince1970)
+        leftoverHashNeedsRebase = !leftoverHoldByHash.isEmpty || !leftoverHoldTrailByHash.isEmpty
         if let stored = packed.printRevision, stored != MatchMath.printRevision {
             revisionWarning = "Galerie-Print \(stored), App \(MatchMath.printRevision) — Scores können springen. Neu scannen."
         }
@@ -173,7 +177,9 @@ final class LibraryStore: ObservableObject {
             faces: faces,
             leftoverStreakSince: MatchMath.leftoverStreakSinceEncode(leftoverStreakSince),
             leftoverHoldBins: MatchMath.leftoverHoldBinsEncode(leftoverHoldBins),
-            leftoverHoldTrailBins: MatchMath.leftoverHoldTrailBinsEncode(leftoverHoldTrailBins)
+            leftoverHoldTrailBins: MatchMath.leftoverHoldTrailBinsEncode(leftoverHoldTrailBins),
+            leftoverHoldHash: MatchMath.leftoverHashHoldEncode(leftoverHoldByHash),
+            leftoverHoldTrailHash: MatchMath.leftoverHashTrailEncode(leftoverHoldTrailByHash)
         )
         refreshMergeHint()
     }
@@ -220,6 +226,9 @@ final class LibraryStore: ObservableObject {
         leftoverStreakSince = MatchMath.leftoverStreakSinceDecode(packed.leftoverStreakSince)
         leftoverHoldBins = MatchMath.leftoverHoldBinsDecode(packed.leftoverHoldBins)
         leftoverHoldTrailBins = MatchMath.leftoverHoldTrailBinsDecode(packed.leftoverHoldTrailBins)
+        leftoverHoldByHash = MatchMath.leftoverHashHoldDecode(packed.leftoverHoldHash, now: Date().timeIntervalSince1970)
+        leftoverHoldTrailByHash = MatchMath.leftoverHashTrailDecode(packed.leftoverHoldTrailHash, now: Date().timeIntervalSince1970)
+        leftoverHashNeedsRebase = !leftoverHoldByHash.isEmpty || !leftoverHoldTrailByHash.isEmpty
         liveNameHist = [:]
         liveNameLock = [:]
         liveScoreEma = [:]
@@ -1758,6 +1767,12 @@ final class LibraryStore: ObservableObject {
     }
 
     private func applyLiveFaces(_ incoming: [FaceObservation], image: CGImage, mediaId: UUID, stamp: TimeInterval) {
+        let nowTick = stamp > 0 ? stamp : Date().timeIntervalSince1970
+        if leftoverHashNeedsRebase {
+            leftoverHoldByHash = MatchMath.leftoverHashHoldRebase(leftoverHoldByHash, now: nowTick)
+            leftoverHoldTrailByHash = MatchMath.leftoverHashTrailRebase(leftoverHoldTrailByHash, now: nowTick)
+            leftoverHashNeedsRebase = false
+        }
         let latch = MatchMath.liveFacesLatch(
             present: !incoming.isEmpty,
             on: liveCapture.facesPresent,

@@ -17,6 +17,8 @@ struct GalleryPayload: Codable {
     var leftoverStreakSince: [String: Double]?
     var leftoverHoldBins: [String: Double]?
     var leftoverHoldTrailBins: [String: [Double]]?
+    var leftoverHoldHash: [String: Double]?
+    var leftoverHoldTrailHash: [String: [Double]]?
 }
 
 enum GalleryFile {
@@ -35,15 +37,15 @@ enum GalleryFile {
         directory.appendingPathComponent("gallery.json.bak")
     }
 
-    static func load() -> (identities: [Identity], faces: [FaceObservation], printRevision: String?, schemaVersion: Int?, leftoverStreakSince: [String: Double]?, leftoverHoldBins: [String: Double]?, leftoverHoldTrailBins: [String: [Double]]?) {
-        decode(url) ?? ([], [], nil, nil, nil, nil, nil)
+    static func load() -> (identities: [Identity], faces: [FaceObservation], printRevision: String?, schemaVersion: Int?, leftoverStreakSince: [String: Double]?, leftoverHoldBins: [String: Double]?, leftoverHoldTrailBins: [String: [Double]]?, leftoverHoldHash: [String: Double]?, leftoverHoldTrailHash: [String: [Double]]?) {
+        decode(url) ?? ([], [], nil, nil, nil, nil, nil, nil, nil)
     }
 
     static var backupExists: Bool {
         FileManager.default.fileExists(atPath: backupURL.path)
     }
 
-    static func loadBackup() -> (identities: [Identity], faces: [FaceObservation], printRevision: String?, schemaVersion: Int?, leftoverStreakSince: [String: Double]?, leftoverHoldBins: [String: Double]?, leftoverHoldTrailBins: [String: [Double]]?)? {
+    static func loadBackup() -> (identities: [Identity], faces: [FaceObservation], printRevision: String?, schemaVersion: Int?, leftoverStreakSince: [String: Double]?, leftoverHoldBins: [String: Double]?, leftoverHoldTrailBins: [String: [Double]]?, leftoverHoldHash: [String: Double]?, leftoverHoldTrailHash: [String: [Double]]?)? {
         decode(backupURL)
     }
 
@@ -54,13 +56,13 @@ enum GalleryFile {
         return now.timeIntervalSince(date) / 86_400
     }
 
-    private static func decode(_ file: URL) -> (identities: [Identity], faces: [FaceObservation], printRevision: String?, schemaVersion: Int?, leftoverStreakSince: [String: Double]?, leftoverHoldBins: [String: Double]?, leftoverHoldTrailBins: [String: [Double]]?)? {
+    private static func decode(_ file: URL) -> (identities: [Identity], faces: [FaceObservation], printRevision: String?, schemaVersion: Int?, leftoverStreakSince: [String: Double]?, leftoverHoldBins: [String: Double]?, leftoverHoldTrailBins: [String: [Double]]?, leftoverHoldHash: [String: Double]?, leftoverHoldTrailHash: [String: [Double]]?)? {
         guard let data = try? Data(contentsOf: file) else { return nil }
         if let payload = try? JSONDecoder().decode(GalleryPayload.self, from: data) {
-            return (payload.identities, payload.faces, payload.printRevision, payload.schemaVersion, payload.leftoverStreakSince, payload.leftoverHoldBins, payload.leftoverHoldTrailBins)
+            return (payload.identities, payload.faces, payload.printRevision, payload.schemaVersion, payload.leftoverStreakSince, payload.leftoverHoldBins, payload.leftoverHoldTrailBins, payload.leftoverHoldHash, payload.leftoverHoldTrailHash)
         }
         if let identities = try? JSONDecoder().decode([Identity].self, from: data) {
-            return (identities, [], nil, nil, nil, nil, nil)
+            return (identities, [], nil, nil, nil, nil, nil, nil, nil)
         }
         return nil
     }
@@ -70,7 +72,9 @@ enum GalleryFile {
         faces: [FaceObservation],
         leftoverStreakSince: [String: Double]? = nil,
         leftoverHoldBins: [String: Double]? = nil,
-        leftoverHoldTrailBins: [String: [Double]]? = nil
+        leftoverHoldTrailBins: [String: [Double]]? = nil,
+        leftoverHoldHash: [String: Double]? = nil,
+        leftoverHoldTrailHash: [String: [Double]]? = nil
     ) {
         let enrolled = Set(identities.flatMap(\.faceIds))
         let payload = GalleryPayload(
@@ -80,7 +84,9 @@ enum GalleryFile {
             schemaVersion: MatchMath.gallerySchema,
             leftoverStreakSince: leftoverStreakSince,
             leftoverHoldBins: leftoverHoldBins,
-            leftoverHoldTrailBins: leftoverHoldTrailBins
+            leftoverHoldTrailBins: leftoverHoldTrailBins,
+            leftoverHoldHash: leftoverHoldHash,
+            leftoverHoldTrailHash: leftoverHoldTrailHash
         )
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]

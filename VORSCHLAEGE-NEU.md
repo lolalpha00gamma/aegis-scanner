@@ -1,4 +1,37 @@
+# Nachtrag 2026-09-05 (2.1.112)
+
+Siehe ANALYSE.md. **2.1.112** Schema 6 Hash-Hold persist, Rebase, dmg untrack.
+
+## In 2.1.112 gelandet
+
+1. leftoverHashHoldEncode/Decode + Trail — Schema 6
+2. leftoverHashHoldRebase erstes Live-Tick
+3. leftoverCaptureHistEncode Math
+4. Aegis.dmg untrack + gitignore
+5. VERSION = Models = MARKETING_VERSION 2.1.112 (Build 138)
+
+## Nächste, zusätzlich
+
+- leftoverCaptureHist persist Schema 6. Math sitzt, File fehlt.
+- leftoverHashHoldChip HUD `HASH 0,80`.
+- JPEG-Fail HUD `JPEG` wenn Probe nil bei Print.
+- leftoverHoldByHash Cap 64.
+- leftoverHashHold prune cosine < 0,64.
+- IdentityDesk 9-Tuple → GalleryPayload direkt.
+- Merge-Undo Stack 8.
+- leftoverIoUJump HUD `JUMP`.
+- FaceEngine jpegProbe detached queue.
+- Twin-name lock 1,2 s nach JUMP.
+- PhotoKit Live Photos Frame 0, nicht Poster.
+- printRevision je Identity.
+- leftoverHoldPrune skip denselben Tick wie Rebase.
+- gallery.json.bak rotate 3.
+- VNDetectFaceRectangles revision pin.
+- leftoverHashHold VoiceOver.
+- Schema 5 UUID-Bins nach Schema 6 behalten (kein Wipe).
+
 # Nachtrag 2026-09-05 (2.1.111)
+
 
 **2.1.111** CI: ¾ Hash-Bin Trail. leftoverTrailWriteOk ohne Yaw-Block seit 2.1.104 — Test war 2.1.88.
 
@@ -37,7 +70,7 @@ Siehe ANALYSE.md. **2.1.110** JPEG required, Probe-Cache 0,80 s Hash/Cosine, Mis
 - Masken-/Schal-Slot. Brille-Slot.
 - RTSP-Reconnect Exponential-Backoff.
 - Tests splitted.
-- Aegis.dmg nicht ins Git — nur CI-Artefakt.
+- Aegis.dmg nicht ins Git — Untrack 2.1.112.
 - Temporal ReID-Graph über Hold-Trail.
 - PnP 6DoF, Slot folgt der Nase.
 - leftoverBaptizeJpegOk required — sitzt (2.1.110).

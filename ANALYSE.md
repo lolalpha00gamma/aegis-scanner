@@ -1,4 +1,28 @@
+# Helios + Aegis — Analyse 2026-09-05 (2.1.112)
+
+Helios **1.5.97** (Build 117). Aegis **2.1.112 alpha** (Build 138). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.111: Hash-Bin Trail-Test. Schema 5 persistiert UUID-Bins. Hash-Hold blieb RAM. Nach Restart neue Vision-UUIDs, Bins tot, Twin tauft den Nachbarn. Hash `at` nach Decode = App-Start, leftoverHoldPrune 1,2 s. Aegis.dmg im Git.
+
+## 2.1.111 → 2.1.112 (warum Namen nach Restart noch sprangen)
+
+1. **leftoverHoldByHash nur RAM.** Schema 5 UUID-Bins. Restart = neue Track-IDs, Hash-Steal hungert.
+2. **Hash `at` nach Decode = App-Start.** TTL 1,2 s — Live nach 2 s Galerie = Hold weg. Rebase fehlte.
+3. **Aegis.dmg im Quellbaum.** CI-Artefakt, nicht Quelle.
+
+## Was 2.1.112 ändert
+
+1. **gallery.json Schema 6.** leftoverHoldHash + leftoverHoldTrailHash.
+2. **leftoverHashHoldEncode/Decode + Rebase** am ersten applyLiveFaces.
+3. **Aegis.dmg untrack** + `.gitignore`.
+4. Tests + VERSION = Models = MARKETING_VERSION 2.1.112 (Build 138).
+
+Helios 1.5.97: Slow-TTL 2 s. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-05 (2.1.111)
+
 
 Helios **1.5.95** (Build 115). Aegis **2.1.111 alpha** (Build 137). CI 2.1.109: `¾ kein Trail` — leftoverTrailWriteOk schreibt Pose-Bin seit 2.1.104. Test auf Hash-Bin.
 

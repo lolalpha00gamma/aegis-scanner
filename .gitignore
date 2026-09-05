@@ -4,3 +4,5 @@ bench/smoke/
 *.tgz
 .derived/
 dmgroot/
+Aegis.dmg
+*.dmg

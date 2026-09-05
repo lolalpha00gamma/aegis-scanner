@@ -86,8 +86,8 @@ enum MatchMath {
     /// ¾/Profil: Maße vs. Frontal-Centroid lügen. Print ≥ 80 nicht vetoen.
     static let geoVetoYawSkip = 0.28
     static let geoVetoYawPrint = 80.0
-    /// gallery.json Schema neben printRevision. 5 = Hold-Bins über App-Neustart.
-    static let gallerySchema = 5
+    /// gallery.json Schema neben printRevision. 6 = Hash-Hold über App-Neustart.
+    static let gallerySchema = 6
     /// Box-IoU unter dem Wert: Bewegung. Mit Schärfe: kleines Nicken darf den Print.
     static let holdStillIoU = 0.70
     static let holdStillSharp = 0.18
@@ -1065,6 +1065,44 @@ enum MatchMath {
 
     static func leftoverHoldTrailBinsDecode(_ raw: [String: [Double]]?) -> [String: [Double]] {
         raw ?? [:]
+    }
+
+    /// Hash-Hold überlebt UUID-Steal und App-Neustart. `at` = now beim Restore, TTL startet neu.
+    static func leftoverHashHoldEncode(_ table: [String: (cosine: Double, at: TimeInterval)]) -> [String: Double] {
+        Dictionary(uniqueKeysWithValues: table.filter { $0.value.cosine > 0 }.map { ($0.key, $0.value.cosine) })
+    }
+
+    static func leftoverHashHoldDecode(_ raw: [String: Double]?, now: TimeInterval) -> [String: (cosine: Double, at: TimeInterval)] {
+        guard let raw else { return [:] }
+        return Dictionary(uniqueKeysWithValues: raw.filter { $0.value > 0 }.map { ($0.key, (cosine: $0.value, at: now)) })
+    }
+
+    static func leftoverHashTrailEncode(_ table: [String: (samples: [Double], at: TimeInterval)]) -> [String: [Double]] {
+        Dictionary(uniqueKeysWithValues: table.filter { !$0.value.samples.isEmpty }.map { ($0.key, $0.value.samples) })
+    }
+
+    static func leftoverHashTrailDecode(_ raw: [String: [Double]]?, now: TimeInterval) -> [String: (samples: [Double], at: TimeInterval)] {
+        guard let raw else { return [:] }
+        return Dictionary(uniqueKeysWithValues: raw.filter { !$0.value.isEmpty }.map { ($0.key, (samples: $0.value, at: now)) })
+    }
+
+    /// Nach Restore: TTL darf nicht 1,2 s nach App-Start sterben. Erstes Live-Tick setzt `at`.
+    static func leftoverHashHoldRebase(
+        _ table: [String: (cosine: Double, at: TimeInterval)],
+        now: TimeInterval
+    ) -> [String: (cosine: Double, at: TimeInterval)] {
+        Dictionary(uniqueKeysWithValues: table.map { ($0.key, (cosine: $0.value.cosine, at: now)) })
+    }
+
+    static func leftoverHashTrailRebase(
+        _ table: [String: (samples: [Double], at: TimeInterval)],
+        now: TimeInterval
+    ) -> [String: (samples: [Double], at: TimeInterval)] {
+        Dictionary(uniqueKeysWithValues: table.map { ($0.key, (samples: $0.value.samples, at: now)) })
+    }
+
+    static func leftoverCaptureHistEncode(_ hist: [Double]) -> [Double] {
+        Array(hist.suffix(leftoverCaptureHistCap))
     }
 
     /// 720p @ 15–30 schlägt 360p @ 60 und 800p @ 8. Desk-View 4:3 bis 1920×1440.
