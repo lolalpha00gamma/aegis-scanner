@@ -3784,7 +3784,7 @@ enum MatchMath {
     ) -> [String: (samples: [Double], at: TimeInterval)] {
         var next = leftoverTrailPrune(table, now: now)
         if !leftoverTrailWriteOk(sharpness: sharpness, yawAbs: yawAbs) { return next }
-        let key = leftoverHoldHashKey(hash: hash, bin: bin ?? 0)
+        let key = bin.map { leftoverHoldHashKey(hash: hash, bin: $0) } ?? hash
         let row = leftoverCosineSparkPut(sample, onto: next[key]?.samples ?? [], cap: cap)
         next[key] = (row, now)
         return next
