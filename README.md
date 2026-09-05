@@ -1,4 +1,4 @@
-# Aegis **2.1.125 alpha**
+# Aegis **2.1.126 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.126 alpha
+
+FillX Hold-Index stahl den näheren Twin. HoldX ohne Occupied. Gate-Chips sprangen nach vorn.
+
+- **`leftoverAssignFillX` Dist-greedy.** Nächster Hold, nicht Zeile 0.
+- **`leftoverHoldXMatch(occupied:spread:)`.** Occupied skip, Twin-Mitte tot.
+- **`overlayChipCap` Original-Lage.**
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.126 (Build 152).
 
 ## Neu in 2.1.125 alpha
 

@@ -1298,10 +1298,23 @@ enum MatchMath {
     /// Ohne Pad tauft 0,90 den Hold bei 0,10.
     static let leftoverFillXPad = 0.12
 
-    static func leftoverHoldXMatch(liveX: Double, holds: [(id: UUID, x: Double)], pad: Double = leftoverFillXPad) -> UUID? {
-        guard !holds.isEmpty else { return nil }
-        guard let best = holds.min(by: { abs($0.x - liveX) < abs($1.x - liveX) }) else { return nil }
-        if abs(best.x - liveX) > pad { return nil }
+    static func leftoverHoldXMatch(
+        liveX: Double,
+        holds: [(id: UUID, x: Double)],
+        pad: Double = leftoverFillXPad,
+        occupied: Set<UUID> = [],
+        spread: Double = leftoverAmbiguousSpread
+    ) -> UUID? {
+        let open = holds.filter { !occupied.contains($0.id) }
+        guard !open.isEmpty else { return nil }
+        let sorted = open.sorted { abs($0.x - liveX) < abs($1.x - liveX) }
+        guard let best = sorted.first else { return nil }
+        let d = abs(best.x - liveX)
+        if d > pad { return nil }
+        if let second = sorted.dropFirst().first {
+            let d2 = abs(second.x - liveX)
+            if d2 <= pad, d2 - d <= spread { return nil }
+        }
         return best.id
     }
 
@@ -1318,25 +1331,26 @@ enum MatchMath {
             out += Array(repeating: Optional<Int>.none, count: holdX.count - out.count)
         }
         var used = Set(out.compactMap { $0 })
+        var pairs: [(d: Double, r: Int, c: Int)] = []
         for r in 0..<holdX.count {
             if r < out.count, out[r] != nil { continue }
-            var bestC: Int?
-            var bestD = Double.infinity
-            var tied = false
             for c in 0..<liveX.count where !used.contains(c) {
                 let d = abs(liveX[c] - holdX[r])
-                if d < bestD - 1e-12 {
-                    bestD = d
-                    bestC = c
-                    tied = false
-                } else if abs(d - bestD) <= 1e-12 {
-                    tied = true
+                if d <= pad {
+                    pairs.append((d, r, c))
                 }
             }
-            if let bestC, !tied, bestD <= pad {
-                out[r] = bestC
-                used.insert(bestC)
-            }
+        }
+        pairs.sort { a, b in
+            if abs(a.d - b.d) > 1e-12 { return a.d < b.d }
+            if a.r != b.r { return a.r < b.r }
+            return a.c < b.c
+        }
+        for p in pairs {
+            if p.r < out.count, out[p.r] != nil { continue }
+            if used.contains(p.c) { continue }
+            out[p.r] = p.c
+            used.insert(p.c)
         }
         return out
     }
@@ -1378,7 +1392,8 @@ enum MatchMath {
             if pa != pb { return pa < pb }
             return a.offset < b.offset
         }
-        return Array(ranked.prefix(n).map(\.element))
+        let keep = Set(ranked.prefix(n).map(\.element))
+        return unique.filter { keep.contains($0) }
     }
 
     static func leftoverLiveHashTickWipes(empty: Bool) -> Bool { empty }

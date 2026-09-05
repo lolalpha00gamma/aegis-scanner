@@ -1,3 +1,28 @@
+# Helios + Aegis — Analyse 2026-09-05 (2.1.126)
+
+Helios **1.5.108** (Build 128). Aegis **2.1.126 alpha** (Build 152). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.125: FillX Pad 0,12, TWIN 1/2/3, Gate Keep. leftoverAssignFillX zeilenweise greedy. leftoverHoldXMatch ohne Occupied.
+
+## 2.1.125 → 2.1.126
+
+1. **leftoverAssignFillX Hold-Index.** Hold[0] bei 0,30 nimmt Live 0,22 (d=0,08), Hold[1] bei 0,20 (d=0,02) bleibt leer. Twin-Taufe nach Restart.
+2. **leftoverHoldXMatch ohne Occupied.** Zwei Lives claimen denselben Hold. Spread 0,08 fehlt — Mitte zwischen Twins tauft falsch.
+3. **overlayChipCap ranked.prefix.** TWIN/NBR überleben, springen aber nach vorn.
+
+## Was 2.1.126 ändert
+
+1. **`leftoverAssignFillX` Dist-greedy.** Alle Paare nach d, unique. Nächster Hold gewinnt.
+2. **`leftoverHoldXMatch(occupied:spread:)`.** Occupied skip. Spread-Veto wie leftoverAmbiguousSpread.
+3. **`overlayChipCap` Keep-Set, Original-Reihenfolge.**
+4. Tests + VERSION = Models = MARKETING_VERSION 2.1.126 (Build 152).
+
+Nicht: Hash-Floor 0,64. leftoverHold UUID-Remint Dictionary verdrahtet. Schema 7 Name-Lock persist.
+
+Helios 1.5.108: destEdge toward, Fill-Lead, Gap-Cross. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-05 (2.1.125)
 
 Helios **1.5.107** (Build 127). Aegis **2.1.125 alpha** (Build 151). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

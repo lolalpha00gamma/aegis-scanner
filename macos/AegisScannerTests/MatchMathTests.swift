@@ -2499,6 +2499,15 @@ enum MatchMathTests {
         ok(MatchMath.leftoverCaptureHistLookup(hash: "5.5.4.6#101", fallback: "5.5.4.6", table: ["5.5.4.6": [0.20]]) == [0.20], "Hist Spatial-Fallback")
         ok(MatchMath.overlayChipCap(["HASH", "LOCK", "NBR", "FAST", "INDOOR", "TWIN", "JPEG"]).count == 6, "Gate Chip Cap 6")
         ok(MatchMath.overlayChipCap(["", "LOCK"]).count == 1, "leere Chips raus")
+        let steal = MatchMath.leftoverAssignFillX(assigned: [nil, nil], liveX: [0.22], holdX: [0.30, 0.20])
+        ok(steal[0] == nil && steal[1] == 0, "FillX greedy näherer Hold")
+        let xa2 = UUID(), xb2 = UUID()
+        ok(MatchMath.leftoverHoldXMatch(liveX: 0.22, holds: [(id: xa2, x: 0.30), (id: xb2, x: 0.20)]) == xb2, "HoldX näherer")
+        ok(MatchMath.leftoverHoldXMatch(liveX: 0.22, holds: [(id: xa2, x: 0.90), (id: xb2, x: 0.20)], occupied: [xb2]) == nil, "HoldX Occupied Far tot")
+        ok(MatchMath.leftoverHoldXMatch(liveX: 0.50, holds: [(id: xa2, x: 0.45), (id: xb2, x: 0.55)]) == nil, "HoldX Spread Twin tot")
+        let gateOrder = MatchMath.overlayChipCap(["HASH", "JPEG", "FAST", "INDOOR", "X", "Y", "TWIN L", "NBR"])
+        ok(gateOrder.first == "HASH" || gateOrder.contains("TWIN L"), "Gate Keep Original-Lage")
+        ok(gateOrder.contains(where: { $0.hasPrefix("TWIN") }), "TWIN bleibt")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

@@ -1,3 +1,60 @@
+# Nachtrag 2026-09-05 (2.1.126)
+
+Siehe ANALYSE.md. **2.1.126** FillX Dist-greedy, HoldX Occupied+Spread, Gate Original-Lage.
+
+## In 2.1.126 gelandet
+
+1. leftoverAssignFillX Paare nach Dist, nicht Hold-Index
+2. leftoverHoldXMatch occupied + leftoverAmbiguousSpread
+3. overlayChipCap Keep-Set in Original-Reihenfolge
+4. VERSION = Models = MARKETING_VERSION 2.1.126 (Build 152)
+
+## Nächste, zusätzlich
+
+- leftoverFillXPad Pref 0,06–0,20.
+- leftoverHold UUID-Remint: leftoverHoldXMatch auf leftoverHold-Dictionary in LibraryStore verdrahten.
+- leftoverHashHoldFloor bleibt 0,64 (kein Sharpness im Persist).
+- dropoutTTLSticky nicht verdrahten — leftoverHoldTTLOf sitzt.
+- leftoverHoldsTrack LOCK halten — JUMP bricht.
+- leftoverNameLockHeld persist Schema 7.
+- leftoverJpegProbeReuse TTL Pref 0,25–1,2.
+- FaceEngine jpegProbe detached queue. Cache sitzt, Detect hoppt noch nach Main.
+- PhotoKit Live Photos Frame 0, nicht Poster.
+- printRevision je Identity.
+- gallery.json.bak rotate 3.
+- VNDetectFaceRectangles revision pin.
+- leftoverHashHold VoiceOver.
+- leftoverJumpName VoiceOver.
+- Schema 5 UUID-Bins nach Schema 6 behalten (kein Wipe).
+- Helios Frame-Pump, eine TCC. Shared XPC mit Helios 1.5.108.
+- Overlay VoiceOver HOLD/Spark/HASH/LOCK/NBR/FAST/INDOOR/TWIN.
+- Per-Box CLAHE statt Full-Frame.
+- Continuity Desk-View yaw-floor 0,36.
+- Gallery print decay: ungenutzte 14-Tage-Prints downweight.
+- Partial-Print P-Slot ohne Augen (Schal/Maske).
+- Burst-AE 5-Frame Pref Continuity-Nacht.
+- Print-Bank 5 Pose-Slots front/left/right/up/down.
+- DBSCAN vor Merge.
+- Watch-Folder PhotoKit.
+- Encrypted gallery export `.aegis`.
+- Iris-Textur-Slot als Twin-Veto.
+- Specular-Highlight auf Stirn als Card-Photo-Veto.
+- Continuity LiDAR-Z als Twin-Trennung.
+- Masken-/Schal-Slot. Brille-Slot.
+- Tests splitted.
+- Merge-Undo Stack 8.
+- IdentityDesk 9-Tuple → GalleryPayload direkt.
+- **Per-Hold TTL in Schema 7.** `at` + `ttl` je Zeile, nicht Session-Sticky.
+- Temporal ReID-Graph über Hold-Trail.
+- PnP 6DoF, Slot folgt der Nase.
+- leftoverGateChip Cap Pref 4–8.
+- leftoverLiveHashTick nach Transfer kopieren (newId → old.id).
+- Rank-Keys persist Schema 7, Spatial-Migration beim Load.
+- leftoverAssignFillX Spread-Veto analog HoldX, wenn zwei Holds ≤ 0,08 um dieselbe Live-X.
+- leftoverHoldXMatch in leftoverAssignLive als UUID-Remint vor Print-Scores.
+
+Nur main.
+
 # Nachtrag 2026-09-05 (2.1.125)
 
 Siehe ANALYSE.md. **2.1.125** FillX Pad 0,12, TWIN 1/2/3, Gate Keep.
