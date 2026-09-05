@@ -1,3 +1,26 @@
+# Helios + Aegis — Analyse 2026-09-05 (2.1.124)
+
+Helios **1.5.106** (Build 126). Aegis **2.1.124 alpha** (Build 150). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.123: FillX nach DropAmbiguous, Twin-Spread 0,08 wieder zu. Capture-Hist schreibt Rank, liest Spatial. Cap ohne `at`.
+
+## 2.1.123 → 2.1.124
+
+1. **leftoverAssignFillX nach DropAmbiguous.** Twin-Zeile nil, FillX nach x wieder voll.
+2. **Capture-Hist Lookup boxHash.** Twin R `bare#101` geschrieben, Spatial gelesen.
+3. **leftoverCaptureHistTableCapped** Dictionary-Reihenfolge. Decode ohne Keep.
+
+## Was 2.1.124 ändert
+
+1. **`leftoverAssignLive`.** Assign → FillX → DropAmbiguous.
+2. **`leftoverCaptureHistLookup`.** holdHash, Fallback Spatial.
+3. **Cap Keep + sortierte Keys.** Persist Keep leftoverLastHash. Decode Keep Hold-Keys.
+4. Tests + VERSION = Models = MARKETING_VERSION 2.1.124 (Build 150).
+
+Helios 1.5.106: destEdge Screen-At, Chip-Cap, slotLateralityDist. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-05 (2.1.123)
 
 Helios **1.5.106** (Build 126). Aegis **2.1.123 alpha** (Build 149). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

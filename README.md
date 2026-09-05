@@ -1,4 +1,29 @@
-# Aegis **2.1.123 alpha**
+# Aegis **2.1.124 alpha**
+
+Direkt laden:
+- [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
+- [Releases](https://github.com/lolalpha00gamma/aegis-scanner/releases)
+
+Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
+
+## Installieren
+
+1. [Aegis.dmg](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg) öffnen
+2. **Aegis** in den Ordner Programme ziehen
+3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
+
+macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.124 alpha
+
+Audit 53–55: FillX nach DropAmbiguous hob das Twin-Veto. Capture-Hist Rank vs Spatial. Cap ohne Reihenfolge.
+
+- **`leftoverAssignLive`.** Print-Assign, x-Fill nur leere Zeilen, Twin-Spread danach.
+- **`leftoverCaptureHistLookup`.** Rank-Key, Spatial-Fallback.
+- **Capture-Hist Cap:** Keep zuerst, Rest sortiert. Persist Keep leftoverLastHash.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.124 (Build 150).
+
+## Neu in 2.1.123 alpha
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)

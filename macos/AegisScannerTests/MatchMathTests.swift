@@ -2404,6 +2404,9 @@ enum MatchMathTests {
         var histCap: [String: [Double]] = [:]
         for i in 0..<70 { histCap["k\(i)"] = [0.18] }
         ok(MatchMath.leftoverCaptureHistTableEncode(histCap).count == 64, "Capture-Hist Table Cap 64")
+        histCap["zz"] = [0.22]
+        let histKeep = MatchMath.leftoverCaptureHistTableEncode(histCap, keep: ["zz"])
+        ok(histKeep["zz"] == [0.22] && histKeep.count == 64, "Capture-Hist Keep vor Cap")
         var histTable: [String: [Double]] = histCap
         histTable = MatchMath.leftoverCaptureHistTablePut(hash: "keep", hist: [0.19], onto: histTable)
         ok(histTable["keep"] == [0.19] && histTable.count == 64, "Capture-Hist Put hält Key")
@@ -2473,6 +2476,16 @@ enum MatchMathTests {
         let fillKeep = MatchMath.leftoverAssignFillX(assigned: [1, 0], liveX: [0.20, 0.80], holdX: [0.22, 0.78])
         ok(fillKeep[0] == 1 && fillKeep[1] == 0, "FillX hält Print-Assign")
         ok(MatchMath.leftoverAssignFillX(assigned: [nil], liveX: [], holdX: [0.5])[0] == nil, "ohne liveX nil")
+        let twinScores: [[Double?]] = [[0.70, 0.69], [0.88, 0.40]]
+        let liveFill = MatchMath.leftoverAssignLive(scores: twinScores, liveX: [0.20, 0.80], holdX: [0.22, 0.78])
+        ok(liveFill[0] == nil, "FillX hebt Twin-Veto nicht")
+        ok(liveFill[1] != nil, "klare Zeile nach FillX")
+        let noPrint: [[Double?]] = [[nil, nil], [nil, nil]]
+        let restartFill = MatchMath.leftoverAssignLive(scores: noPrint, liveX: [0.20, 0.80], holdX: [0.22, 0.78])
+        ok(restartFill[0] == 0 && restartFill[1] == 1, "ohne Print x-order")
+        let rankedHist: [String: [Double]] = ["5.5.4.6#101": [0.18, 0.19]]
+        ok(MatchMath.leftoverCaptureHistLookup(hash: "5.5.4.6#101", fallback: "5.5.4.6", table: rankedHist) == [0.18, 0.19], "Hist Rank-Key")
+        ok(MatchMath.leftoverCaptureHistLookup(hash: "5.5.4.6#101", fallback: "5.5.4.6", table: ["5.5.4.6": [0.20]]) == [0.20], "Hist Spatial-Fallback")
         ok(MatchMath.overlayChipCap(["HASH", "LOCK", "NBR", "FAST", "INDOOR", "TWIN", "JPEG"]).count == 6, "Gate Chip Cap 6")
         ok(MatchMath.overlayChipCap(["", "LOCK"]).count == 1, "leere Chips raus")
 

@@ -168,7 +168,10 @@ final class LibraryStore: ObservableObject {
         leftoverHoldTrailBins = MatchMath.leftoverHoldTrailBinsDecode(packed.leftoverHoldTrailBins)
         leftoverHoldByHash = MatchMath.leftoverHashHoldDecode(packed.leftoverHoldHash, now: Date().timeIntervalSince1970)
         leftoverHoldTrailByHash = MatchMath.leftoverHashTrailDecode(packed.leftoverHoldTrailHash, now: Date().timeIntervalSince1970)
-        leftoverCaptureHistByHash = MatchMath.leftoverCaptureHistTableDecode(packed.leftoverCaptureHist)
+        leftoverCaptureHistByHash = MatchMath.leftoverCaptureHistTableDecode(
+            packed.leftoverCaptureHist,
+            keep: leftoverHoldByHash.keys.flatMap { [$0, MatchMath.leftoverHoldHashSpatial($0)] }
+        )
         leftoverHashNeedsRebase = !leftoverHoldByHash.isEmpty || !leftoverHoldTrailByHash.isEmpty
         if let stored = packed.printRevision, stored != MatchMath.printRevision {
             revisionWarning = "Galerie-Print \(stored), App \(MatchMath.printRevision) — Scores können springen. Neu scannen."
@@ -226,7 +229,10 @@ final class LibraryStore: ObservableObject {
             leftoverHoldTrailBins: MatchMath.leftoverHoldTrailBinsEncode(leftoverHoldTrailBins),
             leftoverHoldHash: MatchMath.leftoverHashHoldEncode(leftoverHoldByHash),
             leftoverHoldTrailHash: MatchMath.leftoverHashTrailEncode(leftoverHoldTrailByHash),
-            leftoverCaptureHist: MatchMath.leftoverCaptureHistTableEncode(leftoverCaptureHistByHash)
+            leftoverCaptureHist: MatchMath.leftoverCaptureHistTableEncode(
+                leftoverCaptureHistByHash,
+                keep: Array(leftoverLastHash.values)
+            )
         )
         if !liveActive {
             refreshMergeHint()
@@ -277,7 +283,10 @@ final class LibraryStore: ObservableObject {
         leftoverHoldTrailBins = MatchMath.leftoverHoldTrailBinsDecode(packed.leftoverHoldTrailBins)
         leftoverHoldByHash = MatchMath.leftoverHashHoldDecode(packed.leftoverHoldHash, now: Date().timeIntervalSince1970)
         leftoverHoldTrailByHash = MatchMath.leftoverHashTrailDecode(packed.leftoverHoldTrailHash, now: Date().timeIntervalSince1970)
-        leftoverCaptureHistByHash = MatchMath.leftoverCaptureHistTableDecode(packed.leftoverCaptureHist)
+        leftoverCaptureHistByHash = MatchMath.leftoverCaptureHistTableDecode(
+            packed.leftoverCaptureHist,
+            keep: leftoverHoldByHash.keys.flatMap { [$0, MatchMath.leftoverHoldHashSpatial($0)] }
+        )
         leftoverHashNeedsRebase = !leftoverHoldByHash.isEmpty || !leftoverHoldTrailByHash.isEmpty
         liveNameHist = [:]
         liveNameLock = [:]
@@ -2453,11 +2462,8 @@ final class LibraryStore: ObservableObject {
                     }
                     scores.append(row)
                 }
-                let assigned = MatchMath.leftoverAssignFillX(
-                    assigned: MatchMath.leftoverAssignDropAmbiguous(
-                        scores: scores,
-                        assigned: MatchMath.leftoverAssign(scores: scores)
-                    ),
+                let assigned = MatchMath.leftoverAssignLive(
+                    scores: scores,
                     liveX: unnamedLeft.map { adopted[$0].box.x },
                     holdX: unusedLeft.map { leftoverStreakBox[$0.id]?.x ?? $0.box.x }
                 )
@@ -2914,7 +2920,13 @@ final class LibraryStore: ObservableObject {
                         next: holdHash
                     )
                     leftoverLastHash[old.id] = leftoverLastHash[adopted[bestJ].id]
-                    if liveCaptureHist[adopted[bestJ].id] == nil, let kept = leftoverCaptureHistByHash[boxHash], !kept.isEmpty {
+                    if liveCaptureHist[adopted[bestJ].id] == nil,
+                       let kept = MatchMath.leftoverCaptureHistLookup(
+                        hash: holdHash,
+                        fallback: boxHash,
+                        table: leftoverCaptureHistByHash
+                       )
+                    {
                         liveCaptureHist[adopted[bestJ].id] = kept
                     }
                     let yawNow = abs(adopted[bestJ].quality.yaw)

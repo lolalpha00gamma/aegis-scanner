@@ -1298,6 +1298,7 @@ enum MatchMath {
     }
 
     /// leftoverAssign nil-Zeilen: x-order, nicht Print. Restart / Dropout ohne Embedding.
+    /// Vor leftoverAssignDropAmbiguous aufrufen — sonst Twin-Spread 0,08 wieder zu.
     static func leftoverAssignFillX(assigned: [Int?], liveX: [Double], holdX: [Double]) -> [Int?] {
         var out = assigned
         if out.count < holdX.count {
@@ -1325,6 +1326,22 @@ enum MatchMath {
             }
         }
         return out
+    }
+
+    /// Print-Assign, x-Fill nur für leere Zeilen, Twin-Spread danach.
+    static func leftoverAssignLive(
+        scores: [[Double?]],
+        liveX: [Double],
+        holdX: [Double]
+    ) -> [Int?] {
+        leftoverAssignDropAmbiguous(
+            scores: scores,
+            assigned: leftoverAssignFillX(
+                assigned: leftoverAssign(scores: scores),
+                liveX: liveX,
+                holdX: holdX
+            )
+        )
     }
 
     static func overlayChipCap(_ chips: [String], cap: Int = 6) -> [String] {
@@ -1375,15 +1392,15 @@ enum MatchMath {
         min(1.4, max(0.6, pref))
     }
 
-    static func leftoverCaptureHistTableEncode(_ table: [String: [Double]]) -> [String: [Double]] {
+    static func leftoverCaptureHistTableEncode(_ table: [String: [Double]], keep: [String] = []) -> [String: [Double]] {
         leftoverCaptureHistTableCapped(Dictionary(uniqueKeysWithValues: table.compactMap { k, v -> (String, [Double])? in
             let e = leftoverCaptureHistEncode(v)
             return e.isEmpty ? nil : (k, e)
-        }))
+        }), keep: keep)
     }
 
-    static func leftoverCaptureHistTableDecode(_ raw: [String: [Double]]?) -> [String: [Double]] {
-        leftoverCaptureHistTableEncode(raw ?? [:])
+    static func leftoverCaptureHistTableDecode(_ raw: [String: [Double]]?, keep: [String] = []) -> [String: [Double]] {
+        leftoverCaptureHistTableEncode(raw ?? [:], keep: keep)
     }
 
     static func leftoverCaptureHistTableCapped(
@@ -1399,12 +1416,24 @@ enum MatchMath {
             if let v = table[k] { out[k] = v }
         }
         if out.count < cap {
-            for (k, v) in table where out[k] == nil {
-                out[k] = v
+            for k in table.keys.sorted() where out[k] == nil {
+                out[k] = table[k]
                 if out.count >= cap { break }
             }
         }
         return out
+    }
+
+    static func leftoverCaptureHistLookup(
+        hash: String,
+        fallback: String? = nil,
+        table: [String: [Double]]
+    ) -> [Double]? {
+        if let v = table[hash], !v.isEmpty { return v }
+        if let fallback, fallback != hash, let v = table[fallback], !v.isEmpty { return v }
+        let spatial = leftoverHoldHashSpatial(hash)
+        if spatial != hash, let v = table[spatial], !v.isEmpty { return v }
+        return nil
     }
 
     static func leftoverCaptureHistTablePut(

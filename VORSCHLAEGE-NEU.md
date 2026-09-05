@@ -1,3 +1,14 @@
+# Nachtrag 2026-09-05 (2.1.124)
+
+Siehe ANALYSE.md. **2.1.124** AssignLive, Capture-Hist Rank-Lookup, Cap Keep.
+
+## In 2.1.124 gelandet
+
+1. leftoverAssignLive — FillX vor DropAmbiguous
+2. leftoverCaptureHistLookup Rank + Spatial
+3. Capture-Hist Cap Keep + sortierte Keys
+4. VERSION = Models = MARKETING_VERSION 2.1.124 (Build 150)
+
 # Nachtrag 2026-09-05 (2.1.123)
 
 Siehe ANALYSE.md. **2.1.123** FillX, Gate Cap 6.
