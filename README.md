@@ -1,4 +1,4 @@
-# Aegis **2.1.111 alpha**
+# Aegis **2.1.113 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,13 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.113 alpha
+
+- Hash-Hold Floor 0,64 — schwache Holds taufen nach Restart nicht den Nachbarn
+- Hash-Hold Cap 64, Hold+Trail-Prune nicht im Rebase-Tick
+- Capture-Hist überlebt App-Neustart (Hash-Keyed)
+- Overlay `HASH 0,80` · `JPEG` · `JUMP`
 
 ## Neu in 2.1.111 alpha
 

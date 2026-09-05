@@ -1068,13 +1068,54 @@ enum MatchMath {
     }
 
     /// Hash-Hold überlebt UUID-Steal und App-Neustart. `at` = now beim Restore, TTL startet neu.
+    static let leftoverHashHoldFloor: Double = 0.64
+    static let leftoverHashHoldCapN = 64
+
+    static func leftoverHashHoldKeeps(_ cosine: Double, floor: Double = leftoverHashHoldFloor) -> Bool {
+        cosine + 1e-12 >= floor
+    }
+
     static func leftoverHashHoldEncode(_ table: [String: (cosine: Double, at: TimeInterval)]) -> [String: Double] {
-        Dictionary(uniqueKeysWithValues: table.filter { $0.value.cosine > 0 }.map { ($0.key, $0.value.cosine) })
+        Dictionary(uniqueKeysWithValues: table.filter { leftoverHashHoldKeeps($0.value.cosine) }.map { ($0.key, $0.value.cosine) })
     }
 
     static func leftoverHashHoldDecode(_ raw: [String: Double]?, now: TimeInterval) -> [String: (cosine: Double, at: TimeInterval)] {
         guard let raw else { return [:] }
-        return Dictionary(uniqueKeysWithValues: raw.filter { $0.value > 0 }.map { ($0.key, (cosine: $0.value, at: now)) })
+        return Dictionary(uniqueKeysWithValues: raw.filter { leftoverHashHoldKeeps($0.value) }.map { ($0.key, (cosine: $0.value, at: now)) })
+    }
+
+    static func leftoverHoldPruneSkips(rebased: Bool) -> Bool { rebased }
+
+    static func leftoverHashHoldCapped(
+        _ table: [String: (cosine: Double, at: TimeInterval)],
+        cap: Int = leftoverHashHoldCapN
+    ) -> [String: (cosine: Double, at: TimeInterval)] {
+        if table.count <= cap { return table }
+        return Dictionary(uniqueKeysWithValues: table.sorted { $0.value.at > $1.value.at }.prefix(cap).map { ($0.key, $0.value) })
+    }
+
+    static func leftoverHashHoldChip(_ cosine: Double?) -> String? {
+        guard let cosine, leftoverHashHoldKeeps(cosine) else { return nil }
+        return "HASH \(leftoverHoldFrac(cosine))"
+    }
+
+    static func leftoverJpegChip(stored: Double?, printReady: Bool) -> String? {
+        printReady && stored != nil && stored! < 0 ? "JPEG" : nil
+    }
+
+    static func leftoverIoUJumpChip(_ iou: Double?) -> String? {
+        leftoverIoUJumpBlocks(iou) ? "JUMP" : nil
+    }
+
+    static func leftoverCaptureHistTableEncode(_ table: [String: [Double]]) -> [String: [Double]] {
+        Dictionary(uniqueKeysWithValues: table.compactMap { k, v -> (String, [Double])? in
+            let e = leftoverCaptureHistEncode(v)
+            return e.isEmpty ? nil : (k, e)
+        })
+    }
+
+    static func leftoverCaptureHistTableDecode(_ raw: [String: [Double]]?) -> [String: [Double]] {
+        leftoverCaptureHistTableEncode(raw ?? [:])
     }
 
     static func leftoverHashTrailEncode(_ table: [String: (samples: [Double], at: TimeInterval)]) -> [String: [Double]] {
@@ -3789,9 +3830,11 @@ enum MatchMath {
     static func leftoverTrailPrune(
         _ table: [String: (samples: [Double], at: TimeInterval)],
         now: TimeInterval,
-        ttl: TimeInterval = leftoverAdoptSec
+        ttl: TimeInterval = leftoverAdoptSec,
+        skip: Bool = false
     ) -> [String: (samples: [Double], at: TimeInterval)] {
-        table.filter { now - $0.value.at <= ttl }
+        if leftoverHoldPruneSkips(rebased: skip) { return table }
+        return table.filter { now - $0.value.at <= ttl }
     }
 
     static func leftoverHoldLookup(
@@ -3857,9 +3900,11 @@ enum MatchMath {
     static func leftoverHoldPrune(
         _ table: [String: (cosine: Double, at: TimeInterval)],
         now: TimeInterval,
-        ttl: TimeInterval = leftoverAdoptSec
+        ttl: TimeInterval = leftoverAdoptSec,
+        skip: Bool = false
     ) -> [String: (cosine: Double, at: TimeInterval)] {
-        table.filter { now - $0.value.at <= ttl }
+        if leftoverHoldPruneSkips(rebased: skip) { return table }
+        return table.filter { now - $0.value.at <= ttl && leftoverHashHoldKeeps($0.value.cosine) }
     }
 
     static func leftoverHoldPut(
@@ -3870,11 +3915,12 @@ enum MatchMath {
         bin: Int = 0
     ) -> [String: (cosine: Double, at: TimeInterval)] {
         var next = leftoverHoldPrune(table, now: now)
+        guard leftoverHashHoldKeeps(cosine) else { return leftoverHashHoldCapped(next) }
         next[leftoverHoldHashKey(hash: hash, bin: bin)] = (cosine, now)
         if bin == 0 {
             next[hash] = (cosine, now)
         }
-        return next
+        return leftoverHashHoldCapped(next)
     }
 
     /// Gast-Liste überlebt leere Frames 8 s. Unbekannte ID fällt nicht auf Gast 1.

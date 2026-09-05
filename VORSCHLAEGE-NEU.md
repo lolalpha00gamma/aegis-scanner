@@ -1,3 +1,61 @@
+# Nachtrag 2026-09-05 (2.1.113)
+
+Siehe ANALYSE.md. **2.1.113** Prune-Skip Rebase, Hash-Floor 0,64, Cap 64, Capture-Hist persist, HUD HASH/JPEG/JUMP.
+
+## In 2.1.113 gelandet
+
+1. leftoverHoldPruneSkips — Rebase-Tick kein Prune (Hold + Trail)
+2. leftoverHashHoldKeeps 0,64 — Encode/Decode/Put/Prune
+3. leftoverHashHoldCapped 64
+4. leftoverCaptureHist Table persist Hash-Keyed
+5. leftoverHashHoldChip / leftoverJpegChip / leftoverIoUJumpChip
+6. leftoverGateChip Overlay peek
+7. VERSION = Models = MARKETING_VERSION 2.1.113 (Build 139)
+
+## Nächste, zusätzlich
+
+- leftoverAdoptSecLock Pref 0,6–1,4.
+- Twin-name lock 1,2 s nach JUMP. Chip sitzt.
+- FaceEngine jpegProbe detached queue. Cache sitzt, Detect hoppt noch nach Main.
+- PhotoKit Live Photos Frame 0, nicht Poster.
+- printRevision je Identity.
+- gallery.json.bak rotate 3.
+- VNDetectFaceRectangles revision pin.
+- leftoverHashHold VoiceOver.
+- Schema 5 UUID-Bins nach Schema 6 behalten (kein Wipe).
+- Helios Frame-Pump, eine TCC. Shared XPC mit Helios 1.5.98.
+- RTSP 420f, Player-Pfad bleibt 32BGRA.
+- Overlay VoiceOver HOLD/Spark/HASH.
+- Per-Box CLAHE statt Full-Frame.
+- Continuity Desk-View yaw-floor 0,36.
+- Gallery print decay: ungenutzte 14-Tage-Prints downweight.
+- Partial-Print P-Slot ohne Augen (Schal/Maske).
+- Burst-AE 5-Frame Pref Continuity-Nacht.
+- Print-Bank 5 Pose-Slots front/left/right/up/down.
+- DBSCAN vor Merge.
+- Watch-Folder PhotoKit.
+- Encrypted gallery export `.aegis`.
+- Iris-Textur-Slot als Twin-Veto.
+- Specular-Highlight auf Stirn als Card-Photo-Veto.
+- Continuity LiDAR-Z als Twin-Trennung.
+- Masken-/Schal-Slot. Brille-Slot.
+- RTSP-Reconnect Exponential-Backoff.
+- Tests splitted.
+- Temporal ReID-Graph über Hold-Trail.
+- PnP 6DoF, Slot folgt der Nase.
+- IdentityDesk 9-Tuple → GalleryPayload direkt. Tuple ist 10 Felder.
+- Merge-Undo Stack 8.
+- leftoverJpegProbeReuse TTL Pref 0,25–1,2.
+- leftoverCaptureHist persist — sitzt (2.1.113).
+- leftoverHashHoldChip HUD — sitzt (2.1.113).
+- JPEG-Fail HUD — sitzt (2.1.113).
+- leftoverHoldByHash Cap 64 — sitzt (2.1.113).
+- leftoverHashHold prune cosine < 0,64 — sitzt (2.1.113).
+- leftoverIoUJump HUD — sitzt (2.1.113).
+- leftoverHoldPrune skip Rebase — sitzt (2.1.113).
+
+Nur main.
+
 # Nachtrag 2026-09-05 (2.1.112)
 
 Siehe ANALYSE.md. **2.1.112** Schema 6 Hash-Hold persist, Rebase, dmg untrack.

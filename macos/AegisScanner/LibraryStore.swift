@@ -112,7 +112,10 @@ final class LibraryStore: ObservableObject {
     private var leftoverHoldByHash: [String: (cosine: Double, at: TimeInterval)] = [:]
     private var leftoverHoldTrailByHash: [String: (samples: [Double], at: TimeInterval)] = [:]
     private var leftoverHashNeedsRebase = false
+    private var leftoverHashRebasedTick = false
     private var leftoverLastHash: [UUID: String] = [:]
+    private var leftoverCaptureHistByHash: [String: [Double]] = [:]
+    private var leftoverLastIoU: [UUID: Double] = [:]
     private var leftoverSparkChipHeld: [UUID: (chip: String, hold: Int)] = [:]
     private var leftoverJpegDelta: [UUID: Double] = [:]
     private var leftoverJpegAt: [UUID: TimeInterval] = [:]
@@ -135,6 +138,7 @@ final class LibraryStore: ObservableObject {
         leftoverHoldTrailBins = MatchMath.leftoverHoldTrailBinsDecode(packed.leftoverHoldTrailBins)
         leftoverHoldByHash = MatchMath.leftoverHashHoldDecode(packed.leftoverHoldHash, now: Date().timeIntervalSince1970)
         leftoverHoldTrailByHash = MatchMath.leftoverHashTrailDecode(packed.leftoverHoldTrailHash, now: Date().timeIntervalSince1970)
+        leftoverCaptureHistByHash = MatchMath.leftoverCaptureHistTableDecode(packed.leftoverCaptureHist)
         leftoverHashNeedsRebase = !leftoverHoldByHash.isEmpty || !leftoverHoldTrailByHash.isEmpty
         if let stored = packed.printRevision, stored != MatchMath.printRevision {
             revisionWarning = "Galerie-Print \(stored), App \(MatchMath.printRevision) — Scores können springen. Neu scannen."
@@ -179,7 +183,8 @@ final class LibraryStore: ObservableObject {
             leftoverHoldBins: MatchMath.leftoverHoldBinsEncode(leftoverHoldBins),
             leftoverHoldTrailBins: MatchMath.leftoverHoldTrailBinsEncode(leftoverHoldTrailBins),
             leftoverHoldHash: MatchMath.leftoverHashHoldEncode(leftoverHoldByHash),
-            leftoverHoldTrailHash: MatchMath.leftoverHashTrailEncode(leftoverHoldTrailByHash)
+            leftoverHoldTrailHash: MatchMath.leftoverHashTrailEncode(leftoverHoldTrailByHash),
+            leftoverCaptureHist: MatchMath.leftoverCaptureHistTableEncode(leftoverCaptureHistByHash)
         )
         refreshMergeHint()
     }
@@ -228,6 +233,7 @@ final class LibraryStore: ObservableObject {
         leftoverHoldTrailBins = MatchMath.leftoverHoldTrailBinsDecode(packed.leftoverHoldTrailBins)
         leftoverHoldByHash = MatchMath.leftoverHashHoldDecode(packed.leftoverHoldHash, now: Date().timeIntervalSince1970)
         leftoverHoldTrailByHash = MatchMath.leftoverHashTrailDecode(packed.leftoverHoldTrailHash, now: Date().timeIntervalSince1970)
+        leftoverCaptureHistByHash = MatchMath.leftoverCaptureHistTableDecode(packed.leftoverCaptureHist)
         leftoverHashNeedsRebase = !leftoverHoldByHash.isEmpty || !leftoverHoldTrailByHash.isEmpty
         liveNameHist = [:]
         liveNameLock = [:]
@@ -1182,6 +1188,23 @@ final class LibraryStore: ObservableObject {
         leftoverSparkChipHeld[faceId]?.chip ?? leftoverSparkChipNow(faceId: faceId, yawAbs: yawAbs)
     }
 
+    func leftoverGateChip(faceId: UUID) -> String? {
+        var bits: [String] = []
+        if let hash = leftoverLastHash[faceId] {
+            let cos = leftoverHoldByHash[hash]?.cosine
+                ?? leftoverHoldByHash[MatchMath.leftoverHoldHashKey(hash: hash, bin: 0)]?.cosine
+            if let chip = MatchMath.leftoverHashHoldChip(cos) { bits.append(chip) }
+        }
+        let printReady = faces.first { $0.id == faceId }.map { !$0.featurePrint.isEmpty } ?? false
+        if let chip = MatchMath.leftoverJpegChip(stored: leftoverJpegDelta[faceId], printReady: printReady) {
+            bits.append(chip)
+        }
+        if let chip = MatchMath.leftoverIoUJumpChip(leftoverLastIoU[faceId]) {
+            bits.append(chip)
+        }
+        return bits.isEmpty ? nil : bits.joined(separator: " · ")
+    }
+
     /// Ohne Mutation — SwiftUI-Body darf das lesen.
     private func leftoverSparkChipNow(faceId: UUID, yawAbs: Double? = nil) -> String? {
         let bin = MatchMath.leftoverHoldBin(yawAbs: yawAbs ?? 0)
@@ -1474,6 +1497,7 @@ final class LibraryStore: ObservableObject {
         leftoverLastHash = [:]
         leftoverSparkChipHeld = [:]
         leftoverJpegDelta = [:]
+        leftoverLastIoU = [:]
         leftoverJpegAt = [:]
         leftoverJpegHash = [:]
         leftoverJpegCos = [:]
@@ -1768,10 +1792,12 @@ final class LibraryStore: ObservableObject {
 
     private func applyLiveFaces(_ incoming: [FaceObservation], image: CGImage, mediaId: UUID, stamp: TimeInterval) {
         let nowTick = stamp > 0 ? stamp : Date().timeIntervalSince1970
+        leftoverHashRebasedTick = false
         if leftoverHashNeedsRebase {
             leftoverHoldByHash = MatchMath.leftoverHashHoldRebase(leftoverHoldByHash, now: nowTick)
             leftoverHoldTrailByHash = MatchMath.leftoverHashTrailRebase(leftoverHoldTrailByHash, now: nowTick)
             leftoverHashNeedsRebase = false
+            leftoverHashRebasedTick = true
         }
         let latch = MatchMath.liveFacesLatch(
             present: !incoming.isEmpty,
@@ -2006,6 +2032,9 @@ final class LibraryStore: ObservableObject {
                         capHist.removeFirst(capHist.count - MatchMath.captureBurstFrames)
                     }
                     liveCaptureHist[old.id] = capHist
+                    if let h = leftoverLastHash[old.id] {
+                        leftoverCaptureHistByHash[h] = MatchMath.leftoverCaptureHistEncode(capHist)
+                    }
                     let skip = aeLock
                         || burst
                         || MatchMath.captureJumpBlocksPrint(
@@ -2085,6 +2114,9 @@ final class LibraryStore: ObservableObject {
                 hist.append(face.quality.capture)
                 if hist.count > MatchMath.captureBurstFrames { hist.removeFirst(hist.count - MatchMath.captureBurstFrames) }
                 liveCaptureHist[old.id] = hist
+                if let h = leftoverLastHash[old.id] {
+                    leftoverCaptureHistByHash[h] = MatchMath.leftoverCaptureHistEncode(hist)
+                }
                 let blur = MatchMath.skipPrint(
                     sharpness: face.quality.sharpness,
                     continuity: liveCapture.isContinuity
@@ -2309,8 +2341,18 @@ final class LibraryStore: ObservableObject {
         leftoverHoldTrailBins = MatchMath.leftoverHoldSurviveBinMap(hold: leftoverHoldTrailBins, ghosts: ghostIds, live: liveIds, emptyKeeps: emptyLatch, emptyFor: emptyFor)
         liveSlotHold = MatchMath.leftoverHoldSurvive(hold: liveSlotHold, ghosts: ghostIds, live: liveIds, emptyKeeps: emptyLatch, emptyFor: emptyFor)
         leftoverMissFrames = MatchMath.leftoverHoldSurvive(hold: leftoverMissFrames, ghosts: ghostIds, live: liveIds, emptyKeeps: emptyLatch, emptyFor: emptyFor)
-        leftoverHoldByHash = MatchMath.leftoverHoldPrune(leftoverHoldByHash, now: now, ttl: MatchMath.dropoutTTL(dt: liveDt))
-        leftoverHoldTrailByHash = MatchMath.leftoverTrailPrune(leftoverHoldTrailByHash, now: now, ttl: MatchMath.dropoutTTL(dt: liveDt))
+        leftoverHoldByHash = MatchMath.leftoverHoldPrune(
+            leftoverHoldByHash,
+            now: now,
+            ttl: MatchMath.dropoutTTL(dt: liveDt),
+            skip: MatchMath.leftoverHoldPruneSkips(rebased: leftoverHashRebasedTick)
+        )
+        leftoverHoldTrailByHash = MatchMath.leftoverTrailPrune(
+            leftoverHoldTrailByHash,
+            now: now,
+            ttl: MatchMath.dropoutTTL(dt: liveDt),
+            skip: MatchMath.leftoverHoldPruneSkips(rebased: leftoverHashRebasedTick)
+        )
         if let line = MatchMath.leftoverHoldPruneLine(
             before: holdBefore,
             after: leftoverHold.count,
@@ -2611,6 +2653,9 @@ final class LibraryStore: ObservableObject {
                         prev: leftoverLastHash[adopted[bestJ].id] ?? leftoverLastHash[old.id],
                         next: boxHash
                     )
+                    if liveCaptureHist[adopted[bestJ].id] == nil, let kept = leftoverCaptureHistByHash[boxHash], !kept.isEmpty {
+                        liveCaptureHist[adopted[bestJ].id] = kept
+                    }
                     let yawNow = abs(adopted[bestJ].quality.yaw)
                     let bin = MatchMath.leftoverHoldBin(yawAbs: yawNow)
                     var trail = MatchMath.leftoverTrailNowOf(
@@ -2716,6 +2761,7 @@ final class LibraryStore: ObservableObject {
                 let stillFor = liveStillFor[old.id] ?? liveStillFor[adopted[bestJ].id] ?? 0
                 let blinkBlocked = (liveOpenStreak[old.id] ?? liveOpenStreak[adopted[bestJ].id] ?? 0) < 2
                 let boxIoU = FaceEngine.iou(old.box, adopted[bestJ].box)
+                leftoverLastIoU[adopted[bestJ].id] = boxIoU
                 var jpegDelta: Double?
                 let printReady = !adopted[bestJ].featurePrint.isEmpty
                 if MatchMath.leftoverBaptize(cosine: pinCos), printReady {
@@ -2961,8 +3007,17 @@ final class LibraryStore: ObservableObject {
             leftoverHoldBins = leftoverHoldBins.filter { row in
                 MatchMath.leftoverHoldId(from: row.key).map { liveIds.contains($0) || leftoverIds.contains($0) } ?? false
             }
-            leftoverHoldByHash = MatchMath.leftoverHoldPrune(leftoverHoldByHash, now: now)
-            leftoverHoldTrailByHash = MatchMath.leftoverTrailPrune(leftoverHoldTrailByHash, now: now)
+            leftoverHoldByHash = MatchMath.leftoverHoldPrune(
+                leftoverHoldByHash,
+                now: now,
+                skip: MatchMath.leftoverHoldPruneSkips(rebased: leftoverHashRebasedTick)
+            )
+            leftoverHoldTrailByHash = MatchMath.leftoverTrailPrune(
+                leftoverHoldTrailByHash,
+                now: now,
+                skip: MatchMath.leftoverHoldPruneSkips(rebased: leftoverHashRebasedTick)
+            )
+            leftoverHashRebasedTick = false
             leftoverPending = leftoverPending.filter { liveIds.contains($0.key) }
             tapGuestPending = tapGuestPending.filter { liveIds.contains($0) }
             for id in tapGuestPending {
@@ -2991,6 +3046,9 @@ final class LibraryStore: ObservableObject {
                 liveIds.contains($0.key) || (leftoverIds.contains($0.key) && !used.contains($0.key))
             }
             leftoverJpegDelta = leftoverJpegDelta.filter {
+                liveIds.contains($0.key) || (leftoverIds.contains($0.key) && !used.contains($0.key))
+            }
+            leftoverLastIoU = leftoverLastIoU.filter {
                 liveIds.contains($0.key) || (leftoverIds.contains($0.key) && !used.contains($0.key))
             }
             leftoverJpegAt = leftoverJpegAt.filter {
@@ -3054,6 +3112,7 @@ final class LibraryStore: ObservableObject {
         nmsDropped = FaceEngine.lastNMSDropped
         rematchLive()
         suggestUSlotIfHeld(adopted, now: now)
+        leftoverHashRebasedTick = false
     }
 
     /// 1,2 s Maske im Track → Vorschlag, nie still schreiben.

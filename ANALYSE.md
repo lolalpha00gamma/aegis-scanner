@@ -1,3 +1,30 @@
+# Helios + Aegis — Analyse 2026-09-05 (2.1.113)
+
+Helios **1.5.98** (Build 118). Aegis **2.1.113 alpha** (Build 139). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.112: Schema 6 Hash-Hold persist, Rebase. Prune denselben Tick wie Rebase. Schwache 0,50 Holds überleben Restart und taufen den Nachbarn. Capture-Hist nur RAM. Hash-Hold unbounded. JPEG-Miss und IoU-Jump ohne HUD.
+
+## 2.1.112 → 2.1.113 (warum Namen nach Restart und bei Twins noch sprangen)
+
+1. **leftoverHoldPrune nach Rebase.** Erstes Live-Tick setzt `at`, prune mit TTL 1,2 s kann denselben Tick wischen wenn stamp driftet. Trail-Prune denselben Tick.
+2. **Hash-Hold cosine > 0 persist.** 0,50 Hold nach Restart = Twin-Taufe. Floor ist leftover 0,64.
+3. **leftoverHoldByHash unbounded.** Walk durch die Galerie füllt RAM, Steal hungert.
+4. **leftoverCaptureHist nur RAM.** Schema 6 Math, File fehlte. Burst-AE nach Restart tot.
+5. **JPEG-Miss und IoU-Jump ohne Chip.** Nutzer sieht HOLD, nicht warum die Taufe starb.
+
+## Was 2.1.113 ändert
+
+1. **`leftoverHoldPruneSkips`.** Rebase-Tick kein Prune (Hold + Trail).
+2. **`leftoverHashHoldKeeps` 0,64** Encode/Decode/Put/Prune.
+3. **`leftoverHashHoldCapped` 64.**
+4. **leftoverCaptureHist persist** Hash-Keyed, GalleryPayload optional, Schema 6.
+5. **HUD `HASH 0,80` / `JPEG` / `JUMP`.** leftoverGateChip peek.
+6. Tests + VERSION = Models = MARKETING_VERSION 2.1.113 (Build 139).
+
+Helios 1.5.98: Actor-Vel 0, Scale-Abort. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-05 (2.1.112)
 
 Helios **1.5.97** (Build 117). Aegis **2.1.112 alpha** (Build 138). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

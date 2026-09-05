@@ -764,6 +764,9 @@ struct FaceOverlay: View {
                             if let spark = store.leftoverSparkChip(faceId: face.id, yawAbs: abs(face.quality.yaw)) {
                                 tail += " · \(spark)"
                             }
+                            if let gate = store.leftoverGateChip(faceId: face.id) {
+                                tail += " · \(gate)"
+                            }
                             if let cap = MatchMath.leftoverCaptureChip(face.quality.capture) {
                                 tail += " · \(cap)"
                             }
@@ -906,7 +909,13 @@ struct FaceOverlay: View {
         ) {
             let hold = store.leftoverHoldChip(faceId: faceId, yawAbs: yawAbs) ?? MatchMath.unknownRejectNote()
             if let spark = store.leftoverSparkChip(faceId: faceId, yawAbs: yawAbs) {
+                if let gate = store.leftoverGateChip(faceId: faceId) {
+                    return "\(store.guestName(for: faceId)) · \(hold) · \(spark) · \(gate)"
+                }
                 return "\(store.guestName(for: faceId)) · \(hold) · \(spark)"
+            }
+            if let gate = store.leftoverGateChip(faceId: faceId) {
+                return "\(store.guestName(for: faceId)) · \(hold) · \(gate)"
             }
             return "\(store.guestName(for: faceId)) · \(hold)"
         }
@@ -914,7 +923,13 @@ struct FaceOverlay: View {
             let held = store.liveHeldIds.contains(faceId)
             if let hold = store.leftoverHoldChip(faceId: faceId, yawAbs: yawAbs) {
                 if let spark = store.leftoverSparkChip(faceId: faceId, yawAbs: yawAbs) {
+                    if let gate = store.leftoverGateChip(faceId: faceId) {
+                        return "\(owner.name) \(Int(pct))% · \(hold) · \(spark) · \(gate)"
+                    }
                     return "\(owner.name) \(Int(pct))% · \(hold) · \(spark)"
+                }
+                if let gate = store.leftoverGateChip(faceId: faceId) {
+                    return "\(owner.name) \(Int(pct))% · \(hold) · \(gate)"
                 }
                 return "\(owner.name) \(Int(pct))% · \(hold)"
             }
