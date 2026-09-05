@@ -1,4 +1,4 @@
-# Aegis **2.1.117 alpha**
+# Aegis **2.1.118 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.118 alpha
+
+Hamming-1 stahl den Twin. Exact-Bin las denselben Hold. Overlay leftoverNameFromHold und leftoverLiveNameAnd held=hit.identityId tauften trotz LOCK.
+
+- **`leftoverHoldNeighborOk` dist≥1 tot** bei zwei Gesichtern. Exact dist 0 hält. HUD `NBR` auch Hamming-1.
+- **`leftoverHashOwnOccupied`.** Lookup/Trail/Pick Exact-Bin tot.
+- **`leftoverNameLockKeeps`.** Overlay `leftoverJumpName` zuerst. leftoverLiveNameAnd held = liveNameLock.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.118 (Build 144).
 
 ## Neu in 2.1.117 alpha
 

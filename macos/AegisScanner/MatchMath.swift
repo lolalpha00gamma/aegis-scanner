@@ -270,7 +270,8 @@ enum MatchMath {
         holdHashTable: [String: (cosine: Double, at: TimeInterval)] = [:],
         holdAt: TimeInterval = 0,
         holdTTL: TimeInterval = leftoverAdoptSec,
-        frameCapture: Double? = nil
+        frameCapture: Double? = nil,
+        holdOccupied: [String] = []
     ) -> Int? {
         if leftoverLookawayBlocks(yawAbs: lookawayYaw, enrolled: lookawayEnrolled) {
             return nil
@@ -295,7 +296,8 @@ enum MatchMath {
                     hashTable: holdHashTable,
                     now: holdAt,
                     ttl: holdTTL,
-                    facesInFrame: facesInFrame
+                    facesInFrame: facesInFrame,
+                    occupied: holdOccupied
                 )
             )
         }
@@ -329,7 +331,8 @@ enum MatchMath {
                         hashTable: holdHashTable,
                         now: holdAt,
                         ttl: holdTTL,
-                        facesInFrame: facesInFrame
+                        facesInFrame: facesInFrame,
+                        occupied: holdOccupied
                     ),
                     dt: dt,
                     captureJump: leftoverCaptureJump(prev: session, next: liveCap($0.index))
@@ -1138,6 +1141,12 @@ enum MatchMath {
         leftoverNameLockBlocks(until: until, now: now) ? "LOCK" : nil
     }
 
+    static func leftoverNameLockKeeps(until: TimeInterval?, now: TimeInterval, name: String?) -> String? {
+        guard leftoverNameLockBlocks(until: until, now: now) else { return nil }
+        guard let name, !name.isEmpty else { return nil }
+        return name
+    }
+
     static func leftoverNameLockLive(until: [UUID: TimeInterval], now: TimeInterval) -> [UUID] {
         until.compactMap { leftoverNameLockBlocks(until: $0.value, now: now) ? $0.key : nil }
     }
@@ -1148,15 +1157,21 @@ enum MatchMath {
     }
 
     /// Hamming-2 Neighbor-Veto wenn zwei Gesichter live. Twin stiehlt sonst Hash-Nachbar.
+    /// dist 1 war erlaubt — Nachbar-Bin 0,80 tauft den Twin. dist 0 Exact separat.
     static func leftoverHoldNeighborOk(facesInFrame: Int, dist: Int) -> Bool {
         if dist <= 0 { return true }
-        if facesInFrame >= 2, dist >= 2 { return false }
+        if facesInFrame >= 2, dist >= 1 { return false }
         return dist < 99
     }
 
-    /// Hamming-2 Veto sichtbar. Sonst Twin-Steal ohne Chip.
+    /// Hamming-1/2 Veto sichtbar. Twin-Steal ohne Chip tot.
     static func leftoverHoldNeighborChip(facesInFrame: Int, dist: Int) -> String? {
         leftoverHoldNeighborOk(facesInFrame: facesInFrame, dist: dist) ? nil : "NBR"
+    }
+
+    /// Gleiche Bin, zwei Live-Kisten: Exact-Hold tot. Twin liest sonst 0,80 vom selben Key.
+    static func leftoverHashOwnOccupied(live: [String], hash: String) -> Bool {
+        live.contains(hash)
     }
 
     /// Hash-Key ohne `#bin`. Lookup-Dist sonst 99.
@@ -2300,14 +2315,15 @@ enum MatchMath {
         hashTable: [String: (cosine: Double, at: TimeInterval)] = [:],
         now: TimeInterval = 0,
         ttl: TimeInterval = leftoverAdoptSec,
-        facesInFrame: Int = 1
+        facesInFrame: Int = 1,
+        occupied: [String] = []
     ) -> Double? {
         let bin = leftoverHoldBin(yawAbs: yawAbs ?? 0)
         if let id, let v = leftoverHoldBinRead(bins: bins, id: id, bin: bin) {
             return v
         }
         if let hash, !hashTable.isEmpty,
-           let v = leftoverHoldLookup(hash: hash, table: hashTable, now: now, ttl: ttl, bin: bin, facesInFrame: facesInFrame)
+           let v = leftoverHoldLookup(hash: hash, table: hashTable, now: now, ttl: ttl, bin: bin, facesInFrame: facesInFrame, occupied: occupied)
         {
             return v
         }
@@ -3913,8 +3929,10 @@ enum MatchMath {
         now: TimeInterval,
         ttl: TimeInterval = leftoverAdoptSec,
         bin: Int? = nil,
-        facesInFrame: Int = 1
+        facesInFrame: Int = 1,
+        occupied: [String] = []
     ) -> [Double] {
+        if leftoverHashOwnOccupied(live: occupied, hash: hash) { return [] }
         if let bin {
             let key = leftoverHoldHashKey(hash: hash, bin: bin)
             if let row = table[key], now - row.at <= ttl {
@@ -3932,7 +3950,7 @@ enum MatchMath {
             }
             if let best { return best.samples }
             if bin == 0 {
-                return leftoverTrailLookup(hash: hash, table: table, now: now, ttl: ttl, bin: nil, facesInFrame: facesInFrame)
+                return leftoverTrailLookup(hash: hash, table: table, now: now, ttl: ttl, bin: nil, facesInFrame: facesInFrame, occupied: occupied)
             }
             return []
         }
@@ -3971,8 +3989,10 @@ enum MatchMath {
         now: TimeInterval,
         ttl: TimeInterval = leftoverAdoptSec,
         bin: Int? = nil,
-        facesInFrame: Int = 1
+        facesInFrame: Int = 1,
+        occupied: [String] = []
     ) -> Double? {
+        if leftoverHashOwnOccupied(live: occupied, hash: hash) { return nil }
         if let bin {
             let key = leftoverHoldHashKey(hash: hash, bin: bin)
             if let row = table[key], now - row.at <= ttl {
@@ -3990,7 +4010,7 @@ enum MatchMath {
             }
             if let best { return best.cosine }
             if bin == 0 {
-                return leftoverHoldLookup(hash: hash, table: table, now: now, ttl: ttl, bin: nil, facesInFrame: facesInFrame)
+                return leftoverHoldLookup(hash: hash, table: table, now: now, ttl: ttl, bin: nil, facesInFrame: facesInFrame, occupied: occupied)
             }
             return nil
         }
@@ -4021,7 +4041,8 @@ enum MatchMath {
         now: TimeInterval,
         ttl: TimeInterval = leftoverAdoptSec,
         yawAbs: Double?,
-        facesInFrame: Int = 1
+        facesInFrame: Int = 1,
+        occupied: [String] = []
     ) -> Double? {
         guard let yaw = yawAbs else { return nil }
         return leftoverHoldLookup(
@@ -4030,7 +4051,8 @@ enum MatchMath {
             now: now,
             ttl: ttl,
             bin: leftoverHoldBin(yawAbs: yaw),
-            facesInFrame: facesInFrame
+            facesInFrame: facesInFrame,
+            occupied: occupied
         )
     }
 

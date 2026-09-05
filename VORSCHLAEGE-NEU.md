@@ -1,3 +1,55 @@
+# Nachtrag 2026-09-05 (2.1.118)
+
+Siehe ANALYSE.md. **2.1.118** Hamming-1 Veto, Exact occupied, Name-Lock Overlay.
+
+## In 2.1.118 gelandet
+
+1. leftoverHoldNeighborOk faces≥2 dist≥1 tot
+2. leftoverHashOwnOccupied — Lookup/Trail/Pick Exact-Bin tot
+3. leftoverNameLockKeeps / leftoverJumpName Overlay zuerst, leftoverLiveNameAnd held = liveNameLock
+4. VERSION = Models = MARKETING_VERSION 2.1.118 (Build 144)
+
+## Nächste, zusätzlich
+
+- **Occupied aus Live-Boxen** diesen Tick, nicht nur leftoverLastHash. Erster Twin-Frame stiehlt noch.
+- leftoverAdoptSecLock Pref-Slider 0,6–1,4 (Clamp sitzt).
+- leftoverNameLockSec Pref-Slider 0,6–2,0 (Clamp sitzt).
+- leftoverHold ttl Slider 1,2–4,0 (Clamp sitzt).
+- leftoverNameLockHeld persist Schema 7.
+- leftoverJumpName VoiceOver.
+- Twin Hamming-0 geometric split nach x-order, nicht Hash.
+- leftoverJpegProbeReuse TTL Pref 0,25–1,2.
+- FaceEngine jpegProbe detached queue. Cache sitzt, Detect hoppt noch nach Main.
+- PhotoKit Live Photos Frame 0, nicht Poster.
+- printRevision je Identity.
+- gallery.json.bak rotate 3.
+- VNDetectFaceRectangles revision pin.
+- leftoverHashHold VoiceOver.
+- Schema 5 UUID-Bins nach Schema 6 behalten (kein Wipe).
+- Helios Frame-Pump, eine TCC. Shared XPC mit Helios 1.5.102.
+- Overlay VoiceOver HOLD/Spark/HASH/LOCK.
+- Per-Box CLAHE statt Full-Frame.
+- Continuity Desk-View yaw-floor 0,36.
+- Gallery print decay: ungenutzte 14-Tage-Prints downweight.
+- Partial-Print P-Slot ohne Augen (Schal/Maske).
+- Burst-AE 5-Frame Pref Continuity-Nacht.
+- Print-Bank 5 Pose-Slots front/left/right/up/down.
+- DBSCAN vor Merge.
+- Watch-Folder PhotoKit.
+- Encrypted gallery export `.aegis`.
+- Iris-Textur-Slot als Twin-Veto.
+- Specular-Highlight auf Stirn als Card-Photo-Veto.
+- Continuity LiDAR-Z als Twin-Trennung.
+- Masken-/Schal-Slot. Brille-Slot.
+- Tests splitted.
+- Merge-Undo Stack 8.
+- IdentityDesk 9-Tuple → GalleryPayload direkt.
+- **Per-Hold TTL in Schema 7.** `at` + `ttl` je Zeile, nicht Session-Sticky.
+- Temporal ReID-Graph über Hold-Trail.
+- PnP 6DoF, Slot folgt der Nase.
+
+Nur main.
+
 # Nachtrag 2026-09-05 (2.1.117)
 
 Siehe ANALYSE.md. **2.1.117** leftoverAssignMajority LOCK, leftoverLiveNameAnd hält Overlay, HUD NBR aus Lookup, FAST, LOCK/Adopt Pref-Clamp.

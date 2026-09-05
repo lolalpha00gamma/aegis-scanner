@@ -2266,11 +2266,32 @@ enum MatchMathTests {
         ok(MatchMath.dropoutSeenSlow(dt: 0.125, samples: 8, prev: true, fastFor: 8.0), "8 fps Sticky trotz fastFor")
         ok(MatchMath.leftoverHoldNeighborOk(facesInFrame: 1, dist: 2), "ein Gesicht Hamming-2")
         ok(!MatchMath.leftoverHoldNeighborOk(facesInFrame: 2, dist: 2), "Twin Hamming-2 tot")
-        ok(MatchMath.leftoverHoldNeighborOk(facesInFrame: 2, dist: 1), "Twin Hamming-1 hält")
+        ok(!MatchMath.leftoverHoldNeighborOk(facesInFrame: 2, dist: 1), "Twin Hamming-1 tot")
         ok(MatchMath.leftoverHoldNeighborOk(facesInFrame: 2, dist: 0), "exakt hält")
         let nbrTable = MatchMath.leftoverHoldPut(hash: "1.2.2.0", cosine: 0.80, onto: [:], now: 10)
         ok(MatchMath.leftoverHoldLookup(hash: "1.2.0.0", table: nbrTable, now: 10, facesInFrame: 1) != nil, "ein Gesicht Hamming-2 Hold")
         ok(MatchMath.leftoverHoldLookup(hash: "1.2.0.0", table: nbrTable, now: 10, facesInFrame: 2) == nil, "Twin Hamming-2 Hold tot")
+        let nbr1 = MatchMath.leftoverHoldPut(hash: "1.2.1.0", cosine: 0.80, onto: [:], now: 10)
+        ok(MatchMath.leftoverHoldLookup(hash: "1.2.0.0", table: nbr1, now: 10, facesInFrame: 2) == nil, "Twin Hamming-1 Hold tot")
+        ok(MatchMath.leftoverHashOwnOccupied(live: ["5.5.4.6"], hash: "5.5.4.6"), "gleiche Bin occupied")
+        ok(!MatchMath.leftoverHashOwnOccupied(live: ["6.5.4.6"], hash: "5.5.4.6"), "Nachbar nicht own")
+        let sameHold = MatchMath.leftoverHoldPut(hash: "5.5.4.6", cosine: 0.80, onto: [:], now: 10)
+        ok(MatchMath.leftoverHoldLookup(hash: "5.5.4.6", table: sameHold, now: 10, occupied: ["5.5.4.6"]) == nil, "gleiche Bin kein Hold")
+        ok(MatchMath.leftoverHoldLookup(hash: "5.5.4.6", table: sameHold, now: 10) != nil, "ohne Twin Exact hält")
+        ok(MatchMath.leftoverHoldPrevOf(
+            frontal: nil,
+            yawAbs: 0,
+            hash: "5.5.4.6",
+            hashTable: sameHold,
+            now: 10,
+            occupied: ["5.5.4.6"]
+        ) == nil, "Prev occupied tot")
+        ok(MatchMath.leftoverTrailLookup(
+            hash: "5.5.4.6",
+            table: ["5.5.4.6": (samples: [0.80], at: 10)],
+            now: 10,
+            occupied: ["5.5.4.6"]
+        ).isEmpty, "Trail occupied tot")
         let lockUntil = MatchMath.leftoverNameLockArm(jump: true, now: 10)
         ok(abs((lockUntil ?? 0) - 11.2) < 0.001, "LOCK 1,2 s")
         ok(MatchMath.leftoverNameLockBlocks(until: 11.2, now: 11), "LOCK hält")
@@ -2311,19 +2332,22 @@ enum MatchMathTests {
         ok(MatchMath.leftoverLiveNameAnd(voted: "Bert", hist: ["Bert", "Bert", "Bert"], locked: true) == nil, "LOCK ohne Hold tot")
         ok(MatchMath.leftoverHoldNeighborChip(facesInFrame: 2, dist: 2) == "NBR", "HUD NBR")
         ok(MatchMath.leftoverHoldNeighborChip(facesInFrame: 1, dist: 2) == nil, "ein Gesicht kein NBR")
-        ok(MatchMath.leftoverHoldNeighborChip(facesInFrame: 2, dist: 1) == nil, "Hamming-1 kein NBR")
+        ok(MatchMath.leftoverHoldNeighborChip(facesInFrame: 2, dist: 1) == "NBR", "Hamming-1 NBR")
+        ok(MatchMath.leftoverNameLockKeeps(until: 11.2, now: 11.0, name: "Anna") == "Anna", "Name hält")
+        ok(MatchMath.leftoverNameLockKeeps(until: 11.2, now: 11.0, name: nil) == nil, "ohne Name tot")
+        ok(MatchMath.leftoverNameLockKeeps(until: 11.2, now: 12, name: "Anna") == nil, "Lock abgelaufen")
         ok(MatchMath.leftoverHoldHashBare("1.2.3.4#1") == "1.2.3.4", "Hash Bare")
         ok(MatchMath.leftoverHoldHashBare("1.2.3.4") == "1.2.3.4", "Hash ohne Bin")
         let nbrNow: TimeInterval = 10
-        let nbrTable: [String: (cosine: Double, at: TimeInterval)] = [
+        let nbrDist: [String: (cosine: Double, at: TimeInterval)] = [
             "1.2.3.4#0": (0.80, nbrNow),
             "3.2.3.4#0": (0.70, nbrNow)
         ]
-        ok(MatchMath.leftoverHoldNeighborDist(hash: "1.2.3.4", table: nbrTable, now: nbrNow) == 2, "Lookup Hamming-2")
+        ok(MatchMath.leftoverHoldNeighborDist(hash: "1.2.3.4", table: nbrDist, now: nbrNow) == 2, "Lookup Hamming-2")
         ok(MatchMath.leftoverHoldNeighborDist(hash: "1.2.3.4", table: ["1.2.3.4#0": (0.80, nbrNow)], now: nbrNow) == 0, "ohne Nachbar 0")
         ok(MatchMath.leftoverHoldNeighborChip(
             facesInFrame: 2,
-            dist: MatchMath.leftoverHoldNeighborDist(hash: "1.2.3.4", table: nbrTable, now: nbrNow)
+            dist: MatchMath.leftoverHoldNeighborDist(hash: "1.2.3.4", table: nbrDist, now: nbrNow)
         ) == "NBR", "Lookup NBR")
         ok(MatchMath.leftoverHoldFastChip(seenSlow: true, dt: 0.04) == "FAST", "HUD FAST")
         ok(MatchMath.leftoverHoldFastChip(seenSlow: true, dt: 0.125) == nil, "8 fps kein FAST")

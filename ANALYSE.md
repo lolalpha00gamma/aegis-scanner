@@ -1,3 +1,26 @@
+# Helios + Aegis — Analyse 2026-09-05 (2.1.118)
+
+Helios **1.5.102** (Build 122). Aegis **2.1.118 alpha** (Build 144). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.117: Majority LOCK, Overlay leftoverLiveNameAnd, HUD NBR/FAST. Hamming-1 blieb erlaubt. Exact-Key vor Occupied. Overlay leftoverNameFromHold tauft. leftoverLiveNameAnd held = hit.identityId (Twin).
+
+## 2.1.117 → 2.1.118 (warum Twins noch tauschen)
+
+1. **Hamming-1 Neighbor.** dist≥2 tot, dist 1 (Nachbar-Bin) erlaubt — näher als Hamming-2.
+2. **Exact-Key vor Occupied.** Twin in derselben Bin liest `hash#0` 0,80.
+3. **Overlay leftoverNameFromHold / leftoverLiveNameAnd held=hit.identityId.** LOCK sitzt, Name springt auf den Twin.
+
+## Was 2.1.118 ändert
+
+1. **`leftoverHoldNeighborOk` dist≥1 tot** bei faces≥2. Exact dist 0 hält. HUD `NBR` auch Hamming-1.
+2. **`leftoverHashOwnOccupied`.** Lookup/Trail/Pick/PrevOf nil bei fremder Exact-Bin.
+3. **`leftoverNameLockKeeps`.** Overlay `leftoverJumpName` zuerst. leftoverLiveNameAnd held = liveNameLock. leftoverNameLockHeld.
+4. Tests + VERSION = Models = MARKETING_VERSION 2.1.118 (Build 144).
+
+Helios 1.5.102: Warp-Snap Restore. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-05 (2.1.117)
 
 Helios **1.5.101** (Build 121). Aegis **2.1.117 alpha** (Build 143). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

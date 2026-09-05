@@ -902,6 +902,12 @@ struct FaceOverlay: View {
         yawAbs: Double? = nil
     ) -> String {
         let holdCos = store.leftoverHoldNow(faceId: faceId, yawAbs: yawAbs)
+        if let held = store.leftoverJumpName(for: faceId) {
+            if let gate = store.leftoverGateChip(faceId: faceId) {
+                return "\(held) · \(gate)"
+            }
+            return held
+        }
         if !MatchMath.leftoverNameFromHold(
             hasHold: store.leftoverHasHold(faceId: faceId),
             hold: holdCos,
