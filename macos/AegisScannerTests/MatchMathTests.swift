@@ -1755,6 +1755,40 @@ enum MatchMathTests {
         ok(!MatchMath.leftoverHoldAlphaJump(0.05), "kein Sprung")
         near(MatchMath.leftoverHoldAlpha(dt: 0.016, captureJump: 0.25), 0.08, 0.001, "AE-EMA 0,08")
         near(MatchMath.leftoverCaptureJump(prev: 0.70, next: 0.18), 0.52, 0.001, "Jump-Delta")
+        near(
+            MatchMath.leftoverHoldSmooth(raw: 0.70, prev: 0.64, captureJump: 0.25) ?? -1,
+            0.08 * 0.70 + 0.92 * 0.64,
+            0.002,
+            "Pick-EMA AE träge"
+        )
+        ok(
+            MatchMath.leftoverScore(cosine: 0.72, sharpness: 0.40, twinPair: 0.92)
+                < MatchMath.leftoverScore(cosine: 0.72, sharpness: 0.40),
+            "Twin-Paar senkt Score"
+        )
+        ok(
+            MatchMath.leftoverCentroidOk(sharpness: 0.40, yawAbs: 0.10, frontal: 0.90),
+            "Frontal scharf in Galerie"
+        )
+        ok(
+            !MatchMath.leftoverCentroidOk(sharpness: 0.40, yawAbs: 0.40, frontal: 0.90),
+            "¾ raus aus Centroid"
+        )
+        ok(
+            !MatchMath.leftoverCentroidOk(sharpness: 0.40, yawAbs: 0.10, frontal: 0.50),
+            "frontal < 0,70 raus"
+        )
+        near(MatchMath.leftoverSessionCaptureMedian([0.70, 0.70, 0.70, 0.18]) ?? -1, 0.70, 0.001, "Flash-Median")
+        near(
+            MatchMath.leftoverSessionCaptureBox(old: 0.70, live: 0.18, hist: [0.70, 0.70, 0.70]) ?? -1,
+            0.70,
+            0.001,
+            "Flash 1 Tick Floor bleibt"
+        )
+        near(MatchMath.leftoverSessionCaptureBox(old: 0.70, live: 0.18) ?? -1, 0.18, 0.001, "ohne Hist Live")
+        ok(MatchMath.leftoverHoldBin(yawAbs: 0.10) == 0, "frontal Bin")
+        ok(MatchMath.leftoverHoldBin(yawAbs: 0.35) == 1, "¾ Bin")
+        ok(MatchMath.leftoverHoldBin(yawAbs: 0.50) == 2, "Profil Bin")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

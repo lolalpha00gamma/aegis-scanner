@@ -1,6 +1,15 @@
-# Nachtrag 2026-09-05 (2.1.89)
+# Nachtrag 2026-09-05 (2.1.90)
 
-Siehe ANALYSE.md. **2.1.89** schließt Gast-Schatten-Floor, Profil-unknownCentroid, AE-Hold-EMA.
+Siehe ANALYSE.md. **2.1.90** schließt Pick-EMA AE, Twin-Score, Galerie-frontal, Capture-Median, Hold-Bin.
+
+## In 2.1.90 gelandet
+
+1. leftoverHoldSmooth(captureJump) — Pick-Pfad AE träge
+2. leftoverScore(twinPair) — Same-Shot zieht Score
+3. leftoverCentroidOk — Galerie nur scharf+frontal
+4. leftoverSessionCaptureMedian / Box(hist)
+5. leftoverHoldBin 0/1/2
+6. VERSION = Models = MARKETING_VERSION 2.1.90 (Build 116)
 
 ## In 2.1.89 gelandet
 
@@ -10,15 +19,6 @@ Siehe ANALYSE.md. **2.1.89** schließt Gast-Schatten-Floor, Profil-unknownCentro
 4. leftoverHoldAlpha(captureJump) — AE 0,20 → α 0,08
 5. FaceEngine reicht Yaw
 6. VERSION = Models = MARKETING_VERSION 2.1.89 (Build 115)
-
-## In 2.1.88 gelandet
-
-1. leftoverSessionCapture Live schlägt Ghost
-2. leftoverHoldWriteOk Lookaway 0,28
-3. leftoverPickPrint — Floor roh
-4. leftoverHoldClimb — Nacht 0,61→0,66 bleibt
-5. FaceEngine unknownCentroid(capture)
-6. VERSION = Models = MARKETING_VERSION 2.1.88 (Build 114)
 
 ## Offen (nicht Pflaster)
 
@@ -43,7 +43,7 @@ Siehe ANALYSE.md. **2.1.89** schließt Gast-Schatten-Floor, Profil-unknownCentro
 26. Temporal ReID-Graph über Hold-Trail
 27. Overlay VoiceOver für Hold-Wert
 28. Partial-Print für Profil (P-Slot ohne Augen)
-29. Gallery-Centroid nur Frames mit leftoverPrintSharp
+29. Gallery-Centroid nur Frames mit leftoverPrintSharp — sitzt als leftoverCentroidOk.
 30. Burst-AE 5-Frame-Fenster Pref für Continuity-Nacht
 31. Dropout-TTL Pref (kurz/normal/lang)
 32. Capture-Hist in gallery.json Schema 5
@@ -80,28 +80,29 @@ Siehe ANALYSE.md. **2.1.89** schließt Gast-Schatten-Floor, Profil-unknownCentro
 86. **Audio-Doorbell Sync** — Klingel-Frame bekommt leftoverLatch extra 1,2 s.
 87. **Print-Drift Alarm** nach OS-Update, nicht nur Banner.
 88. **Kalman-Box 3D** aus yaw/pitch, Ghost folgt der Kopfdrehung.
-92. **per-Box Capture** — sitzt.
-93. **Hold-EMA α aus Capture-Jump** — sitzt.
-94. **Gallery-Print nur leftoverPrintSharp ∧ frontal>0.7.** ¾ in der Galerie zieht den Centroid.
-95. **Twin-Pair Cosine in leftoverScore** als vierter Term, nicht nur Veto.
+94. **Gallery-Print nur leftoverPrintSharp ∧ frontal>0.7.** — sitzt.
+95. **Twin-Pair Cosine in leftoverScore** als vierter Term — sitzt.
 96. **Session-Luma aus Frame-Histogram**, nicht aus Box-Capture. Center Stage täuscht Box-Luma.
-97. **unknownCentroid Yaw** — sitzt.
 98. **Overlay „HOLD roh/smooth“** zwei Zahlen, Smooth-Taufe sichtbar.
 99. **Face-Print Byte-Salt** nach OS-Update, alte gallery.json nicht still matchen.
 103. **Specular-Highlight auf Stirn** als Card-Photo-Veto. Poster/Ausweis tauft nicht.
 104. **Identity-Night-Floor.** Anna immer indoor: Session-Drop nur für Unbekannte, nicht für sie.
-105. **Capture-Histogram 8 Frames.** Flash 1 Tick senkt nicht den Floor. Median, nicht min.
+105. **Capture-Histogram 8 Frames.** Flash 1 Tick senkt nicht den Floor. Median — sitzt als Helfer, Store-Hist noch offen.
 106. **Outdoor-WB als Capture-Prior.** 5600 K + hohe Luma = Tag, auch wenn Box dunkel (Gegenlicht).
 107. **Continuity LiDAR-Z** als Twin-Trennung. Zwei Köpfe, Δz > 0,35 m, kein leftoverSteal.
 108. **Overlay Capture-Chip `CAP 0,18`** neben HOLD — Nacht-Floor sichtbar.
 109. **gallery.json printRevision.** VNFaceLandmarks-Bump → Banner, alte Prints nicht matchen.
 110. **Per-Box CLAHE** nur auf die Face-ROI, Full-Frame frisst AE.
-111. **Yaw-binned leftoverHold** 3 Slots (front / ¾ / profile), nicht eine EMA für alle Posen.
-- Live-Tag schlägt Ghost — sitzt.
-- Print-Floor roh — sitzt.
-- Nacht-Climb kein Spike — sitzt.
-- per-Box Capture — sitzt.
-- unknownCentroid Yaw — sitzt.
-- Hold-EMA AE-Sprung — sitzt.
+111. **Yaw-binned leftoverHold** 3 Slots — Bin-Helfer sitzt, Store-Key noch eine EMA.
+112. **LibraryStore leftoverHold[id:bin]** statt leftoverHold[id]. Sonst Bin tot.
+113. **Capture-Hist 8 je Box** in LibraryStore, sonst Median ohne Samples.
+114. **ArcFace temperature 16** auf leftoverScore, platt 0,70–0,90.
+115. **Blink 2-Frame Lid-Gap** vor Taufe — Poster.
+116. **JPEG 70 % Probe** vor leftoverBaptize.
+- Pick-EMA AE — sitzt.
+- Twin-Score — sitzt.
+- Galerie frontal — sitzt.
+- Capture-Median Helfer — sitzt.
+- Hold-Bin Helfer — sitzt.
 
 Nur main.

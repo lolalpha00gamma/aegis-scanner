@@ -1238,7 +1238,15 @@ enum FaceEngine {
     /// den Mittelvektor nicht mehr auf Impostor-Niveau.
     static func meanPrintVector(_ faces: [FaceObservation]) -> [Double] {
         let clear = faces.filter { !lowerFaceOccluded($0) }
-        let pool = clear.isEmpty ? faces : clear
+        let pool0 = clear.isEmpty ? faces : clear
+        let frontalOk = pool0.filter {
+            MatchMath.leftoverCentroidOk(
+                sharpness: $0.quality.sharpness,
+                yawAbs: abs($0.quality.yaw),
+                frontal: $0.quality.frontal
+            )
+        }
+        let pool = frontalOk.isEmpty ? pool0 : frontalOk
         let liveW = pool.map {
             MatchMath.leftoverLiveWeight(
                 sharpness: $0.quality.sharpness,

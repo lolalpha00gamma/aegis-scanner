@@ -1,8 +1,19 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.89 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.90 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 
-Neu in 2.1.89: per-Box Capture. unknownCentroid Yaw. Hold-EMA α aus Capture-Jump.
+Neu in 2.1.90: Pick-EMA AE. Twin-Score. Galerie nur frontal. Capture-Median. Hold-Bin.
+
+## In 2.1.90 wirklich im Code
+
+2.1.89 per-Box, Yaw-Floor, Hold-α AE. Pick-EMA ignorierte Jump. Twin nicht im Score. ¾ in der Galerie.
+
+1. **`leftoverHoldSmooth(captureJump:)`.**
+2. **`leftoverScore(twinPair:)`.**
+3. **`leftoverCentroidOk`.**
+4. **`leftoverSessionCaptureMedian`.**
+5. **`leftoverHoldBin`.**
+6. Tests + VERSION = Models = MARKETING_VERSION 2.1.90 (Build 116).
 
 ## In 2.1.89 wirklich im Code
 

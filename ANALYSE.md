@@ -1,26 +1,30 @@
-# Helios + Aegis — Analyse 2026-09-05 (2.1.89)
+# Helios + Aegis — Analyse 2026-09-05 (2.1.90)
 
-Helios **1.5.73** (Build 93). Aegis **2.1.89 alpha** (Build 115). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`. `bugfix` (2.1.15) hinter main, nichts nachziehen.
+Helios **1.5.74** (Build 94). Aegis **2.1.90 alpha** (Build 116). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`. `bugfix` (2.1.15) hinter main, nichts nachziehen.
 
-## Warum Namen nach 2.1.88 noch sprangen / tot wirkten
+## Warum Namen nach 2.1.89 noch sprangen / tot wirkten
 
-2.1.88 hält Live-Tag über Ghost, ¾ kein Hold-EMA, Print-Floor roh, Nacht-Climb kein Spike, FaceEngine Capture. Drei Löcher blieben:
+2.1.89 hält per-Box Capture, unknownCentroid Yaw, Hold-EMA α aus Capture-Jump. Fünf Löcher blieben:
 
-1. **Session-Capture = min(alle Live).** Gast im Schatten 0,18 + Anna 0,70 → Floor 0,60. Twin 0,61 tauft Anna. per-Box fehlte.
-2. **unknownCentroid ohne Yaw.** `min(Genuine 0,62, session)` macht Profil-Floor 0,70 zunichte. 0,65 im ¾ ist „bekannt“. Twin im Profil.
-3. **Hold-EMA α ignoriert AE-Sprung.** Capture 0,70→0,18, α 0,35 schreibt den Hold in einem Tick um. Nächster Frontal spike-blockt oder tauft falsch.
+1. **leftoverHoldSmooth ignoriert captureJump.** Pick-Pfad α 0,35 trotz AE. LibraryStore schreibt träge, leftoverPick scored den Spike.
+2. **leftoverScore ohne twinPair.** Hard-Veto 0,92. 0,88–0,91 gewinnt leftoverScore gegen den echten Frontal. Vierter Term fehlte.
+3. **Galerie-Centroid schluckt ¾.** centroidWeight dämpft, leftoverCentroidOk fehlte. ¾ in der Galerie zieht Anna auf den Twin.
+4. **Capture min/live, kein Median.** Flash 1 Tick 0,70→0,18 senkt den Floor. Hist ≥ 3 → Median.
+5. **eine leftoverHold-EMA für alle Posen.** WriteOk skippt ¾, Bin-Helfer fehlte für den nächsten Store-Key.
 
-## Was 2.1.89 wirklich ändert
+## Was 2.1.90 wirklich ändert
 
-1. **`leftoverSessionCaptureBox`.** Box behält ihren Capture. leftoverPick `capture: [Int: Double]`.
-2. **`unknownCentroid(yawAbs:)`.** Profil-Floor 0,70 bleibt. FaceEngine reicht Yaw.
-3. **`leftoverHoldAlpha(captureJump:)`.** Sprung ≥ 0,20 → α 0,08.
-4. Tests + VERSION = Models = MARKETING_VERSION 2.1.89 (Build 115).
+1. **`leftoverHoldSmooth(captureJump:)`.** leftoverPick reicht den Jump.
+2. **`leftoverScore(twinPair:)`.** ≥ 0,88 Same-Shot zieht Score.
+3. **`leftoverCentroidOk`.** FaceEngine meanPrintVector nur scharf+frontal, sonst Fallback.
+4. **`leftoverSessionCaptureMedian` / Box(hist:).** Flash 1 Tick Floor bleibt.
+5. **`leftoverHoldBin`.** 0 frontal / 1 ¾ / 2 Profil.
+6. Tests + VERSION = Models = MARKETING_VERSION 2.1.90 (Build 116).
 
-2.1.88 bleibt: Live-Tag schlägt Ghost, Print-Floor roh, Nacht-Climb, FaceEngine Capture.
+2.1.89 bleibt: per-Box Capture, unknownCentroid Yaw, Hold-α AE.
 
 Was Masse noch bringen würde: Frame-Pump mit Helios, CLAHE auf den Buffer, Drop-in `.mlmodel`, DBSCAN vor Merge, Yaw-binned Print-Bank, Blink-Liveness, Iris-Twin-Veto.
 
-Helios 1.5.73: Fill tot bei Still, Y-Vel × Höhe, Screen-px Vel, Kalman-Q aus MAD. Siehe `bpms9cmnxc-debug/Helios`.
+Helios 1.5.74: Fill-Coast, Rest-MAD Screen-Vel, 2×2 Kalman-P, Naht 24 px, HOLD. Siehe `bpms9cmnxc-debug/Helios`.
 
 `bugfix` mergen oder fortsetzen: nein. Nur `main`.

@@ -281,7 +281,16 @@ enum MatchMath {
             )
         }
         let smoothed: [(index: Int, iou: Double, cosine: Double?)] = ok.map {
-            (index: $0.index, iou: $0.iou, cosine: leftoverHoldSmooth(raw: $0.cosine, prev: holdPrev, dt: dt))
+            (
+                index: $0.index,
+                iou: $0.iou,
+                cosine: leftoverHoldSmooth(
+                    raw: $0.cosine,
+                    prev: holdPrev,
+                    dt: dt,
+                    captureJump: leftoverCaptureJump(prev: sessionCapture, next: capture[$0.index])
+                )
+            )
         }
         var printable = smoothed
         if leftoverTwinBlocksBox(pairCosine: twinPair, printCosine: nil) {
@@ -342,7 +351,8 @@ enum MatchMath {
                 cosine: $0.cosine ?? -1,
                 sharpness: sharpness[$0.index],
                 yawAbs: yawAbs[$0.index] ?? 0,
-                detScore: detScore[$0.index]
+                detScore: detScore[$0.index],
+                twinPair: twinPair
             )
         }
         let raw = pool.map { $0.cosine ?? -1 }
@@ -599,9 +609,25 @@ enum MatchMath {
     }
 
     /// Gast im Schatten 0,18 senkt nicht Annas Floor. Box behält ihren Capture.
-    static func leftoverSessionCaptureBox(old: Double?, live: Double?) -> Double? {
+    /// Flash 1 Tick: Median der Hist, nicht min.
+    static func leftoverSessionCaptureBox(old: Double?, live: Double?, hist: [Double] = []) -> Double? {
+        if hist.count >= 3 {
+            var s = hist
+            if let live, live > 0 { s.append(live) }
+            if let med = leftoverSessionCaptureMedian(s) { return med }
+        }
         if let live, live > 0 { return live }
         return old
+    }
+
+    static func leftoverSessionCaptureMedian(_ samples: [Double]) -> Double? {
+        let ok = samples.filter { $0 > 0 }.sorted()
+        guard !ok.isEmpty else { return nil }
+        return ok[ok.count / 2]
+    }
+
+    static func leftoverSessionCaptureStable(old: Double?, live: Double?, hist: [Double] = []) -> Double? {
+        leftoverSessionCaptureBox(old: old, live: live, hist: hist)
     }
 
     static func leftoverPrintOk(cosine: Double?, sharpness: Double? = nil, floor: Double = leftoverPrintCosine, yawAbs: Double? = nil, capture: Double? = nil) -> Bool {
@@ -625,7 +651,7 @@ enum MatchMath {
     static let leftoverSharpBonus = 0.05
     static let leftoverYawPenalty = 0.12
 
-    static func leftoverScore(cosine: Double, sharpness: Double?, yawAbs: Double = 0, detScore: Double? = nil) -> Double {
+    static func leftoverScore(cosine: Double, sharpness: Double?, yawAbs: Double = 0, detScore: Double? = nil, twinPair: Double? = nil) -> Double {
         var s: Double
         if let sh = sharpness {
             let t = min(1, max(0, (sh - leftoverPrintSharp) / 0.20))
@@ -638,10 +664,14 @@ enum MatchMath {
             let n = d > 1 ? d / 100 : d
             s += leftoverDetBonus * min(1, max(0, n))
         }
+        if let t = twinPair, t >= leftoverTwinSameShot {
+            s -= leftoverTwinScorePenalty * min(1, max(0, (t - leftoverTwinSameShot) / 0.04))
+        }
         return s
     }
 
     static let leftoverDetBonus = 0.04
+    static let leftoverTwinScorePenalty = 0.06
 
     /// Twin: Anna links bleibt links. Gast-Kiste rechts stiehlt nicht.
     static func leftoverBoxOrderKeeps(prevX: Double, candX: Double, others: [Double], minGap: Double = 40) -> Bool {
@@ -1481,6 +1511,20 @@ enum MatchMath {
         return s >= leftoverPrintSharp
     }
 
+    /// Galerie-Centroid: nur scharf + frontal. ¾ zieht Anna auf den Twin.
+    static let leftoverCentroidFrontal = 0.70
+
+    static func leftoverCentroidOk(sharpness: Double?, yawAbs: Double, frontal: Double = 1) -> Bool {
+        leftoverHoldWriteOk(sharpness: sharpness, yawAbs: yawAbs) && frontal >= leftoverCentroidFrontal
+    }
+
+    /// front / ¾ / Profil. leftoverHold je Pose, nicht eine EMA für alle.
+    static func leftoverHoldBin(yawAbs: Double) -> Int {
+        if yawAbs >= leftoverPrintProfileYaw { return 2 }
+        if yawAbs >= leftoverLookawayYaw { return 1 }
+        return 0
+    }
+
     /// Trail-Append dieselbe Schwelle. Roh 0,70 blur pollutet MAD.
     static func leftoverTrailWriteOk(sharpness: Double?, yawAbs: Double? = nil) -> Bool {
         leftoverHoldWriteOk(sharpness: sharpness, yawAbs: yawAbs)
@@ -2132,9 +2176,10 @@ enum MatchMath {
     }
 
     /// Glättung vor leftoverPick. Roh 0,70 / Hold 0,64 → 0,66, nicht 0,70.
-    static func leftoverHoldSmooth(raw: Double?, prev: Double?, dt: TimeInterval = 0.016) -> Double? {
+    /// AE-Sprung: α 0,08, sonst Hold in einem Tick umgeschrieben.
+    static func leftoverHoldSmooth(raw: Double?, prev: Double?, dt: TimeInterval = 0.016, captureJump: Double = 0) -> Double? {
         guard let raw else { return nil }
-        return leftoverHoldEMA(prev: prev, next: raw, alpha: leftoverHoldAlpha(dt: dt))
+        return leftoverHoldEMA(prev: prev, next: raw, alpha: leftoverHoldAlpha(dt: dt, captureJump: captureJump))
     }
 
     /// Twin-Spike ≥ 0,04 ohne Baptize 0,80: leftover nicht taufen.

@@ -1,4 +1,4 @@
-# Aegis **2.1.89 alpha**
+# Aegis **2.1.90 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,17 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.90 alpha
+
+2.1.89 per-Box Capture. unknownCentroid Yaw. Hold-α AE. Pick-EMA ignorierte Jump. Twin nicht im Score. ¾ in der Galerie. Flash senkte Floor.
+
+- **`leftoverHoldSmooth(captureJump:)`.** leftoverPick reicht den AE-Jump.
+- **`leftoverScore(twinPair:)`.** Same-Shot ≥ 0,88 zieht Score.
+- **`leftoverCentroidOk`.** meanPrintVector nur scharf+frontal.
+- **`leftoverSessionCaptureMedian` / Box(hist:).** Flash 1 Tick Floor bleibt.
+- **`leftoverHoldBin`.** 0 frontal / 1 ¾ / 2 Profil.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.90 (Build 116).
 
 ## Neu in 2.1.89 alpha
 
