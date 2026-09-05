@@ -1418,7 +1418,7 @@ enum MatchMathTests {
         ok(!MatchMath.leftoverMissClears(miss: 2), "2 Miss halten")
         ok(MatchMath.leftoverMissClears(miss: 3), "3 Miss löschen")
         ok(abs(MatchMath.leftoverAdoptNeedSec(dt: 0.016) - 1.20) < 0.001, "24 fps Adopt 1,2 s")
-        ok(abs(MatchMath.leftoverAdoptNeedSec(dt: 0.125) - 0.60) < 0.001, "8 fps Adopt 0,6 s")
+        ok(abs(MatchMath.leftoverAdoptNeedSec(dt: 0.125) - 1.20) < 0.001, "8 fps Adopt 1,2 s")
         ok(MatchMath.leftoverTwinTint(pairCosine: 0.90) == "amber", "TWIN? amber")
         ok(MatchMath.leftoverTwinTint(pairCosine: 0.93) == "red", "TWIN hart rot")
         ok(MatchMath.leftoverTwinTint(pairCosine: 0.50) == nil, "fremd kein Twin-Tint")

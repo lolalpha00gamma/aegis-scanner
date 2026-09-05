@@ -1,4 +1,4 @@
-# Aegis **2.1.96 alpha**
+# Aegis **2.1.97 alpha**
 
 **Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
 
@@ -15,6 +15,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.97 alpha
+
+2.1.96 leftoverBaptizeBoth auf `>` 0,80. Adopt 8 fps 0,6 s. Blur-Floor 0,22. ROI 0,18. CI kompiliert, Tests tot.
+
+- **`leftoverBaptizeBoth` smooth ≥ 0,80.** EMA genau 0,80 tauft. pinByPrint bleibt `>`.
+- **`leftoverAdoptNeedSec` 1,2 s auch 8 fps.** 10 Frames, Walker fällt durch.
+- **`leftoverBlurBlocks` / `leftoverHoldWriteOk` sharpnessFloor 0,12.** Continuity 0,12–0,14 hält leftover.
+- **`liveRoiBox` min 0,10.** HD-Gesicht 80 px Crop, nicht nil.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.97 (Build 123).
 
 ## Neu in 2.1.96 alpha
 

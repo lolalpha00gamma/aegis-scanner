@@ -604,9 +604,9 @@ enum MatchMath {
         pinByPrint(cosine: cosine ?? -1)
     }
 
-    /// Taufe roh UND smooth ≥ 0,80. Overlay zeigt beide, Pick tauft noch auf Roh.
+    /// Taufe roh > 0,80 UND smooth ≥ 0,80. EMA genau 0,80 ist Hold, nicht Spike.
     static func leftoverBaptizeBoth(raw: Double?, smooth: Double?) -> Bool {
-        leftoverBaptize(cosine: raw) && leftoverBaptize(cosine: smooth ?? raw)
+        leftoverBaptize(cosine: raw) && (smooth ?? raw ?? -1) >= pinPrintCosine
     }
 
     /// Twin 0,80 nach Hold 0,64: Spike, kein Steal. 0,80 nach 0,80 bleibt Taufe.
@@ -662,7 +662,8 @@ enum MatchMath {
     }
 
     /// Leftover darf Genuine 0,62–0,79 halten. Pin-Print 0,80 bleibt für enrolled IoU-Steal.
-    /// Blur unter leftoverPrintSharp sperrt Hold-Pick, nicht Baptize 0,80.
+    /// Blur unter sharpnessFloor sperrt Hold-Pick, nicht Baptize 0,80.
+    /// leftoverPrintSharp bleibt für Genuine 0,62. Continuity 0,12–0,14 darf 0,64 halten.
     /// Profil: Floor 0,70 — sonst Twin im ¾ mit 0,62 scharf.
     /// Schwelle 0,45 rad, nicht Lookaway 0,28 — sonst 16° schon Profil.
     static func leftoverPrintFloor(yawAbs: Double?) -> Double {
@@ -796,7 +797,7 @@ enum MatchMath {
     static func leftoverBlurBlocks(sharpness: Double?, cosine: Double?) -> Bool {
         if leftoverBaptize(cosine: cosine) { return false }
         guard let s = sharpness else { return false }
-        return s < leftoverPrintSharp
+        return s < sharpnessFloor
     }
 
     /// Scharfer Print gewinnt gegen leicht höheren unscharfen (0,72 scharf > 0,73 blur).
@@ -1571,9 +1572,10 @@ enum MatchMath {
         return max(leftoverAdoptFrames, min(leftoverAdoptCap, frames))
     }
 
-    /// 8 fps: 1,2 s ist 10 Frames — Walker fällt durch. Halbe Zeit analog pinchOpenNeed.
+    /// 8 fps: 1,2 s ist 10 Frames — Walker fällt durch. Nicht halb analog Pinch.
     static func leftoverAdoptNeedSec(dt: TimeInterval) -> TimeInterval {
-        dt >= 0.08 ? leftoverAdoptSec * 0.5 : leftoverAdoptSec
+        _ = dt
+        return leftoverAdoptSec
     }
 
     static func leftoverAdoptReady(streak: Int, need: Int) -> Bool {
@@ -1688,11 +1690,12 @@ enum MatchMath {
     }
 
     /// Blur darf Hold-EMA nicht schreiben — sonst Twin 0,70 klebt.
+    /// sharpnessFloor 0,12, nicht leftoverPrintSharp 0,22 — Continuity Laplacian 0,12–0,14 sonst tot.
     /// ¾ 0,35 schreibt sonst den Frontal-Hold runter. Lookaway 0,28, nicht erst Profil 0,45.
     static func leftoverHoldWriteOk(sharpness: Double?, yawAbs: Double? = nil) -> Bool {
         if let y = yawAbs, y >= leftoverLookawayYaw { return false }
         guard let s = sharpness else { return true }
-        return s >= leftoverPrintSharp
+        return s >= sharpnessFloor
     }
 
     /// Galerie-Centroid: nur scharf + frontal. ¾ zieht Anna auf den Twin.
@@ -2934,6 +2937,7 @@ enum MatchMath {
     }
 
     /// Live-Detector Crop um Kalman-Kisten. 8 fps False-Empty ohne ROI.
+    /// 0,18 ließ HD-Gesicht 80×100 tot (Crop 144/1280 = 0,11). 0,10 lässt typische Kisten durch.
     static func liveRoiBox(
         kalman: [(x: Double, y: Double, w: Double, h: Double)],
         imageW: Double,
@@ -2956,7 +2960,7 @@ enum MatchMath {
         let y = max(0, minY - py)
         let w = min(imageW - x, bw + 2 * px)
         let h = min(imageH - y, bh + 2 * py)
-        if w / imageW < 0.18 || h / imageH < 0.18 { return nil }
+        if w / imageW < 0.10 || h / imageH < 0.10 { return nil }
         if w / imageW > 0.92 && h / imageH > 0.92 { return nil }
         return (x, y, w, h)
     }

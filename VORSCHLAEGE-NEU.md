@@ -1,6 +1,14 @@
-# Nachtrag 2026-09-05 (2.1.96)
+# Nachtrag 2026-09-05 (2.1.97)
 
-Siehe ANALYSE.md. **2.1.96** schließt leftoverTransfersId leftoverBaptizeBoth, leftoverHoldPrevOf live, CI-Compile.
+Siehe ANALYSE.md. **2.1.97** schließt leftoverBaptizeBoth EMA ≥ 0,80, Adopt 1,2 s, Blur 0,12, ROI 0,10.
+
+## In 2.1.97 gelandet
+
+1. leftoverBaptizeBoth smooth ≥ pinPrintCosine — EMA 0,80 tauft
+2. leftoverAdoptNeedSec immer 1,2 s — 8 fps 10 Frames
+3. leftoverBlurBlocks / leftoverHoldWriteOk sharpnessFloor 0,12
+4. liveRoiBox min 0,10 — HD-Gesicht Crop
+5. VERSION = Models = MARKETING_VERSION 2.1.97 (Build 123)
 
 ## In 2.1.96 gelandet
 
@@ -115,7 +123,21 @@ Siehe ANALYSE.md. **2.1.96** schließt leftoverTransfersId leftoverBaptizeBoth, 
 138. **overlayName yawAbs** in leftoverHoldChip — zwei Overlay-Pfade ohne BIN.
 139. **Tests splitted.** Eine `run()`-Funktion, jeder Patch redeclare.
 140. **leftoverHold[id] Overlay ¾** leftoverHoldChip liest unbinned EMA, ¾ unsichtbar nach Dropout.
+141. **leftoverAdoptNeedSecSlow 1,6 s Pref** — 1,2 s sitzt, Ghost-Walker 1,6 s hinter Schalter.
+142. **liveRoiBox minFrac Konstante + Test** 40×50 px tot, 80×100 durch. Magic 0,10.
+143. **pinByPrint ≥** analog leftoverBaptizeBoth. Roh `>` und Smooth `≥` sind zwei Sprachen.
+144. **Continuity Laplacian-HUD** `SHARP 0,12` neben HOLD — sonst Blindflug warum leftover tot.
+145. **leftoverPrintSharp Continuity-Pfad** 0,08 wenn sessionCapture low, Genuine 0,62 nachts.
+146. **MatchMathTests split** — eine `run()`, Force-Unwrap liveRoiBox crasht den Rest.
+147. **Aegis.dmg nicht ins Git** — nur CI-Artefakt.
+148. **Shared AVCaptureSession XPC** mit Helios, eine TCC.
 - leftoverTransfersId leftoverBaptizeBoth — sitzt.
+- leftoverBaptizeBoth EMA ≥ 0,80 — sitzt.
+- leftoverAdoptNeedSec 1,2 s — sitzt.
+- leftoverBlurBlocks sharpnessFloor — sitzt.
+- leftoverHoldWriteOk sharpnessFloor — sitzt.
+- liveRoiBox 0,10 — sitzt.
+- leftoverHoldPrevOf live — sitzt.
 - leftoverHoldPrevOf live — sitzt.
 - Lookaway leftoverHold[id] nur frontal — sitzt.
 - leftoverHoldLookupYaw nil yaw — sitzt.
