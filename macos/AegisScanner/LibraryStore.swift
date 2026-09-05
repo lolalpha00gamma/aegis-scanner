@@ -2220,7 +2220,11 @@ final class LibraryStore: ObservableObject {
                     }
                     liveCaptureHist[old.id] = capHist
                     if let h = leftoverLastHash[old.id] {
-                        leftoverCaptureHistByHash[h] = MatchMath.leftoverCaptureHistEncode(capHist)
+                        leftoverCaptureHistByHash = MatchMath.leftoverCaptureHistTablePut(
+                            hash: h,
+                            hist: capHist,
+                            onto: leftoverCaptureHistByHash
+                        )
                     }
                     let skip = aeLock
                         || burst
@@ -2302,7 +2306,11 @@ final class LibraryStore: ObservableObject {
                 if hist.count > MatchMath.captureBurstFrames { hist.removeFirst(hist.count - MatchMath.captureBurstFrames) }
                 liveCaptureHist[old.id] = hist
                 if let h = leftoverLastHash[old.id] {
-                    leftoverCaptureHistByHash[h] = MatchMath.leftoverCaptureHistEncode(hist)
+                    leftoverCaptureHistByHash = MatchMath.leftoverCaptureHistTablePut(
+                        hash: h,
+                        hist: hist,
+                        onto: leftoverCaptureHistByHash
+                    )
                 }
                 let blur = MatchMath.skipPrint(
                     sharpness: face.quality.sharpness,

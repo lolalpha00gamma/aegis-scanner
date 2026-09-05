@@ -2391,6 +2391,28 @@ enum MatchMathTests {
         ok(twinRight == ["5.5.4.6"], "Twin R Occupied")
         ok(MatchMath.leftoverHoldLookup(hash: "5.5.4.6", table: firstTwin, now: 10, occupied: twinOcc) != nil, "Twin L Exact hält")
         ok(MatchMath.leftoverHoldLookup(hash: "5.5.4.6", table: firstTwin, now: 10, occupied: twinRight) == nil, "Twin R Exact tot")
+        ok(!MatchMath.leftoverHashTwinLeft(x: 0.50, others: [0.50]), "Gleichstand kein links")
+        let twinTie = MatchMath.leftoverHashTwinOccupied(
+            occupied: ["5.5.4.6"],
+            hash: "5.5.4.6",
+            x: 0.50,
+            others: [(hash: "5.5.4.6", x: 0.50)]
+        )
+        ok(twinTie == ["5.5.4.6"], "Gleichstand Occupied")
+        ok(MatchMath.leftoverHoldNeighborScans(facesInFrame: 1), "ein Gesicht scannt Nachbarn")
+        ok(!MatchMath.leftoverHoldNeighborScans(facesInFrame: 2), "Twin kein Nachbar-Walk")
+        var histCap: [String: [Double]] = [:]
+        for i in 0..<70 { histCap["k\(i)"] = [0.18] }
+        ok(MatchMath.leftoverCaptureHistTableEncode(histCap).count == 64, "Capture-Hist Table Cap 64")
+        var histPut: [String: [Double]] = histCap
+        histPut = MatchMath.leftoverCaptureHistTablePut(hash: "keep", hist: [0.19], onto: histPut)
+        ok(histPut["keep"] == [0.19] && histPut.count == 64, "Capture-Hist Put hält Key")
+        var trailCap: [String: (samples: [Double], at: TimeInterval)] = [:]
+        for i in 0..<70 {
+            trailCap = MatchMath.leftoverTrailPut(hash: "t\(i)", sample: 0.80, onto: trailCap, now: TimeInterval(i), sharpness: 0.40, ttl: 1000)
+        }
+        ok(trailCap.count == 64, "Hash-Trail Cap 64")
+        ok(trailCap["t69"]?.samples.last == 0.80, "jüngster Trail hält")
         ok(MatchMath.leftoverHashTwinChip(x: 0.20, others: [0.70]) == "TWIN L", "HUD TWIN L")
         ok(MatchMath.leftoverHashTwinChip(x: 0.70, others: [0.20]) == "TWIN R", "HUD TWIN R")
         ok(MatchMath.leftoverHashTwinChip(x: 0.20, others: []) == nil, "allein kein TWIN")

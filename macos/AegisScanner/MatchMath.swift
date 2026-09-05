@@ -1110,6 +1110,14 @@ enum MatchMath {
         return Dictionary(uniqueKeysWithValues: table.sorted { $0.value.at > $1.value.at }.prefix(cap).map { ($0.key, $0.value) })
     }
 
+    static func leftoverHashTrailCapped(
+        _ table: [String: (samples: [Double], at: TimeInterval)],
+        cap: Int = leftoverHashHoldCapN
+    ) -> [String: (samples: [Double], at: TimeInterval)] {
+        if table.count <= cap { return table }
+        return Dictionary(uniqueKeysWithValues: table.sorted { $0.value.at > $1.value.at }.prefix(cap).map { ($0.key, $0.value) })
+    }
+
     static func leftoverHashHoldChip(_ cosine: Double?) -> String? {
         guard let cosine, leftoverHashHoldKeeps(cosine) else { return nil }
         return "HASH \(leftoverHoldFrac(cosine))"
@@ -1160,12 +1168,17 @@ enum MatchMath {
         seenSlow ? leftoverLatch : leftoverHoldTTLPref(pref)
     }
 
-    /// Hamming-2 Neighbor-Veto wenn zwei Gesichter live. Twin stiehlt sonst Hash-Nachbar.
-    /// dist 1 war erlaubt — Nachbar-Bin 0,80 tauft den Twin. dist 0 Exact separat.
+    /// Hamming-1 Neighbor-Veto wenn zwei Gesichter live. Twin stiehlt sonst den Hash-Nachbar.
+    /// dist 0 Exact hält. Ein Gesicht: Hamming-2 Nachbarn bleiben.
     static func leftoverHoldNeighborOk(facesInFrame: Int, dist: Int) -> Bool {
         if dist <= 0 { return true }
         if facesInFrame >= 2, dist >= 1 { return false }
         return dist < 99
+    }
+
+    /// Twin-Frame: Nachbar-Walk verworfen. Exact zuerst, Grid nicht bauen.
+    static func leftoverHoldNeighborScans(facesInFrame: Int) -> Bool {
+        leftoverHoldNeighborOk(facesInFrame: facesInFrame, dist: 1)
     }
 
     /// Hamming-1/2 Veto sichtbar. Twin-Steal ohne Chip tot.
@@ -1188,9 +1201,9 @@ enum MatchMath {
         return out
     }
 
-    /// Hamming-0 Twins: links behält Exact, rechts Occupied. Sonst beide tot.
+    /// Hamming-0 Twins: strikt links behält Exact, rechts Occupied. Gleichstand: beide tot.
     static func leftoverHashTwinLeft(x: Double, others: [Double]) -> Bool {
-        others.allSatisfy { x <= $0 + 1e-9 }
+        others.allSatisfy { x + 1e-9 < $0 }
     }
 
     static func leftoverHashTwinOccupied(
@@ -1258,23 +1271,60 @@ enum MatchMath {
     }
 
     static func leftoverCaptureHistTableEncode(_ table: [String: [Double]]) -> [String: [Double]] {
-        Dictionary(uniqueKeysWithValues: table.compactMap { k, v -> (String, [Double])? in
+        leftoverCaptureHistTableCapped(Dictionary(uniqueKeysWithValues: table.compactMap { k, v -> (String, [Double])? in
             let e = leftoverCaptureHistEncode(v)
             return e.isEmpty ? nil : (k, e)
-        })
+        }))
     }
 
     static func leftoverCaptureHistTableDecode(_ raw: [String: [Double]]?) -> [String: [Double]] {
         leftoverCaptureHistTableEncode(raw ?? [:])
     }
 
+    static func leftoverCaptureHistTableCapped(
+        _ table: [String: [Double]],
+        keep: [String] = [],
+        cap: Int = leftoverHashHoldCapN
+    ) -> [String: [Double]] {
+        if table.count <= cap { return table }
+        var out: [String: [Double]] = [:]
+        out.reserveCapacity(cap)
+        for k in keep {
+            if out.count >= cap { break }
+            if let v = table[k] { out[k] = v }
+        }
+        if out.count < cap {
+            for (k, v) in table where out[k] == nil {
+                out[k] = v
+                if out.count >= cap { break }
+            }
+        }
+        return out
+    }
+
+    static func leftoverCaptureHistTablePut(
+        hash: String,
+        hist: [Double],
+        onto table: [String: [Double]],
+        cap: Int = leftoverHashHoldCapN
+    ) -> [String: [Double]] {
+        var next = table
+        let e = leftoverCaptureHistEncode(hist)
+        if e.isEmpty {
+            next.removeValue(forKey: hash)
+            return leftoverCaptureHistTableCapped(next, cap: cap)
+        }
+        next[hash] = e
+        return leftoverCaptureHistTableCapped(next, keep: [hash], cap: cap)
+    }
+
     static func leftoverHashTrailEncode(_ table: [String: (samples: [Double], at: TimeInterval)]) -> [String: [Double]] {
-        Dictionary(uniqueKeysWithValues: table.filter { !$0.value.samples.isEmpty }.map { ($0.key, $0.value.samples) })
+        Dictionary(uniqueKeysWithValues: leftoverHashTrailCapped(table.filter { !$0.value.samples.isEmpty }).map { ($0.key, $0.value.samples) })
     }
 
     static func leftoverHashTrailDecode(_ raw: [String: [Double]]?, now: TimeInterval) -> [String: (samples: [Double], at: TimeInterval)] {
         guard let raw else { return [:] }
-        return Dictionary(uniqueKeysWithValues: raw.filter { !$0.value.isEmpty }.map { ($0.key, (samples: $0.value, at: now)) })
+        return leftoverHashTrailCapped(Dictionary(uniqueKeysWithValues: raw.filter { !$0.value.isEmpty }.map { ($0.key, (samples: $0.value, at: now)) }))
     }
 
     /// Nach Restore: TTL darf nicht 1,2 s nach App-Start sterben. Erstes Live-Tick setzt `at`.
@@ -3966,7 +4016,7 @@ enum MatchMath {
         let key = bin.map { leftoverHoldHashKey(hash: hash, bin: $0) } ?? hash
         let row = leftoverCosineSparkPut(sample, onto: next[key]?.samples ?? [], cap: cap)
         next[key] = (row, now)
-        return next
+        return leftoverHashTrailCapped(next)
     }
 
     static func leftoverTrailLookup(
@@ -3985,13 +4035,15 @@ enum MatchMath {
                 return row.samples
             }
             var best: (samples: [Double], at: TimeInterval, dist: Int)?
-            for h in leftoverBoxHashNeighbors(hash) where h != hash {
-                let nk = leftoverHoldHashKey(hash: h, bin: bin)
-                guard let row = table[nk], now - row.at <= ttl else { continue }
-                let d = leftoverBoxHashDistance(hash, h)
-                if !leftoverHoldNeighborOk(facesInFrame: facesInFrame, dist: d) { continue }
-                if best == nil || d < best!.dist || (d == best!.dist && row.at > best!.at) {
-                    best = (row.samples, row.at, d)
+            if leftoverHoldNeighborScans(facesInFrame: facesInFrame) {
+                for h in leftoverBoxHashNeighbors(hash) where h != hash {
+                    let nk = leftoverHoldHashKey(hash: h, bin: bin)
+                    guard let row = table[nk], now - row.at <= ttl else { continue }
+                    let d = leftoverBoxHashDistance(hash, h)
+                    if !leftoverHoldNeighborOk(facesInFrame: facesInFrame, dist: d) { continue }
+                    if best == nil || d < best!.dist || (d == best!.dist && row.at > best!.at) {
+                        best = (row.samples, row.at, d)
+                    }
                 }
             }
             if let best { return best.samples }
@@ -4007,13 +4059,15 @@ enum MatchMath {
             return row.samples
         }
         var best: (samples: [Double], at: TimeInterval, dist: Int)?
-        for h in leftoverBoxHashNeighbors(hash) where h != hash {
-            let row = table[h] ?? table[leftoverHoldHashKey(hash: h, bin: 0)]
-            guard let row, now - row.at <= ttl else { continue }
-            let d = leftoverBoxHashDistance(hash, h)
-            if !leftoverHoldNeighborOk(facesInFrame: facesInFrame, dist: d) { continue }
-            if best == nil || d < best!.dist || (d == best!.dist && row.at > best!.at) {
-                best = (row.samples, row.at, d)
+        if leftoverHoldNeighborScans(facesInFrame: facesInFrame) {
+            for h in leftoverBoxHashNeighbors(hash) where h != hash {
+                let row = table[h] ?? table[leftoverHoldHashKey(hash: h, bin: 0)]
+                guard let row, now - row.at <= ttl else { continue }
+                let d = leftoverBoxHashDistance(hash, h)
+                if !leftoverHoldNeighborOk(facesInFrame: facesInFrame, dist: d) { continue }
+                if best == nil || d < best!.dist || (d == best!.dist && row.at > best!.at) {
+                    best = (row.samples, row.at, d)
+                }
             }
         }
         return best?.samples ?? []
@@ -4025,8 +4079,8 @@ enum MatchMath {
         ttl: TimeInterval = leftoverAdoptSec,
         skip: Bool = false
     ) -> [String: (samples: [Double], at: TimeInterval)] {
-        if leftoverHoldPruneSkips(rebased: skip) { return table }
-        return table.filter { now - $0.value.at <= ttl }
+        if leftoverHoldPruneSkips(rebased: skip) { return leftoverHashTrailCapped(table) }
+        return leftoverHashTrailCapped(table.filter { now - $0.value.at <= ttl })
     }
 
     static func leftoverHoldLookup(
@@ -4045,13 +4099,15 @@ enum MatchMath {
                 return row.cosine
             }
             var best: (cosine: Double, at: TimeInterval, dist: Int)?
-            for h in leftoverBoxHashNeighbors(hash) where h != hash {
-                let nk = leftoverHoldHashKey(hash: h, bin: bin)
-                guard let row = table[nk], now - row.at <= ttl else { continue }
-                let d = leftoverBoxHashDistance(hash, h)
-                if !leftoverHoldNeighborOk(facesInFrame: facesInFrame, dist: d) { continue }
-                if best == nil || d < best!.dist || (d == best!.dist && row.at > best!.at) {
-                    best = (row.cosine, row.at, d)
+            if leftoverHoldNeighborScans(facesInFrame: facesInFrame) {
+                for h in leftoverBoxHashNeighbors(hash) where h != hash {
+                    let nk = leftoverHoldHashKey(hash: h, bin: bin)
+                    guard let row = table[nk], now - row.at <= ttl else { continue }
+                    let d = leftoverBoxHashDistance(hash, h)
+                    if !leftoverHoldNeighborOk(facesInFrame: facesInFrame, dist: d) { continue }
+                    if best == nil || d < best!.dist || (d == best!.dist && row.at > best!.at) {
+                        best = (row.cosine, row.at, d)
+                    }
                 }
             }
             if let best { return best.cosine }
@@ -4067,13 +4123,15 @@ enum MatchMath {
             return row.cosine
         }
         var best: (cosine: Double, at: TimeInterval, dist: Int)?
-        for h in leftoverBoxHashNeighbors(hash) where h != hash {
-            let row = table[h] ?? table[leftoverHoldHashKey(hash: h, bin: 0)]
-            guard let row, now - row.at <= ttl else { continue }
-            let d = leftoverBoxHashDistance(hash, h)
-            if !leftoverHoldNeighborOk(facesInFrame: facesInFrame, dist: d) { continue }
-            if best == nil || d < best!.dist || (d == best!.dist && row.at > best!.at) {
-                best = (row.cosine, row.at, d)
+        if leftoverHoldNeighborScans(facesInFrame: facesInFrame) {
+            for h in leftoverBoxHashNeighbors(hash) where h != hash {
+                let row = table[h] ?? table[leftoverHoldHashKey(hash: h, bin: 0)]
+                guard let row, now - row.at <= ttl else { continue }
+                let d = leftoverBoxHashDistance(hash, h)
+                if !leftoverHoldNeighborOk(facesInFrame: facesInFrame, dist: d) { continue }
+                if best == nil || d < best!.dist || (d == best!.dist && row.at > best!.at) {
+                    best = (row.cosine, row.at, d)
+                }
             }
         }
         return best?.cosine

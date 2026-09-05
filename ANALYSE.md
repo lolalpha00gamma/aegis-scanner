@@ -1,3 +1,30 @@
+# Helios + Aegis — Analyse 2026-09-05 (2.1.121)
+
+Helios **1.5.104** (Build 124). Aegis **2.1.121 alpha** (Build 147). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.120: Twin x-order, empty Hash-Wipe, LOCK/Adopt Slider. Capture-Hist und Hash-Trail ohne Key-Cap. Twin-Gleichstand beide Exact. Nachbar-Walk trotz Hamming-1 Veto.
+
+## 2.1.120 → 2.1.121
+
+1. **leftoverCaptureHistByHash unbounded.** Pro Frame ein Box-Hash, persist, kein Cap.
+2. **leftoverHoldTrailByHash nur TTL.** Hold Cap 64, Trail nicht. Rebase-Skip hält alles.
+3. **leftoverHashTwinLeft `<=`.** Identisches x: beide links, beide Exact.
+4. **leftoverHoldNeighborOk nach dem Grid.** Twin dist≥1 tot, 625 Keys trotzdem.
+
+## Was 2.1.121 ändert
+
+1. **leftoverCaptureHistTableCapped/Put 64.**
+2. **leftoverHashTrailCapped 64** Put/Prune/Encode/Decode.
+3. **leftoverHashTwinLeft strikt `<`.** Gleichstand Occupied.
+4. **leftoverHoldNeighborScans** — Twin kein Nachbar-Walk. Kommentar Hamming-1.
+5. Tests + VERSION = Models = MARKETING_VERSION 2.1.121 (Build 147).
+
+Nicht: Hash-Floor 0,64 (kein Sharpness, sonst 2.1.113 Twin nach Restart). dropoutTTLSticky tot — App nimmt leftoverHoldTTLOf. leftoverHoldsTrack während LOCK — JUMP bricht, Tests verlangen Overlay halten.
+
+Helios 1.5.104: Occlusion 2-Tick, Relativ-Snap, JUMP-Slow, Laterality 3 Ticks. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-05 (2.1.120)
 
 Helios **1.5.104** (Build 124). Aegis **2.1.120 alpha** (Build 146). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

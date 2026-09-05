@@ -1,4 +1,30 @@
-# Aegis **2.1.120 alpha**
+# Aegis **2.1.121 alpha**
+
+Direkt laden:
+- [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
+- [Releases](https://github.com/lolalpha00gamma/aegis-scanner/releases)
+
+Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
+
+## Installieren
+
+1. [Aegis.dmg](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg) öffnen
+2. **Aegis** in den Ordner Programme ziehen
+3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
+
+macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.121 alpha
+
+Audit 45–52: nur bestätigte Bugs. Hash-Floor 0,64 und LOCK-Hold bleiben Absicht.
+
+- **Capture-Hist Table Cap 64.** Box-Hash ohne TTL wuchs und landete in gallery.json.
+- **Hash-Trail Cap 64.** Hold hatte Cap, Trail nur TTL — Rebase-Tick skip hielt alles.
+- **Twin Gleichstand Occupied.** `leftoverHashTwinLeft` strikt kleiner, sonst beide Exact.
+- **Nachbar-Walk Twin aus.** Hamming-1 Veto zuerst, Grid nicht bauen. Kommentar Hamming-1.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.121 (Build 147).
+
+## Neu in 2.1.120 alpha
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)

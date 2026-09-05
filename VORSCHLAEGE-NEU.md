@@ -1,3 +1,21 @@
+# Nachtrag 2026-09-05 (2.1.121)
+
+Siehe ANALYSE.md. **2.1.121** Capture-Hist/Trail Cap 64, Twin-Gleichstand Occupied, Nachbar-Walk Twin aus.
+
+## In 2.1.121 gelandet
+
+1. leftoverCaptureHistTableCapped/Put 64
+2. leftoverHashTrailCapped 64
+3. leftoverHashTwinLeft strikt <
+4. leftoverHoldNeighborScans — Twin kein Grid
+5. VERSION = Models = MARKETING_VERSION 2.1.121 (Build 147)
+
+## Nächste, zusätzlich
+
+- leftoverHashHoldFloor bleibt 0,64 (kein Sharpness im Persist).
+- dropoutTTLSticky nicht verdrahten — leftoverHoldTTLOf sitzt.
+- leftoverHoldsTrack LOCK halten — JUMP bricht.
+
 # Nachtrag 2026-09-05 (2.1.120)
 
 Siehe ANALYSE.md. **2.1.120** Twin x-order, empty Hash-Wipe, INDOOR/LOCK/Adopt Slider.
