@@ -1,27 +1,29 @@
-# Helios + Aegis — Analyse 2026-09-05 (2.1.113)
+# Helios + Aegis — Analyse 2026-09-05 (2.1.114)
 
-Helios **1.5.98** (Build 118). Aegis **2.1.113 alpha** (Build 139). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+Helios **1.5.98** (Build 118). Aegis **2.1.114 alpha** (Build 140). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
 
-2.1.112: Schema 6 Hash-Hold persist, Rebase. Prune denselben Tick wie Rebase. Schwache 0,50 Holds überleben Restart und taufen den Nachbarn. Capture-Hist nur RAM. Hash-Hold unbounded. JPEG-Miss und IoU-Jump ohne HUD.
+2.1.113: Prune-Skip Rebase, Hash-Floor 0,64, Cap 64, Capture-Hist persist, HUD HASH/JPEG/JUMP. Audit 44 Punkte — nur bestätigte Bugs.
 
-## 2.1.112 → 2.1.113 (warum Namen nach Restart und bei Twins noch sprangen)
+## 2.1.113 → 2.1.114
 
-1. **leftoverHoldPrune nach Rebase.** Erstes Live-Tick setzt `at`, prune mit TTL 1,2 s kann denselben Tick wischen wenn stamp driftet. Trail-Prune denselben Tick.
-2. **Hash-Hold cosine > 0 persist.** 0,50 Hold nach Restart = Twin-Taufe. Floor ist leftover 0,64.
-3. **leftoverHoldByHash unbounded.** Walk durch die Galerie füllt RAM, Steal hungert.
-4. **leftoverCaptureHist nur RAM.** Schema 6 Math, File fehlte. Burst-AE nach Restart tot.
-5. **JPEG-Miss und IoU-Jump ohne Chip.** Nutzer sieht HOLD, nicht warum die Taufe starb.
+1. **Drei Uhren.** Webcam-PTS / Player-Item / Epoch. Overlay-Chips und Tap-Lock tot oder klebten.
+2. **leftoverAssign 2-opt** schrieb dieselbe Spalte zweimal (Snapshot vs result).
+3. **CI** `git add Aegis.dmg` trotz gitignore, Job rot nach Release. codesign ohne Entitlements.
+4. **Resume** ohne Bookmark, Detect-UUIDs nach Neustart tot.
+5. **TAR@0,1 %FAR** bei n·FAR < 1 = höchster Impostor.
+6. **RTSP** → AVPlayer, spielt nicht. Center Stage `.user` Setter Exception.
+7. **retainAccess** stoppte denselben URL. restoreFromBackup ließ Live-Dicts.
 
-## Was 2.1.113 ändert
+## Was 2.1.114 ändert
 
-1. **`leftoverHoldPruneSkips`.** Rebase-Tick kein Prune (Hold + Trail).
-2. **`leftoverHashHoldKeeps` 0,64** Encode/Decode/Put/Prune.
-3. **`leftoverHashHoldCapped` 64.**
-4. **leftoverCaptureHist persist** Hash-Keyed, GalleryPayload optional, Schema 6.
-5. **HUD `HASH 0,80` / `JPEG` / `JUMP`.** leftoverGateChip peek.
-6. Tests + VERSION = Models = MARKETING_VERSION 2.1.113 (Build 139).
-
-Helios 1.5.98: Actor-Vel 0, Scale-Abort. Siehe `bpms9cmnxc-debug/Helios`.
+1. **Live-Stamp immer Epoch.** Webcam und Player stempeln `Date().timeIntervalSince1970`.
+2. **leftoverAssign Snapshot mitziehen** nach 2-opt-Tausch.
+3. **CI:** kein `git add Aegis.dmg`. codesign `--entitlements`, ohne `|| true`.
+4. **Resume** löst Security-Scoped Bookmark. Detect speichert Pfade, nicht RAM-UUIDs.
+5. **tar()** nil wenn n·FAR < 1. DevTest-Header 1 Zahl. RTSP Fehler statt AVPlayer.
+6. **Center Stage `.app`** vor Disable.
+7. leftoverHoldPut nur `hash#bin` + Cap 64. Lookup fällt auf `#0`.
+8. Tests + VERSION = Models = MARKETING_VERSION 2.1.114 (Build 140).
 
 `bugfix` mergen: nein. Nur `main`.
 

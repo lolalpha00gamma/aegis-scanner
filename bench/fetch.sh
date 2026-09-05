@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# LFW nach ~/AegisBench und drei Identifikationssätze:
+# LFW nach ~/Downloads/AegisBench und drei Identifikationssätze:
 #   smoke    12 Personen × 6 Fotos     — schnell
 #   ident20  alle mit ≥20 Bildern ×20  — sklearn-Split (~62 Personen)
 #   ident10  alle mit ≥10 Bildern ×20  — große Reihe (~158 Personen)
 # Bilder nicht ins Git — nur pairs.txt liegt im Repo.
 set -euo pipefail
 
-DEST="${AEGIS_BENCH:-$HOME/AegisBench}"
+DEST="${AEGIS_BENCH:-$HOME/Downloads/AegisBench}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 mkdir -p "$DEST"
 cp -f "$SCRIPT_DIR/pairs.txt" "$DEST/pairs.txt"

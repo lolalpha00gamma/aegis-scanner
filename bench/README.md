@@ -31,7 +31,7 @@ chmod +x bench/fetch.sh
 ./bench/fetch.sh
 ```
 
-schreibt nach `~/AegisBench/`:
+schreibt nach `~/Downloads/AegisBench/`:
 
 - `lfw/` — ganzer Satz
 - `smoke/` — 12 Personen × 6 Fotos (schnell)
@@ -42,9 +42,9 @@ schreibt nach `~/AegisBench/`:
 ## In der App
 
 1. **Testmodus** in der Toolbar
-2. `~/AegisBench/ident20` — Kalibrieren (ca. 1 200 Fotos, Leave-one-out + passende LFW-Paare)
-3. `~/AegisBench/ident10` — große Reihe (ca. 3 000 Fotos, dauert)
-4. `~/AegisBench/lfw` — volle 6000-Paar-Verifikation; Identifikation filtert auf ≥10 Bilder
+2. `~/Downloads/AegisBench/ident20` — Kalibrieren (ca. 1 200 Fotos, Leave-one-out + passende LFW-Paare)
+3. `~/Downloads/AegisBench/ident10` — große Reihe (ca. 3 000 Fotos, dauert)
+4. `~/Downloads/AegisBench/lfw` — volle 6000-Paar-Verifikation; Identifikation filtert auf ≥10 Bilder
 
 Die eigene Galerie wird nicht überschrieben. Cap in der App: 200 Personen × 20 Fotos.
 

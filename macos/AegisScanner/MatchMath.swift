@@ -929,10 +929,12 @@ enum MatchMath {
 
     static func leftoverHoldFrac(_ cosine: Double) -> String {
         let hundredths = Int((cosine * 100).rounded())
-        let whole = hundredths / 100
-        let frac = abs(hundredths % 100)
+        let sign = hundredths < 0 ? "-" : ""
+        let mag = abs(hundredths)
+        let whole = mag / 100
+        let frac = mag % 100
         let fracStr = frac < 10 ? "0\(frac)" : "\(frac)"
-        return "\(whole),\(fracStr)"
+        return "\(sign)\(whole),\(fracStr)"
     }
 
     static func leftoverCaptureChip(_ capture: Double?) -> String? {
@@ -1000,6 +1002,11 @@ enum MatchMath {
 
     /// Continuity Center Stage croppt der Box hinterher. Aus, sonst leftoverSteal.
     static let centerStageOff = true
+
+    /// `.user` (0) wirft beim Setter. `.app` (1) darf Aegis abschalten.
+    static func centerStageNeedsAppControl(currentModeRaw: Int) -> Bool {
+        centerStageOff && currentModeRaw != 1
+    }
 
     static func centerStageNeedsReassert(enabled: Bool) -> Bool {
         centerStageOff && enabled
@@ -1281,10 +1288,7 @@ enum MatchMath {
     static func leftoverCosineSparkLabel(_ trail: [Double]) -> String? {
         guard trail.count >= 2 else { return nil }
         func fmt(_ x: Double) -> String {
-            let n = Int((x * 100).rounded())
-            let frac = abs(n % 100)
-            let fracStr = frac < 10 ? "0\(frac)" : "\(frac)"
-            return "\(n / 100),\(fracStr)"
+            leftoverHoldFrac(x)
         }
         return "\(fmt(trail[0]))→\(fmt(trail[trail.count - 1]))"
     }
@@ -1931,7 +1935,7 @@ enum MatchMath {
     static func nameVoteProgress(history: [String], need: Int) -> String? {
         let agreeing = history.filter { !$0.isEmpty }
         guard need > 0 else { return nil }
-        let winner = nameMajority(agreeing)
+        let winner = nameMajority(agreeing, window: max(nameVoteFrames, need))
         let n = winner.map { w in agreeing.filter { $0 == w }.count } ?? 0
         if n >= need { return nil }
         return "\(n)/\(need)"
@@ -2478,7 +2482,7 @@ enum MatchMath {
         while improved, guardN < 16 {
             improved = false
             guardN += 1
-            let assigned = result.enumerated().compactMap { item -> (r: Int, c: Int)? in
+            var assigned = result.enumerated().compactMap { item -> (r: Int, c: Int)? in
                 guard let c = item.element else { return nil }
                 return (item.offset, c)
             }
@@ -2491,6 +2495,8 @@ enum MatchMath {
                     if swA + swB > cur + 1e-9 {
                         result[a.r] = b.c
                         result[b.r] = a.c
+                        assigned[i] = (a.r, b.c)
+                        assigned[j] = (b.r, a.c)
                         improved = true
                     }
                 }
@@ -2700,8 +2706,9 @@ enum MatchMath {
     static func tar(atFar far: Double, genuine: [Double], impostor: [Double]) -> (tar: Double, threshold: Double)? {
         guard !genuine.isEmpty, !impostor.isEmpty, far > 0, far < 1 else { return nil }
         let desc = impostor.sorted(by: >)
-        // floor(far·n) − 1: n=10/0,1 → 95; n=10/0,2 → 60; n=101/0,01 → 80.
-        // ceil−1 bricht 101 Impostoren (Index 1 → 10 statt 80).
+        // Ohne mindestens 1 Impostor bei FAR ist die Schwelle nicht definiert
+        // (n=500 @ 0,1 % → m=0 → höchster Impostor, gelabelt als 0,1 % FAR).
+        guard far * Double(desc.count) >= 1 else { return nil }
         let m = Int(far * Double(desc.count))
         let idx = min(desc.count - 1, max(0, m - 1))
         let t = desc[idx]
@@ -3777,12 +3784,9 @@ enum MatchMath {
     ) -> [String: (samples: [Double], at: TimeInterval)] {
         var next = leftoverTrailPrune(table, now: now)
         if !leftoverTrailWriteOk(sharpness: sharpness, yawAbs: yawAbs) { return next }
-        let key = bin.map { leftoverHoldHashKey(hash: hash, bin: $0) } ?? hash
+        let key = leftoverHoldHashKey(hash: hash, bin: bin ?? 0)
         let row = leftoverCosineSparkPut(sample, onto: next[key]?.samples ?? [], cap: cap)
         next[key] = (row, now)
-        if bin == 0 {
-            next[hash] = (row, now)
-        }
         return next
     }
 
@@ -3816,9 +3820,13 @@ enum MatchMath {
         if let row = table[hash], now - row.at <= ttl {
             return row.samples
         }
+        if let row = table[leftoverHoldHashKey(hash: hash, bin: 0)], now - row.at <= ttl {
+            return row.samples
+        }
         var best: (samples: [Double], at: TimeInterval, dist: Int)?
         for h in leftoverBoxHashNeighbors(hash) where h != hash {
-            guard let row = table[h], now - row.at <= ttl else { continue }
+            let row = table[h] ?? table[leftoverHoldHashKey(hash: h, bin: 0)]
+            guard let row, now - row.at <= ttl else { continue }
             let d = leftoverBoxHashDistance(hash, h)
             if best == nil || d < best!.dist || (d == best!.dist && row.at > best!.at) {
                 best = (row.samples, row.at, d)
@@ -3867,9 +3875,13 @@ enum MatchMath {
         if let row = table[hash], now - row.at <= ttl {
             return row.cosine
         }
+        if let row = table[leftoverHoldHashKey(hash: hash, bin: 0)], now - row.at <= ttl {
+            return row.cosine
+        }
         var best: (cosine: Double, at: TimeInterval, dist: Int)?
         for h in leftoverBoxHashNeighbors(hash) where h != hash {
-            guard let row = table[h], now - row.at <= ttl else { continue }
+            let row = table[h] ?? table[leftoverHoldHashKey(hash: h, bin: 0)]
+            guard let row, now - row.at <= ttl else { continue }
             let d = leftoverBoxHashDistance(hash, h)
             if best == nil || d < best!.dist || (d == best!.dist && row.at > best!.at) {
                 best = (row.cosine, row.at, d)
@@ -3917,9 +3929,6 @@ enum MatchMath {
         var next = leftoverHoldPrune(table, now: now)
         guard leftoverHashHoldKeeps(cosine) else { return leftoverHashHoldCapped(next) }
         next[leftoverHoldHashKey(hash: hash, bin: bin)] = (cosine, now)
-        if bin == 0 {
-            next[hash] = (cosine, now)
-        }
         return leftoverHashHoldCapped(next)
     }
 

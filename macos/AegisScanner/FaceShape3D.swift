@@ -32,8 +32,8 @@ enum FaceShape3D {
         let cy = pts.map(\.y).reduce(0, +) / Double(pts.count)
         let cyaw = cos(yaw)
         let cpitch = cos(pitch)
-        let sx = abs(cyaw) < 0.25 ? 1 : 1 / cyaw
-        let sy = abs(cpitch) < 0.25 ? 1 : 1 / cpitch
+        let sx = abs(cyaw) < 0.25 ? 1 : 1 / abs(cyaw)
+        let sy = abs(cpitch) < 0.25 ? 1 : 1 / abs(cpitch)
         return pts.map { p in
             Point2(x: (p.x - cx) * sx, y: (p.y - cy) * sy)
         }

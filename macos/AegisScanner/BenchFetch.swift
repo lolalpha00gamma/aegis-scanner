@@ -78,10 +78,10 @@ enum BenchFetch {
             for url in [figshare, umass] {
                 do {
                     try await download(url, to: tgz)
-                    last = FetchError.download
                     break
                 } catch {
                     last = error
+                    try? fm.removeItem(at: tgz)
                 }
             }
             guard fm.fileExists(atPath: tgz.path) else { throw last }
@@ -106,7 +106,10 @@ enum BenchFetch {
         if fm.fileExists(atPath: dest.path) { try fm.removeItem(at: dest) }
         try fm.moveItem(at: tmp, to: dest)
         let size = (try? dest.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
-        if size < 1_000_000 { throw FetchError.download }
+        if size < 1_000_000 {
+            try? fm.removeItem(at: dest)
+            throw FetchError.download
+        }
     }
 
     private static func extract(_ tgz: URL, into dest: URL) throws {
@@ -117,7 +120,10 @@ enum BenchFetch {
         p.standardError = FileHandle.nullDevice
         try p.run()
         p.waitUntilExit()
-        guard p.terminationStatus == 0 else { throw FetchError.extract }
+        guard p.terminationStatus == 0 else {
+            try? FileManager.default.removeItem(at: tgz)
+            throw FetchError.extract
+        }
     }
 
     static func slice(from lfw: URL, to dest: URL, minPhotos: Int, maxPhotos: Int) throws {

@@ -5,7 +5,7 @@
 	<key>NSCameraUsageDescription</key>
 	<string>Aegis erkennt Gesichter in der Webcam und in Live-Streams.</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Aegis liest Überwachungskameras in deinem Netz (RTSP, HLS, MJPEG, Snapshot).</string>
+	<string>Aegis liest Überwachungskameras in deinem Netz (HLS, MJPEG, Snapshot).</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>

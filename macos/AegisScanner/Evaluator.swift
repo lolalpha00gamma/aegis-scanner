@@ -68,7 +68,7 @@ enum LabReport {
                 if refsFull.isEmpty, !refsU.isEmpty {
                     genuineVsU.append(selfP)
                 }
-                pairScores[identity.name, default: [:]][identity.name, default: []].append(selfP)
+                pairScores[identity.id.uuidString, default: [:]][identity.id.uuidString, default: []].append(selfP)
                 for v in versus where v.identityId != identity.id {
                     impostor.append(v.percent)
                     let name = held.first { $0.id == v.identityId }?.name ?? "?"
@@ -79,7 +79,7 @@ enum LabReport {
                         impostorFull.append(v.percent)
                         lines.append("\(identity.name)→\(name),\(probe.id.uuidString),impostor,\(fmt(v.percent))")
                     }
-                    pairScores[identity.name, default: [:]][name, default: []].append(v.percent)
+                    pairScores[identity.id.uuidString, default: [:]][v.identityId.uuidString, default: []].append(v.percent)
                 }
             }
         }
@@ -176,10 +176,11 @@ enum LabReport {
             out.append("")
             out.append("Konfusion (mean % Probe → Galerie)")
             let names = identities.map(\.name)
+            let ids = identities.map(\.id.uuidString)
             out.append("probe\\ref\t" + names.joined(separator: "\t"))
-            for probe in names {
-                var row = [probe]
-                for ref in names {
+            for (pi, probe) in ids.enumerated() {
+                var row = [names[pi]]
+                for ref in ids {
                     let xs = pairScores[probe]?[ref] ?? []
                     row.append(xs.isEmpty ? "—" : String(format: "%.0f", xs.reduce(0, +) / Double(xs.count)))
                 }
@@ -192,7 +193,8 @@ enum LabReport {
     }
 
     private static func tarLines(genuine: [Double], impostor: [Double], label: String, into out: inout [String]) {
-        if impostor.count < 200, let t = MatchMath.tarBootstrap(atFar: 0.001, genuine: genuine, impostor: impostor) {
+        if impostor.count < 200 || Double(impostor.count) * 0.001 < 1,
+           let t = MatchMath.tarBootstrap(atFar: 0.001, genuine: genuine, impostor: impostor) {
             out.append(String(
                 format: "TAR \(label)@ 0,1 %% FAR  %.1f%%  [%.1f–%.1f]  (n_imp=%d, Bootstrap 95%%)",
                 100 * t.tar, 100 * t.lo, 100 * t.hi, impostor.count

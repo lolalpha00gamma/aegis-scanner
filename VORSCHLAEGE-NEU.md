@@ -1,3 +1,54 @@
+# Nachtrag 2026-09-05 (2.1.114)
+
+Siehe ANALYSE.md. **2.1.114** Audit-Fixes: Live-Uhr, 2-opt, CI DMG/Entitlements, Resume-Sandbox, TAR, RTSP, Center Stage.
+
+## In 2.1.114 gelandet
+
+1. Live-Stamp Epoch
+2. leftoverAssign Snapshot
+3. CI kein git add Aegis.dmg, codesign --entitlements
+4. Resume Bookmark + Detect-Pfade
+5. tar() nil wenn n·FAR < 1, DevTest-Header
+6. RTSP Fehler, Center Stage .app
+7. leftoverHoldPut nur hash#bin + Cap 64
+8. retainAccess, restore Live-Dicts, LazyHStack
+9. Tests + VERSION 2.1.114 (Build 140)
+
+## Nächste, zusätzlich
+
+- leftoverAdoptSecLock Pref 0,6–1,4.
+- Twin-name lock 1,2 s nach JUMP. Chip sitzt.
+- FaceEngine jpegProbe detached queue. Cache sitzt, Detect hoppt noch nach Main.
+- PhotoKit Live Photos Frame 0, nicht Poster.
+- printRevision je Identity.
+- gallery.json.bak rotate 3.
+- VNDetectFaceRectangles revision pin.
+- leftoverHashHold VoiceOver.
+- Schema 5 UUID-Bins nach Schema 6 behalten (kein Wipe).
+- Helios Frame-Pump, eine TCC. Shared XPC mit Helios 1.5.98.
+- Overlay VoiceOver HOLD/Spark/HASH.
+- Per-Box CLAHE statt Full-Frame.
+- Continuity Desk-View yaw-floor 0,36.
+- Gallery print decay: ungenutzte 14-Tage-Prints downweight.
+- Partial-Print P-Slot ohne Augen (Schal/Maske).
+- Burst-AE 5-Frame Pref Continuity-Nacht.
+- Print-Bank 5 Pose-Slots front/left/right/up/down.
+- DBSCAN vor Merge.
+- Watch-Folder PhotoKit.
+- Encrypted gallery export `.aegis`.
+- Iris-Textur-Slot als Twin-Veto.
+- Specular-Highlight auf Stirn als Card-Photo-Veto.
+- Continuity LiDAR-Z als Twin-Trennung.
+- Masken-/Schal-Slot. Brille-Slot.
+- Tests splitted.
+- Temporal ReID-Graph über Hold-Trail.
+- PnP 6DoF, Slot folgt der Nase.
+- IdentityDesk 9-Tuple → GalleryPayload direkt. Tuple ist 10 Felder.
+- Merge-Undo Stack 8.
+- leftoverJpegProbeReuse TTL Pref 0,25–1,2.
+
+Nur main.
+
 # Nachtrag 2026-09-05 (2.1.113)
 
 Siehe ANALYSE.md. **2.1.113** Prune-Skip Rebase, Hash-Floor 0,64, Cap 64, Capture-Hist persist, HUD HASH/JPEG/JUMP.
@@ -24,7 +75,6 @@ Siehe ANALYSE.md. **2.1.113** Prune-Skip Rebase, Hash-Floor 0,64, Cap 64, Captur
 - leftoverHashHold VoiceOver.
 - Schema 5 UUID-Bins nach Schema 6 behalten (kein Wipe).
 - Helios Frame-Pump, eine TCC. Shared XPC mit Helios 1.5.98.
-- RTSP 420f, Player-Pfad bleibt 32BGRA.
 - Overlay VoiceOver HOLD/Spark/HASH.
 - Per-Box CLAHE statt Full-Frame.
 - Continuity Desk-View yaw-floor 0,36.
@@ -39,7 +89,6 @@ Siehe ANALYSE.md. **2.1.113** Prune-Skip Rebase, Hash-Floor 0,64, Cap 64, Captur
 - Specular-Highlight auf Stirn als Card-Photo-Veto.
 - Continuity LiDAR-Z als Twin-Trennung.
 - Masken-/Schal-Slot. Brille-Slot.
-- RTSP-Reconnect Exponential-Backoff.
 - Tests splitted.
 - Temporal ReID-Graph über Hold-Trail.
 - PnP 6DoF, Slot folgt der Nase.

@@ -520,6 +520,7 @@ enum MatchMathTests {
             near(tar02.threshold, 60, 0.01, "FAR 20 % n=10 → zweithöchster Impostor")
             near(tar02.tar, 1, 0.01, "alle Genuine ≥ 60")
         }
+        ok(MatchMath.tar(atFar: 0.001, genuine: [90], impostor: Array(repeating: 10.0, count: 50)) == nil, "0,1 % FAR n=50 undefiniert")
 
         let sparkLo = MatchMath.sparkLamps(captures: [0.9, 0.2], sharps: [0.4, 0.08], yaws: [0.05, 0.9])
         ok(sparkLo.capture == .red && sparkLo.sharpness == .red && sparkLo.yaw == .red, "Spark nimmt schlechtesten Frame")
@@ -732,6 +733,8 @@ enum MatchMathTests {
         ])
         ok(assign3[2] == 2, "C nimmt Box 2")
         ok(assign3[0] == 1 && assign3[1] == 0, "2-opt tauscht A/B")
+        let assignCols = assign3.compactMap { $0 }
+        ok(Set(assignCols).count == assignCols.count, "2-opt keine Doppel-Spalte")
         let greedyTrap = MatchMath.leftoverAssign(scores: [
             [0.70, 0.68],
             [0.69, 0.40]
@@ -1487,6 +1490,10 @@ enum MatchMathTests {
         ok(parsed.filter(\.same).count == 2, "2 Genuine")
         ok(!parsed[2].same && parsed[2].aName == "Alice" && parsed[2].bName == "Bob", "Impostor Alice/Bob")
         ok(parsed[0].relativePath("a") == "Alice/Alice_0001.jpg", "LFW-Pfad")
+        let devTest = "2\nAlice\t1\t2\nBob\t1\t3\nAlice\t1\tCarol\t1\nBob\t1\tDave\t1\n"
+        let devParsed = BenchProtocol.parsePairs(devTest)
+        ok(devParsed.count == 4, "DevTest-Header 1 Zahl → 2+2 Paare (ist \(devParsed.count))")
+        ok(devParsed.filter(\.same).count == 2, "DevTest 2 Genuine")
         near(BenchProtocol.accuracy(scores: [90, 40], same: [true, false], threshold: 78), 1, 0.01, "Accuracy 2/2")
         near(BenchProtocol.accuracy(scores: [90, 80], same: [true, false], threshold: 78), 0.5, 0.01, "Accuracy 1/2")
         if FileManager.default.fileExists(atPath: "bench/pairs.txt"),
@@ -2036,6 +2043,13 @@ enum MatchMathTests {
         ok(MatchMath.leftoverHoldTrailOf(uuidTrail: [0.80], yawAbs: 0.35).isEmpty, "¾ kein UUID-Mix")
         ok(MatchMath.captureLockFrameRate(30, continuity: true) == 24, "Continuity 24 statt 30")
         ok(MatchMath.centerStageOff, "Center Stage aus")
+        ok(MatchMath.centerStageNeedsAppControl(currentModeRaw: 0), "user-Mode muss .app nehmen")
+        ok(!MatchMath.centerStageNeedsAppControl(currentModeRaw: 1), "schon .app")
+        ok(MatchMath.leftoverHoldFrac(-0.64) == "-0,64", "negatives Vorzeichen")
+        var oneHold: [String: (cosine: Double, at: TimeInterval)] = [:]
+        oneHold = MatchMath.leftoverHoldPut(hash: "1.2.3.4", cosine: 0.80, onto: oneHold, now: 10, bin: 0)
+        ok(oneHold["1.2.3.4"] == nil, "frontal nicht doppelt unbinned")
+        ok(oneHold["1.2.3.4#0"] != nil, "frontal nur #0")
         ok(MatchMath.sessionPresetClampsContinuity(true), "Continuity Preset aus")
         ok(!MatchMath.leftoverBaptizeBoth(raw: 0.82, smooth: nil), "Dropout-nil keine Taufe")
         ok(!MatchMath.leftoverHoldsTrack(cosine: 0.82, holdPrev: 0.80), "0,82 nach Smooth 0,80 tauft")

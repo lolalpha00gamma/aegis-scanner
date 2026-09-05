@@ -130,7 +130,7 @@ struct ContentView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .tracking(1.4)
-            TextField("rtsp:// oder http://kamera/…", text: $store.liveURLText)
+            TextField("http://kamera/… oder HLS/MJPEG", text: $store.liveURLText)
                 .textFieldStyle(.roundedBorder)
             HStack {
                 TextField("Name", text: $store.newPersonName)
@@ -326,7 +326,7 @@ struct ContentView: View {
             Divider()
             ScrollViewReader { proxy in
                 ScrollView(.horizontal) {
-                    HStack(spacing: 8) {
+                    LazyHStack(spacing: 8) {
                         ForEach(store.browseItems) { item in
                             Button {
                                 if item.kind == .video {

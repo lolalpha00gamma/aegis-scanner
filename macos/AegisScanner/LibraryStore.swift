@@ -186,7 +186,9 @@ final class LibraryStore: ObservableObject {
             leftoverHoldTrailHash: MatchMath.leftoverHashTrailEncode(leftoverHoldTrailByHash),
             leftoverCaptureHist: MatchMath.leftoverCaptureHistTableEncode(leftoverCaptureHistByHash)
         )
-        refreshMergeHint()
+        if !liveActive {
+            refreshMergeHint()
+        }
     }
 
     func refreshMergeHint() {
@@ -248,6 +250,18 @@ final class LibraryStore: ObservableObject {
         liveNameVoteAt = [:]
         tapNameLockUntil = [:]
         liveFaceStreak = 0
+        leftoverStreak = [:]
+        leftoverStreakBox = [:]
+        leftoverHold = [:]
+        leftoverPending = [:]
+        leftoverPairLast = [:]
+        leftoverPairStreak = [:]
+        leftoverPairCommit = [:]
+        boxKalman = [:]
+        boxKalmanV = [:]
+        liveGhosts = []
+        guestOrder = []
+        guestSeenAt = [:]
         rematch()
         persist()
         let schema = packed.schemaVersion.map { "Schema \($0)" } ?? "Schema <2"
@@ -432,13 +446,22 @@ final class LibraryStore: ObservableObject {
     }
 
     func resumeScan() {
+        openResumeBookmark()
         let paths = UserDefaults.standard.stringArray(forKey: resumeRemainingKey) ?? []
         let urls = paths.map { URL(fileURLWithPath: $0) }.filter { FileManager.default.fileExists(atPath: $0.path) }
-        let detectIds = (UserDefaults.standard.stringArray(forKey: resumeDetectKey) ?? [])
-            .compactMap(UUID.init(uuidString:))
-        guard !urls.isEmpty || !detectIds.isEmpty else {
+        let detectRaw = UserDefaults.standard.stringArray(forKey: resumeDetectKey) ?? []
+        let detectIds = detectRaw.compactMap(UUID.init(uuidString:))
+        let detectPaths = detectRaw.filter { UUID(uuidString: $0) == nil }
+        let detectURLs = detectPaths.map { URL(fileURLWithPath: $0) }.filter { FileManager.default.fileExists(atPath: $0.path) }
+        if urls.isEmpty, detectIds.isEmpty, detectURLs.isEmpty {
             canResumeScan = false
             status = "Nichts zum Fortsetzen"
+            return
+        }
+        if urls.isEmpty, !detectIds.isEmpty, media.isEmpty, detectURLs.isEmpty {
+            UserDefaults.standard.removeObject(forKey: resumeDetectKey)
+            canResumeScan = false
+            status = "Erkennung nach Neustart nicht fortsetzbar — Ordner erneut wählen"
             return
         }
         scanGeneration += 1
@@ -451,9 +474,15 @@ final class LibraryStore: ObservableObject {
                 await self.ingestAndScan(urls: urls, generation: gen)
             }
         } else {
-            status = "Erkennung fortsetzen · \(detectIds.count) Medien"
+            let missing = detectURLs.filter { u in !media.contains { $0.url.path == u.path } }
+            if !missing.isEmpty {
+                ingest(urls: missing)
+            }
+            let fromPaths = Set(media.filter { item in detectURLs.contains { $0.path == item.url.path } }.map(\.id))
+            let ids = detectIds.isEmpty ? Array(fromPaths) : detectIds
+            status = "Erkennung fortsetzen · \(ids.count) Medien"
             Task {
-                await self.scan(generation: gen, onlyMedia: detectIds)
+                await self.scan(generation: gen, onlyMedia: ids)
             }
         }
     }
@@ -461,17 +490,26 @@ final class LibraryStore: ObservableObject {
     private func ingestAndScan(urls: [URL], generation: Int) async {
         var remaining = urls
         let before = media.count
+        var batch: [URL] = []
+        func flush() {
+            guard !batch.isEmpty else { return }
+            ingest(urls: batch)
+            remaining.removeAll { batch.contains($0) }
+            batch.removeAll(keepingCapacity: true)
+        }
         for url in urls {
             if generation != scanGeneration {
+                flush()
                 rememberRemaining(remaining)
                 status = "Scan abgebrochen — Fortsetzen möglich"
                 busy = false
                 canResumeScan = true
                 return
             }
-            ingest(urls: [url])
-            remaining.removeAll { $0 == url }
+            batch.append(url)
+            if batch.count >= 24 { flush() }
         }
+        flush()
         rememberRemaining([])
         canResumeScan = false
         if let firstNew = media.dropFirst(before).first(where: { $0.kind == .photo })
@@ -499,7 +537,8 @@ final class LibraryStore: ObservableObject {
     }
 
     private func rememberDetectRemaining(_ ids: [UUID]) {
-        UserDefaults.standard.set(ids.map(\.uuidString), forKey: resumeDetectKey)
+        let paths = ids.compactMap { id in media.first { $0.id == id }?.url.path }
+        UserDefaults.standard.set(paths, forKey: resumeDetectKey)
         canResumeScan = hasResumeWork()
     }
 
@@ -509,13 +548,30 @@ final class LibraryStore: ObservableObject {
         return !files.isEmpty || !detect.isEmpty
     }
 
+    private func openResumeBookmark() {
+        guard let data = UserDefaults.standard.data(forKey: resumeBookmarkKey) else { return }
+        var stale = false
+        guard let url = try? URL(
+            resolvingBookmarkData: data,
+            options: [.withSecurityScope],
+            relativeTo: nil,
+            bookmarkDataIsStale: &stale
+        ) else { return }
+        _ = url.startAccessingSecurityScopedResource()
+        if stale { rememberFolder(url) }
+        retainAccess([url] + scopedRoots.filter { $0.path != url.path })
+    }
+
     private func retainAccess(_ urls: [URL]) {
         let previous = scopedRoots
         scopedRoots = urls
-        for url in scopedRoots {
+        let newPaths = Set(urls.map(\.path))
+        for url in urls {
             _ = url.startAccessingSecurityScopedResource()
         }
-        previous.forEach { $0.stopAccessingSecurityScopedResource() }
+        for url in previous where !newPaths.contains(url.path) {
+            url.stopAccessingSecurityScopedResource()
+        }
     }
 
     func ingest(urls: [URL]) {
@@ -703,7 +759,9 @@ final class LibraryStore: ObservableObject {
             enabled: enabled,
             continuity: liveContinuity
         )
-        refreshMergeHint()
+        if !liveActive {
+            refreshMergeHint()
+        }
     }
 
     /// Live-Frame: Sonden gegen Identitäts-Centroids, nicht jedes Galerie-Foto.
@@ -2249,11 +2307,13 @@ final class LibraryStore: ObservableObject {
                     scores: scores,
                     assigned: MatchMath.leftoverAssign(scores: scores)
                 )
+                var takenCols = Set<Int>()
                 for (r, col) in assigned.enumerated() {
                     guard let col, r < unusedLeft.count, col < unnamedLeft.count else { continue }
                     let old = unusedLeft[r]
                     let i = unnamedLeft[col]
-                    guard !used.contains(old.id) else { continue }
+                    guard !used.contains(old.id), !takenCols.contains(col) else { continue }
+                    takenCols.insert(col)
                     leftoverTried.insert(old.id)
                     let proposed = adopted[i].id
                     let prevLast = leftoverPairLast[old.id]
@@ -3241,12 +3301,12 @@ final class LibraryStore: ObservableObject {
         panel.canChooseFiles = false
         panel.allowsMultipleSelection = false
         panel.prompt = "Testmodus"
-        panel.message = "Ordner mit Personen-Unterordnern. Empfohlen: ~/AegisBench/ident20 nach ./bench/fetch.sh"
+        panel.message = "Ordner mit Personen-Unterordnern. Empfohlen: ~/Downloads/AegisBench/ident20 nach ./bench/fetch.sh"
         let home = benchHome
         if FileManager.default.fileExists(atPath: home.path) {
             panel.directoryURL = home
         } else {
-            status = "Kein ~/AegisBench. Repo klonen, dann: ./bench/fetch.sh"
+            status = "Kein ~/Downloads/AegisBench. In der App: Testdaten holen."
         }
         guard panel.runModal() == .OK, let root = panel.url else { return }
         retainAccess([root])
@@ -3306,7 +3366,7 @@ final class LibraryStore: ObservableObject {
                 parts.append(report)
             } else {
                 parts.append("")
-                parts.append("Kein pairs.txt — nur Identifikation. bench/fetch.sh legt die LFW-Paare nach ~/AegisBench.")
+                parts.append("Kein pairs.txt — nur Identifikation. Testdaten holen legt die LFW-Paare nach Downloads/AegisBench.")
             }
 
             if gen != self.scanGeneration || !flag.alive {

@@ -1764,6 +1764,11 @@ enum FaceEngine {
         printVecLock.unlock()
         let vals = decodePrintVector(data)
         printVecLock.lock()
+        if let hit = printVecCache[data] {
+            MatchMath.printCacheTouch(order: &printVecOrder, key: data)
+            printVecLock.unlock()
+            return hit
+        }
         let drop = MatchMath.printCacheDropCount(count: printVecCache.count + 1)
         if drop > 0 {
             let n = min(drop, printVecOrder.count)

@@ -33,6 +33,10 @@ enum BenchProtocol {
             folds = max(1, head[0])
             per = max(1, head[1])
             i = 1
+        } else if head.count == 1 {
+            folds = 1
+            per = max(1, head[0])
+            i = 1
         } else {
             folds = 1
             per = 300

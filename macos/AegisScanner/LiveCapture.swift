@@ -78,8 +78,10 @@ final class LiveCapture: NSObject {
             snapshotURL = url
             onReady?()
             startTimer()
-        case .hls, .httpVideo, .rtsp:
+        case .hls, .httpVideo:
             startPlayer(url: url)
+        case .rtsp:
+            onError?("RTSP spielt AVFoundation auf macOS nicht. HLS, MJPEG oder Snapshot nutzen.")
         }
     }
 
@@ -101,8 +103,11 @@ final class LiveCapture: NSObject {
         player = nil
         output = nil
         playerTransform = .identity
-        session?.stopRunning()
+        let s = session
         session = nil
+        if let s {
+            outputQueue.async { s.stopRunning() }
+        }
     }
 
     private func startCamera() {
@@ -156,8 +161,6 @@ final class LiveCapture: NSObject {
         out.setSampleBufferDelegate(delegate, queue: outputQueue)
         tap?.minInterval = MatchMath.liveMinInterval(continuity: isContinuity, faces: facesPresent, streak: 0)
         if session.canAddOutput(out) { session.addOutput(out) }
-        applyCenterStage(force: true)
-        applyBestFormat(device)
         applyCenterStage(force: true)
         applyBestFormat(device)
         applyNativePixelFormat(out)
@@ -284,6 +287,10 @@ final class LiveCapture: NSObject {
     private func applyCenterStage(force: Bool = false) {
         guard MatchMath.centerStageOff else { return }
         if #available(macOS 12.3, *) {
+            let modeRaw = Int(AVCaptureDevice.centerStageControlMode.rawValue)
+            if MatchMath.centerStageNeedsAppControl(currentModeRaw: modeRaw) {
+                AVCaptureDevice.centerStageControlMode = .app
+            }
             if force || MatchMath.centerStageNeedsReassert(enabled: AVCaptureDevice.isCenterStageEnabled) {
                 AVCaptureDevice.isCenterStageEnabled = false
             }
@@ -294,8 +301,6 @@ final class LiveCapture: NSObject {
         applyCenterStage(force: true)
         let device = session?.inputs.compactMap { ($0 as? AVCaptureDeviceInput)?.device }.first
         guard let device else { return }
-        applyBestFormat(device)
-        applyCenterStage(force: true)
         applyBestFormat(device)
     }
 
@@ -379,14 +384,21 @@ final class LiveCapture: NSObject {
             snapshotInFlight = true
             URLSession.shared.dataTask(with: bust(snapshotURL)) { [weak self] data, _, err in
                 let capture = self
+                if let err {
+                    Task { @MainActor in
+                        capture?.snapshotInFlight = false
+                        capture?.onError?(err.localizedDescription)
+                    }
+                    return
+                }
+                guard let data, let image = cgImage(from: data) else {
+                    Task { @MainActor in capture?.snapshotInFlight = false }
+                    return
+                }
+                let stamp = Date().timeIntervalSince1970
                 Task { @MainActor in
                     capture?.snapshotInFlight = false
-                    if let err {
-                        capture?.onError?(err.localizedDescription)
-                        return
-                    }
-                    guard let data, let image = cgImage(from: data) else { return }
-                    capture?.onFrame?(image, Date().timeIntervalSince1970)
+                    capture?.onFrame?(image, stamp)
                 }
             }.resume()
             return
@@ -397,7 +409,7 @@ final class LiveCapture: NSObject {
            let pb = output.copyPixelBuffer(forItemTime: t, itemTimeForDisplay: nil),
            let image = cgImage(from: pb, transform: playerTransform)
         {
-            onFrame?(image, CMTimeGetSeconds(t))
+            onFrame?(image, Date().timeIntervalSince1970)
         }
         if player.timeControlStatus == .paused, item.duration.isNumeric {
             player.seek(to: .zero)
@@ -407,15 +419,28 @@ final class LiveCapture: NSObject {
 }
 
 private final class FrameTap: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
+    private let lock = NSLock()
     private var last: TimeInterval = 0
     private var lastRaw: TimeInterval = 0
     private var fpsSamples: [Double] = []
     private var slowSince: TimeInterval = 0
-    var minInterval: TimeInterval = 0.20
+    private var _minInterval: TimeInterval = 0.20
+    var minInterval: TimeInterval {
+        get { lock.lock(); defer { lock.unlock() }; return _minInterval }
+        set { lock.lock(); _minInterval = newValue; lock.unlock() }
+    }
     var uniqueID: String = ""
-    var orientOverride: String = "auto"
+    private var _orientOverride: String = "auto"
+    var orientOverride: String {
+        get { lock.lock(); defer { lock.unlock() }; return _orientOverride }
+        set { lock.lock(); _orientOverride = newValue; lock.unlock() }
+    }
     var horizonLevel = false
-    var thermal = false
+    private var _thermal = false
+    var thermal: Bool {
+        get { lock.lock(); defer { lock.unlock() }; return _thermal }
+        set { lock.lock(); _thermal = newValue; lock.unlock() }
+    }
     private let emit: (CGImage, TimeInterval) -> Void
     init(emit: @escaping (CGImage, TimeInterval) -> Void) { self.emit = emit }
     func captureOutput(
@@ -425,30 +450,33 @@ private final class FrameTap: NSObject, AVCaptureVideoDataOutputSampleBufferDele
     ) {
         let pts = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
         let ptsSec = CMTimeGetSeconds(pts)
-        let stamp = (pts.isValid && ptsSec.isFinite && ptsSec > 0) ? ptsSec : Date().timeIntervalSince1970
+        let fpsStamp = (pts.isValid && ptsSec.isFinite && ptsSec > 0) ? ptsSec : Date().timeIntervalSince1970
         if lastRaw > 0 {
-            let rawDt = stamp - lastRaw
+            let rawDt = fpsStamp - lastRaw
             if rawDt > 0.02, rawDt < 0.50 {
                 fpsSamples.append(1.0 / rawDt)
                 if fpsSamples.count > 8 { fpsSamples.removeFirst(fpsSamples.count - 8) }
             }
         }
-        lastRaw = stamp
+        lastRaw = fpsStamp
         let median = fpsSamples.isEmpty ? 0.0 : fpsSamples.sorted()[fpsSamples.count / 2]
         if median > 0, median < 12 {
-            if slowSince == 0 { slowSince = stamp }
+            if slowSince == 0 { slowSince = fpsStamp }
         } else {
             slowSince = 0
         }
-        let slowFor = slowSince > 0 ? stamp - slowSince : 0
-        thermal = MatchMath.liveThermalHolds(medianFps: median, slowFor: slowFor)
-        let interval = MatchMath.liveMinIntervalThermal(base: minInterval, thermal: thermal)
+        let slowFor = slowSince > 0 ? fpsStamp - slowSince : 0
+        let therm = MatchMath.liveThermalHolds(medianFps: median, slowFor: slowFor)
+        thermal = therm
+        let interval = MatchMath.liveMinIntervalThermal(base: minInterval, thermal: therm)
+        let stamp = Date().timeIntervalSince1970
         guard stamp - last >= interval else { return }
         last = stamp
+        let override = orientOverride
         guard let pb = CMSampleBufferGetImageBuffer(sampleBuffer),
               let image = cgImage(from: pb, orientation: visionOrientation(
                 connection,
-                override: orientOverride,
+                override: override,
                 width: CVPixelBufferGetWidth(pb),
                 height: CVPixelBufferGetHeight(pb)
               ))

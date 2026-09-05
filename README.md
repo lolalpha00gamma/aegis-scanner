@@ -1,6 +1,4 @@
-# Aegis **2.1.113 alpha**
-
-**Die Image-Datei liegt im Repo:** [`Aegis.dmg`](./Aegis.dmg)
+# Aegis **2.1.114 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -10,11 +8,23 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 
 ## Installieren
 
-1. [`Aegis.dmg`](./Aegis.dmg) öffnen
+1. [Aegis.dmg](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg) öffnen
 2. **Aegis** in den Ordner Programme ziehen
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.114 alpha
+
+Audit: Live-Uhren, 2-opt Doppel-Spalte, CI git add ignorierte DMG, codesign ohne Entitlements, Resume-Sandbox, TAR@0,1 %FAR, RTSP tot.
+
+- **Live-Stamp immer Epoch.** Webcam-PTS und Player-Item-Zeit mischten sich mit Date() — Overlay-Chips tot, Tap-Lock nie aus.
+- **leftoverAssign Snapshot mitziehen.** 2-opt schrieb dieselbe Spalte zweimal.
+- **CI:** kein `git add Aegis.dmg`. codesign mit Entitlements, ohne `|| true`.
+- **Resume** löst Security-Scoped Bookmark. Detect speichert Pfade, nicht RAM-UUIDs.
+- **TAR** nil wenn n·FAR < 1. DevTest-Header 1 Zahl. RTSP Fehler statt AVPlayer.
+- **Center Stage `.app`** vor Disable (macOS 27 Exception).
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.114 (Build 140).
 
 ## Neu in 2.1.113 alpha
 
@@ -578,7 +588,7 @@ Ghost 1,8 s überlebte leftover 1,2 s — Vorbeigehen taufte den Nachbarn. lefto
 ## Neu in 2.1.54 alpha
 
 - **Print tot ≠ Okklusion.** Leerer Print hat Crop-Fallback auch bei EXIF-Rotation; 1:1-Zuordnung wenn nur ein Gesicht. Overlay sagt „unscharf“ / „Maske?“ nur wenn es stimmt.
-- **Testmodus** sitzt links unter Anlegen (nicht mehr in der vollen Toolbar). Testdaten: `./bench/fetch.sh` → `~/AegisBench/ident20`.
+- **Testmodus** sitzt links unter Anlegen (nicht mehr in der vollen Toolbar). Testdaten: `./bench/fetch.sh` → `~/Downloads/AegisBench/ident20`.
 
 ## Neu in 2.1.53 alpha
 
@@ -586,7 +596,7 @@ Größere Testreihe: `ident20` (~62 Personen × 20 Fotos) und `ident10` (~158 ×
 
 ## Neu in 2.1.52 alpha
 
-**Testmodus.** LFW View-2 (6000 Paare) und Identifikation auf Personen-Ordnern. Bilder holt `bench/fetch.sh` nach `~/AegisBench` — nicht ins Git. Toolbar **Testmodus**, Galerie bleibt unberührt. Bericht: EER, TAR@FAR, Cosine-Histogramm.
+**Testmodus.** LFW View-2 (6000 Paare) und Identifikation auf Personen-Ordnern. Bilder holt `bench/fetch.sh` nach `~/Downloads/AegisBench` — nicht ins Git. Toolbar **Testmodus**, Galerie bleibt unberührt. Bericht: EER, TAR@FAR, Cosine-Histogramm.
 
 ## Neu in 2.1.51 alpha
 

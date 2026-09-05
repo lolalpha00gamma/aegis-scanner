@@ -1,7 +1,7 @@
 # Aegis
 
 Lokaler Image- & Video-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**  
-Version **2.1.109 alpha**.
+Version **2.1.114 alpha**.
 
 ## Image-Datei
 
@@ -79,7 +79,7 @@ Testmodus ident10/ident20 — bis 200 Personen × 20 Fotos.
 
 ## Neu in 2.1.52 alpha
 
-Testmodus: LFW-Paare + Leave-one-out. `bench/fetch.sh` lädt den Satz nach `~/AegisBench`.
+Testmodus: LFW-Paare + Leave-one-out. `bench/fetch.sh` lädt den Satz nach `~/Downloads/AegisBench`.
 
 ## Neu in 2.1.51 alpha
 
@@ -279,7 +279,7 @@ Graph-Biomarker (jetzt nativ), 3D-Geometrie, TER-Fusion (diagnostisch). Keine de
 
 ## Was die App macht
 
-Ordner mit Fotos und Videos wählen, oder einen Live-Stream (Webcam, RTSP, HLS, MJPEG, Snapshot) einspeisen. Aegis zieht Frames, erkennt Gesichter und zeigt Übereinstimmung in Prozent für mehrere Strategien — offline auf dem Gerät.
+Ordner mit Fotos und Videos wählen, oder einen Live-Stream (Webcam, HLS, MJPEG, Snapshot) einspeisen. Aegis zieht Frames, erkennt Gesichter und zeigt Übereinstimmung in Prozent für mehrere Strategien — offline auf dem Gerät.
 
 | Strategie | Signal |
 |---|---|
