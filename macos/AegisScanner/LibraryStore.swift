@@ -1572,7 +1572,7 @@ final class LibraryStore: ObservableObject {
         let elapsed = now - (leftoverStreakSince[oldId] ?? now)
         let needSec = MatchMath.leftoverAdoptNeedSec(dt: dt)
         return (
-            MatchMath.leftoverAdoptReady(elapsed: elapsed, streak: next, holdPrev: holdPrev, needSec: needSec),
+            MatchMath.leftoverAdoptReady(elapsed: elapsed, streak: next, needSec: needSec, holdPrev: holdPrev),
             MatchMath.leftoverStreakLabel(elapsed: elapsed, needSec: needSec)
         )
     }

@@ -1,6 +1,11 @@
-# Nachtrag 2026-09-05 (2.1.98)
+# Nachtrag 2026-09-05 (2.1.99)
 
-Siehe ANALYSE.md. **2.1.98** leftoverHoldBlocks IEEE-Epsilon. Exact 0,04 ist Spike.
+Siehe ANALYSE.md. **2.1.99** leftoverAdoptReady Argument-Reihenfolge.
+
+## In 2.1.99 gelandet
+
+1. LibraryStore leftoverAdoptReady needSec vor holdPrev
+2. VERSION = Models = MARKETING_VERSION 2.1.99 (Build 125)
 
 ## In 2.1.98 gelandet
 

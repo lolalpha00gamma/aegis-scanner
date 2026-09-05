@@ -1,6 +1,10 @@
-# Helios + Aegis — Analyse 2026-09-05 (2.1.98)
+# Helios + Aegis — Analyse 2026-09-05 (2.1.99)
 
-Helios **1.5.82** (Build 102). Aegis **2.1.98 alpha** (Build 124). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+Helios **1.5.83** (Build 103). Aegis **2.1.99 alpha** (Build 125). Kein Xcode-Lauf in der Linux-Sandbox; CI auf macos-26. Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+## 2.1.98 → 2.1.99
+
+Math-Tests grün. xcodebuild: leftoverAdoptReady `holdPrev` vor `needSec`. Live-Adopt kompiliert nicht.
 
 ## 2.1.97 → 2.1.98
 
