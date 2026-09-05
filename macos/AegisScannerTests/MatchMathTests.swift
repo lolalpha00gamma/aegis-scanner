@@ -2404,9 +2404,9 @@ enum MatchMathTests {
         var histCap: [String: [Double]] = [:]
         for i in 0..<70 { histCap["k\(i)"] = [0.18] }
         ok(MatchMath.leftoverCaptureHistTableEncode(histCap).count == 64, "Capture-Hist Table Cap 64")
-        var histPut: [String: [Double]] = histCap
-        histPut = MatchMath.leftoverCaptureHistTablePut(hash: "keep", hist: [0.19], onto: histPut)
-        ok(histPut["keep"] == [0.19] && histPut.count == 64, "Capture-Hist Put hält Key")
+        var histTable: [String: [Double]] = histCap
+        histTable = MatchMath.leftoverCaptureHistTablePut(hash: "keep", hist: [0.19], onto: histTable)
+        ok(histTable["keep"] == [0.19] && histTable.count == 64, "Capture-Hist Put hält Key")
         var trailCap: [String: (samples: [Double], at: TimeInterval)] = [:]
         for i in 0..<70 {
             trailCap = MatchMath.leftoverTrailPut(hash: "t\(i)", sample: 0.80, onto: trailCap, now: TimeInterval(i), sharpness: 0.40, ttl: 1000)
