@@ -1,3 +1,60 @@
+# Nachtrag 2026-09-06 (2.1.137)
+
+Siehe ANALYSE.md. **2.1.137** Schema 8 PairLast/NameLock remaining/HoldTrail, AssignAtomic, FillX Pref, leftoverHoldMoveBins.
+
+## In 2.1.137 gelandet
+
+1. Schema 8 leftoverPairLast + leftoverNameLockUntil remaining + leftoverHoldTrail persist
+2. leftoverNameLockUntilEncode remaining seconds, Restore remaining-first
+3. leftoverAssignAtomic = leftoverHoldMove, leftoverMirrorPending Hold/Trail/NameLock/Bins
+4. leftoverHoldMoveBins UUID.bin Dest overwrite
+5. leftoverFillXRescuePref 0,16–0,36 + Slider, leftoverAssignLive pad, leftoverHoldRemint padRescue
+6. leftoverHoldTrail wipe mit leftoverHold
+7. VERSION = Models = MARKETING_VERSION 2.1.137 (Build 162)
+
+## Nächste, zusätzlich
+
+- leftoverFillXPad Pref 0,06–0,20 UI. Math sitzt, Slider fehlt.
+- leftoverPairCommit / leftoverPairStreak persist — Majority nach Restart tot.
+- leftoverStreak / leftoverStreakSince persist analog leftoverHold.
+- leftoverLiveHashTick vor persist in leftoverLastHash mergen, Tick selbst nicht persist.
+- leftoverHold TTL remaining analog NameLockUntil.
+- leftoverHoldMove leftoverCaptureHistByHash Rank-Key.
+- leftoverAssignLive n=3 Hungarian, nicht greedy FillX.
+- leftoverHoldRemint erster Pass padRescue, nicht nur dritter.
+- leftoverUUIDUUIDMapDecode drop dangling dest (tote Live-UUID nach Restart).
+- leftoverHoldTrail EMA 4 Samples, nicht unbeschränkt.
+- leftoverHoldByHash Rank-Key rebase nach Schema-8-Restore.
+- leftoverJpegProbeReuse TTL Pref 0,25–1,2.
+- leftoverHoldTrailByHash analog Rescue nach Rank-Key.
+- Hamming-1 Rescue nur Solo (faces=1), Twin bleibt Exact-only.
+- FaceEngine Detect auf outputQueue. JPEG-Reextract gegen denselben Buffer.
+- Hold-SM: Unseen / Tentative / Held / Named.
+- MatchMath split: Hold, Hash, Baptize, Assign.
+- Helios Frame-Pump, eine TCC. Shared XPC mit Helios 1.5.127.
+- Overlay 60 Hz CAMetalLayer, Detect 8–24 fps.
+- VNTrackObjectRequest statt nur Rectangles.
+- Temperature-skalierte Cosine statt hart 0,80 Baptize.
+- gallery.json.bak Rotate 3, printRevision je Identity.
+- Watch-Folder PhotoKit, Export `.aegis` verschlüsselt.
+- P-Slot Maske/Schal, Brille-Slot als Twin-Veto.
+- Temporal ReID-Graph über Hold-Trail.
+- Per-Box CLAHE statt Full-Frame.
+- Continuity Desk-View yaw-floor 0,36.
+- Print-Bank 5 Pose-Slots. DBSCAN vor Merge.
+- leftoverOccupiedMerge Hash-Key nach persist UUID-Restore.
+- leftoverLastIoU / leftoverSparkChipHeld persist.
+- leftoverHoldSurvive vs leftoverHold persist Race nach App-Restart.
+- leftoverAssignLiveGate Crowd 3 für drei Gesichter.
+- leftoverNameLockHeld ohne Until remaining nach Schema-7-Backup.
+- RTSP 420f, Reconnect Exponential-Backoff.
+- leftoverHoldMove leftoverJpeg* Maps.
+- leftoverPairLast Value-Remint persist: dest existiert nicht mehr nach Vision-Restart — leftoverHoldRemintId sitzt, Restore-Reihenfolge PairLast vor Remint.
+
+Die historische Liste bis 2.1.136: ANALYSE.md. Review: `REVIEW-2.1.134.md`.
+
+Nur main.
+
 # Nachtrag 2026-09-06 (2.1.136)
 
 Siehe ANALYSE.md. **2.1.136** HoldMove overwrite, Twin-Yaw-Tie, Schema 7 leftoverHold/LastHash/NameLockHeld.

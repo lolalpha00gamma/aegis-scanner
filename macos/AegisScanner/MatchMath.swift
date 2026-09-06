@@ -86,8 +86,8 @@ enum MatchMath {
     /// ¾/Profil: Maße vs. Frontal-Centroid lügen. Print ≥ 80 nicht vetoen.
     static let geoVetoYawSkip = 0.28
     static let geoVetoYawPrint = 80.0
-    /// gallery.json Schema neben printRevision. 7 = leftoverHold + LastHash + NameLockHeld.
-    static let gallerySchema = 7
+    /// gallery.json Schema neben printRevision. 8 = PairLast + NameLock remaining + HoldTrail.
+    static let gallerySchema = 8
     /// Box-IoU unter dem Wert: Bewegung. Mit Schärfe: kleines Nicken darf den Print.
     static let holdStillIoU = 0.70
     static let holdStillSharp = 0.18
@@ -1334,6 +1334,14 @@ enum MatchMath {
     /// Hash leer, Person ging. 0,90 bleibt tot (Test Far).
     static let leftoverFillXRescue = 0.28
 
+    static func leftoverFillXRescuePref(_ pref: Double) -> Double {
+        min(0.36, max(0.16, pref))
+    }
+
+    static func leftoverFillXPadPref(_ pref: Double) -> Double {
+        min(0.20, max(0.06, pref))
+    }
+
     /// Twin-Mitte: d≈d2. Nächster Hold 4× näher bleibt (0,02 vs 0,08).
     /// `d2 - d <= spread` allein tötete leftoverHoldXMatch(0,22) trotz eindeutigem 0,20.
     static func leftoverXAmbiguous(
@@ -1434,7 +1442,8 @@ enum MatchMath {
     static func leftoverAssignLive(
         scores: [[Double?]],
         liveX: [Double],
-        holdX: [Double]
+        holdX: [Double],
+        pad: Double = leftoverFillXRescue
     ) -> [Int?] {
         var assigned = leftoverAssignRemint(liveX: liveX, holdX: holdX)
         var used = Set(assigned.compactMap { $0 })
@@ -1460,9 +1469,14 @@ enum MatchMath {
                 ),
                 liveX: liveX,
                 holdX: holdX,
-                pad: leftoverFillXRescue
+                pad: leftoverFillXRescuePref(pad)
             )
         )
+    }
+
+    /// AssignLive: Hash + Hold + PairLast in einem Schritt, sonst Desync.
+    static func leftoverAssignAtomic<Value>(hold: [UUID: Value], from: UUID, to: UUID) -> [UUID: Value] {
+        leftoverHoldMove(hold: hold, from: from, to: to)
     }
 
     /// Vision-Restart: leftoverHold[old] auf Live-UUID nach x.
@@ -1540,7 +1554,8 @@ enum MatchMath {
         occupied: Set<UUID> = [],
         liveHash: [UUID: String] = [:],
         storedHash: [UUID: String] = [:],
-        hashTableKeys: [String] = []
+        hashTableKeys: [String] = [],
+        padRescue: Double = leftoverFillXRescue
     ) -> [UUID: Value] {
         var out = hold
         var taken = occupied
@@ -1578,7 +1593,7 @@ enum MatchMath {
             if hold[row.id] != nil { continue }
             if out[row.id] != nil { continue }
             guard let match = leftoverHoldXMatch(
-                liveX: row.x, holds: holds, occupied: taken, pad: leftoverFillXRescue
+                liveX: row.x, holds: holds, occupied: taken, pad: leftoverFillXRescuePref(padRescue)
             ) else { continue }
             if match == row.id { continue }
             if let v = hold[match] {
@@ -1620,7 +1635,8 @@ enum MatchMath {
         occupied: Set<UUID> = [],
         liveHash: [UUID: String] = [:],
         storedHash: [UUID: String] = [:],
-        hashTableKeys: [String] = []
+        hashTableKeys: [String] = [],
+        padRescue: Double = leftoverFillXRescue
     ) -> [String: Value] {
         var out = hold
         var taken = occupied
@@ -1661,7 +1677,7 @@ enum MatchMath {
             if present.contains(row.id) { continue }
             if out.keys.contains(where: { leftoverHoldId(from: $0) == row.id }) { continue }
             guard let match = leftoverHoldXMatch(
-                liveX: row.x, holds: holds, occupied: taken, pad: leftoverFillXRescue
+                liveX: row.x, holds: holds, occupied: taken, pad: leftoverFillXRescuePref(padRescue)
             ) else { continue }
             if match == row.id { continue }
             for (key, v) in hold {
@@ -1726,6 +1742,22 @@ enum MatchMath {
         return out
     }
 
+    /// AssignLive: UUID.bin-Keys analog leftoverHoldMove, sonst Bins tot auf alter UUID.
+    static func leftoverHoldMoveBins<Value>(hold: [String: Value], from: UUID, to: UUID) -> [String: Value] {
+        leftoverAssignAtomicBins(hold: hold, from: from, to: to)
+    }
+
+    static func leftoverAssignAtomicBins<Value>(hold: [String: Value], from: UUID, to: UUID) -> [String: Value] {
+        guard from != to else { return hold }
+        var out = hold
+        for (key, v) in hold {
+            guard leftoverHoldId(from: key) == from, let bin = leftoverHoldBinFromKey(key) else { continue }
+            out[leftoverHoldKey(id: to, bin: bin)] = v
+            out.removeValue(forKey: key)
+        }
+        return out
+    }
+
     /// AssignLive-Transfer: leftoverClearStreak darf PairCommit nicht droppen.
     static func leftoverClearDropsPair(transferred: Bool) -> Bool {
         !leftoverStreakKeepsLive(transferred: transferred)
@@ -1739,7 +1771,8 @@ enum MatchMath {
         occupied: Set<UUID> = [],
         liveHash: [UUID: String] = [:],
         storedHash: [UUID: String] = [:],
-        hashTableKeys: [String] = []
+        hashTableKeys: [String] = [],
+        padRescue: Double = leftoverFillXRescue
     ) -> [UUID: UUID] {
         var out = leftoverHoldRemint(
             hold: hold,
@@ -1748,7 +1781,8 @@ enum MatchMath {
             occupied: occupied,
             liveHash: liveHash,
             storedHash: storedHash,
-            hashTableKeys: hashTableKeys
+            hashTableKeys: hashTableKeys,
+            padRescue: padRescue
         )
         for row in live {
             if hold[row.id] != nil { continue }
@@ -4820,12 +4854,70 @@ enum MatchMath {
     }
 
     /// leftoverNameLockHeld nach Restart: Until = now + Arm, sonst Survive wischt Hold vor Remint.
-    static func leftoverNameLockUntilRestore(held: [UUID: String], now: TimeInterval, arm: TimeInterval) -> [UUID: TimeInterval] {
+    static func leftoverNameLockUntilRestore(
+        held: [UUID: String],
+        remaining: [UUID: TimeInterval] = [:],
+        now: TimeInterval,
+        arm: TimeInterval
+    ) -> [UUID: TimeInterval] {
         let used = leftoverNameLockSecPref(arm)
-        guard used > 0 else { return [:] }
         var out: [UUID: TimeInterval] = [:]
-        for id in held.keys {
-            out[id] = now + used
+        for (id, left) in remaining where left > 0 {
+            out[id] = now + left
+        }
+        if used > 0 {
+            for id in held.keys where out[id] == nil {
+                out[id] = now + used
+            }
+        }
+        return out
+    }
+
+    /// Remaining seconds, nicht absolute Epoch — Restart sonst Until in der Vergangenheit.
+    static func leftoverNameLockUntilEncode(until: [UUID: TimeInterval], now: TimeInterval) -> [String: Double] {
+        var out: [String: Double] = [:]
+        for (id, t) in until {
+            let left = t - now
+            if left > 0 { out[id.uuidString] = left }
+        }
+        return out
+    }
+
+    static func leftoverNameLockUntilDecode(_ raw: [String: Double]?, now: TimeInterval) -> [UUID: TimeInterval] {
+        var out: [UUID: TimeInterval] = [:]
+        for (k, v) in leftoverStreakSinceDecode(raw) where v > 0 {
+            out[k] = now + v
+        }
+        return out
+    }
+
+    static func leftoverUUIDUUIDMapEncode(_ table: [UUID: UUID]) -> [String: String] {
+        var out: [String: String] = [:]
+        for (k, v) in table {
+            out[k.uuidString] = v.uuidString
+        }
+        return out
+    }
+
+    static func leftoverUUIDUUIDMapDecode(_ raw: [String: String]?) -> [UUID: UUID] {
+        guard let raw else { return [:] }
+        var out: [UUID: UUID] = [:]
+        for (k, v) in raw {
+            guard let id = UUID(uuidString: k), let dest = UUID(uuidString: v) else { continue }
+            out[id] = dest
+        }
+        return out
+    }
+
+    static func leftoverUUIDTrailEncode(_ table: [UUID: [Double]]) -> [String: [Double]] {
+        leftoverHoldTrailBinsEncode(Dictionary(uniqueKeysWithValues: table.map { ($0.key.uuidString, $0.value) }))
+    }
+
+    static func leftoverUUIDTrailDecode(_ raw: [String: [Double]]?) -> [UUID: [Double]] {
+        var out: [UUID: [Double]] = [:]
+        for (k, v) in leftoverHoldTrailBinsDecode(raw) {
+            guard let id = UUID(uuidString: k), !v.isEmpty else { continue }
+            out[id] = v
         }
         return out
     }

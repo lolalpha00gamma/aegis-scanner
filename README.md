@@ -1,4 +1,4 @@
-# Aegis **2.1.136 alpha**
+# Aegis **2.1.137 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -14,7 +14,18 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
 
+## Neu in 2.1.137 alpha
+
+PairLast, NameLockUntil und HoldTrail RAM-only nach App-Restart. AssignLive bewegte Hold nicht. FillX Rescue 0,28 hart.
+
+- **Schema 8.** leftoverPairLast, leftoverNameLockUntil remaining, leftoverHoldTrail persist.
+- **leftoverAssignAtomic.** leftoverMirrorPending Hold/Trail/NameLock/Bins.
+- **leftoverHoldMoveBins.** UUID.bin Dest overwrite.
+- **leftoverFillXRescuePref 0,16–0,36 + UI.**
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.137 (Build 162).
+
 ## Neu in 2.1.136 alpha
+
 
 leftoverHoldMove droppte Dest bei Collision. Center-Stage-Twins beide Occupied. leftoverHold/LastHash RAM-only nach App-Restart.
 

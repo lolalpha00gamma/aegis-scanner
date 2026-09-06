@@ -1,3 +1,32 @@
+# Helios + Aegis — Analyse 2026-09-06 (2.1.137)
+
+Helios **1.5.127** (Build 146). Aegis **2.1.137 alpha** (Build 162). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.136: leftoverHoldMove overwrite, Twin-Yaw-Tie, Schema 7 leftoverHold/LastHash/NameLockHeld. PairLast, NameLockUntil, HoldTrail RAM-only. AssignLive Hold nicht atomar. FillX Rescue 0,28 hart.
+
+## 2.1.136 → 2.1.137
+
+1. **leftoverPairLast / leftoverNameLockUntil / leftoverHoldTrail nicht persist.** App-Restart: Twin-Taufe, NameLock tot, Trail-ReID tot.
+2. **leftoverNameLockUntilRestore nur now+Arm.** Absolute Epoch nach Restart in der Vergangenheit. Survive wischt vor Remint.
+3. **leftoverAssignLive nicht atomar.** leftoverMirrorPending bewegte Pair/Hash, nicht leftoverHold. Hold/Bins desync.
+4. **leftoverHoldMoveBins fehlte.** AssignLive leftoverHoldBins bleiben auf alter UUID.
+5. **leftoverFillXRescue hart 0,28.** 18 cm Kopf tot oder Crowd tauft Far.
+6. leftoverHoldTrail RAM nach stopLive blieb, leftoverHold leer — Desync.
+
+## Was 2.1.137 ändert
+
+1. **Schema 8.** leftoverPairLast, leftoverNameLockUntil remaining, leftoverHoldTrail persist.
+2. **leftoverNameLockUntil remaining-first.** Encode left seconds, Decode now:0, Restore remaining dann Arm.
+3. **leftoverAssignAtomic** = leftoverHoldMove. leftoverMirrorPending leftoverHold/Trail/NameLock/Bins.
+4. **leftoverHoldMoveBins.** UUID.bin Keys analog leftoverHoldMove, Dest overwrite.
+5. **leftoverFillXRescuePref 0,16–0,36 + UI.** leftoverAssignLive pad, leftoverHoldRemint padRescue.
+6. leftoverHoldTrail wipe mit leftoverHold. Backup restore wäscht PairLast nicht.
+7. Tests + VERSION = Models = MARKETING 2.1.137 (Build 162).
+
+Helios 1.5.127: screenKeySeed folgt, Overlap auto, Faust 2-Frame, Reanchor, bugfix-Prefs. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-06 (2.1.136)
 
 Helios **1.5.126** (Build 145). Aegis **2.1.136 alpha** (Build 161). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

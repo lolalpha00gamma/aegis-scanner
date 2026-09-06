@@ -147,6 +147,19 @@ struct ContentView: View {
             .pickerStyle(.menu)
             .frame(width: 100)
             .help("AssignLive nach Restart. Solo 1 Person. Crowd 2 gegen Twin-Taufe.")
+            Slider(
+                value: Binding(
+                    get: { store.fillXRescue },
+                    set: { store.setFillXRescue($0) }
+                ),
+                in: 0.16 ... 0.36,
+                step: 0.02
+            )
+            .frame(width: 80)
+            .help("AssignLive x-Rescue nach Restart. 0,28 Default. 18 cm Kopf oft 0,22.")
+            Text(String(format: "FillX %.2f", store.fillXRescue))
+                .font(.caption2.monospacedDigit())
+                .foregroundStyle(.secondary)
             if !store.revisionWarning.isEmpty {
                 Text(store.revisionWarning)
                     .font(.caption2)

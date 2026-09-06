@@ -396,7 +396,7 @@ enum MatchMathTests {
         ok(!MatchMath.leftoverNamedTrack(hadName: false), "namenlos kein leftover")
         ok(MatchMath.leftoverNeedsPrint(cosine: nil), "ohne Print kein leftover-Pin")
         ok(!MatchMath.leftoverNeedsPrint(cosine: 0.90), "mit Print leftover darf")
-        ok(MatchMath.gallerySchema == 7, "gallery.json Schema 7")
+        ok(MatchMath.gallerySchema == 8, "gallery.json Schema 8")
 
         ok(MatchMath.holdStillSkip(iou: 0.50), "Bewegung 0,50 skippt neuen Print")
         ok(!MatchMath.holdStillSkip(iou: 0.90), "Stillstand 0,90 nimmt Print")
@@ -2775,6 +2775,72 @@ enum MatchMathTests {
         ok(abs((until[persistId] ?? 0) - 11.2) < 0.001, "NameLock Until Restore Arm")
         let encodedHold = MatchMath.leftoverStreakSinceEncode([persistId: 0.81])
         ok(abs((MatchMath.leftoverStreakSinceDecode(encodedHold)[persistId] ?? 0) - 0.81) < 0.001, "Hold cosine persist")
+        let pairA = UUID(), pairB = UUID()
+        let pairEnc = MatchMath.leftoverUUIDUUIDMapEncode([pairA: pairB])
+        ok(MatchMath.leftoverUUIDUUIDMapDecode(pairEnc)[pairA] == pairB, "PairLast persist UUID")
+        let leftEnc = MatchMath.leftoverNameLockUntilEncode(until: [persistId: 12], now: 10)
+        ok(abs((leftEnc[persistId.uuidString] ?? 0) - 2) < 0.001, "NameLock remaining Encode")
+        let leftDec = MatchMath.leftoverNameLockUntilDecode(leftEnc, now: 0)
+        ok(abs((leftDec[persistId] ?? 0) - 2) < 0.001, "NameLock remaining Decode now 0")
+        let leftRest = MatchMath.leftoverNameLockUntilRestore(
+            held: [persistId: "Anna"],
+            remaining: leftDec,
+            now: 100,
+            arm: 1.2
+        )
+        ok(abs((leftRest[persistId] ?? 0) - 102) < 0.001, "NameLock remaining-first")
+        let armOnly = MatchMath.leftoverNameLockUntilRestore(
+            held: [persistId: "Anna"],
+            remaining: [:],
+            now: 100,
+            arm: 1.2
+        )
+        ok(abs((armOnly[persistId] ?? 0) - 101.2) < 0.001, "NameLock Arm ohne remaining")
+        let trailEnc = MatchMath.leftoverUUIDTrailEncode([persistId: [0.20, 0.22]])
+        let trailDec = MatchMath.leftoverUUIDTrailDecode(trailEnc)
+        ok(trailDec[persistId] == [0.20, 0.22], "HoldTrail UUID persist")
+        let atomicOld = UUID(), atomicNew = UUID()
+        let atomic = MatchMath.leftoverAssignAtomic(
+            hold: [atomicOld: 0.81, atomicNew: 0.10],
+            from: atomicOld,
+            to: atomicNew
+        )
+        ok(atomic[atomicNew] == 0.81 && atomic[atomicOld] == nil, "AssignAtomic überschreibt Dest")
+        let binOld = MatchMath.leftoverHoldKey(id: atomicOld, bin: 0)
+        let binMoved = MatchMath.leftoverHoldMoveBins(
+            hold: [binOld: 0.66, MatchMath.leftoverHoldKey(id: atomicNew, bin: 0): 0.10],
+            from: atomicOld,
+            to: atomicNew
+        )
+        ok(binMoved[MatchMath.leftoverHoldKey(id: atomicNew, bin: 0)] == 0.66, "HoldMoveBins überschreibt Dest")
+        ok(binMoved[binOld] == nil, "HoldMoveBins from tot")
+        near(MatchMath.leftoverFillXRescuePref(0.10), 0.16, 0.001, "FillX Floor 0,16")
+        near(MatchMath.leftoverFillXRescuePref(0.50), 0.36, 0.001, "FillX Cap 0,36")
+        near(MatchMath.leftoverFillXRescuePref(0.28), 0.28, 0.001, "FillX Default 0,28")
+        near(MatchMath.leftoverFillXPadPref(0.02), 0.06, 0.001, "FillX Pad Floor")
+        near(MatchMath.leftoverFillXPadPref(0.40), 0.20, 0.001, "FillX Pad Cap")
+        ok(
+            MatchMath.leftoverAssignLive(scores: [[nil]], liveX: [0.40], holdX: [0.22], pad: 0.16)[0] == nil,
+            "AssignLive pad 0,16 Far tot"
+        )
+        ok(
+            MatchMath.leftoverAssignLive(scores: [[nil]], liveX: [0.40], holdX: [0.22], pad: 0.36)[0] == 0,
+            "AssignLive pad 0,36 Rescue"
+        )
+        let padTight = MatchMath.leftoverHoldRemint(
+            hold: [atomicOld: 0.81],
+            live: [(id: atomicNew, x: 0.40)],
+            stored: [(id: atomicOld, x: 0.22)],
+            padRescue: 0.16
+        )
+        ok(padTight[atomicNew] == nil, "Remint padRescue 0,16 tot")
+        let padWide = MatchMath.leftoverHoldRemint(
+            hold: [atomicOld: 0.81],
+            live: [(id: atomicNew, x: 0.40)],
+            stored: [(id: atomicOld, x: 0.22)],
+            padRescue: 0.28
+        )
+        ok(padWide[atomicNew] == 0.81, "Remint padRescue 0,28")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)
