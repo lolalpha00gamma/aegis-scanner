@@ -1,4 +1,4 @@
-# Aegis **2.1.144 alpha**
+# Aegis **2.1.145 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.145 alpha
+
+Miss-Coast hart 1 Tick Indoor tot. JPEG Schema-11 at=now. Kalman IoU-Reset Tick 1. Ranked Occupied blockt Exact. Hungarian n=5.
+
+- **leftoverHoldMissNeedPref 1–3 Default 2.** leftoverHoldMissNeedAuto dt. Slider.
+- **leftoverJpegRestoreAt.** Schema 11 stale. leftoverHoldKalmanSkipReset 2 Ticks.
+- **leftoverOccupiedRankBlocks / leftoverOccupiedMergeYaw.** leftoverHoldKalmanVelDecay. HungarianX n≤6.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.145 (Build 170).
 
 ## Neu in 2.1.144 alpha
 

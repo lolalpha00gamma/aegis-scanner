@@ -27,6 +27,7 @@ final class LibraryStore: ObservableObject {
     @Published var fillXRescue: Double = MatchMath.leftoverFillXRescue
     @Published var fillXPad: Double = MatchMath.leftoverFillXPad
     @Published var jpegProbeTTL: Double = 0.80
+    @Published var leftoverMissNeed: Int = 2
     @Published var strategy: StrategyID = .aegis
     @Published var showAnatomy = true
     @Published var showNMSDebug = false
@@ -127,11 +128,15 @@ final class LibraryStore: ObservableObject {
     }
     private var leftoverLiveHashTick: [UUID: String] = [:]
     private var leftoverMissCoastTicks: Int = 0
+    private var leftoverKalmanRestoredAgo: Int = 99
     private func leftoverOccupiedHashes(except id: UUID? = nil) -> [String] {
-        let merged = MatchMath.leftoverOccupiedMerge(
-            stored: leftoverLastHash.compactMap { key, value in key == id ? nil : value },
-            live: leftoverLiveHashTick.compactMap { key, value in key == id ? nil : value }
-        )
+        let liveYawRows: [(hash: String, yawAbs: Double)] = leftoverLiveHashTick.compactMap { key, value in
+            if key == id { return nil }
+            let yaw = abs(liveYaw[key] ?? faces.first(where: { $0.id == key })?.quality.yaw ?? 0)
+            return (hash: value, yawAbs: yaw)
+        }
+        let stored = leftoverLastHash.compactMap { key, value in key == id ? nil : value }
+        let merged = MatchMath.leftoverOccupiedMergeYaw(stored: stored, live: liveYawRows)
         guard let id else { return merged }
         let hash = leftoverLiveHashTick[id] ?? leftoverLastHash[id] ?? ""
         let x = boxKalman[id]?.x ?? faces.first(where: { $0.id == id })?.box.x ?? 0
@@ -145,7 +150,7 @@ final class LibraryStore: ObservableObject {
         }
         let others = MatchMath.leftoverOccupiedOthers(live: liveRows, stored: storedRows, except: id)
         let yawOf: (UUID) -> Double = { fid in
-            abs(self.liveYaw[fid] ?? self.faces.first(where: { $0.id == fid })?.yaw ?? 0)
+            abs(self.liveYaw[fid] ?? self.faces.first(where: { $0.id == fid })?.quality.yaw ?? 0)
         }
         let otherYaws: [Double] = others.map { row in
             let liveId = leftoverLiveHashTick.first(where: { $0.value == row.hash && $0.key != id })?.key
@@ -253,6 +258,7 @@ final class LibraryStore: ObservableObject {
             let kal = MatchMath.leftoverHoldKalmanDecode(extra.leftoverHoldKalman)
             boxKalman = kal.kalman
             boxKalmanV = kal.vel
+            leftoverKalmanRestoredAgo = boxKalman.isEmpty ? 99 : 0
         }
         let lockStored = UserDefaults.standard.double(forKey: "aegis.nameLockSec")
         if lockStored > 0 {
@@ -286,6 +292,10 @@ final class LibraryStore: ObservableObject {
         let jpegStored = UserDefaults.standard.double(forKey: "aegis.jpegProbeTTL")
         if jpegStored > 0 {
             jpegProbeTTL = MatchMath.leftoverJpegProbeTTLPref(jpegStored)
+        }
+        let missStored = UserDefaults.standard.object(forKey: "aegis.missNeed") as? Int
+        if let missStored {
+            leftoverMissNeed = MatchMath.leftoverHoldMissNeedPref(missStored)
         }
         liveCapture.choice = cameraChoice
         let digest = GalleryFile.digestStatus()
@@ -453,6 +463,7 @@ final class LibraryStore: ObservableObject {
             let kal = MatchMath.leftoverHoldKalmanDecode(extra.leftoverHoldKalman)
             boxKalman = kal.kalman
             boxKalmanV = kal.vel
+            leftoverKalmanRestoredAgo = boxKalman.isEmpty ? 99 : 0
         } else {
             leftoverStreak = [:]
             leftoverPairStreak = [:]
@@ -461,6 +472,7 @@ final class LibraryStore: ObservableObject {
             leftoverJpegByHash = [:]
             boxKalman = [:]
             boxKalmanV = [:]
+            leftoverKalmanRestoredAgo = 99
         }
         liveGhosts = []
         guestOrder = []
@@ -1458,6 +1470,11 @@ final class LibraryStore: ObservableObject {
         UserDefaults.standard.set(jpegProbeTTL, forKey: "aegis.jpegProbeTTL")
     }
 
+    func setLeftoverMissNeed(_ v: Double) {
+        leftoverMissNeed = MatchMath.leftoverHoldMissNeedPref(Int(v.rounded()))
+        UserDefaults.standard.set(leftoverMissNeed, forKey: "aegis.missNeed")
+    }
+
     func voteProgress(faceId: UUID) -> String? {
         let hist = liveNameHist[faceId] ?? []
         let hit = matches.first { $0.faceId == faceId }?.hits.first { $0.strategy == .aegis }
@@ -2143,10 +2160,12 @@ final class LibraryStore: ObservableObject {
         )
     }
 
-    private func leftoverPredictHeld(keep: Set<UUID>, skip: Set<UUID>) {
+    private func leftoverPredictHeld(keep: Set<UUID>, skip: Set<UUID>, miss: Int = 0) {
         for id in keep where !skip.contains(id) {
             guard let k = boxKalman[id] else { continue }
-            let v = boxKalmanV[id] ?? (vx: 0, vy: 0)
+            let raw = boxKalmanV[id] ?? (vx: 0, vy: 0)
+            let v = MatchMath.leftoverHoldKalmanVelDecay(vx: raw.vx, vy: raw.vy, miss: miss)
+            boxKalmanV[id] = v
             let nx = MatchMath.boxKalmanPredict(x: k.x, v: v.vx, dt: liveDt)
             let ny = MatchMath.boxKalmanPredict(x: k.y, v: v.vy, dt: liveDt)
             let locked = MatchMath.leftoverGhostAspectLock(predX: nx, predY: ny, lastW: k.w, lastH: k.h)
@@ -2785,13 +2804,20 @@ final class LibraryStore: ObservableObject {
             prev: leftoverMissCoastTicks,
             hit: MatchMath.leftoverHoldMissHit(live: liveIds.count, adopted: adopted.count)
         )
-        let missCoast = MatchMath.leftoverHoldMissCoast(miss: leftoverMissCoastTicks)
+        let missNeed = MatchMath.leftoverHoldMissNeedAuto(dt: liveDt, pref: leftoverMissNeed)
+        let missCoast = MatchMath.leftoverHoldMissCoast(miss: leftoverMissCoastTicks, need: missNeed)
+        let skipKalmanReset = MatchMath.leftoverHoldKalmanSkipReset(ago: leftoverKalmanRestoredAgo)
+        leftoverKalmanRestoredAgo = MatchMath.leftoverHoldKalmanRestoredAdvance(
+            prev: leftoverKalmanRestoredAgo,
+            restored: false
+        )
         boxKalman = MatchMath.leftoverHoldRemint(hold: boxKalman, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys, pad: fillXPad, padRescue: fillXRescue)
         boxKalmanV = MatchMath.leftoverHoldRemint(hold: boxKalmanV, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys, pad: fillXPad, padRescue: fillXRescue)
+        let skipKalmanReset = MatchMath.leftoverHoldKalmanSkipReset(ago: leftoverKalmanRestoredAgo)
         for face in adopted {
             if let k = boxKalman[face.id] {
                 let kb = FaceBox(x: k.x, y: k.y, width: k.w, height: k.h)
-                if MatchMath.leftoverHoldKalmanResets(iou: FaceEngine.iou(kb, face.box)) {
+                if !skipKalmanReset, MatchMath.leftoverHoldKalmanResets(iou: FaceEngine.iou(kb, face.box)) {
                     boxKalmanDrop(face.id)
                 }
             }
@@ -2859,7 +2885,7 @@ final class LibraryStore: ObservableObject {
             status = line
         }
         if MatchMath.leftoverPredictOnMissCoast(missCoast) || (MatchMath.leftoverPredictOnEmptyLike(emptyLike) && emptyLatch) {
-            leftoverPredictHeld(keep: keepBoxes, skip: used)
+            leftoverPredictHeld(keep: keepBoxes, skip: used, miss: leftoverMissCoastTicks)
         }
         if found.isEmpty {
             if MatchMath.leftoverLiveHashTickWipes(empty: true, missCoast: missCoast) {

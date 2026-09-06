@@ -1,3 +1,34 @@
+# Helios + Aegis — Analyse 2026-09-06 (2.1.145)
+
+Helios **1.5.134** (Build 153). Aegis **2.1.145 alpha** (Build 170). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.144: Miss-Coast Kalman/Streak/Faces, JPEG remaining Schema 13. Miss hart 1. Schema-11 at=now. Kalman IoU-Reset Tick 1. Ranked Occupied blockt Exact. Hungarian n=5.
+
+## Warum Taufe und Restart nach 2.1.144 weiter rissen
+
+1. **Miss-Coast need hart 1.** Indoor 8 fps Dropout 2 Ticks. Tick 2 Survive wischt, Taufe Gast n+1.
+2. **JPEG Schema-11 Decode at=now.** 2er-Array remaining fehlt. Restore: Probe 0,80 s zu frisch, Indoor reextract tot.
+3. **Kalman IoU-Reset Tick 1 nach Restore.** Meas weit, Reset statt Kriechen. Schema 12 sitzt, erster Live-Tick droppt.
+4. **leftoverHashOwnOccupied Spatial-stript `#101`.** Ranked Occupied = Exact tot. Spatial-emit unvollständig.
+5. **Occupied Merge ohne Yaw.** Zwei Live gleiches Spatial, x-Tie: beide Occupied bis TwinOccupied. liveYaw nach Restore leer.
+6. **Kalman-v voll während Miss.** PredictOnMissCoast sitzt, Halt läuft mit last-v weiter.
+7. **HungarianX n>5 FillX greedy.** 6. Person tot.
+
+## Was 2.1.145 ändert
+
+1. **leftoverHoldMissNeedPref 1–3 Default 2.** leftoverHoldMissNeedAuto dt ≥ 0,20 → 3. Slider.
+2. **leftoverJpegRestoreAt.** Schema 11 stale = now − TTL. Erster Tick reextract.
+3. **leftoverHoldKalmanSkipReset** 2 Ticks nach Restore. leftoverHoldKalmanRestoredAdvance.
+4. **leftoverOccupiedRankBlocks.** Ranked `#101` blockt Exact nicht.
+5. **leftoverOccupiedMergeYaw.** Kleinerer yawAbs Exact, Rest `#101`.
+6. **leftoverHoldKalmanVelDecay** Miss 1 voll, α 0,82. leftoverPredictHeld miss:.
+7. **leftoverAssignHungarianX n≤6.** leftoverAssignHungarianN.
+8. Tests + VERSION = Models = MARKETING 2.1.145 (Build 170). Schema 13 bleibt.
+
+Helios 1.5.134: WarpWriter Token, Need Auto, Vel-Decay, ROI Freeze. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-06 (2.1.144)
 
 Helios **1.5.133** (Build 152). Aegis **2.1.144 alpha** (Build 169). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

@@ -3036,7 +3036,9 @@ enum MatchMathTests {
         ok(hun4[0] == 0 && hun4[1] == 1 && hun4[2] == 2 && hun4[3] == 3, "HungarianX n=4")
         ok(MatchMath.leftoverOccupiedMerge(stored: ["5.5.4.6#101"], live: ["5.5.4.6"]) == ["5.5.4.6"], "Occupied Rank+Spatial unique")
         ok(MatchMath.leftoverOccupiedMerge(stored: ["5.5.4.6"], live: ["5.5.4.6#101"]) == ["5.5.4.6"], "Occupied live Rank Spatial")
-        ok(MatchMath.leftoverHashOwnOccupied(live: ["5.5.4.6#101"], hash: "5.5.4.6"), "Own Occupied Spatial")
+        ok(MatchMath.leftoverHashOwnOccupied(live: ["5.5.4.6#101"], hash: "5.5.4.6#101"), "Own Occupied Ranked Exact")
+        ok(!MatchMath.leftoverOccupiedRankBlocks(live: ["5.5.4.6#101"], hash: "5.5.4.6"), "Ranked nicht Exact")
+        ok(MatchMath.leftoverOccupiedRankBlocks(live: ["5.5.4.6"], hash: "5.5.4.6"), "Exact Occupied Exact")
         let hunMid = MatchMath.leftoverAssignHungarianX(
             assigned: [nil, nil],
             liveX: [0.50],
@@ -3094,7 +3096,12 @@ enum MatchMathTests {
         ok(MatchMath.leftoverHoldMissAdvance(prev: 0, hit: false) == 1, "Miss +1")
         ok(MatchMath.leftoverHoldMissCoast(miss: 1), "Miss Coast Tick 1")
         ok(!MatchMath.leftoverHoldMissCoast(miss: 0), "Miss Hit tot")
-        ok(!MatchMath.leftoverHoldMissCoast(miss: 2), "Miss Tick 2 tot")
+        ok(MatchMath.leftoverHoldMissCoast(miss: 2), "Miss Coast Tick 2 Default")
+        ok(!MatchMath.leftoverHoldMissCoast(miss: 3), "Miss Tick 3 tot")
+        ok(MatchMath.leftoverHoldMissNeedPref(0) == 1, "Miss Need Floor 1")
+        ok(MatchMath.leftoverHoldMissNeedPref(9) == 3, "Miss Need Cap 3")
+        ok(MatchMath.leftoverHoldMissNeedAuto(dt: 0.25, pref: 2) == 3, "Miss Need Auto 4 fps")
+        ok(MatchMath.leftoverHoldMissNeedAuto(dt: 0.12, pref: 2) == 2, "Miss Need Auto 8 fps Pref")
         let missKeep = MatchMath.leftoverHoldSurvive(hold: persistHold, ghosts: [], live: [], missCoast: true)
         ok(missKeep[persistOld] == 0.80, "Miss-Coast 1 Frame hält")
         let missWipe = MatchMath.leftoverHoldSurvive(hold: persistHold, ghosts: [], live: [], missCoast: false)
@@ -3148,6 +3155,29 @@ enum MatchMathTests {
         near(jpegRemEnc["6.6.4.6"]?[2] ?? -1, 0.30, 0.001, "JPEG persist remaining")
         let jpegRemDec = MatchMath.leftoverJpegByHashDecode(jpegRemEnc, now: 9.0, ttl: 0.80)
         near(jpegRemDec["6.6.4.6"]?.at ?? 0, 8.50, 0.001, "JPEG remaining restore")
+        let jpegStale = MatchMath.leftoverJpegByHashDecode(["6.6.4.6": [0.03, 0.88]], now: 9.0, ttl: 0.80)
+        near(jpegStale["6.6.4.6"]?.at ?? 0, 8.20, 0.001, "JPEG Schema 11 stale")
+        ok(MatchMath.leftoverHoldKalmanSkipReset(ago: 0), "Kalman Restore Skip Tick 0")
+        ok(MatchMath.leftoverHoldKalmanSkipReset(ago: 1), "Kalman Restore Skip Tick 1")
+        ok(!MatchMath.leftoverHoldKalmanSkipReset(ago: 2), "Kalman Restore Tick 2 Reset")
+        ok(MatchMath.leftoverHoldKalmanRestoredAdvance(prev: 0, restored: true) == 0, "Kalman Restore ago 0")
+        ok(MatchMath.leftoverHoldKalmanRestoredAdvance(prev: 0, restored: false) == 1, "Kalman Restore +1")
+        let vel1 = MatchMath.leftoverHoldKalmanVelDecay(vx: 0.10, vy: 0, miss: 1)
+        near(vel1.vx, 0.10, 0.001, "Kalman Vel Miss 1 voll")
+        let vel2 = MatchMath.leftoverHoldKalmanVelDecay(vx: 0.10, vy: 0, miss: 2)
+        near(vel2.vx, 0.082, 0.001, "Kalman Vel Decay 0,82")
+        let yawMerge = MatchMath.leftoverOccupiedMergeYaw(
+            stored: [],
+            live: [(hash: "5.5.4.6", yawAbs: 0.30), (hash: "5.5.4.6", yawAbs: 0.10)]
+        )
+        ok(yawMerge.contains("5.5.4.6") && yawMerge.contains("5.5.4.6#101"), "Occupied Yaw Exact+#101")
+        let hun6 = MatchMath.leftoverAssignHungarianX(
+            assigned: [nil, nil, nil, nil, nil, nil],
+            liveX: [0.05, 0.20, 0.35, 0.50, 0.65, 0.80],
+            holdX: [0.00, 0.18, 0.33, 0.48, 0.63, 0.78],
+            pad: 0.12
+        )
+        ok(hun6[0] == 0 && hun6[5] == 5, "HungarianX n=6")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

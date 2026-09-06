@@ -187,6 +187,19 @@ struct ContentView: View {
             Text(String(format: "JPEG %.2fs", store.jpegProbeTTL))
                 .font(.caption2.monospacedDigit())
                 .foregroundStyle(.secondary)
+            Slider(
+                value: Binding(
+                    get: { Double(store.leftoverMissNeed) },
+                    set: { store.setLeftoverMissNeed($0) }
+                ),
+                in: 1 ... 3,
+                step: 1
+            )
+            .frame(width: 80)
+            .help("Detect-Drop Ghost. 2 Default. Indoor 4 fps braucht 3.")
+            Text("Miss \(store.leftoverMissNeed)")
+                .font(.caption2.monospacedDigit())
+                .foregroundStyle(.secondary)
             if !store.revisionWarning.isEmpty {
                 Text(store.revisionWarning)
                     .font(.caption2)

@@ -1,3 +1,56 @@
+# Nachtrag 2026-09-06 (2.1.145)
+
+Siehe ANALYSE.md. **2.1.145** Miss-Need 2 Auto, JPEG Schema-11 stale, Kalman Restore 2 Ticks, Occupied Yaw+Rank, Vel-Decay, Hungarian n=6.
+
+## In 2.1.145 gelandet
+
+1. leftoverHoldMissNeedPref 1–3 Default 2 + Auto dt + Slider
+2. leftoverJpegRestoreAt — Schema 11 remaining 0
+3. leftoverHoldKalmanSkipReset 2 Ticks nach Restore
+4. leftoverOccupiedRankBlocks — Ranked nicht Exact
+5. leftoverOccupiedMergeYaw — yawAbs Exact vs `#101`
+6. leftoverHoldKalmanVelDecay Miss-Coast
+7. leftoverAssignHungarianX n≤6
+8. VERSION = Models = MARKETING_VERSION 2.1.145 (Build 170)
+
+## Nächste, zusätzlich
+
+- leftoverHold TTL remaining analog NameLockUntil / Seen — leftoverHold ist Cosine, HashHold `at` startet nach Restore neu.
+- leftoverAssign n>6 Jonker-Volgenant, nicht nur HungarianX 6.
+- leftoverLastIoU / leftoverSparkChipHeld persist (Mirror sitzt, gallery.json fehlt).
+- leftoverNameLockHeld ohne Until remaining nach Schema-7-Backup.
+- leftoverPairLast Value-Remint persist: dest tot nach Vision-Restart — DropDangling nach Remint.
+- leftoverHoldBins Rank `#101` nach Restore rebase analog leftoverHoldByHash (Bins sind UUID.bin).
+- leftoverCaptureHistByHash persist analog leftoverHoldTrailHash — Encode sitzt, Keep nur LastHash.
+- Hamming-Gewicht im Hash selbst, nicht nur Spatial-Strip `#`.
+- FaceEngine Detect auf outputQueue. JPEG-Reextract gegen denselben Buffer.
+- Hold-SM: Unseen / Tentative / Held / Named. MatchMath split: Hold, Hash, Baptize, Assign.
+- Helios Frame-Pump, eine TCC. Shared XPC / IOSurface mit Helios 1.5.134.
+- Overlay 60 Hz CAMetalLayer, Detect 8–24 fps.
+- VNTrackObjectRequest statt nur Rectangles.
+- Temperature-skalierte Cosine statt hart 0,80 Baptize.
+- gallery.json.bak Rotate 3, printRevision je Identity.
+- Watch-Folder PhotoKit, Export `.aegis` verschlüsselt.
+- P-Slot Maske/Schal, Brille-Slot als Twin-Veto.
+- Temporal ReID-Graph über Hold-Trail (EMA Cap 4 ist Pflaster).
+- Per-Box CLAHE statt Full-Frame.
+- Continuity Desk-View yaw-floor 0,36.
+- Print-Bank 5 Pose-Slots. DBSCAN vor Merge.
+- RTSP 420f, Reconnect Exponential-Backoff.
+- Live-Centroid EMA Reset nach Vision-Restart.
+- leftoverHoldTrailByHash EMA analog UUID-Trail.
+- VNDetectFaceCaptureQuality als Baptize-Gate.
+- leftoverPairCommit Majority 3-Tick persist nach Value-Remint prüfen.
+- Continuity LiDAR depth als Box-Z. Twin-Tie ohne Yaw.
+- leftoverHoldKalman IoU-Reset Pref 0,30–0,50, nicht hart 0,40.
+- Face Capture Quality + Sharpness AND als Baptize-Gate, nicht OR.
+- leftoverJpegByHash remaining wall-clock — Schema 13 ist Restore-stale, In-Session TTL sitzt RAM.
+- leftoverKeepBoxes missCoast: Kalman-Filter nach Keep darf Hold-IDs nicht droppen wenn hold nach Remint leer — Remint `out = hold` sitzt.
+
+Die historische Liste bis 2.1.144: ANALYSE.md. Review: `REVIEW-2.1.134.md`.
+
+Nur main.
+
 # Nachtrag 2026-09-06 (2.1.144)
 
 Siehe ANALYSE.md. **2.1.144** Miss-Coast Kalman/Streak/Faces, JPEG remaining Schema 13.

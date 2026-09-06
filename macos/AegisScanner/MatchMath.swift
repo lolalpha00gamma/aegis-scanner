@@ -695,6 +695,10 @@ enum MatchMath {
         leftoverHoldHashSpatial(hash)
     }
 
+    static func leftoverJpegRestoreAt(now: TimeInterval, ttl: TimeInterval) -> TimeInterval {
+        now - leftoverJpegProbeTTLPref(ttl)
+    }
+
     static func leftoverJpegProbeLookup(
         table: [String: (delta: Double, at: TimeInterval, cosine: Double)],
         hash: String
@@ -772,7 +776,7 @@ enum MatchMath {
             if v.count >= 3 {
                 at = leftoverJpegAtFromRemaining(remaining: v[2], now: now, ttl: ttl)
             } else {
-                at = now
+                at = leftoverJpegRestoreAt(now: now, ttl: ttl)
             }
             out[key] = (delta: v[0], at: at, cosine: v.count >= 2 ? v[1] : 0)
         }
@@ -1281,10 +1285,18 @@ enum MatchMath {
     }
 
     /// Gleiche Bin, zwei Live-Kisten: Exact-Hold tot. Twin liest sonst 0,80 vom selben Key.
-    static func leftoverHashOwnOccupied(live: [String], hash: String) -> Bool {
+    /// Rank `#101` blockt Exact nicht — Spatial-strip fraß Twin-L.
+    static func leftoverOccupiedRankBlocks(live: [String], hash: String) -> Bool {
         let spatial = leftoverHoldHashSpatial(hash)
         if spatial.isEmpty { return live.contains(hash) }
-        return live.contains { leftoverHoldHashSpatial($0) == spatial }
+        if hash != spatial {
+            return live.contains(hash)
+        }
+        return live.contains { leftoverHoldHashSpatial($0) == spatial && leftoverHoldHashSpatial($0) == $0 }
+    }
+
+    static func leftoverHashOwnOccupied(live: [String], hash: String) -> Bool {
+        leftoverOccupiedRankBlocks(live: live, hash: hash)
     }
 
     /// leftoverLastHash ist Vor-Tick. Erster Twin-Frame: stored leer, Exact-Steal.
@@ -1295,6 +1307,41 @@ enum MatchMath {
         var seen = Set<String>()
         var out: [String] = []
         for h in live + stored where !h.isEmpty {
+            let key = leftoverHoldHashSpatial(h)
+            if key.isEmpty { continue }
+            if seen.insert(key).inserted { out.append(key) }
+        }
+        return out
+    }
+
+    /// Zwei Live gleiches Spatial: kleinerer yawAbs Exact, Rest `#101`.
+    /// Merge ohne Yaw emittiert nur Spatial — Center-Stage x-Tie beide Occupied.
+    static func leftoverOccupiedMergeYaw(
+        stored: [String],
+        live: [(hash: String, yawAbs: Double)]
+    ) -> [String] {
+        var groups: [String: [(hash: String, yawAbs: Double)]] = [:]
+        var order: [String] = []
+        for row in live where !row.hash.isEmpty {
+            let key = leftoverHoldHashSpatial(row.hash)
+            if key.isEmpty { continue }
+            if groups[key] == nil { order.append(key) }
+            groups[key, default: []].append(row)
+        }
+        var seen = Set<String>()
+        var out: [String] = []
+        for key in order {
+            let rows = (groups[key] ?? []).sorted { $0.yawAbs + 1e-9 < $1.yawAbs }
+            if rows.count <= 1 {
+                if seen.insert(key).inserted { out.append(key) }
+                continue
+            }
+            for (i, _) in rows.enumerated() {
+                let emit = i == 0 ? key : leftoverHoldHashTwinKey(hash: key, rank: i)
+                if seen.insert(emit).inserted { out.append(emit) }
+            }
+        }
+        for h in stored where !h.isEmpty {
             let key = leftoverHoldHashSpatial(h)
             if key.isEmpty { continue }
             if seen.insert(key).inserted { out.append(key) }
@@ -1527,7 +1574,7 @@ enum MatchMath {
     }
 
     /// n≤5 min-cost. n=5 Crowd FillX greedy ließ 5. Person tot.
-    static let leftoverAssignHungarianN = 5
+    static let leftoverAssignHungarianN = 6
 
     static func leftoverAssignHungarianX(
         assigned: [Int?],
@@ -2179,6 +2226,26 @@ enum MatchMath {
     static func leftoverHoldKalmanResets(iou: Double?, jump: Double = leftoverIoUJump) -> Bool {
         guard let iou else { return false }
         return iou + 1e-12 < jump
+    }
+
+    /// Restore: Meas weit, IoU-Reset Tick 1 statt Kriechen. 2 Ticks Skip.
+    static func leftoverHoldKalmanSkipReset(ago: Int, ticks: Int = 2) -> Bool {
+        ago >= 0 && ago < ticks
+    }
+
+    static func leftoverHoldKalmanRestoredAdvance(prev: Int, restored: Bool) -> Int {
+        restored ? 0 : min(99, prev + 1)
+    }
+
+    /// Miss 1 voll, danach α 0,82. Halt läuft sonst mit last-v weiter.
+    static func leftoverHoldKalmanVelDecay(
+        vx: Double,
+        vy: Double,
+        miss: Int,
+        alpha: Double = 0.82
+    ) -> (vx: Double, vy: Double) {
+        if miss <= 1 { return (vx, vy) }
+        return (vx * alpha, vy * alpha)
     }
 
     static func leftoverHoldKalmanKeep<Value>(kalman: [UUID: Value], live: [UUID], missCoast: Bool = false) -> [UUID: Value] {
@@ -4383,8 +4450,20 @@ enum MatchMath {
         live > 0 || adopted > 0
     }
 
-    static func leftoverHoldMissCoast(miss: Int, need: Int = 1) -> Bool {
-        miss > 0 && miss <= need
+    /// Indoor 8 fps Dropout 2 Ticks. Hart 1 tot. Pref 1–3, Default 2.
+    static func leftoverHoldMissNeedPref(_ pref: Int) -> Int {
+        min(3, max(1, pref))
+    }
+
+    static func leftoverHoldMissNeedAuto(dt: TimeInterval, pref: Int) -> Int {
+        let p = leftoverHoldMissNeedPref(pref)
+        if dt >= 0.20 { return max(p, 3) }
+        return p
+    }
+
+    static func leftoverHoldMissCoast(miss: Int, need: Int = 2) -> Bool {
+        let n = leftoverHoldMissNeedPref(need)
+        miss > 0 && miss <= n
     }
 
     static func leftoverPredictOnMissCoast(_ missCoast: Bool) -> Bool { missCoast }
