@@ -1,4 +1,4 @@
-# Aegis **2.1.152 alpha**
+# Aegis **2.1.153 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.153 alpha
+
+Restart wischt Overlay-Spark und Indoor-Capture-Hist — Taufe Gast, Blur-Floor 0,70.
+
+- **leftoverSparkChip persist.** Chip überlebt Restart, Hold = 2.
+- **leftoverSparkChipTickKeeps.** stabilize vor Remint: lastHash hält Chip, Live-Filter wischt nicht.
+- **leftoverCaptureHist remaining.** Expired Indoor-Blur tot. Schema 15 ohne remaining hält. Key ohne remaining hält (Rank).
+- **leftoverUUIDUUIDMapDropDangling keep leer.** Nur Hold-Keys, nicht die ganze Tabelle.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.153 (Build 178). Schema 15 bleibt.
 
 ## Neu in 2.1.152 alpha
 

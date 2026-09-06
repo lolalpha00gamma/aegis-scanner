@@ -173,6 +173,7 @@ final class LibraryStore: ObservableObject {
     private var leftoverNameLockHeld: [UUID: String] = [:]
     private var leftoverLastHash: [UUID: String] = [:]
     private var leftoverCaptureHistByHash: [String: [Double]] = [:]
+    private var leftoverCaptureHistAt: [String: TimeInterval] = [:]
     private var leftoverLastIoU: [UUID: Double] = [:]
     private var leftoverSparkChipHeld: [UUID: (chip: String, hold: Int)] = [:]
     private var leftoverJpegDelta: [UUID: Double] = [:]
@@ -207,9 +208,17 @@ final class LibraryStore: ObservableObject {
             remaining: GalleryFile.loadPayload()?.leftoverHoldTrailRemaining,
             ttl: leftoverHoldTTL
         )
-        leftoverCaptureHistByHash = MatchMath.leftoverCaptureHistTableDecode(
+        leftoverCaptureHistByHash = MatchMath.leftoverCaptureHistTableDecodeFresh(
             packed.leftoverCaptureHist,
+            remaining: GalleryFile.loadPayload()?.leftoverCaptureHistRemaining,
             keep: leftoverHoldByHash.keys.flatMap { [$0, MatchMath.leftoverHoldHashSpatial($0)] }
+        )
+        leftoverCaptureHistAt = MatchMath.leftoverHashRankRebase(
+            MatchMath.leftoverCaptureHistAtDecode(
+                remaining: GalleryFile.loadPayload()?.leftoverCaptureHistRemaining,
+                now: Date().timeIntervalSince1970,
+                ttl: leftoverHoldTTL
+            )
         )
         leftoverLastHash = MatchMath.leftoverLastHashRankRebase(
             MatchMath.leftoverUUIDStringMapDecode(packed.leftoverLastHash)
@@ -221,6 +230,7 @@ final class LibraryStore: ObservableObject {
         leftoverHoldByHash = MatchMath.leftoverHashRankRebase(leftoverHoldByHash)
         leftoverHoldTrailByHash = MatchMath.leftoverHashRankRebase(leftoverHoldTrailByHash)
         leftoverCaptureHistByHash = MatchMath.leftoverHashRankRebase(leftoverCaptureHistByHash)
+        leftoverCaptureHistAt = MatchMath.leftoverHashRankRebase(leftoverCaptureHistAt)
         leftoverHashNeedsRebase = !leftoverHoldByHash.isEmpty || !leftoverHoldTrailByHash.isEmpty
         if let stored = packed.printRevision, stored != MatchMath.printRevision {
             revisionWarning = "Galerie-Print \(stored), App \(MatchMath.printRevision) — Scores können springen. Neu scannen."
@@ -259,6 +269,7 @@ final class LibraryStore: ObservableObject {
             leftoverPairCommit = MatchMath.leftoverUUIDUUIDMapDecode(extra.leftoverPairCommit)
             leftoverPairCommitMiss = MatchMath.leftoverUUIDIntMapDecode(extra.leftoverPairCommitMiss)
             leftoverLastIoU = MatchMath.leftoverStreakSinceDecode(extra.leftoverLastIoU)
+            leftoverSparkChipHeld = MatchMath.leftoverSparkChipDecode(extra.leftoverSparkChip)
             leftoverStreak = MatchMath.leftoverUUIDIntMapDecode(extra.leftoverStreak)
             leftoverStreakBox = MatchMath.leftoverStreakBoxDecode(extra.leftoverStreakBox)
             leftoverJpegByHash = MatchMath.leftoverJpegByHashDecode(
@@ -379,7 +390,14 @@ final class LibraryStore: ObservableObject {
                 ttl: leftoverHoldTTL
             ),
             leftoverPairCommitMiss: MatchMath.leftoverUUIDIntMapEncode(leftoverPairCommitMiss),
-            leftoverLastIoU: MatchMath.leftoverStreakSinceEncode(leftoverLastIoU)
+            leftoverLastIoU: MatchMath.leftoverStreakSinceEncode(leftoverLastIoU),
+            leftoverCaptureHistRemaining: MatchMath.leftoverCaptureHistRemainingEncode(
+                leftoverCaptureHistByHash,
+                at: leftoverCaptureHistAt,
+                now: Date().timeIntervalSince1970,
+                ttl: leftoverHoldTTL
+            ),
+            leftoverSparkChip: MatchMath.leftoverSparkChipEncode(leftoverSparkChipHeld)
         )
         if !liveActive {
             refreshMergeHint()
@@ -440,9 +458,17 @@ final class LibraryStore: ObservableObject {
             remaining: GalleryFile.loadBackupPayload()?.leftoverHoldTrailRemaining,
             ttl: leftoverHoldTTL
         )
-        leftoverCaptureHistByHash = MatchMath.leftoverCaptureHistTableDecode(
+        leftoverCaptureHistByHash = MatchMath.leftoverCaptureHistTableDecodeFresh(
             packed.leftoverCaptureHist,
+            remaining: GalleryFile.loadBackupPayload()?.leftoverCaptureHistRemaining,
             keep: leftoverHoldByHash.keys.flatMap { [$0, MatchMath.leftoverHoldHashSpatial($0)] }
+        )
+        leftoverCaptureHistAt = MatchMath.leftoverHashRankRebase(
+            MatchMath.leftoverCaptureHistAtDecode(
+                remaining: GalleryFile.loadBackupPayload()?.leftoverCaptureHistRemaining,
+                now: Date().timeIntervalSince1970,
+                ttl: leftoverHoldTTL
+            )
         )
         leftoverLastHash = MatchMath.leftoverLastHashRankRebase(
             MatchMath.leftoverUUIDStringMapDecode(packed.leftoverLastHash)
@@ -465,6 +491,7 @@ final class LibraryStore: ObservableObject {
         leftoverHoldByHash = MatchMath.leftoverHashRankRebase(leftoverHoldByHash)
         leftoverHoldTrailByHash = MatchMath.leftoverHashRankRebase(leftoverHoldTrailByHash)
         leftoverCaptureHistByHash = MatchMath.leftoverHashRankRebase(leftoverCaptureHistByHash)
+        leftoverCaptureHistAt = MatchMath.leftoverHashRankRebase(leftoverCaptureHistAt)
         leftoverHashNeedsRebase = !leftoverHoldByHash.isEmpty || !leftoverHoldTrailByHash.isEmpty
         liveNameHist = [:]
         liveNameLock = [:]
@@ -493,6 +520,7 @@ final class LibraryStore: ObservableObject {
             leftoverPairCommit = MatchMath.leftoverUUIDUUIDMapDecode(extra.leftoverPairCommit)
             leftoverPairCommitMiss = MatchMath.leftoverUUIDIntMapDecode(extra.leftoverPairCommitMiss)
             leftoverLastIoU = MatchMath.leftoverStreakSinceDecode(extra.leftoverLastIoU)
+            leftoverSparkChipHeld = MatchMath.leftoverSparkChipDecode(extra.leftoverSparkChip)
             leftoverStreak = MatchMath.leftoverUUIDIntMapDecode(extra.leftoverStreak)
             leftoverStreakBox = MatchMath.leftoverStreakBoxDecode(extra.leftoverStreakBox)
             leftoverJpegByHash = MatchMath.leftoverJpegByHashDecode(
@@ -1646,7 +1674,13 @@ final class LibraryStore: ObservableObject {
     }
 
     private func tickLeftoverSparkChips(liveFaceIds: Set<UUID>) {
-        leftoverSparkChipHeld = leftoverSparkChipHeld.filter { liveFaceIds.contains($0.key) }
+        leftoverSparkChipHeld = leftoverSparkChipHeld.filter {
+            MatchMath.leftoverSparkChipTickKeeps(
+                id: $0.key,
+                live: liveFaceIds,
+                hold: Set(leftoverLastHash.keys)
+            )
+        }
         for fid in liveFaceIds {
             let yaw = faces.first { $0.id == fid }.map { abs($0.quality.yaw) }
             let nowChip = leftoverSparkChipNow(faceId: fid, yawAbs: yaw)
@@ -2517,6 +2551,11 @@ final class LibraryStore: ObservableObject {
                             hist: capHist,
                             onto: leftoverCaptureHistByHash
                         )
+                        leftoverCaptureHistAt = MatchMath.leftoverCaptureHistAtPut(
+                            hash: h,
+                            now: now,
+                            onto: leftoverCaptureHistAt
+                        )
                     }
                     let skip = aeLock
                         || burst
@@ -2602,6 +2641,11 @@ final class LibraryStore: ObservableObject {
                         hash: h,
                         hist: hist,
                         onto: leftoverCaptureHistByHash
+                    )
+                    leftoverCaptureHistAt = MatchMath.leftoverCaptureHistAtPut(
+                        hash: h,
+                        now: now,
+                        onto: leftoverCaptureHistAt
                     )
                 }
                 let blur = MatchMath.skipPrint(
@@ -3073,6 +3117,9 @@ final class LibraryStore: ObservableObject {
                     leftoverHoldTrailByHash = MatchMath.leftoverStringMapMove(hold: leftoverHoldTrailByHash, from: from, to: ranked)
                     leftoverCaptureHistByHash = MatchMath.leftoverCaptureHistTableMove(
                         table: leftoverCaptureHistByHash, from: from, to: ranked
+                    )
+                    leftoverCaptureHistAt = MatchMath.leftoverStringMapMove(
+                        hold: leftoverCaptureHistAt, from: from, to: ranked
                     )
                 }
             }

@@ -37,6 +37,8 @@ struct GalleryPayload: Codable {
     var leftoverHoldTrailRemaining: [String: Double]?
     var leftoverPairCommitMiss: [String: Int]?
     var leftoverLastIoU: [String: Double]?
+    var leftoverCaptureHistRemaining: [String: Double]?
+    var leftoverSparkChip: [String: String]?
 }
 
 enum GalleryFile {
@@ -119,7 +121,9 @@ enum GalleryFile {
         leftoverHoldHashRemaining: [String: Double]? = nil,
         leftoverHoldTrailRemaining: [String: Double]? = nil,
         leftoverPairCommitMiss: [String: Int]? = nil,
-        leftoverLastIoU: [String: Double]? = nil
+        leftoverLastIoU: [String: Double]? = nil,
+        leftoverCaptureHistRemaining: [String: Double]? = nil,
+        leftoverSparkChip: [String: String]? = nil
     ) {
         let enrolled = Set(identities.flatMap(\.faceIds))
         let payload = GalleryPayload(
@@ -149,7 +153,9 @@ enum GalleryFile {
             leftoverHoldHashRemaining: leftoverHoldHashRemaining,
             leftoverHoldTrailRemaining: leftoverHoldTrailRemaining,
             leftoverPairCommitMiss: leftoverPairCommitMiss,
-            leftoverLastIoU: leftoverLastIoU
+            leftoverLastIoU: leftoverLastIoU,
+            leftoverCaptureHistRemaining: leftoverCaptureHistRemaining,
+            leftoverSparkChip: leftoverSparkChip
         )
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]

@@ -1,3 +1,29 @@
+# Helios + Aegis — Analyse 2026-09-06 (2.1.153)
+
+Helios **1.5.143** (Build 162). Aegis **2.1.153 alpha** (Build 178). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.152: DropDangling Hold-Key. Spark-Chip RAM-only. Capture-Hist ohne remaining. DropDangling keep leer gibt die ganze Tabelle.
+
+## Warum Taufe nach 2.1.152 weiter riss
+
+1. **leftoverSparkChipHeld RAM-only.** Restart: Overlay flackert 2 Ticks Gast, dann Name. Chip-Tuple nicht in gallery.json.
+2. **tickLeftoverSparkChips nur live.** persist UUID tot nach Restart. stabilize vor Remint wischt Chip, lastHash ungenutzt.
+3. **Capture-Hist ohne remaining.** Indoor-Blur 0,70 überlebt Restart, Baptize-Floor tot.
+4. **DecodeFresh Key fehlt = tot.** Rank-Rebase: remaining ohne Key droppt Hist.
+5. **DropDangling keep leer.** `guard !keep.isEmpty else { return table }` — keine Live+Identität: Dangling bleibt, Twin-dest falsch.
+
+## Was 2.1.153 ändert
+
+1. **leftoverSparkChip persist.** Encode Chip, Decode Hold = 2. Restart Overlay hält.
+2. **leftoverSparkChipTickKeeps.** live ∪ lastHash. Remint-Miss kein Gast-Flash.
+3. **leftoverCaptureHist remaining.** Expired tot. Schema 15 ohne remaining hält (Compat). Key ohne remaining hält.
+4. **leftoverUUIDUUIDMapDropDangling keep leer.** Nur Hold-Keys.
+5. Tests + VERSION = Models = MARKETING 2.1.153 (Build 178). Schema 15 bleibt.
+
+Helios 1.5.143: Sparse/Close-Hand, Bind denser, Gitarre 0,29 tot. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-06 (2.1.152)
 
 Helios **1.5.141** (Build 160). Aegis **2.1.152 alpha** (Build 177). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

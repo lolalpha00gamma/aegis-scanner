@@ -1,3 +1,57 @@
+# Nachtrag 2026-09-06 (2.1.153)
+
+Siehe ANALYSE.md. **2.1.153** Spark persist + Tick lastHash, Capture-Hist remaining (Key fehlt hält), DropDangling keep leer.
+
+## In 2.1.153 gelandet
+
+1. leftoverSparkChip persist — Overlay-Chip überlebt Restart, Hold = 2
+2. leftoverSparkChipTickKeeps — lastHash hält Chip vor Remint
+3. leftoverCaptureHist remaining — Indoor-Blur nach TTL tot, Key ohne remaining hält
+4. leftoverUUIDUUIDMapDropDangling keep leer — nur Hold-Keys
+5. VERSION = Models = MARKETING_VERSION 2.1.153 (Build 178)
+
+## Nächste, zusätzlich
+
+- leftoverAssign n>8 Jonker-Volgenant, nicht nur HungarianX 8 + wide FillX.
+- leftoverNameLockHeld ohne Until remaining nach Schema-7-Backup — Restore arm sitzt, Backup-Decode Schema 7 ohne Held.
+- leftoverSparkChip per Hash, nicht nur UUID — Remint-Miss sonst Gast-Flash wenn lastHash tot.
+- Capture-Hist MAD-Gate vor Baptize, nicht nur Count ≥ 3 / remaining 0.
+- Hamming-Gewicht im Hash selbst, nicht nur Spatial-Strip `#`.
+- FaceEngine Detect auf outputQueue. JPEG-Reextract gegen denselben Buffer.
+- Hold-SM: Unseen / Tentative / Held / Named. MatchMath split: Hold, Hash, Baptize, Assign.
+- Ein FaceTrack-Struct statt leftover-Map-Stapel.
+- Helios Frame-Pump, eine TCC. Shared XPC / IOSurface mit Helios 1.5.143.
+- Overlay 60 Hz CAMetalLayer, Detect 8–24 fps.
+- VNTrackObjectRequest statt nur Rectangles.
+- Temperature-skalierte Cosine statt hart 0,80 Baptize.
+- Softmax über Galerie statt Argmax-Taufe — Open-Set Energy-Score.
+- Quality-Produkt Blur × Pose × Occlusion als Baptize-Gate, nicht OR.
+- gallery.json.bak Rotate 3, printRevision je Identity.
+- Watch-Folder PhotoKit, Export `.aegis` verschlüsselt.
+- P-Slot Maske/Schal, Brille-Slot als Twin-Veto.
+- Temporal ReID-Graph über Hold-Trail (EMA Cap 4 ist Pflaster).
+- Per-Box CLAHE statt Full-Frame.
+- Continuity Desk-View yaw-floor 0,36.
+- Print-Bank 5 Pose-Slots. DBSCAN vor Merge.
+- Aktive Enrollment-HUD: 3 Posen prompten statt Burst-Ingest.
+- RTSP 420f, Reconnect Exponential-Backoff.
+- VNDetectFaceCaptureQuality als Baptize-Gate — Sharpness AND Quality, nicht OR.
+- Continuity LiDAR depth als Box-Z.
+- Kleidungsfarbe als Weak-Track zwischen Face-Dropouts.
+- Time-of-day Prior (wer ist um 8 Uhr hier) als schwacher Track-Cue.
+- Identity-Graph: dieselbe Person über Tage, Trail-Cosine nicht nur Hold.
+- leftoverHoldKalmanJump Pref je Camera-UUID, nicht nur dt.
+- leftoverJpegDelta UUID-Probe analog leftoverJpegByHash remaining — Restart Indoor-Poster sonst 1 Tick.
+- leftoverMissFrames persist analog leftoverPairCommitMiss — Vision-Restart sonst Miss 0, Taufe Tick 1.
+- leftoverEmptySince remaining analog leftoverLatch — Restart leerer Frame tauft Ghost.
+- leftoverDisagree persist — Twin-Streak 0 nach Restart, Cluster-Split tot.
+
+`bugfix` 2.1.15 gelesen, nicht gemergt.
+
+Die historische Liste bis 2.1.152: ANALYSE.md. Review: `REVIEW-2.1.134.md`.
+
+Nur main.
+
 # Nachtrag 2026-09-06 (2.1.152)
 
 Siehe ANALYSE.md. **2.1.152** DropDangling Hold-Key hält dest.

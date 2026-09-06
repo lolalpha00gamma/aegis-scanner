@@ -2548,6 +2548,98 @@ enum MatchMath {
         Array(hist.suffix(leftoverCaptureHistCap))
     }
 
+    /// Remaining analog HashHold. Schema 15 ohne Tabelle = Hist bleibt.
+    /// remaining 0 nach Restart: Indoor-Blur tot, sonst Taufe 0,70.
+    static func leftoverCaptureHistRemainingEncode(
+        _ table: [String: [Double]],
+        at: [String: TimeInterval],
+        now: TimeInterval,
+        ttl: TimeInterval
+    ) -> [String: Double] {
+        let used = leftoverHoldTTLPref(ttl)
+        var out: [String: Double] = [:]
+        for k in table.keys {
+            if let t = at[k] {
+                out[k] = max(0, used - max(0, now - t))
+            } else {
+                out[k] = used
+            }
+        }
+        return out
+    }
+
+    /// remaining Tabelle da, Key fehlt (Rank): halten. Nur 0 droppt. nil = Schema 15.
+    static func leftoverCaptureHistKeeps(remaining: Double?) -> Bool {
+        remaining.map { $0 > 0 } ?? true
+    }
+
+    static func leftoverCaptureHistTableDecodeFresh(
+        _ raw: [String: [Double]]?,
+        remaining: [String: Double]?,
+        keep: [String] = []
+    ) -> [String: [Double]] {
+        let table = leftoverCaptureHistTableDecode(raw, keep: keep)
+        guard let remaining else { return table }
+        return Dictionary(uniqueKeysWithValues: table.filter {
+            leftoverCaptureHistKeeps(remaining: remaining[$0.key])
+        })
+    }
+
+    static func leftoverCaptureHistAtDecode(
+        remaining: [String: Double]?,
+        now: TimeInterval,
+        ttl: TimeInterval
+    ) -> [String: TimeInterval] {
+        guard let remaining else { return [:] }
+        let used = leftoverHoldTTLPref(ttl)
+        var out: [String: TimeInterval] = [:]
+        for (k, left) in remaining where leftoverCaptureHistKeeps(remaining: left) {
+            let clamped = min(used, max(0, left))
+            out[k] = now - (used - clamped)
+        }
+        return out
+    }
+
+    static func leftoverCaptureHistAtPut(
+        hash: String,
+        now: TimeInterval,
+        onto at: [String: TimeInterval]
+    ) -> [String: TimeInterval] {
+        var next = at
+        next[hash] = now
+        return next
+    }
+
+    /// Overlay-Spark RAM-only: Restart flackert 2 Ticks Gast. Chip halten, Hold = need.
+    static let leftoverSparkChipHoldNeed = 2
+
+    static func leftoverSparkChipEncode(
+        _ table: [UUID: (chip: String, hold: Int)]
+    ) -> [String: String] {
+        Dictionary(uniqueKeysWithValues: table.compactMap { k, v in
+            v.chip.isEmpty ? nil : (k.uuidString, v.chip)
+        })
+    }
+
+    static func leftoverSparkChipDecode(
+        _ raw: [String: String]?,
+        hold: Int = leftoverSparkChipHoldNeed
+    ) -> [UUID: (chip: String, hold: Int)] {
+        guard let raw else { return [:] }
+        let used = max(1, hold)
+        var out: [UUID: (chip: String, hold: Int)] = [:]
+        for (k, v) in raw where !v.isEmpty {
+            guard let id = UUID(uuidString: k) else { continue }
+            out[id] = (chip: v, hold: used)
+        }
+        return out
+    }
+
+    /// persist UUID tot nach Restart. stabilize vor Remint — lastHash hält Chip.
+    static func leftoverSparkChipTickKeeps(id: UUID, live: Set<UUID>, hold: Set<UUID> = []) -> Bool {
+        live.contains(id) || hold.contains(id)
+    }
+
     /// 720p @ 15–30 schlägt 360p @ 60 und 800p @ 8. Desk-View 4:3 bis 1920×1440.
     /// Analog Helios formatScore.
     static func captureFormatScore(width: Double, height: Double, fps: Double) -> Double {
@@ -5686,12 +5778,13 @@ enum MatchMath {
     /// Dest tot nach Vision-Restart. keep = Live ∪ Identitäten.
     /// Key live, Dest Twin-weg: PairCommit halten, nicht droppen.
     /// Hold-Key A overlay, dest Twin-B ghost: Key nicht live — Taufe sonst Tick 1.
+    /// keep leer + hold: nur Hold-Keys, nicht die ganze Tabelle.
     static func leftoverUUIDUUIDMapDropDangling(
         _ table: [UUID: UUID],
         keep: Set<UUID>,
         hold: Set<UUID> = []
     ) -> [UUID: UUID] {
-        guard !keep.isEmpty else { return table }
+        if keep.isEmpty && hold.isEmpty { return table }
         let destOk = keep.union(hold)
         var out: [UUID: UUID] = [:]
         for (k, v) in table {

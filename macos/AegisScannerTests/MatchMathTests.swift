@@ -3338,6 +3338,49 @@ enum MatchMathTests {
         ok(MatchMath.leftoverIoUJumpBlocks(0.32, jump: MatchMath.leftoverHoldKalmanJumpCam(dt: 0.125, pref: 0.40)), "Jump Cam Steal 0,32")
         ok(MatchMath.leftoverIoUJumpChip(0.36) == "JUMP", "JUMP Chip Default 0,40")
         ok(MatchMath.leftoverIoUJumpChip(0.36, jump: 0.34) == nil, "JUMP Chip Cam tot")
+        let dangHold = UUID(), dangOther = UUID(), dangKeep = UUID()
+        let emptyKeep = MatchMath.leftoverUUIDUUIDMapDropDangling(
+            [dangHold: dangOther, dangOther: dangKeep], keep: [], hold: [dangHold]
+        )
+        ok(emptyKeep[dangHold] == dangOther, "DropDangling keep leer Hold hält")
+        ok(emptyKeep[dangOther] == nil, "DropDangling keep leer Dangling tot")
+        let sparkId = UUID()
+        let sparkEnc = MatchMath.leftoverSparkChipEncode([sparkId: (chip: "ANNA 92", hold: 1)])
+        let sparkDec = MatchMath.leftoverSparkChipDecode(sparkEnc)
+        ok(sparkDec[sparkId]?.chip == "ANNA 92", "Spark Chip persist")
+        ok(sparkDec[sparkId]?.hold == MatchMath.leftoverSparkChipHoldNeed, "Spark Chip Hold need")
+        ok(MatchMath.leftoverSparkChipDecode(nil).isEmpty, "Spark Chip nil")
+        ok(MatchMath.leftoverCaptureHistKeeps(remaining: 1.2), "Hist remaining hält")
+        ok(!MatchMath.leftoverCaptureHistKeeps(remaining: 0), "Hist remaining 0 tot")
+        ok(MatchMath.leftoverCaptureHistKeeps(remaining: nil), "Hist remaining nil hält")
+        let histMiss = MatchMath.leftoverCaptureHistTableDecodeFresh(
+            ["ab": [0.18], "zz": [0.19]],
+            remaining: ["ab": 2.0]
+        )
+        ok(histMiss["zz"] == [0.19], "Hist Key ohne remaining hält")
+        let histFresh = MatchMath.leftoverCaptureHistTableDecodeFresh(
+            ["ab": [0.18, 0.19], "cd": [0.70]],
+            remaining: ["ab": 2.0, "cd": 0]
+        )
+        ok(histFresh["ab"] == [0.18, 0.19], "Hist Fresh hält")
+        ok(histFresh["cd"] == nil, "Hist Fresh expired tot")
+        let histOld = MatchMath.leftoverCaptureHistTableDecodeFresh(["ab": [0.18]], remaining: nil)
+        ok(histOld["ab"] == [0.18], "Hist Schema 15 ohne remaining")
+        let histRem = MatchMath.leftoverCaptureHistRemainingEncode(
+            ["ab": [0.18]],
+            at: ["ab": 10],
+            now: 12,
+            ttl: 4
+        )
+        ok((histRem["ab"] ?? 0) > 1.9 && (histRem["ab"] ?? 0) < 2.1, "Hist remaining 2 s")
+        let histAt = MatchMath.leftoverCaptureHistAtDecode(remaining: ["ab": 2], now: 12, ttl: 4)
+        ok(abs((histAt["ab"] ?? 0) - 10) < 0.01, "Hist at from remaining")
+        let histAtPut = MatchMath.leftoverCaptureHistAtPut(hash: "zz", now: 5, onto: [:])
+        ok(histAtPut["zz"] == 5, "Hist at put")
+        let tickLive = UUID(), tickHold = UUID()
+        ok(MatchMath.leftoverSparkChipTickKeeps(id: tickLive, live: [tickLive], hold: []), "Spark tick live")
+        ok(MatchMath.leftoverSparkChipTickKeeps(id: tickHold, live: [], hold: [tickHold]), "Spark tick lastHash")
+        ok(!MatchMath.leftoverSparkChipTickKeeps(id: UUID(), live: [tickLive], hold: [tickHold]), "Spark tick dangling tot")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)
