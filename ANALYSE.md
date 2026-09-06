@@ -1,3 +1,33 @@
+# Helios + Aegis — Analyse 2026-09-06 (2.1.139)
+
+Helios **1.5.129** (Build 148). Aegis **2.1.139 alpha** (Build 164). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.138: Schema 9 PairStreak/Commit/Streak, Hungarian n=3 Print, Hash Twin Exact, FillX Pad UI, Trail Cap 4. Rank-Key `#101` Dist 99. Lookup nach Restore tot. AssignLive x greedy. JPEG TTL hart 0,80.
+
+## Warum Taufe und Restart nach 2.1.138 weiter rissen
+
+1. **leftoverBoxHashDistance auf Rank-Key `#101`.** Split `"."` → `Int("6#101")` nil → Dist 99. Neighbor/Hamming tot, Hold nach 1-Bin-Jitter verloren.
+2. **leftoverHashRankRebase fehlte.** Persist Rank-Key, Lookup Spatial: nach Restart tot. Dictionary-Order: Rank 0,81 schlug Spatial 0,70.
+3. **leftoverHoldLookup Spatial stiehlt Twin.** Twin R `#101` las Twin L Hold. leftoverHoldSpatialOccupied fehlte.
+4. **leftoverAssignFillX greedy n=2.** Naher Twin sperrt Hold 0 (0,00/0,10 vs 0,09/0,20). Hungarian nur auf Print-Scores.
+5. **leftoverHoldRemint erster Pass padRescue auch bei Twin.** Crowd tauft Far. Hamming-1 fehlte, Solo 18 cm + 1-Bin tot.
+6. **leftoverHoldTrail unbeschränkt vs persist Cap 4.** Spark 8, Restore 4. JPEG TTL hart 0,80: Indoor 8 fps Probe tot, 24 fps Jank.
+7. **leftoverMirrorPending ohne JPEG/Streak/Wipe.** AssignLive: Probe und Streak auf alter UUID. leftoverLiveHashTick nicht in leftoverLastHash persist.
+
+## Was 2.1.139 ändert
+
+1. **leftoverHoldHashSpatial vor Dist/Neighbors/BinsInferred.** Rank Dist 0, Hamming 1.
+2. **leftoverHashRankRebase Spatial-first** zwei Passes. Init + restoreFromBackup. leftoverHoldMoveRankKey live.
+3. **leftoverHoldHashLookupKeys + leftoverHoldSpatialOccupied.** Twin kein Spatial-Steal.
+4. **leftoverAssignHungarianX n≤3.** leftoverAssignRemint / leftoverAssignLive nutzen HungarianX, nicht FillX.
+5. **leftoverHoldRemintPad** Solo Rescue / Twin Pad. leftoverHoldHashHammingRescue faces==1. leftoverHoldRemintId `pad:`.
+6. **leftoverHoldTrailEMA Cap 4.** leftoverJpegProbeTTLPref 0,25–1,2 + Slider. leftoverStoredHashMerge persist. leftoverMirrorPending JPEG/Streak/Wipe/IoU/Spark/Miss.
+7. Tests + VERSION = Models = MARKETING 2.1.139 (Build 164).
+
+Helios 1.5.129: Fill-Cap Slider, Pinch Click/Drag Cursor-px, Keep-Bit je Slot. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-06 (2.1.138)
 
 Helios **1.5.128** (Build 147). Aegis **2.1.138 alpha** (Build 163). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

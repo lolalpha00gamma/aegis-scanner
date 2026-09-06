@@ -1,4 +1,4 @@
-# Aegis **2.1.138 alpha**
+# Aegis **2.1.139 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,18 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.139 alpha
+
+Rank-Key `#101` Dist 99. Lookup nach Restore tot. AssignLive x greedy n=2. JPEG TTL hart 0,80. Hamming-1 fehlte.
+
+- **leftoverHoldHashSpatial** vor Dist/Neighbors. Rank Dist 0.
+- **leftoverHashRankRebase** Spatial-first. leftoverHoldMoveRankKey live.
+- **leftoverHoldSpatialOccupied.** Twin Lookup kein Steal.
+- **leftoverAssignHungarianX** n≤3. Remint/Live nicht FillX.
+- **leftoverHoldRemintPad** Solo Rescue / Twin Pad. Hamming faces==1.
+- **leftoverHoldTrailEMA Cap 4.** JPEG TTL Pref 0,25–1,2 + Slider.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.139 (Build 164).
 
 ## Neu in 2.1.138 alpha
 

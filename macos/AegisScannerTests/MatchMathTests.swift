@@ -2904,6 +2904,101 @@ enum MatchMathTests {
             ttl: 1.2
         )
         ok(abs((seenEpoch[persistId] ?? 0) - 1000) < 0.01, "Schema 8 Epoch rebase now")
+        ok(MatchMath.leftoverBoxHashDistance("6.6.4.6#101", "6.6.4.6") == 0, "Rank-Key Dist 0")
+        ok(MatchMath.leftoverBoxHashDistance("6.6.4.6#101", "6.6.4.7") == 1, "Rank-Key Hamming 1")
+        ok(MatchMath.leftoverBoxHashDistance("6#101", "6.6.4.6") == 99, "Rank-Key ohne Spatial Dist 99")
+        let rankOnly = MatchMath.leftoverHashRankRebase(["6.6.4.6#101": 0.81])
+        ok(rankOnly["6.6.4.6"] == 0.81 && rankOnly["6.6.4.6#101"] == nil, "Rebase Rank → Spatial")
+        let rankClash = MatchMath.leftoverHashRankRebase(["6.6.4.6": 0.70, "6.6.4.6#101": 0.81])
+        ok(rankClash["6.6.4.6"] == 0.70, "Rebase Spatial-first")
+        let rebasedHold: [String: (cosine: Double, at: TimeInterval)] = MatchMath.leftoverHashRankRebase([
+            "6.6.4.6#101": (cosine: 0.81, at: 1.0)
+        ])
+        ok(
+            abs((MatchMath.leftoverHoldLookup(hash: "6.6.4.6", table: rebasedHold, now: 1.0) ?? 0) - 0.81) < 0.001,
+            "Lookup nach Rebase Spatial"
+        )
+        ok(
+            MatchMath.leftoverHoldSpatialOccupied(live: ["6.6.4.6", "6.6.4.6#101"], hash: "6.6.4.6#101"),
+            "Twin Spatial occupied"
+        )
+        ok(
+            !MatchMath.leftoverHoldHashLookupKeys(
+                hash: "6.6.4.6#101",
+                occupied: ["6.6.4.6", "6.6.4.6#101"]
+            ).contains("6.6.4.6"),
+            "Twin Lookup kein Spatial-Steal"
+        )
+        ok(
+            MatchMath.leftoverHoldHashHammingRescue(
+                liveHash: "6.6.4.7",
+                stored: [(id: persistId, hash: "6.6.4.6")],
+                facesInFrame: 1
+            ) == persistId,
+            "Hamming-1 Solo"
+        )
+        ok(
+            MatchMath.leftoverHoldHashHammingRescue(
+                liveHash: "6.6.4.7",
+                stored: [(id: persistId, hash: "6.6.4.6")],
+                facesInFrame: 2
+            ) == nil,
+            "Hamming Twin tot"
+        )
+        let hamOld = UUID(), hamNew = UUID()
+        let hamFar = MatchMath.leftoverHoldRemint(
+            hold: [hamOld: 0.81],
+            live: [(id: hamNew, x: 0.90)],
+            stored: [(id: hamOld, x: 0.10)],
+            liveHash: [hamNew: "6.6.4.7"],
+            storedHash: [hamOld: "6.6.4.6"],
+            padRescue: 0.16
+        )
+        ok(hamFar[hamNew] == 0.81, "Remint Hamming Far Solo")
+        let hamTwin = MatchMath.leftoverHoldRemint(
+            hold: [hamOld: 0.81],
+            live: [(id: hamNew, x: 0.90), (id: persistId, x: 0.40)],
+            stored: [(id: hamOld, x: 0.10)],
+            liveHash: [hamNew: "6.6.4.7", persistId: "5.5.4.6"],
+            storedHash: [hamOld: "6.6.4.6"],
+            padRescue: 0.16
+        )
+        ok(hamTwin[hamNew] == nil, "Remint Hamming Far Twin tot")
+        let ema = MatchMath.leftoverHoldTrailEMA([0.80], sample: 1.0, cap: 4, alpha: 0.4)
+        ok(ema.count == 2, "Trail EMA wächst")
+        near(ema.last ?? 0, 0.88, 0.001, "Trail EMA 0,4")
+        let emaCap = MatchMath.leftoverHoldTrailEMA([0.1, 0.2, 0.3, 0.4], sample: 0.5, cap: 4)
+        ok(emaCap.count == 4, "Trail EMA Cap 4")
+        near(MatchMath.leftoverJpegProbeTTLPref(0.10), 0.25, 0.001, "JPEG TTL Floor")
+        near(MatchMath.leftoverJpegProbeTTLPref(2.0), 1.2, 0.001, "JPEG TTL Cap")
+        near(MatchMath.leftoverJpegProbeTTLPref(0.80), 0.80, 0.001, "JPEG TTL Default")
+        ok(!MatchMath.leftoverJpegProbeReuse(now: 1.2, last: 0.50, ttl: 0.25), "JPEG TTL 0,25 tot")
+        ok(MatchMath.leftoverJpegProbeReuse(now: 1.2, last: 0.50, ttl: 1.2), "JPEG TTL 1,2 hält")
+        near(MatchMath.leftoverHoldRemintPad(faces: 1), 0.28, 0.001, "RemintPad Solo Rescue")
+        near(MatchMath.leftoverHoldRemintPad(faces: 2), 0.12, 0.001, "RemintPad Twin Pad")
+        let greedyX = MatchMath.leftoverAssignFillX(
+            assigned: [nil, nil],
+            liveX: [0.09, 0.20],
+            holdX: [0.00, 0.10],
+            pad: 0.12
+        )
+        ok(greedyX[0] == nil && greedyX[1] == 0, "FillX greedy Hold 0 tot")
+        let hunX = MatchMath.leftoverAssignHungarianX(
+            assigned: [nil, nil],
+            liveX: [0.09, 0.20],
+            holdX: [0.00, 0.10],
+            pad: 0.12
+        )
+        ok(hunX[0] == 0 && hunX[1] == 1, "HungarianX n=2 beide")
+        let remX = MatchMath.leftoverAssignRemint(liveX: [0.09, 0.20], holdX: [0.00, 0.10])
+        ok(remX[0] == 0 && remX[1] == 1, "AssignRemint HungarianX")
+        let movedRank = MatchMath.leftoverHoldMoveRankKey(
+            hold: ["6.6.4.6": 0.70],
+            hash: "6.6.4.6",
+            fromRank: 0,
+            toRank: 1
+        )
+        ok(movedRank["6.6.4.6#101"] == 0.70 && movedRank["6.6.4.6"] == nil, "Rank-Key Move")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

@@ -1,3 +1,57 @@
+# Nachtrag 2026-09-06 (2.1.139)
+
+Siehe ANALYSE.md. **2.1.139** Rank Spatial Dist, Rebase Spatial-first, HungarianX n=3, Hamming Solo, RemintPad, Trail EMA, JPEG TTL Pref.
+
+## In 2.1.139 gelandet
+
+1. leftoverHoldHashSpatial vor Dist/Neighbors/BinsInferred — Rank Dist 0
+2. leftoverHashRankRebase Spatial-first, leftoverHoldMoveRankKey live
+3. leftoverHoldHashLookupKeys + leftoverHoldSpatialOccupied Twin kein Steal
+4. leftoverAssignHungarianX n≤3, AssignRemint/AssignLive nicht FillX
+5. leftoverHoldRemintPad Solo Rescue / Twin Pad, HammingRescue faces==1, RemintId pad
+6. leftoverHoldTrailEMA Cap 4, leftoverJpegProbeTTLPref 0,25–1,2 UI
+7. leftoverStoredHashMerge persist, leftoverMirrorPending JPEG/Streak/Wipe/IoU/Spark/Miss
+8. VERSION = Models = MARKETING_VERSION 2.1.139 (Build 164)
+
+## Nächste, zusätzlich
+
+- leftoverStreakBox persist — Streak ohne Box remintet nach Restart nur per Hash.
+- leftoverHold TTL remaining analog NameLockUntil / Seen.
+- leftoverAssign n>3 Jonker-Volgenant, nicht nur HungarianX 3.
+- leftoverOccupiedMerge Hash-Key nach persist UUID-Restore.
+- leftoverLastIoU / leftoverSparkChipHeld persist (Mirror sitzt, gallery.json fehlt).
+- leftoverHoldSurvive vs leftoverHold persist Race nach App-Restart (Hold noch Epoch).
+- leftoverNameLockHeld ohne Until remaining nach Schema-7-Backup.
+- leftoverPairLast Value-Remint persist: dest tot nach Vision-Restart — DropDangling nach Remint.
+- leftoverJpegProbe per-Hash statt per-UUID — Twin teilt sonst die Probe.
+- leftoverHoldKalman Reset nach Remint (Box springt, Kalman tot).
+- leftoverHoldBins Rank `#101` nach Restore rebase analog leftoverHoldByHash.
+- leftoverCaptureHistByHash persist analog leftoverHoldTrailHash.
+- leftoverAssignLiveGate Pref persist in gallery.json, nicht nur UserDefaults.
+- Hamming-Gewicht im Hash selbst, nicht nur Spatial-Strip `#`.
+- FaceEngine Detect auf outputQueue. JPEG-Reextract gegen denselben Buffer.
+- Hold-SM: Unseen / Tentative / Held / Named.
+- MatchMath split: Hold, Hash, Baptize, Assign.
+- Helios Frame-Pump, eine TCC. Shared XPC mit Helios 1.5.129.
+- Overlay 60 Hz CAMetalLayer, Detect 8–24 fps.
+- VNTrackObjectRequest statt nur Rectangles.
+- Temperature-skalierte Cosine statt hart 0,80 Baptize.
+- gallery.json.bak Rotate 3, printRevision je Identity.
+- Watch-Folder PhotoKit, Export `.aegis` verschlüsselt.
+- P-Slot Maske/Schal, Brille-Slot als Twin-Veto.
+- Temporal ReID-Graph über Hold-Trail (EMA Cap 4 ist Pflaster).
+- Per-Box CLAHE statt Full-Frame.
+- Continuity Desk-View yaw-floor 0,36.
+- Print-Bank 5 Pose-Slots. DBSCAN vor Merge.
+- RTSP 420f, Reconnect Exponential-Backoff.
+- Live-Centroid EMA Reset nach Vision-Restart.
+- leftoverHoldTrailByHash EMA analog UUID-Trail.
+- leftoverAssignHungarianX spread-Veto nach min-cost: Twin-Mitte 0,08 bleibt tot.
+
+Die historische Liste bis 2.1.138: ANALYSE.md. Review: `REVIEW-2.1.134.md`.
+
+Nur main.
+
 # Nachtrag 2026-09-06 (2.1.138)
 
 Siehe ANALYSE.md. **2.1.138** Schema 9 PairStreak/Commit/Streak, Seen remaining, Hungarian n=3, Hash Twin Exact, FillX Pad UI, Trail Cap 4.

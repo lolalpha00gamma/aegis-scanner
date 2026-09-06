@@ -174,6 +174,19 @@ struct ContentView: View {
             Text(String(format: "Pad %.2f", store.fillXPad))
                 .font(.caption2.monospacedDigit())
                 .foregroundStyle(.secondary)
+            Slider(
+                value: Binding(
+                    get: { store.jpegProbeTTL },
+                    set: { store.setJpegProbeTTL($0) }
+                ),
+                in: 0.25 ... 1.2,
+                step: 0.05
+            )
+            .frame(width: 80)
+            .help("JPEG-Probe Cache. 0,80 Default. Indoor 8 fps länger, 24 fps kürzer.")
+            Text(String(format: "JPEG %.2fs", store.jpegProbeTTL))
+                .font(.caption2.monospacedDigit())
+                .foregroundStyle(.secondary)
             if !store.revisionWarning.isEmpty {
                 Text(store.revisionWarning)
                     .font(.caption2)
