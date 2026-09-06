@@ -1,4 +1,4 @@
-# Aegis **2.1.132 alpha**
+# Aegis **2.1.133 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.133 alpha
+
+leftoverLastHash leer nach Restart: Hash-Rescue tot. AssignLiveGate Pref ohne UI, Crowd tauft Twin.
+
+- **`leftoverHoldByHashSolo`.** Spatial auf leftoverHoldByHash, nur 1 Hold.
+- **leftoverHoldRemint `hashTableKeys`.** Vierter Pass.
+- **AssignLiveGate Pref + UI.** Solo 1 / Crowd 2.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.133 (Build 159).
 
 ## Neu in 2.1.132 alpha
 

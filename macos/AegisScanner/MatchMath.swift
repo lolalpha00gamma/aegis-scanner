@@ -1450,13 +1450,28 @@ enum MatchMath {
         return nil
     }
 
+    /// leftoverLastHash leer nach Restart: Hash-Key aus leftoverHoldByHash, nur Solo.
+    /// Twin bleibt Exact-only.
+    static func leftoverHoldByHashSolo(
+        liveHash: String,
+        holdIDs: [UUID],
+        tableKeys: [String]
+    ) -> UUID? {
+        guard holdIDs.count == 1 else { return nil }
+        let spatial = leftoverHoldHashSpatial(liveHash)
+        guard !spatial.isEmpty else { return nil }
+        let hit = tableKeys.contains { leftoverHoldHashSpatial($0) == spatial && !$0.isEmpty }
+        return hit ? holdIDs[0] : nil
+    }
+
     static func leftoverHoldRemint<Value>(
         hold: [UUID: Value],
         live: [(id: UUID, x: Double)],
         stored: [(id: UUID, x: Double)],
         occupied: Set<UUID> = [],
         liveHash: [UUID: String] = [:],
-        storedHash: [UUID: String] = [:]
+        storedHash: [UUID: String] = [:],
+        hashTableKeys: [String] = []
     ) -> [UUID: Value] {
         var out = hold
         var taken = occupied
@@ -1502,6 +1517,22 @@ enum MatchMath {
                 taken.insert(match)
             }
         }
+        if !hashTableKeys.isEmpty, !liveHash.isEmpty {
+            let holdIDs = holds.map(\.id).filter { !taken.contains($0) }
+            for row in live {
+                if hold[row.id] != nil { continue }
+                if out[row.id] != nil { continue }
+                guard let h = liveHash[row.id], !h.isEmpty else { continue }
+                guard let match = leftoverHoldByHashSolo(
+                    liveHash: h, holdIDs: holdIDs, tableKeys: hashTableKeys
+                ) else { continue }
+                if match == row.id { continue }
+                if let v = hold[match] {
+                    out[row.id] = v
+                    taken.insert(match)
+                }
+            }
+        }
         return out
     }
 
@@ -1517,7 +1548,8 @@ enum MatchMath {
         stored: [(id: UUID, x: Double)],
         occupied: Set<UUID> = [],
         liveHash: [UUID: String] = [:],
-        storedHash: [UUID: String] = [:]
+        storedHash: [UUID: String] = [:],
+        hashTableKeys: [String] = []
     ) -> [String: Value] {
         var out = hold
         var taken = occupied
@@ -1567,6 +1599,23 @@ enum MatchMath {
             }
             taken.insert(match)
         }
+        if !hashTableKeys.isEmpty, !liveHash.isEmpty {
+            let holdIDs = holds.map(\.id).filter { !taken.contains($0) }
+            for row in live {
+                if present.contains(row.id) { continue }
+                if out.keys.contains(where: { leftoverHoldId(from: $0) == row.id }) { continue }
+                guard let h = liveHash[row.id], !h.isEmpty else { continue }
+                guard let match = leftoverHoldByHashSolo(
+                    liveHash: h, holdIDs: holdIDs, tableKeys: hashTableKeys
+                ) else { continue }
+                if match == row.id { continue }
+                for (key, v) in hold {
+                    guard leftoverHoldId(from: key) == match, let bin = leftoverHoldBinFromKey(key) else { continue }
+                    out[leftoverHoldKey(id: row.id, bin: bin)] = v
+                }
+                taken.insert(match)
+            }
+        }
         return out
     }
 
@@ -1615,7 +1664,8 @@ enum MatchMath {
         stored: [(id: UUID, x: Double)],
         occupied: Set<UUID> = [],
         liveHash: [UUID: String] = [:],
-        storedHash: [UUID: String] = [:]
+        storedHash: [UUID: String] = [:],
+        hashTableKeys: [String] = []
     ) -> [UUID: UUID] {
         var out = leftoverHoldRemint(
             hold: hold,
@@ -1623,7 +1673,8 @@ enum MatchMath {
             stored: stored,
             occupied: occupied,
             liveHash: liveHash,
-            storedHash: storedHash
+            storedHash: storedHash,
+            hashTableKeys: hashTableKeys
         )
         for row in live {
             if hold[row.id] != nil { continue }

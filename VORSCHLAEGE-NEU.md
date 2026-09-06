@@ -1,3 +1,36 @@
+# Nachtrag 2026-09-06 (2.1.133)
+
+Siehe ANALYSE.md. **2.1.133** HoldByHash Solo Rescue, AssignLiveGate UI.
+
+## In 2.1.133 gelandet
+
+1. leftoverHoldByHashSolo — Spatial, nur 1 Hold
+2. leftoverHoldRemint hashTableKeys — vierter Pass
+3. AssignLiveGate Pref Solo 1 / Crowd 2 in der Toolbar
+4. VERSION = Models = MARKETING_VERSION 2.1.133 (Build 159)
+
+## Nächste, zusätzlich
+
+- leftoverFillXRescue Pref 0,16–0,36. Hart 0,28.
+- leftoverFillXPad Pref 0,06–0,20.
+- leftoverHashHoldFloor bleibt 0,64 (kein Sharpness im Persist).
+- leftoverNameLockHeld persist Schema 7.
+- leftoverJpegProbeReuse TTL Pref 0,25–1,2.
+- FaceEngine jpegProbe detached queue.
+- FaceEngine VNTrackObjectRequest statt nur Rectangles — weniger UUID-Remint.
+- PhotoKit Live Photos Frame 0, nicht Poster.
+- Hamming-1 Rescue nur Solo (faces=1), Twin bleibt Exact-only. Spatial-0 sitzt.
+- Temperature-skalierte Cosine (ArcFace 64) statt hart 0,80 Baptize.
+- FaceEngine Detect auf Utility-Queue, Overlay 60 Hz unabhängig.
+- Helios Frame-Pump, eine TCC. Shared XPC mit Helios 1.5.123.
+- Per-Hold TTL in Schema 7. `at` + `ttl` je Zeile.
+- Overlay-FPS unabhängig von Detect — CAMetalLayer 60 Hz, Engine 8–24.
+- printRevision je Identity.
+- gallery.json.bak rotate 3.
+- Tests splitted.
+
+Nur main.
+
 # Nachtrag 2026-09-06 (2.1.132)
 
 Siehe ANALYSE.md. **2.1.132** Pair bleibt nach AssignLive, Value-Remint, AssignLive x-Rescue.

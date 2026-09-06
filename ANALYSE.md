@@ -1,3 +1,25 @@
+# Helios + Aegis — Analyse 2026-09-06 (2.1.133)
+
+Helios **1.5.123** (Build 143). Aegis **2.1.133 alpha** (Build 159). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.132: Pair bleibt nach AssignLive, Value-Remint, AssignLive x-Rescue. leftoverLastHash leer nach Restart: Hash-Rescue tot. AssignLiveGate Pref ohne UI.
+
+## 2.1.132 → 2.1.133
+
+1. **leftoverHoldRemint Hash nur leftoverLastHash.** Restart wischt LastHash. leftoverHoldByHash persistiert im gallery.json — ungenutzt. Solo-Walk 18 cm ohne LastHash = neue UUID, Name springt.
+2. **leftoverAssignLiveGate hart 1.** Crowd: Twin-Taufe nach Restart. Pref-Clamp 1–2 saß, niemand konnte umschalten.
+
+## Was 2.1.133 ändert
+
+1. **`leftoverHoldByHashSolo`.** Spatial-Match auf leftoverHoldByHash Keys. Nur 1 Hold. Twin tot.
+2. **leftoverHoldRemint / Bins / RemintId `hashTableKeys`.** Vierter Pass nach x/Hash/x-Rescue.
+3. **AssignLiveGate Pref + UI.** Solo 1 / Crowd 2, UserDefaults `aegis.assignLiveGate`.
+4. Tests + VERSION = Models = MARKETING 2.1.133 (Build 159).
+
+Helios 1.5.123: Prop nie S1, 40 px Overlap 5K. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-06 (2.1.132)
 
 Helios **1.5.122** (Build 142). Aegis **2.1.132 alpha** (Build 158). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

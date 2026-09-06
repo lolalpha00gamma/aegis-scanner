@@ -2639,6 +2639,40 @@ enum MatchMathTests {
             MatchMath.leftoverAssignLive(scores: [[nil]], liveX: [0.90], holdX: [0.10])[0] == nil,
             "AssignLive Far 0,80 tot"
         )
+        let hashSoloOld = UUID(), hashSoloNew = UUID()
+        ok(
+            MatchMath.leftoverHoldByHashSolo(
+                liveHash: "5.5.4.6",
+                holdIDs: [hashSoloOld],
+                tableKeys: ["5.5.4.6#0"]
+            ) == hashSoloOld,
+            "HoldByHash Solo Spatial"
+        )
+        ok(
+            MatchMath.leftoverHoldByHashSolo(
+                liveHash: "5.5.4.6",
+                holdIDs: [hashSoloOld, UUID()],
+                tableKeys: ["5.5.4.6#0"]
+            ) == nil,
+            "HoldByHash Twin tot"
+        )
+        let byHash = MatchMath.leftoverHoldRemint(
+            hold: [hashSoloOld: 0.77],
+            live: [(id: hashSoloNew, x: 0.90)],
+            stored: [(id: hashSoloOld, x: 0.20)],
+            liveHash: [hashSoloNew: "5.5.4.6"],
+            hashTableKeys: ["5.5.4.6#0"]
+        )
+        ok(byHash[hashSoloNew] == 0.77, "HoldByHash Solo Rescue ohne LastHash")
+        let byHashFar = MatchMath.leftoverHoldRemint(
+            hold: [hashSoloOld: 0.77],
+            live: [(id: hashSoloNew, x: 0.90)],
+            stored: [(id: hashSoloOld, x: 0.20)],
+            liveHash: [hashSoloNew: "5.5.4.6"]
+        )
+        ok(byHashFar[hashSoloNew] == nil, "ohne Table Far tot")
+        ok(MatchMath.leftoverAssignLiveGate(unnamed: 2, unused: 2, need: 2), "Crowd Gate 2")
+        ok(!MatchMath.leftoverAssignLiveGate(unnamed: 1, unused: 2, need: 2), "Crowd Gate Solo tot")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

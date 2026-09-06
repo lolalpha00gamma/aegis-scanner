@@ -23,6 +23,7 @@ final class LibraryStore: ObservableObject {
     @Published var holdTTLFloor: Double = 1.2
     @Published var nameLockSec: Double = 1.2
     @Published var adoptLockSec: Double = 0.8
+    @Published var assignLiveGate: Int = 1
     @Published var strategy: StrategyID = .aegis
     @Published var showAnatomy = true
     @Published var showNMSDebug = false
@@ -207,6 +208,10 @@ final class LibraryStore: ObservableObject {
         let adoptStored = UserDefaults.standard.double(forKey: "aegis.adoptLockSec")
         if adoptStored > 0 {
             adoptLockSec = MatchMath.leftoverAdoptSecLockPref(adoptStored)
+        }
+        let gateStored = UserDefaults.standard.object(forKey: "aegis.assignLiveGate") as? Int
+        if let gateStored {
+            assignLiveGate = MatchMath.leftoverAssignLiveGateNeed(gateStored)
         }
         liveCapture.choice = cameraChoice
         let digest = GalleryFile.digestStatus()
@@ -1287,6 +1292,12 @@ final class LibraryStore: ObservableObject {
     func setAdoptLockSec(_ v: Double) {
         adoptLockSec = MatchMath.leftoverAdoptSecLockPref(v)
         UserDefaults.standard.set(adoptLockSec, forKey: "aegis.adoptLockSec")
+    }
+
+    func setAssignLiveGate(_ v: Int) {
+        assignLiveGate = MatchMath.leftoverAssignLiveGateNeed(v)
+        UserDefaults.standard.set(assignLiveGate, forKey: "aegis.assignLiveGate")
+        status = assignLiveGate == 1 ? "AssignLive Solo 1" : "AssignLive Crowd 2"
     }
 
     func voteProgress(faceId: UUID) -> String? {
@@ -2451,7 +2462,11 @@ final class LibraryStore: ObservableObject {
                 !used.contains(adopted[i].id)
             }
             let unusedLeft = unusedNamed.filter { !used.contains($0.id) }
-            if MatchMath.leftoverAssignLiveGate(unnamed: unnamedLeft.count, unused: unusedLeft.count) {
+            if MatchMath.leftoverAssignLiveGate(
+                unnamed: unnamedLeft.count,
+                unused: unusedLeft.count,
+                need: assignLiveGate
+            ) {
                 var scores: [[Double?]] = []
                 scores.reserveCapacity(unusedLeft.count)
                 for old in unusedLeft {
@@ -2594,31 +2609,32 @@ final class LibraryStore: ObservableObject {
             ))
         })
         let remintStoredHash = leftoverLastHash
-        leftoverHold = MatchMath.leftoverHoldRemint(hold: leftoverHold, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
-        leftoverHoldTrail = MatchMath.leftoverHoldRemint(hold: leftoverHoldTrail, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
-        liveSlotHold = MatchMath.leftoverHoldRemint(hold: liveSlotHold, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
-        leftoverMissFrames = MatchMath.leftoverHoldRemint(hold: leftoverMissFrames, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
-        leftoverNameLockUntil = MatchMath.leftoverHoldRemint(hold: leftoverNameLockUntil, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
-        leftoverNameLockHeld = MatchMath.leftoverHoldRemint(hold: leftoverNameLockHeld, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
-        leftoverPending = MatchMath.leftoverHoldRemint(hold: leftoverPending, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
-        leftoverLastHash = MatchMath.leftoverHoldRemint(hold: leftoverLastHash, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
-        leftoverLastIoU = MatchMath.leftoverHoldRemint(hold: leftoverLastIoU, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
-        leftoverSparkChipHeld = MatchMath.leftoverHoldRemint(hold: leftoverSparkChipHeld, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
-        leftoverJpegDelta = MatchMath.leftoverHoldRemint(hold: leftoverJpegDelta, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
-        leftoverJpegAt = MatchMath.leftoverHoldRemint(hold: leftoverJpegAt, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
-        leftoverJpegHash = MatchMath.leftoverHoldRemint(hold: leftoverJpegHash, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
-        leftoverJpegCos = MatchMath.leftoverHoldRemint(hold: leftoverJpegCos, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
-        leftoverLiveHashTick = MatchMath.leftoverHoldRemint(hold: leftoverLiveHashTick, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
-        leftoverWipeUntil = MatchMath.leftoverHoldRemint(hold: leftoverWipeUntil, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
-        leftoverHoldBins = MatchMath.leftoverHoldRemintBins(hold: leftoverHoldBins, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
-        leftoverHoldTrailBins = MatchMath.leftoverHoldRemintBins(hold: leftoverHoldTrailBins, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
-        leftoverPairLast = MatchMath.leftoverHoldRemintId(hold: leftoverPairLast, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
-        leftoverPairStreak = MatchMath.leftoverHoldRemint(hold: leftoverPairStreak, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
-        leftoverPairCommit = MatchMath.leftoverHoldRemintId(hold: leftoverPairCommit, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
-        leftoverDisagree = MatchMath.leftoverHoldRemint(hold: leftoverDisagree, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
-        leftoverStreak = MatchMath.leftoverHoldRemint(hold: leftoverStreak, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
-        leftoverStreakBox = MatchMath.leftoverHoldRemint(hold: leftoverStreakBox, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
-        leftoverStreakSince = MatchMath.leftoverHoldRemint(hold: leftoverStreakSince, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
+        let remintHashKeys = Array(leftoverHoldByHash.keys)
+        leftoverHold = MatchMath.leftoverHoldRemint(hold: leftoverHold, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys)
+        leftoverHoldTrail = MatchMath.leftoverHoldRemint(hold: leftoverHoldTrail, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys)
+        liveSlotHold = MatchMath.leftoverHoldRemint(hold: liveSlotHold, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys)
+        leftoverMissFrames = MatchMath.leftoverHoldRemint(hold: leftoverMissFrames, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys)
+        leftoverNameLockUntil = MatchMath.leftoverHoldRemint(hold: leftoverNameLockUntil, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys)
+        leftoverNameLockHeld = MatchMath.leftoverHoldRemint(hold: leftoverNameLockHeld, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys)
+        leftoverPending = MatchMath.leftoverHoldRemint(hold: leftoverPending, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys)
+        leftoverLastHash = MatchMath.leftoverHoldRemint(hold: leftoverLastHash, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys)
+        leftoverLastIoU = MatchMath.leftoverHoldRemint(hold: leftoverLastIoU, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys)
+        leftoverSparkChipHeld = MatchMath.leftoverHoldRemint(hold: leftoverSparkChipHeld, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys)
+        leftoverJpegDelta = MatchMath.leftoverHoldRemint(hold: leftoverJpegDelta, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys)
+        leftoverJpegAt = MatchMath.leftoverHoldRemint(hold: leftoverJpegAt, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys)
+        leftoverJpegHash = MatchMath.leftoverHoldRemint(hold: leftoverJpegHash, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys)
+        leftoverJpegCos = MatchMath.leftoverHoldRemint(hold: leftoverJpegCos, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys)
+        leftoverLiveHashTick = MatchMath.leftoverHoldRemint(hold: leftoverLiveHashTick, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys)
+        leftoverWipeUntil = MatchMath.leftoverHoldRemint(hold: leftoverWipeUntil, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys)
+        leftoverHoldBins = MatchMath.leftoverHoldRemintBins(hold: leftoverHoldBins, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys)
+        leftoverHoldTrailBins = MatchMath.leftoverHoldRemintBins(hold: leftoverHoldTrailBins, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys)
+        leftoverPairLast = MatchMath.leftoverHoldRemintId(hold: leftoverPairLast, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys)
+        leftoverPairStreak = MatchMath.leftoverHoldRemint(hold: leftoverPairStreak, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys)
+        leftoverPairCommit = MatchMath.leftoverHoldRemintId(hold: leftoverPairCommit, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys)
+        leftoverDisagree = MatchMath.leftoverHoldRemint(hold: leftoverDisagree, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys)
+        leftoverStreak = MatchMath.leftoverHoldRemint(hold: leftoverStreak, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys)
+        leftoverStreakBox = MatchMath.leftoverHoldRemint(hold: leftoverStreakBox, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys)
+        leftoverStreakSince = MatchMath.leftoverHoldRemint(hold: leftoverStreakSince, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys)
         leftoverStreakBox = MatchMath.leftoverStreakBoxLive(
             boxes: leftoverStreakBox,
             live: adopted.map { (id: $0.id, box: $0.box) },

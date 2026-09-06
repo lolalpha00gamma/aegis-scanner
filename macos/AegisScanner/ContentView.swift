@@ -137,6 +137,16 @@ struct ContentView: View {
             Text(String(format: "Adopt %.1f s", store.adoptLockSec))
                 .font(.caption2.monospacedDigit())
                 .foregroundStyle(.secondary)
+            Picker("Gate", selection: Binding(
+                get: { store.assignLiveGate },
+                set: { store.setAssignLiveGate($0) }
+            )) {
+                Text("Solo 1").tag(1)
+                Text("Crowd 2").tag(2)
+            }
+            .pickerStyle(.menu)
+            .frame(width: 100)
+            .help("AssignLive nach Restart. Solo 1 Person. Crowd 2 gegen Twin-Taufe.")
             if !store.revisionWarning.isEmpty {
                 Text(store.revisionWarning)
                     .font(.caption2)
