@@ -1912,6 +1912,8 @@ final class LibraryStore: ObservableObject {
 
     private func leftoverMirrorPending(from: UUID, to: UUID) {
         leftoverPending = MatchMath.leftoverPendingMirror(pending: leftoverPending, from: from, to: to)
+        leftoverLiveHashTick = MatchMath.leftoverLiveHashTickCopy(tick: leftoverLiveHashTick, from: from, to: to)
+        leftoverLastHash = MatchMath.leftoverLiveHashTickCopy(tick: leftoverLastHash, from: from, to: to)
     }
 
     private func leftoverBlendAdopted(_ face: inout FaceObservation, oldId: UUID) {
@@ -2575,31 +2577,42 @@ final class LibraryStore: ObservableObject {
             remintStored.append((id: g.face.id, x: g.face.box.x))
             remintSeen.insert(g.face.id)
         }
-        leftoverHold = MatchMath.leftoverHoldRemint(hold: leftoverHold, live: remintLive, stored: remintStored)
-        leftoverHoldTrail = MatchMath.leftoverHoldRemint(hold: leftoverHoldTrail, live: remintLive, stored: remintStored)
-        liveSlotHold = MatchMath.leftoverHoldRemint(hold: liveSlotHold, live: remintLive, stored: remintStored)
-        leftoverMissFrames = MatchMath.leftoverHoldRemint(hold: leftoverMissFrames, live: remintLive, stored: remintStored)
-        leftoverNameLockUntil = MatchMath.leftoverHoldRemint(hold: leftoverNameLockUntil, live: remintLive, stored: remintStored)
-        leftoverNameLockHeld = MatchMath.leftoverHoldRemint(hold: leftoverNameLockHeld, live: remintLive, stored: remintStored)
-        leftoverPending = MatchMath.leftoverHoldRemint(hold: leftoverPending, live: remintLive, stored: remintStored)
-        leftoverLastHash = MatchMath.leftoverHoldRemint(hold: leftoverLastHash, live: remintLive, stored: remintStored)
-        leftoverLastIoU = MatchMath.leftoverHoldRemint(hold: leftoverLastIoU, live: remintLive, stored: remintStored)
-        leftoverSparkChipHeld = MatchMath.leftoverHoldRemint(hold: leftoverSparkChipHeld, live: remintLive, stored: remintStored)
-        leftoverJpegDelta = MatchMath.leftoverHoldRemint(hold: leftoverJpegDelta, live: remintLive, stored: remintStored)
-        leftoverJpegAt = MatchMath.leftoverHoldRemint(hold: leftoverJpegAt, live: remintLive, stored: remintStored)
-        leftoverJpegHash = MatchMath.leftoverHoldRemint(hold: leftoverJpegHash, live: remintLive, stored: remintStored)
-        leftoverJpegCos = MatchMath.leftoverHoldRemint(hold: leftoverJpegCos, live: remintLive, stored: remintStored)
-        leftoverLiveHashTick = MatchMath.leftoverHoldRemint(hold: leftoverLiveHashTick, live: remintLive, stored: remintStored)
-        leftoverWipeUntil = MatchMath.leftoverHoldRemint(hold: leftoverWipeUntil, live: remintLive, stored: remintStored)
-        leftoverHoldBins = MatchMath.leftoverHoldRemintBins(hold: leftoverHoldBins, live: remintLive, stored: remintStored)
-        leftoverHoldTrailBins = MatchMath.leftoverHoldRemintBins(hold: leftoverHoldTrailBins, live: remintLive, stored: remintStored)
-        leftoverPairLast = MatchMath.leftoverHoldRemint(hold: leftoverPairLast, live: remintLive, stored: remintStored)
-        leftoverPairStreak = MatchMath.leftoverHoldRemint(hold: leftoverPairStreak, live: remintLive, stored: remintStored)
-        leftoverPairCommit = MatchMath.leftoverHoldRemint(hold: leftoverPairCommit, live: remintLive, stored: remintStored)
-        leftoverDisagree = MatchMath.leftoverHoldRemint(hold: leftoverDisagree, live: remintLive, stored: remintStored)
-        leftoverStreak = MatchMath.leftoverHoldRemint(hold: leftoverStreak, live: remintLive, stored: remintStored)
-        leftoverStreakBox = MatchMath.leftoverHoldRemint(hold: leftoverStreakBox, live: remintLive, stored: remintStored)
-        leftoverStreakSince = MatchMath.leftoverHoldRemint(hold: leftoverStreakSince, live: remintLive, stored: remintStored)
+        let remintLiveHash = Dictionary(uniqueKeysWithValues: adopted.map { face in
+            (face.id, leftoverLiveHash(
+                kalmanX: boxKalman[face.id]?.x,
+                kalmanY: boxKalman[face.id]?.y,
+                kalmanW: boxKalman[face.id]?.w,
+                kalmanH: boxKalman[face.id]?.h,
+                fallback: face.box,
+                image: image
+            ))
+        })
+        let remintStoredHash = leftoverLastHash
+        leftoverHold = MatchMath.leftoverHoldRemint(hold: leftoverHold, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
+        leftoverHoldTrail = MatchMath.leftoverHoldRemint(hold: leftoverHoldTrail, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
+        liveSlotHold = MatchMath.leftoverHoldRemint(hold: liveSlotHold, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
+        leftoverMissFrames = MatchMath.leftoverHoldRemint(hold: leftoverMissFrames, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
+        leftoverNameLockUntil = MatchMath.leftoverHoldRemint(hold: leftoverNameLockUntil, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
+        leftoverNameLockHeld = MatchMath.leftoverHoldRemint(hold: leftoverNameLockHeld, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
+        leftoverPending = MatchMath.leftoverHoldRemint(hold: leftoverPending, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
+        leftoverLastHash = MatchMath.leftoverHoldRemint(hold: leftoverLastHash, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
+        leftoverLastIoU = MatchMath.leftoverHoldRemint(hold: leftoverLastIoU, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
+        leftoverSparkChipHeld = MatchMath.leftoverHoldRemint(hold: leftoverSparkChipHeld, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
+        leftoverJpegDelta = MatchMath.leftoverHoldRemint(hold: leftoverJpegDelta, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
+        leftoverJpegAt = MatchMath.leftoverHoldRemint(hold: leftoverJpegAt, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
+        leftoverJpegHash = MatchMath.leftoverHoldRemint(hold: leftoverJpegHash, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
+        leftoverJpegCos = MatchMath.leftoverHoldRemint(hold: leftoverJpegCos, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
+        leftoverLiveHashTick = MatchMath.leftoverHoldRemint(hold: leftoverLiveHashTick, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
+        leftoverWipeUntil = MatchMath.leftoverHoldRemint(hold: leftoverWipeUntil, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
+        leftoverHoldBins = MatchMath.leftoverHoldRemintBins(hold: leftoverHoldBins, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
+        leftoverHoldTrailBins = MatchMath.leftoverHoldRemintBins(hold: leftoverHoldTrailBins, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
+        leftoverPairLast = MatchMath.leftoverHoldRemint(hold: leftoverPairLast, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
+        leftoverPairStreak = MatchMath.leftoverHoldRemint(hold: leftoverPairStreak, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
+        leftoverPairCommit = MatchMath.leftoverHoldRemint(hold: leftoverPairCommit, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
+        leftoverDisagree = MatchMath.leftoverHoldRemint(hold: leftoverDisagree, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
+        leftoverStreak = MatchMath.leftoverHoldRemint(hold: leftoverStreak, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
+        leftoverStreakBox = MatchMath.leftoverHoldRemint(hold: leftoverStreakBox, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
+        leftoverStreakSince = MatchMath.leftoverHoldRemint(hold: leftoverStreakSince, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
         leftoverStreakBox = MatchMath.leftoverStreakBoxLive(
             boxes: leftoverStreakBox,
             live: adopted.map { (id: $0.id, box: $0.box) },

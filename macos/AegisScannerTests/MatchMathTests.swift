@@ -2552,6 +2552,67 @@ enum MatchMathTests {
             holdIds: [pairNew]
         )
         ok(abs((streakLive[pairNew]?.x ?? 0) - 0.25) < 1e-9, "StreakBox Live nach Remint")
+        let hashOld = UUID(), hashNew = UUID()
+        ok(
+            MatchMath.leftoverHoldHashRescue(
+                liveHash: "5.5.4.6",
+                stored: [(id: hashOld, hash: "5.5.4.6")]
+            ) == hashOld,
+            "Hash-Rescue Exact"
+        )
+        ok(
+            MatchMath.leftoverHoldHashRescue(
+                liveHash: "5.5.4.6",
+                stored: [(id: hashOld, hash: "5.5.4.6")],
+                occupied: [hashOld]
+            ) == nil,
+            "Hash-Rescue Occupied tot"
+        )
+        ok(
+            MatchMath.leftoverHoldHashRescue(
+                liveHash: "5.5.4.6",
+                stored: [(id: hashOld, hash: "5.5.4.6"), (id: hashNew, hash: "5.5.4.6")]
+            ) == nil,
+            "Hash-Rescue Twin tot"
+        )
+        let farRemint = MatchMath.leftoverHoldRemint(
+            hold: [hashOld: 0.72],
+            live: [(id: hashNew, x: 0.90)],
+            stored: [(id: hashOld, x: 0.20)],
+            liveHash: [hashNew: "5.5.4.6"],
+            storedHash: [hashOld: "5.5.4.6"]
+        )
+        ok(farRemint[hashNew] == 0.72, "Remint Hash-Rescue wenn x > Pad")
+        let farX = MatchMath.leftoverHoldRemint(
+            hold: [hashOld: 0.72],
+            live: [(id: hashNew, x: 0.90)],
+            stored: [(id: hashOld, x: 0.20)]
+        )
+        ok(farX[hashNew] == nil, "ohne Hash Far tot")
+        let tickFrom = UUID(), tickTo = UUID()
+        let copied = MatchMath.leftoverLiveHashTickCopy(
+            tick: [tickFrom: "5.5.4.6#101"],
+            from: tickFrom,
+            to: tickTo
+        )
+        ok(copied[tickTo] == "5.5.4.6#101" && copied[tickFrom] == nil, "Tick Copy Transfer")
+        let over = MatchMath.leftoverLiveHashTickCopy(
+            tick: [tickFrom: "5.5.4.6#101", tickTo: "1.1.1.1"],
+            from: tickFrom,
+            to: tickTo
+        )
+        ok(over[tickTo] == "5.5.4.6#101" && over[tickFrom] == nil, "Tick Copy überschreibt Live")
+        ok(MatchMath.leftoverAssignLiveGate(unnamed: 1, unused: 1, need: 2) == false, "Gate Pref 2 Solo tot")
+        ok(MatchMath.leftoverAssignLiveGateNeed(0) == 1 && MatchMath.leftoverAssignLiveGateNeed(9) == 2, "Gate Need Clamp")
+        let binRescueOld = MatchMath.leftoverHoldKey(id: hashOld, bin: 0)
+        let binRescue = MatchMath.leftoverHoldRemintBins(
+            hold: [binRescueOld: 0.66],
+            live: [(id: hashNew, x: 0.90)],
+            stored: [(id: hashOld, x: 0.20)],
+            liveHash: [hashNew: "4.4.3.5"],
+            storedHash: [hashOld: "4.4.3.5"]
+        )
+        ok(binRescue[MatchMath.leftoverHoldKey(id: hashNew, bin: 0)] == 0.66, "RemintBins Hash-Rescue")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

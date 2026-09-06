@@ -1,3 +1,29 @@
+# Helios + Aegis — Analyse 2026-09-06 (2.1.130)
+
+Helios **1.5.120** (Build 140). Aegis **2.1.130 alpha** (Build 156). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.129: AssignLive 1+1, Pair/Streak Remint, StreakBox Live. x-Match Pad 0,12. Transfer ohne Tick-Copy.
+
+## 2.1.129 → 2.1.130
+
+1. **leftoverHoldRemint nur x.** Kopf 20 cm zur Seite während Vision-Restart: d > 0,12, Remint tot, neue UUID, Name springt.
+2. **leftoverLiveHashTick nach Transfer.** `adopted.id = old.id`, Tick bleibt auf newId. Rank/Occupied 1 Frame tot, Twin stiehlt Exact.
+3. **leftoverLastHash analog.** Overlay keyed live.id, Last keyed old.id.
+4. **AssignLiveGate hart 1.** Crowd default 2 fehlt als Pref-Clamp.
+
+## Was 2.1.130 ändert
+
+1. **`leftoverHoldHashRescue`.** Spatial Hamming-0, Occupied skip, Twin (2 Hits) tot.
+2. **leftoverHoldRemint / RemintBins** liveHash+storedHash. x zuerst, Hash wenn Pad miss.
+3. **`leftoverLiveHashTickCopy`.** leftoverMirrorPending kopiert Tick + LastHash new→old, überschreibt (Live frischer). leftoverPendingMirror hält Namen.
+4. **`leftoverAssignLiveGateNeed` 1–2.**
+5. **Remint-Hash `leftoverLiveHash` + imageW.** leftoverBoxHash ohne Bildmaß ist 12-Bin, Continuity 16 — Rescue tot.
+6. Tests + VERSION = Models = MARKETING_VERSION 2.1.130 (Build 156).
+
+Helios 1.5.120: destEdgeSkip 160 ms, Blend/Predict tot nach Cross. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-05 (2.1.129)
 
 Helios **1.5.115** (Build 135). Aegis **2.1.129 alpha** (Build 155). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

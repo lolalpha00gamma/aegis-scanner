@@ -1375,8 +1375,13 @@ enum MatchMath {
     /// Print-Assign, x-Fill nur für leere Zeilen, Twin-Spread danach.
     /// Remint (x) zuerst — Print füllt Rest, stiehlt keine Remint-Spalte.
     /// 1 Hold + 1 Live nach Vision-Restart. ≥2 ließ Einzelperson tot.
-    static func leftoverAssignLiveGate(unnamed: Int, unused: Int) -> Bool {
-        unnamed >= 1 && unused >= 1
+    static func leftoverAssignLiveGateNeed(_ pref: Int) -> Int {
+        min(2, max(1, pref))
+    }
+
+    static func leftoverAssignLiveGate(unnamed: Int, unused: Int, need: Int = 1) -> Bool {
+        let n = leftoverAssignLiveGateNeed(need)
+        return unnamed >= n && unused >= n
     }
 
     static func leftoverAssignRemint(
@@ -1421,11 +1426,30 @@ enum MatchMath {
 
     /// Vision-Restart: leftoverHold[old] auf Live-UUID nach x.
     /// stored nur Keys, die im Hold sitzen — Stale-Streak sonst näher und tot.
+    /// Hash-Rescue wenn x > Pad (Kopfbewegung 8 fps).
+    static func leftoverHoldHashRescue(
+        liveHash: String,
+        stored: [(id: UUID, hash: String)],
+        occupied: Set<UUID> = []
+    ) -> UUID? {
+        let spatial = leftoverHoldHashSpatial(liveHash)
+        guard !spatial.isEmpty else { return nil }
+        let hits = stored.filter {
+            !occupied.contains($0.id)
+                && leftoverHoldHashSpatial($0.hash) == spatial
+                && !$0.hash.isEmpty
+        }
+        if hits.count == 1 { return hits[0].id }
+        return nil
+    }
+
     static func leftoverHoldRemint<Value>(
         hold: [UUID: Value],
         live: [(id: UUID, x: Double)],
         stored: [(id: UUID, x: Double)],
-        occupied: Set<UUID> = []
+        occupied: Set<UUID> = [],
+        liveHash: [UUID: String] = [:],
+        storedHash: [UUID: String] = [:]
     ) -> [UUID: Value] {
         var out = hold
         var taken = occupied
@@ -1442,6 +1466,23 @@ enum MatchMath {
                 taken.insert(match)
             }
         }
+        if !liveHash.isEmpty {
+            let storedH: [(id: UUID, hash: String)] = holds.compactMap { s in
+                guard let h = storedHash[s.id], !h.isEmpty else { return nil }
+                return (s.id, h)
+            }
+            for row in live {
+                if hold[row.id] != nil { continue }
+                if out[row.id] != nil { continue }
+                guard let h = liveHash[row.id], !h.isEmpty else { continue }
+                guard let match = leftoverHoldHashRescue(liveHash: h, stored: storedH, occupied: taken) else { continue }
+                if match == row.id { continue }
+                if let v = hold[match] {
+                    out[row.id] = v
+                    taken.insert(match)
+                }
+            }
+        }
         return out
     }
 
@@ -1455,7 +1496,9 @@ enum MatchMath {
         hold: [String: Value],
         live: [(id: UUID, x: Double)],
         stored: [(id: UUID, x: Double)],
-        occupied: Set<UUID> = []
+        occupied: Set<UUID> = [],
+        liveHash: [UUID: String] = [:],
+        storedHash: [UUID: String] = [:]
     ) -> [String: Value] {
         var out = hold
         var taken = occupied
@@ -1474,6 +1517,39 @@ enum MatchMath {
             }
             taken.insert(match)
         }
+        if !liveHash.isEmpty {
+            let storedH: [(id: UUID, hash: String)] = holds.compactMap { s in
+                guard let h = storedHash[s.id], !h.isEmpty else { return nil }
+                return (s.id, h)
+            }
+            for row in live {
+                if present.contains(row.id) { continue }
+                if out.keys.contains(where: { leftoverHoldId(from: $0) == row.id }) { continue }
+                guard let h = liveHash[row.id], !h.isEmpty else { continue }
+                guard let match = leftoverHoldHashRescue(liveHash: h, stored: storedH, occupied: taken) else { continue }
+                if match == row.id { continue }
+                for (key, v) in hold {
+                    guard leftoverHoldId(from: key) == match, let bin = leftoverHoldBinFromKey(key) else { continue }
+                    out[leftoverHoldKey(id: row.id, bin: bin)] = v
+                }
+                taken.insert(match)
+            }
+        }
+        return out
+    }
+
+    /// Transfer: leftoverLiveHashTick[new] → old, sonst Rank 1 Frame tot.
+    /// Überschreibt — Live-Hash ist frischer als leftoverLastHash[old].
+    /// leftoverPendingMirror hält bestehende Namen; Hash darf das nicht.
+    static func leftoverLiveHashTickCopy(
+        tick: [UUID: String],
+        from: UUID,
+        to: UUID
+    ) -> [UUID: String] {
+        guard from != to, let v = tick[from], !v.isEmpty else { return tick }
+        var out = tick
+        out[to] = v
+        out.removeValue(forKey: from)
         return out
     }
 
