@@ -1,4 +1,4 @@
-# Aegis **2.1.145 alpha**
+# Aegis **2.1.146 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.146 alpha
+
+skipKalmanReset doppelt — Compile tot. KeepBoxes droppt Miss-Kalman. HashHold TTL startet nach der ersten Box. Hungarian n=6. Stored Rank tot.
+
+- **skipKalmanReset einmal.** Advance nach IoU-Loop.
+- **leftoverKeepBoxes missCoast + kalman.** leftoverHashHold remaining Schema 14. Rebase keepAt.
+- **leftoverOccupiedMergeYaw stored Rank.** leftoverAssignHungarianX n≤8.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.146 (Build 171).
 
 ## Neu in 2.1.145 alpha
 

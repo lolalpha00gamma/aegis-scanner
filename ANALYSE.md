@@ -1,3 +1,30 @@
+# Helios + Aegis — Analyse 2026-09-06 (2.1.146)
+
+Helios **1.5.135** (Build 154). Aegis **2.1.146 alpha** (Build 171). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.145: Miss-Need 2 Auto, JPEG Schema-11 stale, Kalman Restore, Occupied Yaw. skipKalmanReset doppelt. KeepBoxes droppt Miss-Kalman. HashHold at=now. Hungarian n=6. Stored Rank tot.
+
+## Warum Taufe und Restart nach 2.1.145 weiter rissen
+
+1. **skipKalmanReset Redeclaration.** Zwei `let` in applyLiveFaces. Compile tot. Advance vor dem Loop kürzte den Skip um 1 Tick.
+2. **leftoverKeepBoxes ohne Miss-Kalman.** leftoverHoldKalmanKeep missCoast hält, Filter danach droppt IDs wenn Hold nach Remint leer.
+3. **HashHold Rebase at=now.** Decode at=Load, erstes Gesicht setzt at neu. Indoor-TTL 4 s startet nach der ersten Box, nicht nach Restore.
+4. **leftoverOccupiedMergeYaw stored Spatial-strip.** `#101` wird Spatial, Twin-Rank nach Restore tot.
+5. **HungarianX n>6 FillX greedy.** 7. Person tot.
+
+## Was 2.1.146 ändert
+
+1. **skipKalmanReset einmal.** Advance nach dem IoU-Loop. Compile + 2 Ticks Skip.
+2. **leftoverKeepBoxes missCoast + kalman.** Miss hält Box-Filter.
+3. **leftoverHashHold remaining Schema 14.** leftoverHashHoldRemainingEncode. Rebase keepAt. Decode remaining analog JPEG.
+4. **leftoverOccupiedMergeYaw stored Rank.** `#101` bleibt `#101`.
+5. **leftoverAssignHungarianX n≤8.** leftoverAssignHungarianN.
+6. Tests + VERSION = Models = MARKETING 2.1.146 (Build 171). Schema 14.
+
+Helios 1.5.135: ROI FullNext, Empty-Coast, Kalman Clamp, Pulse-Alive. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-06 (2.1.145)
 
 Helios **1.5.134** (Build 153). Aegis **2.1.145 alpha** (Build 170). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

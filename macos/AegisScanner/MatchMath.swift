@@ -86,8 +86,8 @@ enum MatchMath {
     /// ¾/Profil: Maße vs. Frontal-Centroid lügen. Print ≥ 80 nicht vetoen.
     static let geoVetoYawSkip = 0.28
     static let geoVetoYawPrint = 80.0
-    /// gallery.json Schema neben printRevision. 13 = leftoverJpeg remaining TTL.
-    static let gallerySchema = 13
+    /// gallery.json Schema neben printRevision. 14 = HashHold remaining + Occupied stored Rank.
+    static let gallerySchema = 14
     /// Box-IoU unter dem Wert: Bewegung. Mit Schärfe: kleines Nicken darf den Print.
     static let holdStillIoU = 0.70
     static let holdStillSharp = 0.18
@@ -1193,9 +1193,37 @@ enum MatchMath {
         Dictionary(uniqueKeysWithValues: table.filter { leftoverHashHoldKeeps($0.value.cosine) }.map { ($0.key, $0.value.cosine) })
     }
 
-    static func leftoverHashHoldDecode(_ raw: [String: Double]?, now: TimeInterval) -> [String: (cosine: Double, at: TimeInterval)] {
+    /// Remaining analog JPEG. Decode-at=now startet TTL nach Restore neu.
+    static func leftoverHashHoldRemainingEncode(
+        _ table: [String: (cosine: Double, at: TimeInterval)],
+        now: TimeInterval,
+        ttl: TimeInterval
+    ) -> [String: Double] {
+        var out: [String: Double] = [:]
+        let used = leftoverHoldTTLPref(ttl)
+        for (k, v) in leftoverHashHoldCapped(table) where leftoverHashHoldKeeps(v.cosine) {
+            out[k] = leftoverJpegRemaining(at: v.at, now: now, ttl: used)
+        }
+        return out
+    }
+
+    static func leftoverHashHoldDecode(
+        _ raw: [String: Double]?,
+        now: TimeInterval,
+        remaining: [String: Double]? = nil,
+        ttl: TimeInterval = leftoverAdoptSec
+    ) -> [String: (cosine: Double, at: TimeInterval)] {
         guard let raw else { return [:] }
-        return Dictionary(uniqueKeysWithValues: raw.filter { leftoverHashHoldKeeps($0.value) }.map { ($0.key, (cosine: $0.value, at: now)) })
+        let used = leftoverHoldTTLPref(ttl)
+        return Dictionary(uniqueKeysWithValues: raw.filter { leftoverHashHoldKeeps($0.value) }.map { key, cosine in
+            let at: TimeInterval
+            if let left = remaining?[key] {
+                at = leftoverJpegAtFromRemaining(remaining: left, now: now, ttl: used)
+            } else {
+                at = now
+            }
+            return (key, (cosine: cosine, at: at))
+        })
     }
 
     static func leftoverHoldPruneSkips(rebased: Bool) -> Bool { rebased }
@@ -1342,9 +1370,14 @@ enum MatchMath {
             }
         }
         for h in stored where !h.isEmpty {
-            let key = leftoverHoldHashSpatial(h)
-            if key.isEmpty { continue }
-            if seen.insert(key).inserted { out.append(key) }
+            let emit: String
+            if leftoverHoldHashSpatial(h) != h {
+                emit = h
+            } else {
+                emit = leftoverHoldHashSpatial(h)
+            }
+            if emit.isEmpty { continue }
+            if seen.insert(emit).inserted { out.append(emit) }
         }
         return out
     }
@@ -1573,8 +1606,8 @@ enum MatchMath {
         return out
     }
 
-    /// n≤5 min-cost. n=5 Crowd FillX greedy ließ 5. Person tot.
-    static let leftoverAssignHungarianN = 6
+    /// n≤8 min-cost. n=6 Crowd FillX greedy ließ 7. Person tot.
+    static let leftoverAssignHungarianN = 8
 
     static func leftoverAssignHungarianX(
         assigned: [Int?],
@@ -2373,18 +2406,23 @@ enum MatchMath {
     }
 
     /// Nach Restore: TTL darf nicht 1,2 s nach App-Start sterben. Erstes Live-Tick setzt `at`.
+    /// keepAt: Decode hat at=now. Rebase aufs erste Gesicht startet TTL neu — Indoor 4 s tot.
     static func leftoverHashHoldRebase(
         _ table: [String: (cosine: Double, at: TimeInterval)],
-        now: TimeInterval
+        now: TimeInterval,
+        keepAt: Bool = false
     ) -> [String: (cosine: Double, at: TimeInterval)] {
-        Dictionary(uniqueKeysWithValues: table.map { ($0.key, (cosine: $0.value.cosine, at: now)) })
+        if keepAt { return leftoverHashHoldCapped(table) }
+        return Dictionary(uniqueKeysWithValues: table.map { ($0.key, (cosine: $0.value.cosine, at: now)) })
     }
 
     static func leftoverHashTrailRebase(
         _ table: [String: (samples: [Double], at: TimeInterval)],
-        now: TimeInterval
+        now: TimeInterval,
+        keepAt: Bool = false
     ) -> [String: (samples: [Double], at: TimeInterval)] {
-        Dictionary(uniqueKeysWithValues: table.map { ($0.key, (samples: $0.value.samples, at: now)) })
+        if keepAt { return leftoverHashTrailCapped(table) }
+        return Dictionary(uniqueKeysWithValues: table.map { ($0.key, (samples: $0.value.samples, at: now)) })
     }
 
     static func leftoverCaptureHistEncode(_ hist: [Double]) -> [Double] {
@@ -3591,15 +3629,19 @@ enum MatchMath {
     }
 
     /// Zweiter leerer Frame: previous schon []. used∪dropped wischt Kalman. Ghosts+Hold halten.
+    /// Miss-Coast: Kalman-IDs nach Keep nicht droppen wenn Hold nach Remint leer.
     static func leftoverKeepBoxes(
         used: Set<UUID>,
         dropped: Set<UUID>,
         ghosts: [UUID] = [],
-        hold: [UUID] = []
+        hold: [UUID] = [],
+        missCoast: Bool = false,
+        kalman: [UUID] = []
     ) -> Set<UUID> {
         var keep = used.union(dropped)
         keep.formUnion(ghosts)
         keep.formUnion(hold)
+        if missCoast { keep.formUnion(kalman) }
         return keep
     }
 

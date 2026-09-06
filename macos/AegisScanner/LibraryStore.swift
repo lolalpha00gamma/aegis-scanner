@@ -193,7 +193,12 @@ final class LibraryStore: ObservableObject {
         leftoverStreakSince = MatchMath.leftoverStreakSinceDecode(packed.leftoverStreakSince)
         leftoverHoldBins = MatchMath.leftoverHoldBinsDecode(packed.leftoverHoldBins)
         leftoverHoldTrailBins = MatchMath.leftoverHoldTrailBinsDecode(packed.leftoverHoldTrailBins)
-        leftoverHoldByHash = MatchMath.leftoverHashHoldDecode(packed.leftoverHoldHash, now: Date().timeIntervalSince1970)
+        leftoverHoldByHash = MatchMath.leftoverHashHoldDecode(
+            packed.leftoverHoldHash,
+            now: Date().timeIntervalSince1970,
+            remaining: GalleryFile.loadPayload()?.leftoverHoldHashRemaining,
+            ttl: leftoverHoldTTL
+        )
         leftoverHoldTrailByHash = MatchMath.leftoverHashTrailDecode(packed.leftoverHoldTrailHash, now: Date().timeIntervalSince1970)
         leftoverCaptureHistByHash = MatchMath.leftoverCaptureHistTableDecode(
             packed.leftoverCaptureHist,
@@ -349,7 +354,12 @@ final class LibraryStore: ObservableObject {
                 now: Date().timeIntervalSince1970,
                 ttl: jpegProbeTTL
             ),
-            leftoverHoldKalman: MatchMath.leftoverHoldKalmanEncode(boxKalman, vel: boxKalmanV)
+            leftoverHoldKalman: MatchMath.leftoverHoldKalmanEncode(boxKalman, vel: boxKalmanV),
+            leftoverHoldHashRemaining: MatchMath.leftoverHashHoldRemainingEncode(
+                leftoverHoldByHash,
+                now: Date().timeIntervalSince1970,
+                ttl: leftoverHoldTTL
+            )
         )
         if !liveActive {
             refreshMergeHint()
@@ -398,7 +408,12 @@ final class LibraryStore: ObservableObject {
         leftoverStreakSince = MatchMath.leftoverStreakSinceDecode(packed.leftoverStreakSince)
         leftoverHoldBins = MatchMath.leftoverHoldBinsDecode(packed.leftoverHoldBins)
         leftoverHoldTrailBins = MatchMath.leftoverHoldTrailBinsDecode(packed.leftoverHoldTrailBins)
-        leftoverHoldByHash = MatchMath.leftoverHashHoldDecode(packed.leftoverHoldHash, now: Date().timeIntervalSince1970)
+        leftoverHoldByHash = MatchMath.leftoverHashHoldDecode(
+            packed.leftoverHoldHash,
+            now: Date().timeIntervalSince1970,
+            remaining: GalleryFile.loadPayload()?.leftoverHoldHashRemaining,
+            ttl: leftoverHoldTTL
+        )
         leftoverHoldTrailByHash = MatchMath.leftoverHashTrailDecode(packed.leftoverHoldTrailHash, now: Date().timeIntervalSince1970)
         leftoverCaptureHistByHash = MatchMath.leftoverCaptureHistTableDecode(
             packed.leftoverCaptureHist,
@@ -2206,8 +2221,8 @@ final class LibraryStore: ObservableObject {
         let nowTick = stamp > 0 ? stamp : Date().timeIntervalSince1970
         leftoverHashRebasedTick = false
         if leftoverHashNeedsRebase {
-            leftoverHoldByHash = MatchMath.leftoverHashHoldRebase(leftoverHoldByHash, now: nowTick)
-            leftoverHoldTrailByHash = MatchMath.leftoverHashTrailRebase(leftoverHoldTrailByHash, now: nowTick)
+            leftoverHoldByHash = MatchMath.leftoverHashHoldRebase(leftoverHoldByHash, now: nowTick, keepAt: true)
+            leftoverHoldTrailByHash = MatchMath.leftoverHashTrailRebase(leftoverHoldTrailByHash, now: nowTick, keepAt: true)
             leftoverHashNeedsRebase = false
             leftoverHashRebasedTick = true
         }
@@ -2807,13 +2822,8 @@ final class LibraryStore: ObservableObject {
         let missNeed = MatchMath.leftoverHoldMissNeedAuto(dt: liveDt, pref: leftoverMissNeed)
         let missCoast = MatchMath.leftoverHoldMissCoast(miss: leftoverMissCoastTicks, need: missNeed)
         let skipKalmanReset = MatchMath.leftoverHoldKalmanSkipReset(ago: leftoverKalmanRestoredAgo)
-        leftoverKalmanRestoredAgo = MatchMath.leftoverHoldKalmanRestoredAdvance(
-            prev: leftoverKalmanRestoredAgo,
-            restored: false
-        )
         boxKalman = MatchMath.leftoverHoldRemint(hold: boxKalman, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys, pad: fillXPad, padRescue: fillXRescue)
         boxKalmanV = MatchMath.leftoverHoldRemint(hold: boxKalmanV, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys, pad: fillXPad, padRescue: fillXRescue)
-        let skipKalmanReset = MatchMath.leftoverHoldKalmanSkipReset(ago: leftoverKalmanRestoredAgo)
         for face in adopted {
             if let k = boxKalman[face.id] {
                 let kb = FaceBox(x: k.x, y: k.y, width: k.w, height: k.h)
@@ -2822,6 +2832,10 @@ final class LibraryStore: ObservableObject {
                 }
             }
         }
+        leftoverKalmanRestoredAgo = MatchMath.leftoverHoldKalmanRestoredAdvance(
+            prev: leftoverKalmanRestoredAgo,
+            restored: false
+        )
         boxKalman = MatchMath.leftoverHoldKalmanKeep(kalman: boxKalman, live: adopted.map(\.id), missCoast: missCoast)
         boxKalmanV = MatchMath.leftoverHoldKalmanKeep(kalman: boxKalmanV, live: adopted.map(\.id), missCoast: missCoast)
         let keepIds = Set(remintLive.map(\.id)).union(Set(identities.map(\.id)))
@@ -2832,7 +2846,9 @@ final class LibraryStore: ObservableObject {
             used: used,
             dropped: dropped,
             ghosts: ghostIds,
-            hold: emptyLatch ? Array(Set(leftoverHold.keys).union(MatchMath.leftoverHoldIds(leftoverHoldBins))) : Array(leftoverHold.keys)
+            hold: emptyLatch ? Array(Set(leftoverHold.keys).union(MatchMath.leftoverHoldIds(leftoverHoldBins))) : Array(leftoverHold.keys),
+            missCoast: missCoast,
+            kalman: Array(boxKalman.keys)
         )
         boxEuro = boxEuro.filter { keepBoxes.contains($0.key) }
         boxKalman = boxKalman.filter { keepBoxes.contains($0.key) }
