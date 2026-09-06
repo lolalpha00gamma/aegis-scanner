@@ -3672,6 +3672,55 @@ enum MatchMathTests {
         ok(MatchMath.leftoverDetectSkipTick(skip: true, tick: 1, every: 8), "Skip Tick 1")
         ok(!MatchMath.leftoverDetectSkipTick(skip: true, tick: 8, every: 8), "Skip Tick 8 voll")
         ok(!MatchMath.leftoverDetectSkipTick(skip: false, tick: 1), "Skip tot")
+        ok(!MatchMath.cameraMutexYieldsNow(holder: "aegis", owner: "aegis", wasYielded: true), "Yield löst wenn wir halten")
+        ok(MatchMath.cameraMutexYieldReconfigure(yielded: true, isContinuity: true), "Yield → Built-in")
+        ok(!MatchMath.cameraMutexYieldReconfigure(yielded: true, isContinuity: false), "Yield Built-in bleibt")
+        ok(MatchMath.cameraMutexCacheFolder() == "HeliosAegis", "Mutex Caches-Ordner")
+        ok(MatchMath.cameraMutexRelPath().hasSuffix("/helios.aegis.camera.lock"), "Mutex RelPath")
+        ok(MatchMath.cameraMutexReadOrder() == ["caches", "tmp"], "Mutex Read Caches zuerst")
+        ok(MatchMath.cameraMutexFlockExclusive(), "Mutex flock")
+        ok(MatchMath.cameraMutexPickText(caches: "helios 1 1.000", tmp: "aegis 2 2.000") == "helios 1 1.000", "Pick Caches")
+        ok(MatchMath.cameraMutexPickText(caches: nil, tmp: "aegis 2 2.000") == "aegis 2 2.000", "Pick Legacy tmp")
+        let genLine = MatchMath.cameraMutexLine(owner: "aegis", pid: 9, now: 50, gen: 3)
+        ok(MatchMath.cameraMutexGen(genLine) == 3, "Mutex Gen")
+        ok(MatchMath.cameraMutexParse(genLine, now: 51) == "aegis", "Mutex Gen Parse")
+        let munkres = MatchMath.leftoverAssignHungarianMunkres(cost: [
+            [4, 1, 3],
+            [2, 0, 5],
+            [3, 2, 2]
+        ])
+        ok(munkres == [1, 0, 2], "Munkres 3×3 min-cost")
+        var cycleScores: [[Double?]] = [
+            [0.55, 0.95, 0.05, 0.05],
+            [0.05, 0.55, 0.95, 0.05],
+            [0.05, 0.05, 0.55, 0.95],
+            [0.95, 0.05, 0.05, 0.55]
+        ]
+        let cycleX: [Double] = [0.10, 0.11, 0.12, 0.13]
+        let cycle = MatchMath.leftoverAssignHungarianX(
+            assigned: [nil, nil, nil, nil],
+            liveX: cycleX,
+            holdX: cycleX,
+            pad: 0.40,
+            scores: cycleScores
+        )
+        ok(cycle[0] == 1 && cycle[1] == 2 && cycle[2] == 3 && cycle[3] == 0, "HungarianX 4-Zyklus Print")
+        let oldId = UUID()
+        let liveId = UUID()
+        let packed = MatchMath.leftoverFaceTrackPack(
+            hold: [oldId: 0.72],
+            pending: [oldId: "Ada"],
+            streak: [oldId: 3],
+            lastHash: [oldId: "ab12"],
+            lastIoU: [oldId: 0.91],
+            nameHeld: [oldId: "Ada"],
+            nameUntil: [oldId: 9],
+            miss: [:]
+        )
+        ok(packed[oldId]?.pending == "Ada" && packed[oldId]?.streak == 3, "FaceTrack Pack")
+        let reminted = MatchMath.leftoverFaceTrackRemint(packed, remap: [oldId: liveId])
+        ok(reminted[liveId]?.hold == 0.72, "FaceTrack Remint kopiert")
+        ok(reminted[oldId]?.hold == 0.72, "FaceTrack Remint hält Source")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

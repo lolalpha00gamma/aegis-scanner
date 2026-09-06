@@ -1,3 +1,40 @@
+# Nachtrag 2026-09-06 (2.1.161)
+
+Siehe ANALYSE.md. **2.1.161** Munkres n>8, Yield-Reconfigure Built-in, FaceTrack, Caches-Lock.
+
+## In 2.1.161 gelandet
+
+1. leftoverAssignHungarianXKuhn / Munkres + 3-opt / 4-opt — 4-Zyklus tot
+2. cameraMutexYieldReconfigure + LiveCapture Session auf Built-in, YieldsNow löst
+3. FaceTrack + leftoverFaceTrackPack / Remint
+4. Caches + flock + Dual-Read/Write (Helios 1.5.158)
+5. VERSION = Models = MARKETING_VERSION 2.1.161 (Build 186)
+
+## Nächste, zusätzlich
+
+- LibraryStore auf **ein FaceTrack-Dict** umziehen (Pack sitzt, 25 Maps bleiben).
+- **Yield-Grace 4 s:** Helios weg → Pref Auto-Return Continuity.
+- Detect-Skip auch **VNDetect** (nicht nur skipPrints) wenn IoU+Yaw sitzen.
+- Hamming-Gewicht im Hash selbst, nicht nur Spatial-Strip `#`.
+- FaceEngine Detect auf outputQueue. JPEG-Reextract gegen denselben Buffer.
+- Hold-SM: Unseen / Tentative / Held / Named. MatchMath split: Hold, Hash, Baptize, Assign.
+- Helios Frame-Pump, eine TCC. Shared XPC / IOSurface statt Datei-Lock.
+- Overlay 60 Hz CAMetalLayer, Detect 8–24 fps.
+- VNTrackObjectRequest statt nur Rectangles. TTL 12 Frames nach Detect-Miss.
+- Temperature-skalierte Cosine statt hart 0,80 Baptize.
+- Softmax über Galerie statt Argmax-Taufe — Open-Set Energy-Score.
+- gallery.json WAL + bak rotate 3, printRevision je Identity.
+- Enrollment-HUD: 3 Yaw-Slots + Blink bevor Taufe.
+- Watch-Folder PhotoKit, Export `.aegis` verschlüsselt.
+- P-Slot Maske/Schal, Brille-Slot als Twin-Veto.
+- Temporal ReID-Graph über Hold-Trail.
+- Per-Box CLAHE statt Full-Frame.
+- Continuity Desk-View yaw-floor 0,36.
+- Print-Bank 5 Pose-Slots. DBSCAN vor Merge.
+- Prefs je camera uniqueID.
+- Speaker-Diarization als Aegis-Cue.
+- Lock-Zeile Palm∩Face Mute (Helios-Box).
+
 # Nachtrag 2026-09-06 (2.1.160)
 
 Siehe ANALYSE.md. **2.1.160** Mutex Claim-Gate, HungarianX n>8 Greedy+2-opt, Detect-Skip.

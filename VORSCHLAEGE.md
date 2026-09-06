@@ -1,8 +1,18 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.160 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.161 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 
-Neu in 2.1.160: Mutex Claim-Gate, HungarianX n>8 Greedy+2-opt, Detect-Skip.
+Neu in 2.1.161: Munkres n>8, Yield-Reconfigure Built-in, FaceTrack, Caches-Lock.
+
+## In 2.1.161 wirklich im Code
+
+2.1.160 Greedy+2-opt, Yield nur Timer, `/tmp` ohne flock, 25 Maps.
+
+1. **`leftoverAssignHungarianXKuhn` / Munkres / 3-opt / 4-opt.** 4-Zyklus tot.
+2. **`cameraMutexYieldReconfigure`.** LiveCapture Session auf Built-in. YieldsNow löst.
+3. **`FaceTrack` / `leftoverFaceTrackPack` / Remint.**
+4. **Caches + flock + Dual-Read/Write.**
+5. Tests + VERSION = Models = MARKETING_VERSION 2.1.161 (Build 186). Schema 15 bleibt.
 
 ## In 2.1.160 wirklich im Code
 

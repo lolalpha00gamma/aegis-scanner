@@ -1,4 +1,4 @@
-# Aegis **2.1.160 alpha**
+# Aegis **2.1.161 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.161 alpha
+
+Greedy+2-opt hängt 4-Zyklus. Yield stoppt nur den Timer, Session bleibt auf Continuity. Lock in `/tmp` ohne flock. 25 leftover-Maps.
+
+- **leftoverAssignHungarianXKuhn + Munkres + 3/4-opt.** n>8 Cost-optimal, 4-Zyklus tot.
+- **YieldReconfigure.** Aegis legt live auf Built-in um. YieldsNow löst wenn wir halten.
+- **FaceTrack Pack/Remint.** Eine Identität, Maps bleiben bis LibraryStore umzieht.
+- **Caches + flock + Dual-Read/Write.** Gleicher Pfad wie Helios 1.5.158.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.161 (Build 186). Schema 15 bleibt.
 
 ## Neu in 2.1.160 alpha
 

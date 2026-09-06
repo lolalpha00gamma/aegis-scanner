@@ -1,3 +1,27 @@
+# Helios + Aegis — Analyse 2026-09-06 (2.1.161)
+
+Helios **1.5.158** (Build 177). Aegis **2.1.161 alpha** (Build 186). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.160: HungarianX n>8 Greedy+2-opt, Mutex Claim-Gate, Detect-Skip. 2-opt hängt 4-Zyklus. Yield stoppt nur den Timer. 25 leftover-Maps. Lock in `/tmp`.
+
+## Warum Taufe und Live nach 2.1.160 weiter riss
+
+1. **Greedy+2-opt 4-Zyklus.** Paar-Swap teurer, Vierer-Tausch billiger. Twin-Print im Crowd bleibt auf der Diagonale.
+2. **Yield nur Heartbeat.** Helios startet mitten im Aegis-Tick: Continuity bleibt, 1–2 s Kampf, 8 fps.
+3. **Yield klebt.** `wasYielded` nie false wenn Holder Aegis — Session kommt nicht zurück, Config bleibt falsch.
+4. **25 leftover-Maps.** Remint-Plan sitzt, Identität ist immer noch UUID-Key-Salat.
+5. **`/tmp` ohne flock.** Gleicher Riss wie Helios.
+
+## Was 2.1.161 ändert
+
+1. **leftoverAssignHungarianXKuhn + Munkres O(n³)** für n>8 / Wide-Pad. 3-opt + 4-opt poliert. 4-Zyklus tot.
+2. **YieldReconfigure.** Heartbeat stoppt *und* Session auf Built-in. `YieldsNow` löst wenn wir selbst halten.
+3. **FaceTrack + leftoverFaceTrackPack/Remint.** Eine Remint-Funktion, Maps bleiben bis LibraryStore umzieht.
+4. **Caches + flock + Dual-Read/Write.** Gleicher Pfad wie Helios 1.5.158.
+5. Tests + VERSION = Models = MARKETING 2.1.161 (Build 186). Schema 15 bleibt.
+
+`bugfix` mergen: nein. CameraBroker, Open-Set Energy, Enrollment-HUD, gallery WAL bleiben Liste.
+
 # Helios + Aegis — Analyse 2026-09-06 (2.1.160)
 
 Helios **1.5.152** (Build 171). Aegis **2.1.160 alpha** (Build 185). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

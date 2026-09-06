@@ -236,9 +236,10 @@ final class LiveCapture: NSObject {
             mediaType: .video,
             position: .unspecified
         ).devices
-        let yield = MatchMath.cameraMutexYieldsContinuity(
+        let yield = MatchMath.cameraMutexYieldsNow(
             holder: readCameraMutex(),
-            owner: MatchMath.cameraMutexOwnerAegis()
+            owner: MatchMath.cameraMutexOwnerAegis(),
+            wasYielded: cameraMutexYielded
         )
         cameraMutexYielded = yield
         if yield {
@@ -278,12 +279,48 @@ final class LiveCapture: NSObject {
         }
     }
 
-    private func cameraMutexURL() -> URL {
+    private var yieldReconfiguring = false
+
+    private func cameraMutexCachesURL() -> URL {
+        let base = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
+            ?? FileManager.default.temporaryDirectory
+        let dir = base.appendingPathComponent(MatchMath.cameraMutexCacheFolder(), isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir.appendingPathComponent(MatchMath.cameraMutexName())
+    }
+
+    private func cameraMutexLegacyURL() -> URL {
         FileManager.default.temporaryDirectory.appendingPathComponent(MatchMath.cameraMutexName())
     }
 
+    private func cameraMutexURL() -> URL { cameraMutexCachesURL() }
+
+    private func writeCameraMutexLine(_ line: String, url: URL) {
+        #if canImport(Darwin)
+        let fd = open(url.path, O_WRONLY | O_CREAT, 0o644)
+        if fd >= 0 {
+            _ = flock(fd, LOCK_EX)
+            _ = ftruncate(fd, 0)
+            _ = lseek(fd, 0, SEEK_SET)
+            if let data = line.data(using: .utf8) {
+                data.withUnsafeBytes { raw in
+                    if let p = raw.baseAddress {
+                        _ = Darwin.write(fd, p, raw.count)
+                    }
+                }
+            }
+            _ = flock(fd, LOCK_UN)
+            close(fd)
+            return
+        }
+        #endif
+        try? line.write(to: url, atomically: true, encoding: .utf8)
+    }
+
     private func readCameraMutex() -> String? {
-        guard let text = try? String(contentsOf: cameraMutexURL(), encoding: .utf8) else { return nil }
+        let caches = try? String(contentsOf: cameraMutexCachesURL(), encoding: .utf8)
+        let tmp = try? String(contentsOf: cameraMutexLegacyURL(), encoding: .utf8)
+        guard let text = MatchMath.cameraMutexPickText(caches: caches, tmp: tmp) else { return nil }
         let pid = MatchMath.cameraMutexPid(text)
         let live = pid.map { p in p > 0 && (kill(p, 0) == 0 || errno == EPERM) }
         return MatchMath.cameraMutexParse(text, now: Date().timeIntervalSince1970, pidLive: live)
@@ -298,9 +335,34 @@ final class LiveCapture: NSObject {
         if cameraMutexYielded {
             mutexBeat?.invalidate()
             mutexBeat = nil
+            if MatchMath.cameraMutexYieldReconfigure(yielded: true, isContinuity: isContinuity) {
+                reconfigureAfterYield()
+            }
             return
         }
         claimCameraMutex()
+    }
+
+    private func reconfigureAfterYield() {
+        guard !yieldReconfiguring else { return }
+        yieldReconfiguring = true
+        let s = session
+        session = nil
+        tap = nil
+        rotationCoordinator = nil
+        cameraMutexYielded = true
+        if let s {
+            outputQueue.async { [weak self] in
+                s.stopRunning()
+                Task { @MainActor in
+                    self?.configureCamera()
+                    self?.yieldReconfiguring = false
+                }
+            }
+        } else {
+            configureCamera()
+            yieldReconfiguring = false
+        }
     }
 
     private func claimCameraMutex() {
@@ -314,14 +376,16 @@ final class LiveCapture: NSObject {
             pid: ProcessInfo.processInfo.processIdentifier,
             now: Date().timeIntervalSince1970
         )
-        try? line.write(to: cameraMutexURL(), atomically: true, encoding: .utf8)
+        writeCameraMutexLine(line, url: cameraMutexCachesURL())
+        writeCameraMutexLine(line, url: cameraMutexLegacyURL())
     }
 
     private func releaseCameraMutex() {
-        let url = cameraMutexURL()
-        guard let text = try? String(contentsOf: url, encoding: .utf8) else { return }
-        if MatchMath.cameraMutexParse(text, now: Date().timeIntervalSince1970, stale: 9_999) == MatchMath.cameraMutexOwnerAegis() {
-            try? FileManager.default.removeItem(at: url)
+        for url in [cameraMutexCachesURL(), cameraMutexLegacyURL()] {
+            guard let text = try? String(contentsOf: url, encoding: .utf8) else { continue }
+            if MatchMath.cameraMutexParse(text, now: Date().timeIntervalSince1970, stale: 9_999) == MatchMath.cameraMutexOwnerAegis() {
+                try? FileManager.default.removeItem(at: url)
+            }
         }
     }
 

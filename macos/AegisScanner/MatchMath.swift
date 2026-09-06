@@ -802,20 +802,44 @@ enum MatchMath {
     static func cameraMutexOwnerHelios() -> String { "helios" }
     static func cameraMutexOwnerAegis() -> String { "aegis" }
     static func cameraMutexName() -> String { "helios.aegis.camera.lock" }
+    /// Caches statt /tmp: Reboot räumt tmp, Lock blieb tot.
+    static func cameraMutexCacheFolder() -> String { "HeliosAegis" }
+    static func cameraMutexRelPath() -> String {
+        cameraMutexCacheFolder() + "/" + cameraMutexName()
+    }
+    static func cameraMutexWriteKind() -> String { "caches" }
+    static func cameraMutexReadOrder() -> [String] { ["caches", "tmp"] }
+    static func cameraMutexFlockExclusive() -> Bool { true }
     /// 3 s war kürzer als Continuity-Frame. Heartbeat 2 s, Stale 12.
     static func cameraMutexStale() -> TimeInterval { 12 }
 
     static func cameraMutexHeartbeatSec() -> TimeInterval { 2 }
 
     /// Int(now) = Sekundenraster: Claim 12,9 / Parse 13,0 = 1 s tot. %.3f hält ms.
-    static func cameraMutexLine(owner: String, pid: Int32, now: TimeInterval) -> String {
-        String(format: "%@ %d %.3f", owner, pid, now)
+    /// gen 0: alte 3-Felder-Zeile (2.1.160).
+    static func cameraMutexLine(owner: String, pid: Int32, now: TimeInterval, gen: UInt32 = 0) -> String {
+        if gen == 0 {
+            return String(format: "%@ %d %.3f", owner, pid, now)
+        }
+        return String(format: "%@ %d %.3f %u", owner, pid, now, gen)
     }
 
     static func cameraMutexPid(_ text: String) -> Int32? {
         let parts = text.split(whereSeparator: { $0 == " " || $0 == "\n" }).map(String.init)
         guard parts.count >= 2 else { return nil }
         return Int32(parts[1])
+    }
+
+    static func cameraMutexGen(_ text: String) -> UInt32? {
+        let parts = text.split(whereSeparator: { $0 == " " || $0 == "\n" }).map(String.init)
+        guard parts.count >= 4 else { return nil }
+        return UInt32(parts[3])
+    }
+
+    static func cameraMutexPickText(caches: String?, tmp: String?) -> String? {
+        if let caches, !caches.isEmpty { return caches }
+        if let tmp, !tmp.isEmpty { return tmp }
+        return nil
     }
 
     /// pidLive nil = Tests ohne kill(2). Crash: pid tot → Lock frei, nicht 12 s warten.
@@ -852,8 +876,19 @@ enum MatchMath {
         return false
     }
 
+    /// Yield klebt bei Helios und in der Atomic-Lücke (holder nil).
+    /// 2.1.160: wasYielded blieb ewig true — Aegis-Session blieb auf Continuity.
     static func cameraMutexYieldsNow(holder: String?, owner: String, wasYielded: Bool) -> Bool {
-        wasYielded || cameraMutexYieldsContinuity(holder: holder, owner: owner)
+        if cameraMutexYieldsContinuity(holder: holder, owner: owner) { return true }
+        if !wasYielded { return false }
+        if holder == nil { return true }
+        if holder == cameraMutexOwnerHelios() { return true }
+        return false
+    }
+
+    /// Live-Yield: Session auf Built-in umlegen, nicht nur Heartbeat killen.
+    static func cameraMutexYieldReconfigure(yielded: Bool, isContinuity: Bool) -> Bool {
+        yielded && isContinuity
     }
 
     static func cameraMutexPidDead(_ pid: Int32?) -> Bool {
@@ -1716,7 +1751,7 @@ enum MatchMath {
         return out
     }
 
-    /// n≤8 min-cost. n=6 Crowd FillX greedy ließ 7. Person tot.
+    /// n≤8 min-cost Recursion. n>8 / Wide-Pad: Kuhn-Munkres + 2/3/4-opt.
     static let leftoverAssignHungarianN = 8
 
     /// Pad 0,40 bei n=8 explodiert Recursion. FillX greedy.
@@ -1740,7 +1775,7 @@ enum MatchMath {
         let m = liveX.count
         if n == 0 || m == 0 { return out }
         if leftoverAssignHungarianWide(pad) || n > leftoverAssignHungarianN || m > leftoverAssignHungarianN {
-            return leftoverAssignHungarianXGreedy(
+            return leftoverAssignHungarianXKuhn(
                 assigned: assigned, liveX: liveX, holdX: holdX, pad: pad, spread: spread, scores: scores
             )
         }
@@ -1782,7 +1817,7 @@ enum MatchMath {
         return leftoverAssignSpreadVeto(assigned: chosen, liveX: liveX, holdX: holdX, pad: pad, spread: spread)
     }
 
-    /// n>8: Recursion tot. FillX nur |Δx|. Cost-Greedy + 2-opt hält Print im Crowd.
+    /// n>8: Recursion tot. Kuhn-Munkres + 2/3/4-opt hält Print im Crowd. 2-opt allein hängt 4-Zyklus.
     static func leftoverAssignHungarianXGreedy(
         assigned: [Int?],
         liveX: [Double],
@@ -1818,6 +1853,8 @@ enum MatchMath {
             used.insert(p.c)
         }
         out = leftoverAssignHungarianX2opt(assigned: out, liveX: liveX, holdX: holdX, pad: pad, scores: scores)
+        out = leftoverAssignHungarianX3opt(assigned: out, liveX: liveX, holdX: holdX, pad: pad, scores: scores)
+        out = leftoverAssignHungarianX4opt(assigned: out, liveX: liveX, holdX: holdX, pad: pad, scores: scores)
         if leftoverAssignHungarianXHasPrint(scores) { return out }
         return leftoverAssignSpreadVeto(assigned: out, liveX: liveX, holdX: holdX, pad: pad, spread: spread)
     }
@@ -1858,6 +1895,246 @@ enum MatchMath {
             }
         }
         return out
+    }
+
+    /// 3-Zyklus. 2-opt bleibt in 4-Zyklus-Minima hängen.
+    static func leftoverAssignHungarianX3opt(
+        assigned: [Int?],
+        liveX: [Double],
+        holdX: [Double],
+        pad: Double,
+        scores: [[Double?]]?
+    ) -> [Int?] {
+        var out = assigned
+        var improved = true
+        var guardN = 0
+        while improved, guardN < 8 {
+            improved = false
+            guardN += 1
+            let n = min(out.count, holdX.count)
+            for i in 0..<n {
+                guard let c1 = out[i], c1 < liveX.count else { continue }
+                for j in (i + 1)..<n {
+                    guard let c2 = out[j], c2 < liveX.count else { continue }
+                    for k in (j + 1)..<n {
+                        guard let c3 = out[k], c3 < liveX.count else { continue }
+                        let rows = [i, j, k]
+                        let cols = [c1, c2, c3]
+                        let cur = leftoverAssignHungarianXCycleCost(
+                            rows: rows, cols: cols, liveX: liveX, holdX: holdX, pad: pad, scores: scores
+                        )
+                        let cands = [[c2, c3, c1], [c3, c1, c2]]
+                        for cand in cands {
+                            guard let sw = leftoverAssignHungarianXCycleCostIfPad(
+                                rows: rows, cols: cand, liveX: liveX, holdX: holdX, pad: pad, scores: scores
+                            ), sw + 1e-9 < cur else { continue }
+                            out[i] = cand[0]
+                            out[j] = cand[1]
+                            out[k] = cand[2]
+                            improved = true
+                        }
+                    }
+                }
+            }
+        }
+        return out
+    }
+
+    /// 4-Zyklus. Greedy+2-opt bleibt auf der Diagonale wenn jedes Paar-Swap teurer ist.
+    static func leftoverAssignHungarianX4opt(
+        assigned: [Int?],
+        liveX: [Double],
+        holdX: [Double],
+        pad: Double,
+        scores: [[Double?]]?
+    ) -> [Int?] {
+        var out = assigned
+        var improved = true
+        var guardN = 0
+        while improved, guardN < 6 {
+            improved = false
+            guardN += 1
+            let n = min(out.count, holdX.count)
+            for i in 0..<n {
+                guard let c1 = out[i], c1 < liveX.count else { continue }
+                for j in (i + 1)..<n {
+                    guard let c2 = out[j], c2 < liveX.count else { continue }
+                    for k in (j + 1)..<n {
+                        guard let c3 = out[k], c3 < liveX.count else { continue }
+                        for l in (k + 1)..<n {
+                            guard let c4 = out[l], c4 < liveX.count else { continue }
+                            let rows = [i, j, k, l]
+                            let cols = [c1, c2, c3, c4]
+                            let cur = leftoverAssignHungarianXCycleCost(
+                                rows: rows, cols: cols, liveX: liveX, holdX: holdX, pad: pad, scores: scores
+                            )
+                            let cands = [[c2, c3, c4, c1], [c4, c1, c2, c3]]
+                            for cand in cands {
+                                guard let sw = leftoverAssignHungarianXCycleCostIfPad(
+                                    rows: rows, cols: cand, liveX: liveX, holdX: holdX, pad: pad, scores: scores
+                                ), sw + 1e-9 < cur else { continue }
+                                out[i] = cand[0]
+                                out[j] = cand[1]
+                                out[k] = cand[2]
+                                out[l] = cand[3]
+                                improved = true
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return out
+    }
+
+    static func leftoverAssignHungarianXCycleCost(
+        rows: [Int],
+        cols: [Int],
+        liveX: [Double],
+        holdX: [Double],
+        pad: Double,
+        scores: [[Double?]]?
+    ) -> Double {
+        var s = 0.0
+        for t in 0..<rows.count {
+            let r = rows[t]
+            let c = cols[t]
+            let d = abs(liveX[c] - holdX[r])
+            s += leftoverAssignHungarianXStep(dx: d, pad: pad, row: r, col: c, scores: scores)
+        }
+        return s
+    }
+
+    static func leftoverAssignHungarianXCycleCostIfPad(
+        rows: [Int],
+        cols: [Int],
+        liveX: [Double],
+        holdX: [Double],
+        pad: Double,
+        scores: [[Double?]]?
+    ) -> Double? {
+        var s = 0.0
+        for t in 0..<rows.count {
+            let r = rows[t]
+            let c = cols[t]
+            guard c < liveX.count, r < holdX.count else { return nil }
+            let d = abs(liveX[c] - holdX[r])
+            if d > pad { return nil }
+            s += leftoverAssignHungarianXStep(dx: d, pad: pad, row: r, col: c, scores: scores)
+        }
+        return s
+    }
+
+    /// n>8 / Wide-Pad: Kuhn-Munkres O(n³) statt n!-Recursion. 2/3/4-opt poliert.
+    static func leftoverAssignHungarianXKuhn(
+        assigned: [Int?],
+        liveX: [Double],
+        holdX: [Double],
+        pad: Double,
+        spread: Double = leftoverAmbiguousSpread,
+        scores: [[Double?]]? = nil
+    ) -> [Int?] {
+        var out = assigned
+        if out.count < holdX.count {
+            out += Array(repeating: Optional<Int>.none, count: holdX.count - out.count)
+        }
+        let n = holdX.count
+        let m = liveX.count
+        if n == 0 || m == 0 { return out }
+        let used = Set(out.prefix(n).compactMap { $0 })
+        let rows = (0..<n).filter { out[$0] == nil }
+        let cols = (0..<m).filter { !used.contains($0) }
+        if !rows.isEmpty, !cols.isEmpty {
+            let R = rows.count
+            let C = cols.count
+            let N = max(R, C)
+            let inf = 1_000_000.0
+            var cost = Array(repeating: Array(repeating: 0.0, count: N), count: N)
+            for i in 0..<R {
+                let r = rows[i]
+                for j in 0..<C {
+                    let c = cols[j]
+                    let d = abs(liveX[c] - holdX[r])
+                    if d > pad {
+                        cost[i][j] = inf
+                    } else {
+                        cost[i][j] = leftoverAssignHungarianXStep(
+                            dx: d, pad: pad, row: r, col: c, scores: scores
+                        )
+                    }
+                }
+            }
+            let match = leftoverAssignHungarianMunkres(cost: cost)
+            if match.count == N {
+                for i in 0..<R {
+                    let j = match[i]
+                    if j >= 0, j < C, cost[i][j] < inf / 2 {
+                        out[rows[i]] = cols[j]
+                    }
+                }
+            }
+        }
+        out = leftoverAssignHungarianX2opt(assigned: out, liveX: liveX, holdX: holdX, pad: pad, scores: scores)
+        out = leftoverAssignHungarianX3opt(assigned: out, liveX: liveX, holdX: holdX, pad: pad, scores: scores)
+        out = leftoverAssignHungarianX4opt(assigned: out, liveX: liveX, holdX: holdX, pad: pad, scores: scores)
+        if leftoverAssignHungarianXHasPrint(scores) { return out }
+        return leftoverAssignSpreadVeto(assigned: out, liveX: liveX, holdX: holdX, pad: pad, spread: spread)
+    }
+
+    /// Kuhn-Munkres Min-Cost, quadratische Matrix. Dummy-Spalten = 0 (unassigned).
+    static func leftoverAssignHungarianMunkres(cost: [[Double]]) -> [Int] {
+        let n = cost.count
+        guard n > 0 else { return [] }
+        guard cost.allSatisfy({ $0.count == n }) else { return Array(repeating: -1, count: n) }
+        var u = Array(repeating: 0.0, count: n + 1)
+        var v = Array(repeating: 0.0, count: n + 1)
+        var p = Array(repeating: 0, count: n + 1)
+        var way = Array(repeating: 0, count: n + 1)
+        for i in 1...n {
+            p[0] = i
+            var j0 = 0
+            var minv = Array(repeating: Double.infinity, count: n + 1)
+            var used = Array(repeating: false, count: n + 1)
+            repeat {
+                used[j0] = true
+                let i0 = p[j0]
+                var delta = Double.infinity
+                var j1 = 0
+                for j in 1...n where !used[j] {
+                    let cur = cost[i0 - 1][j - 1] - u[i0] - v[j]
+                    if cur < minv[j] {
+                        minv[j] = cur
+                        way[j] = j0
+                    }
+                    if minv[j] < delta {
+                        delta = minv[j]
+                        j1 = j
+                    }
+                }
+                if j1 == 0 { break }
+                for j in 0...n {
+                    if used[j] {
+                        u[p[j]] += delta
+                        v[j] -= delta
+                    } else {
+                        minv[j] -= delta
+                    }
+                }
+                j0 = j1
+            } while p[j0] != 0
+            repeat {
+                let j1 = way[j0]
+                p[j0] = p[j1]
+                j0 = j1
+            } while j0 != 0
+        }
+        var ans = Array(repeating: -1, count: n)
+        for j in 1...n {
+            if p[j] != 0 {
+                ans[p[j] - 1] = j - 1
+            }
+        }
+        return ans
     }
 
     /// Kalman-Box sitzt: VNDetect + Print sparen. Coast 7/8 Ticks, Tick 0 voll.
@@ -2524,6 +2801,56 @@ enum MatchMath {
             if let v = hold[stored] {
                 out[live] = v
             }
+        }
+        return out
+    }
+
+    /// Identität als ein Objekt. 25 leftover-Maps bleiben bis LibraryStore umzieht.
+    struct FaceTrack: Equatable {
+        var hold: Double = 0
+        var pending: String = ""
+        var streak: Int = 0
+        var lastHash: String = ""
+        var lastIoU: Double = 0
+        var nameHeld: String = ""
+        var nameUntil: TimeInterval = 0
+        var miss: Int = 0
+    }
+
+    static func leftoverFaceTrackRemint(
+        _ tracks: [UUID: FaceTrack],
+        remap: [UUID: UUID]
+    ) -> [UUID: FaceTrack] {
+        leftoverHoldRemintApply(hold: tracks, remap: remap)
+    }
+
+    static func leftoverFaceTrackPack(
+        hold: [UUID: Double],
+        pending: [UUID: String],
+        streak: [UUID: Int],
+        lastHash: [UUID: String],
+        lastIoU: [UUID: Double],
+        nameHeld: [UUID: String],
+        nameUntil: [UUID: TimeInterval],
+        miss: [UUID: Int]
+    ) -> [UUID: FaceTrack] {
+        let keys = leftoverHoldRemintKeys([
+            Set(hold.keys), Set(pending.keys), Set(streak.keys), Set(lastHash.keys),
+            Set(lastIoU.keys), Set(nameHeld.keys), Set(nameUntil.keys), Set(miss.keys)
+        ])
+        var out: [UUID: FaceTrack] = [:]
+        out.reserveCapacity(keys.count)
+        for id in keys {
+            out[id] = FaceTrack(
+                hold: hold[id] ?? 0,
+                pending: pending[id] ?? "",
+                streak: streak[id] ?? 0,
+                lastHash: lastHash[id] ?? "",
+                lastIoU: lastIoU[id] ?? 0,
+                nameHeld: nameHeld[id] ?? "",
+                nameUntil: nameUntil[id] ?? 0,
+                miss: miss[id] ?? 0
+            )
         }
         return out
     }
