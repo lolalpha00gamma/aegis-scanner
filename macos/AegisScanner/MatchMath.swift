@@ -86,8 +86,8 @@ enum MatchMath {
     /// ¾/Profil: Maße vs. Frontal-Centroid lügen. Print ≥ 80 nicht vetoen.
     static let geoVetoYawSkip = 0.28
     static let geoVetoYawPrint = 80.0
-    /// gallery.json Schema neben printRevision. 8 = PairLast + NameLock remaining + HoldTrail.
-    static let gallerySchema = 8
+    /// gallery.json Schema neben printRevision. 9 = PairStreak/Commit + Streak + Seen remaining.
+    static let gallerySchema = 9
     /// Box-IoU unter dem Wert: Bewegung. Mit Schärfe: kleines Nicken darf den Print.
     static let holdStillIoU = 0.70
     static let holdStillSharp = 0.18
@@ -1420,7 +1420,7 @@ enum MatchMath {
     /// Remint (x) zuerst — Print füllt Rest, stiehlt keine Remint-Spalte.
     /// 1 Hold + 1 Live nach Vision-Restart. ≥2 ließ Einzelperson tot.
     static func leftoverAssignLiveGateNeed(_ pref: Int) -> Int {
-        min(2, max(1, pref))
+        min(3, max(1, pref))
     }
 
     static func leftoverAssignLiveGate(unnamed: Int, unused: Int, need: Int = 1) -> Bool {
@@ -1430,12 +1430,14 @@ enum MatchMath {
 
     static func leftoverAssignRemint(
         liveX: [Double],
-        holdX: [Double]
+        holdX: [Double],
+        pad: Double = leftoverFillXPad
     ) -> [Int?] {
         leftoverAssignFillX(
             assigned: Array(repeating: Optional<Int>.none, count: holdX.count),
             liveX: liveX,
-            holdX: holdX
+            holdX: holdX,
+            pad: leftoverFillXPadPref(pad)
         )
     }
 
@@ -1443,11 +1445,12 @@ enum MatchMath {
         scores: [[Double?]],
         liveX: [Double],
         holdX: [Double],
-        pad: Double = leftoverFillXRescue
+        pad: Double = leftoverFillXRescue,
+        padFill: Double = leftoverFillXPad
     ) -> [Int?] {
-        var assigned = leftoverAssignRemint(liveX: liveX, holdX: holdX)
+        var assigned = leftoverAssignRemint(liveX: liveX, holdX: holdX, pad: padFill)
         var used = Set(assigned.compactMap { $0 })
-        let printed = leftoverAssign(scores: scores)
+        let printed = leftoverAssignHungarian(scores: scores)
         if assigned.count < printed.count {
             assigned += Array(repeating: Optional<Int>.none, count: printed.count - assigned.count)
         }
@@ -1465,7 +1468,8 @@ enum MatchMath {
                 assigned: leftoverAssignFillX(
                     assigned: assigned,
                     liveX: liveX,
-                    holdX: holdX
+                    holdX: holdX,
+                    pad: leftoverFillXPadPref(padFill)
                 ),
                 liveX: liveX,
                 holdX: holdX,
@@ -1485,14 +1489,15 @@ enum MatchMath {
     static func leftoverHoldHashRescue(
         liveHash: String,
         stored: [(id: UUID, hash: String)],
-        occupied: Set<UUID> = []
+        occupied: Set<UUID> = [],
+        facesInFrame: Int = 1
     ) -> UUID? {
         let spatial = leftoverHoldHashSpatial(liveHash)
         guard !spatial.isEmpty else { return nil }
-        let hits = stored.filter {
-            !occupied.contains($0.id)
-                && leftoverHoldHashSpatial($0.hash) == spatial
-                && !$0.hash.isEmpty
+        let hits = stored.filter { s in
+            guard !occupied.contains(s.id), !s.hash.isEmpty else { return false }
+            if facesInFrame >= 2 { return s.hash == liveHash }
+            return leftoverHoldHashSpatial(s.hash) == spatial
         }
         if hits.count == 1 { return hits[0].id }
         return nil
@@ -1528,9 +1533,12 @@ enum MatchMath {
         liveHash: String,
         stored: [(id: UUID, hash: String)],
         occupied: Set<UUID> = [],
-        tableKeys: [String]
+        tableKeys: [String],
+        facesInFrame: Int = 1
     ) -> UUID? {
-        if let hit = leftoverHoldHashRescue(liveHash: liveHash, stored: stored, occupied: occupied) {
+        if let hit = leftoverHoldHashRescue(
+            liveHash: liveHash, stored: stored, occupied: occupied, facesInFrame: facesInFrame
+        ) {
             return hit
         }
         let spatial = leftoverHoldHashSpatial(liveHash)
@@ -1565,7 +1573,9 @@ enum MatchMath {
                 taken.insert(row.id)
                 continue
             }
-            guard let match = leftoverHoldXMatch(liveX: row.x, holds: holds, occupied: taken) else { continue }
+            guard let match = leftoverHoldXMatch(
+                liveX: row.x, holds: holds, occupied: taken, pad: leftoverFillXRescuePref(padRescue)
+            ) else { continue }
             if match == row.id { continue }
             if let v = hold[match] {
                 out[row.id] = v
@@ -1581,7 +1591,9 @@ enum MatchMath {
                 if hold[row.id] != nil { continue }
                 if out[row.id] != nil { continue }
                 guard let h = liveHash[row.id], !h.isEmpty else { continue }
-                guard let match = leftoverHoldHashRescue(liveHash: h, stored: storedH, occupied: taken) else { continue }
+                guard let match = leftoverHoldHashRescue(
+                    liveHash: h, stored: storedH, occupied: taken, facesInFrame: live.count
+                ) else { continue }
                 if match == row.id { continue }
                 if let v = hold[match] {
                     out[row.id] = v
@@ -1610,7 +1622,7 @@ enum MatchMath {
                 if out[row.id] != nil { continue }
                 guard let h = liveHash[row.id], !h.isEmpty else { continue }
                 guard let match = leftoverHoldByHashRescue(
-                    liveHash: h, stored: storedH, occupied: taken, tableKeys: hashTableKeys
+                    liveHash: h, stored: storedH, occupied: taken, tableKeys: hashTableKeys, facesInFrame: live.count
                 ) else { continue }
                 if match == row.id { continue }
                 if let v = hold[match] {
@@ -1647,7 +1659,9 @@ enum MatchMath {
                 taken.insert(row.id)
                 continue
             }
-            guard let match = leftoverHoldXMatch(liveX: row.x, holds: holds, occupied: taken) else { continue }
+            guard let match = leftoverHoldXMatch(
+                liveX: row.x, holds: holds, occupied: taken, pad: leftoverFillXRescuePref(padRescue)
+            ) else { continue }
             if match == row.id { continue }
             for (key, v) in hold {
                 guard leftoverHoldId(from: key) == match, let bin = leftoverHoldBinFromKey(key) else { continue }
@@ -1664,7 +1678,9 @@ enum MatchMath {
                 if present.contains(row.id) { continue }
                 if out.keys.contains(where: { leftoverHoldId(from: $0) == row.id }) { continue }
                 guard let h = liveHash[row.id], !h.isEmpty else { continue }
-                guard let match = leftoverHoldHashRescue(liveHash: h, stored: storedH, occupied: taken) else { continue }
+                guard let match = leftoverHoldHashRescue(
+                    liveHash: h, stored: storedH, occupied: taken, facesInFrame: live.count
+                ) else { continue }
                 if match == row.id { continue }
                 for (key, v) in hold {
                     guard leftoverHoldId(from: key) == match, let bin = leftoverHoldBinFromKey(key) else { continue }
@@ -1695,7 +1711,7 @@ enum MatchMath {
                 if out.keys.contains(where: { leftoverHoldId(from: $0) == row.id }) { continue }
                 guard let h = liveHash[row.id], !h.isEmpty else { continue }
                 guard let match = leftoverHoldByHashRescue(
-                    liveHash: h, stored: storedH, occupied: taken, tableKeys: hashTableKeys
+                    liveHash: h, stored: storedH, occupied: taken, tableKeys: hashTableKeys, facesInFrame: live.count
                 ) else { continue }
                 if match == row.id { continue }
                 for (key, v) in hold {
@@ -3343,6 +3359,48 @@ enum MatchMath {
         return result
     }
 
+    /// n=3: 3-Zyklus nach 2-opt. Greedy allein lässt Crowd-Taufe.
+    static func leftoverAssignHungarian(scores: [[Double?]]) -> [Int?] {
+        var result = leftoverAssign(scores: scores)
+        let n = result.count
+        guard n >= 3, !scores.isEmpty else { return result }
+        var assigned = result.enumerated().compactMap { item -> (r: Int, c: Int)? in
+            guard let c = item.element else { return nil }
+            return (item.offset, c)
+        }
+        guard assigned.count >= 3 else { return result }
+        func score(_ r: Int, _ c: Int) -> Double? {
+            guard r < scores.count, c < scores[r].count else { return nil }
+            return scores[r][c]
+        }
+        for i in 0..<assigned.count {
+            for j in (i + 1)..<assigned.count {
+                for k in (j + 1)..<assigned.count {
+                    let a = assigned[i], b = assigned[j], cyc = assigned[k]
+                    let cur = (score(a.r, a.c) ?? -1) + (score(b.r, b.c) ?? -1) + (score(cyc.r, cyc.c) ?? -1)
+                    if let s1 = score(a.r, b.c), let s2 = score(b.r, cyc.c), let s3 = score(cyc.r, a.c),
+                       s1 + s2 + s3 > cur + 1e-9 {
+                        result[a.r] = b.c
+                        result[b.r] = cyc.c
+                        result[cyc.r] = a.c
+                        assigned[i] = (a.r, b.c)
+                        assigned[j] = (b.r, cyc.c)
+                        assigned[k] = (cyc.r, a.c)
+                    } else if let s1 = score(a.r, cyc.c), let s2 = score(cyc.r, b.c), let s3 = score(b.r, a.c),
+                              s1 + s2 + s3 > cur + 1e-9 {
+                        result[a.r] = cyc.c
+                        result[cyc.r] = b.c
+                        result[b.r] = a.c
+                        assigned[i] = (a.r, cyc.c)
+                        assigned[k] = (cyc.r, b.c)
+                        assigned[j] = (b.r, a.c)
+                    }
+                }
+            }
+        }
+        return result
+    }
+
     /// 2-opt-Zeile: Top-2 Spread < 0,08 nicht zuweisen (Twin-Spalte).
     static func leftoverAssignDropAmbiguous(
         scores: [[Double?]],
@@ -4834,6 +4892,39 @@ enum MatchMath {
         return out
     }
 
+    /// leftoverStreakSince war absolute Epoch — Survive wischt Hold vor Remint nach Restart.
+    /// Remaining analog NameLockUntil. Schema 8 (>100) = Epoch, rebase auf now.
+    static func leftoverSeenRemainingEncode(
+        since: [UUID: TimeInterval],
+        now: TimeInterval,
+        ttl: TimeInterval
+    ) -> [String: Double] {
+        let used = leftoverHoldTTLPref(ttl)
+        var out: [String: Double] = [:]
+        for (id, t) in since {
+            let left = used - (now - t)
+            if left > 0 { out[id.uuidString] = left }
+        }
+        return out
+    }
+
+    static func leftoverSeenRestore(
+        _ raw: [String: Double]?,
+        now: TimeInterval,
+        ttl: TimeInterval
+    ) -> [UUID: TimeInterval] {
+        let used = leftoverHoldTTLPref(ttl)
+        var out: [UUID: TimeInterval] = [:]
+        for (id, v) in leftoverStreakSinceDecode(raw) {
+            if v > 100 {
+                out[id] = v > now ? v : now
+            } else if v > 0 {
+                out[id] = now - (used - v)
+            }
+        }
+        return out
+    }
+
     /// leftoverLastHash / leftoverNameLockHeld. App-Restart sonst Rescue ohne storedHash.
     static func leftoverUUIDStringMapEncode(_ table: [UUID: String]) -> [String: String] {
         var out: [String: String] = [:]
@@ -4903,21 +4994,52 @@ enum MatchMath {
         guard let raw else { return [:] }
         var out: [UUID: UUID] = [:]
         for (k, v) in raw {
-            guard let id = UUID(uuidString: k), let dest = UUID(uuidString: v) else { continue }
+            guard let id = UUID(uuidString: k), let dest = UUID(uuidString: v), dest != id else { continue }
             out[id] = dest
         }
         return out
     }
 
+    /// Dest tot nach Vision-Restart. keep = Live ∪ Identitäten.
+    static func leftoverUUIDUUIDMapDropDangling(_ table: [UUID: UUID], keep: Set<UUID>) -> [UUID: UUID] {
+        guard !keep.isEmpty else { return table }
+        var out: [UUID: UUID] = [:]
+        for (k, v) in table where keep.contains(v) {
+            out[k] = v
+        }
+        return out
+    }
+
+    static func leftoverUUIDIntMapEncode(_ table: [UUID: Int]) -> [String: Int] {
+        Dictionary(uniqueKeysWithValues: table.map { ($0.key.uuidString, $0.value) })
+    }
+
+    static func leftoverUUIDIntMapDecode(_ raw: [String: Int]?) -> [UUID: Int] {
+        guard let raw else { return [:] }
+        var out: [UUID: Int] = [:]
+        for (k, v) in raw {
+            guard let id = UUID(uuidString: k) else { continue }
+            out[id] = v
+        }
+        return out
+    }
+
+    /// Hold-Trail unbeschränkt fraß RAM. EMA 4 Samples.
+    static func leftoverHoldTrailCap(_ trail: [Double], cap: Int = 4) -> [Double] {
+        trail.count <= cap ? trail : Array(trail.suffix(cap))
+    }
+
     static func leftoverUUIDTrailEncode(_ table: [UUID: [Double]]) -> [String: [Double]] {
-        leftoverHoldTrailBinsEncode(Dictionary(uniqueKeysWithValues: table.map { ($0.key.uuidString, $0.value) }))
+        leftoverHoldTrailBinsEncode(Dictionary(uniqueKeysWithValues: table.map {
+            ($0.key.uuidString, leftoverHoldTrailCap($0.value))
+        }))
     }
 
     static func leftoverUUIDTrailDecode(_ raw: [String: [Double]]?) -> [UUID: [Double]] {
         var out: [UUID: [Double]] = [:]
         for (k, v) in leftoverHoldTrailBinsDecode(raw) {
             guard let id = UUID(uuidString: k), !v.isEmpty else { continue }
-            out[id] = v
+            out[id] = leftoverHoldTrailCap(v)
         }
         return out
     }

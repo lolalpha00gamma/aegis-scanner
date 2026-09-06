@@ -1,3 +1,59 @@
+# Nachtrag 2026-09-06 (2.1.138)
+
+Siehe ANALYSE.md. **2.1.138** Schema 9 PairStreak/Commit/Streak, Seen remaining, Hungarian n=3, Hash Twin Exact, FillX Pad UI, Trail Cap 4.
+
+## In 2.1.138 gelandet
+
+1. Schema 9 leftoverPairStreak + leftoverPairCommit + leftoverStreak persist
+2. leftoverSeenRemainingEncode / leftoverSeenRestore (Schema 8 Epoch rebase)
+3. leftoverAssignHungarian 3-Zyklus, leftoverAssignLive Hungarian + padFill
+4. leftoverHoldHashRescue facesInFrame Twin Exact, Remint erster Pass padRescue
+5. leftoverFillXPad Pref UI 0,06–0,20, Gate Crowd 3
+6. leftoverHoldTrailCap 4, leftoverUUIDUUIDMapDropDangling, dest==key tot
+7. restoreFromBackup Schema-9-Maps nicht wischen
+8. VERSION = Models = MARKETING_VERSION 2.1.138 (Build 163)
+
+## Nächste, zusätzlich
+
+- leftoverStreakBox x persist — Streak ohne Box remintet nach Restart nur per Hash.
+- leftoverHold TTL remaining analog NameLockUntil / Seen.
+- leftoverLiveHashTick vor persist in leftoverLastHash mergen, Tick selbst nicht persist.
+- leftoverHoldByHash Rank-Key rebase nach Schema-9-Restore.
+- leftoverJpegProbeReuse TTL Pref 0,25–1,2.
+- leftoverHoldTrailByHash analog Rescue nach Rank-Key.
+- leftoverHoldMove leftoverCaptureHistByHash Rank-Key.
+- leftoverAssign n>3 Jonker-Volgenant, nicht nur 3-Zyklus.
+- leftoverOccupiedMerge Hash-Key nach persist UUID-Restore.
+- leftoverLastIoU / leftoverSparkChipHeld persist.
+- leftoverHoldSurvive vs leftoverHold persist Race nach App-Restart (Hold noch Epoch).
+- leftoverNameLockHeld ohne Until remaining nach Schema-7-Backup.
+- leftoverHoldMove leftoverJpeg* Maps.
+- leftoverPairLast Value-Remint persist: dest existiert nicht mehr nach Vision-Restart — DropDangling sitzt nach Remint, Restore-Reihenfolge PairLast vor Remint.
+- FaceEngine Detect auf outputQueue. JPEG-Reextract gegen denselben Buffer.
+- Hold-SM: Unseen / Tentative / Held / Named.
+- MatchMath split: Hold, Hash, Baptize, Assign.
+- Helios Frame-Pump, eine TCC. Shared XPC mit Helios 1.5.128.
+- Overlay 60 Hz CAMetalLayer, Detect 8–24 fps.
+- VNTrackObjectRequest statt nur Rectangles.
+- Temperature-skalierte Cosine statt hart 0,80 Baptize.
+- gallery.json.bak Rotate 3, printRevision je Identity.
+- Watch-Folder PhotoKit, Export `.aegis` verschlüsselt.
+- P-Slot Maske/Schal, Brille-Slot als Twin-Veto.
+- Temporal ReID-Graph über Hold-Trail (Cap 4 ist Pflaster).
+- Per-Box CLAHE statt Full-Frame.
+- Continuity Desk-View yaw-floor 0,36.
+- Print-Bank 5 Pose-Slots. DBSCAN vor Merge.
+- RTSP 420f, Reconnect Exponential-Backoff.
+- leftoverCaptureHistByHash persist analog leftoverHoldTrailHash.
+- leftoverAssignLiveGate Pref persist in gallery.json, nicht nur UserDefaults.
+- Hamming-Gewicht im Hash selbst, nicht nur Spatial-Strip `#`.
+- leftoverHoldBins Rank `#101` nach Schema-9-Restore rebase.
+- Live-Centroid EMA Reset nach Vision-Restart (Kalman tot, Box springt).
+
+Die historische Liste bis 2.1.137: ANALYSE.md. Review: `REVIEW-2.1.134.md`.
+
+Nur main.
+
 # Nachtrag 2026-09-06 (2.1.137)
 
 Siehe ANALYSE.md. **2.1.137** Schema 8 PairLast/NameLock remaining/HoldTrail, AssignAtomic, FillX Pref, leftoverHoldMoveBins.

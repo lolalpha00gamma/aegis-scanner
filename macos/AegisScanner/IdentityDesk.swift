@@ -26,6 +26,9 @@ struct GalleryPayload: Codable {
     var leftoverPairLast: [String: String]?
     var leftoverNameLockUntil: [String: Double]?
     var leftoverHoldTrail: [String: [Double]]?
+    var leftoverPairStreak: [String: Int]?
+    var leftoverPairCommit: [String: String]?
+    var leftoverStreak: [String: Int]?
 }
 
 enum GalleryFile {
@@ -42,6 +45,15 @@ enum GalleryFile {
 
     static var backupURL: URL {
         directory.appendingPathComponent("gallery.json.bak")
+    }
+
+    static func loadPayload() -> GalleryPayload? { decodePayload(url) }
+
+    static func loadBackupPayload() -> GalleryPayload? { decodePayload(backupURL) }
+
+    private static func decodePayload(_ file: URL) -> GalleryPayload? {
+        guard let data = try? Data(contentsOf: file) else { return nil }
+        return try? JSONDecoder().decode(GalleryPayload.self, from: data)
     }
 
     static func load() -> (identities: [Identity], faces: [FaceObservation], printRevision: String?, schemaVersion: Int?, leftoverStreakSince: [String: Double]?, leftoverHoldBins: [String: Double]?, leftoverHoldTrailBins: [String: [Double]]?, leftoverHoldHash: [String: Double]?, leftoverHoldTrailHash: [String: [Double]]?, leftoverCaptureHist: [String: [Double]]?, leftoverLastHash: [String: String]?, leftoverHold: [String: Double]?, leftoverNameLockHeld: [String: String]?, leftoverPairLast: [String: String]?, leftoverNameLockUntil: [String: Double]?, leftoverHoldTrail: [String: [Double]]?) {
@@ -88,7 +100,10 @@ enum GalleryFile {
         leftoverNameLockHeld: [String: String]? = nil,
         leftoverPairLast: [String: String]? = nil,
         leftoverNameLockUntil: [String: Double]? = nil,
-        leftoverHoldTrail: [String: [Double]]? = nil
+        leftoverHoldTrail: [String: [Double]]? = nil,
+        leftoverPairStreak: [String: Int]? = nil,
+        leftoverPairCommit: [String: String]? = nil,
+        leftoverStreak: [String: Int]? = nil
     ) {
         let enrolled = Set(identities.flatMap(\.faceIds))
         let payload = GalleryPayload(
@@ -107,7 +122,10 @@ enum GalleryFile {
             leftoverNameLockHeld: leftoverNameLockHeld,
             leftoverPairLast: leftoverPairLast,
             leftoverNameLockUntil: leftoverNameLockUntil,
-            leftoverHoldTrail: leftoverHoldTrail
+            leftoverHoldTrail: leftoverHoldTrail,
+            leftoverPairStreak: leftoverPairStreak,
+            leftoverPairCommit: leftoverPairCommit,
+            leftoverStreak: leftoverStreak
         )
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]

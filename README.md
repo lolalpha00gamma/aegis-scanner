@@ -1,4 +1,4 @@
-# Aegis **2.1.137 alpha**
+# Aegis **2.1.138 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,17 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.138 alpha
+
+PairStreak/Commit/Streak RAM-only nach App-Restart. leftoverStreakSince Epoch, Survive wischt. Assign greedy n=3. Hash-Rescue Spatial bei Twin. FillX Pad ohne Slider.
+
+- **Schema 9.** leftoverPairStreak, leftoverPairCommit, leftoverStreak persist. Backup restore wischt die Maps nicht.
+- **leftoverSeen remaining.** Schema 8 Epoch rebase auf now.
+- **leftoverAssignHungarian** 3-Zyklus. leftoverAssignLive Hungarian + padFill.
+- **Hash-Rescue Twin Exact.** Remint erster Pass padRescue.
+- **FillX Pad Slider 0,06–0,20.** Gate Crowd 3. Trail Cap 4. Dangling dest tot.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.138 (Build 163).
 
 ## Neu in 2.1.137 alpha
 

@@ -143,10 +143,11 @@ struct ContentView: View {
             )) {
                 Text("Solo 1").tag(1)
                 Text("Crowd 2").tag(2)
+                Text("Crowd 3").tag(3)
             }
             .pickerStyle(.menu)
             .frame(width: 100)
-            .help("AssignLive nach Restart. Solo 1 Person. Crowd 2 gegen Twin-Taufe.")
+            .help("AssignLive nach Restart. Solo 1 Person. Crowd 2/3 gegen Twin-Taufe.")
             Slider(
                 value: Binding(
                     get: { store.fillXRescue },
@@ -158,6 +159,19 @@ struct ContentView: View {
             .frame(width: 80)
             .help("AssignLive x-Rescue nach Restart. 0,28 Default. 18 cm Kopf oft 0,22.")
             Text(String(format: "FillX %.2f", store.fillXRescue))
+                .font(.caption2.monospacedDigit())
+                .foregroundStyle(.secondary)
+            Slider(
+                value: Binding(
+                    get: { store.fillXPad },
+                    set: { store.setFillXPad($0) }
+                ),
+                in: 0.06 ... 0.20,
+                step: 0.02
+            )
+            .frame(width: 80)
+            .help("FillX Pad nach Restart. 0,12 Default. Eng 0,06 Twin-Mitte, weit 0,20 Walker.")
+            Text(String(format: "Pad %.2f", store.fillXPad))
                 .font(.caption2.monospacedDigit())
                 .foregroundStyle(.secondary)
             if !store.revisionWarning.isEmpty {

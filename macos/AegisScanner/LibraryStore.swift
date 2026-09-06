@@ -25,6 +25,7 @@ final class LibraryStore: ObservableObject {
     @Published var adoptLockSec: Double = 0.8
     @Published var assignLiveGate: Int = 1
     @Published var fillXRescue: Double = MatchMath.leftoverFillXRescue
+    @Published var fillXPad: Double = MatchMath.leftoverFillXPad
     @Published var strategy: StrategyID = .aegis
     @Published var showAnatomy = true
     @Published var showNMSDebug = false
@@ -223,6 +224,16 @@ final class LibraryStore: ObservableObject {
         if ttlStored > 0 {
             holdTTLFloor = MatchMath.leftoverHoldTTLPref(ttlStored)
         }
+        leftoverStreakSince = MatchMath.leftoverSeenRestore(
+            packed.leftoverStreakSince,
+            now: Date().timeIntervalSince1970,
+            ttl: holdTTLFloor
+        )
+        if let extra = GalleryFile.loadPayload() {
+            leftoverPairStreak = MatchMath.leftoverUUIDIntMapDecode(extra.leftoverPairStreak)
+            leftoverPairCommit = MatchMath.leftoverUUIDUUIDMapDecode(extra.leftoverPairCommit)
+            leftoverStreak = MatchMath.leftoverUUIDIntMapDecode(extra.leftoverStreak)
+        }
         let lockStored = UserDefaults.standard.double(forKey: "aegis.nameLockSec")
         if lockStored > 0 {
             nameLockSec = MatchMath.leftoverNameLockSecPref(lockStored)
@@ -248,6 +259,10 @@ final class LibraryStore: ObservableObject {
         if fillStored > 0 {
             fillXRescue = MatchMath.leftoverFillXRescuePref(fillStored)
         }
+        let padStored = UserDefaults.standard.double(forKey: "aegis.fillXPad")
+        if padStored > 0 {
+            fillXPad = MatchMath.leftoverFillXPadPref(padStored)
+        }
         liveCapture.choice = cameraChoice
         let digest = GalleryFile.digestStatus()
         if let note = MatchMath.shaVerifyNote(ok: digest.ok, missing: digest.missing) {
@@ -264,7 +279,11 @@ final class LibraryStore: ObservableObject {
         GalleryFile.save(
             identities: identities,
             faces: faces,
-            leftoverStreakSince: MatchMath.leftoverStreakSinceEncode(leftoverStreakSince),
+            leftoverStreakSince: MatchMath.leftoverSeenRemainingEncode(
+                since: leftoverStreakSince,
+                now: Date().timeIntervalSince1970,
+                ttl: leftoverHoldTTL
+            ),
             leftoverHoldBins: MatchMath.leftoverHoldBinsEncode(leftoverHoldBins),
             leftoverHoldTrailBins: MatchMath.leftoverHoldTrailBinsEncode(leftoverHoldTrailBins),
             leftoverHoldHash: MatchMath.leftoverHashHoldEncode(leftoverHoldByHash),
@@ -281,7 +300,10 @@ final class LibraryStore: ObservableObject {
                 until: leftoverNameLockUntil,
                 now: Date().timeIntervalSince1970
             ),
-            leftoverHoldTrail: MatchMath.leftoverUUIDTrailEncode(leftoverHoldTrail)
+            leftoverHoldTrail: MatchMath.leftoverUUIDTrailEncode(leftoverHoldTrail),
+            leftoverPairStreak: MatchMath.leftoverUUIDIntMapEncode(leftoverPairStreak),
+            leftoverPairCommit: MatchMath.leftoverUUIDUUIDMapEncode(leftoverPairCommit),
+            leftoverStreak: MatchMath.leftoverUUIDIntMapEncode(leftoverStreak)
         )
         if !liveActive {
             refreshMergeHint()
@@ -347,6 +369,11 @@ final class LibraryStore: ObservableObject {
             now: Date().timeIntervalSince1970,
             arm: nameLockSec
         )
+        leftoverStreakSince = MatchMath.leftoverSeenRestore(
+            packed.leftoverStreakSince,
+            now: Date().timeIntervalSince1970,
+            ttl: holdTTLFloor
+        )
         leftoverHashNeedsRebase = !leftoverHoldByHash.isEmpty || !leftoverHoldTrailByHash.isEmpty
         liveNameHist = [:]
         liveNameLock = [:]
@@ -364,13 +391,18 @@ final class LibraryStore: ObservableObject {
         liveNameVoteAt = [:]
         tapNameLockUntil = [:]
         liveFaceStreak = 0
-        leftoverStreak = [:]
         leftoverStreakBox = [:]
         leftoverPending = [:]
-        leftoverPairStreak = [:]
-        leftoverPairCommit = [:]
-        boxKalman = [:]
-        boxKalmanV = [:]
+        if let extra = GalleryFile.loadBackupPayload() {
+            leftoverPairStreak = MatchMath.leftoverUUIDIntMapDecode(extra.leftoverPairStreak)
+            leftoverPairCommit = MatchMath.leftoverUUIDUUIDMapDecode(extra.leftoverPairCommit)
+            leftoverStreak = MatchMath.leftoverUUIDIntMapDecode(extra.leftoverStreak)
+        } else {
+            leftoverStreak = [:]
+            leftoverPairStreak = [:]
+            leftoverPairCommit = [:]
+        }
+        boxKalman = [:]        boxKalmanV = [:]
         liveGhosts = []
         guestOrder = []
         guestSeenAt = [:]
@@ -1348,12 +1380,17 @@ final class LibraryStore: ObservableObject {
     func setAssignLiveGate(_ v: Int) {
         assignLiveGate = MatchMath.leftoverAssignLiveGateNeed(v)
         UserDefaults.standard.set(assignLiveGate, forKey: "aegis.assignLiveGate")
-        status = assignLiveGate == 1 ? "AssignLive Solo 1" : "AssignLive Crowd 2"
+        status = assignLiveGate == 1 ? "AssignLive Solo 1" : "AssignLive Crowd \(assignLiveGate)"
     }
 
     func setFillXRescue(_ v: Double) {
         fillXRescue = MatchMath.leftoverFillXRescuePref(v)
         UserDefaults.standard.set(fillXRescue, forKey: "aegis.fillXRescue")
+    }
+
+    func setFillXPad(_ v: Double) {
+        fillXPad = MatchMath.leftoverFillXPadPref(v)
+        UserDefaults.standard.set(fillXPad, forKey: "aegis.fillXPad")
     }
 
     func voteProgress(faceId: UUID) -> String? {
@@ -2552,7 +2589,8 @@ final class LibraryStore: ObservableObject {
                     scores: scores,
                     liveX: unnamedLeft.map { adopted[$0].box.x },
                     holdX: unusedLeft.map { leftoverStreakBox[$0.id]?.x ?? $0.box.x },
-                    pad: fillXRescue
+                    pad: fillXRescue,
+                    padFill: fillXPad
                 )
                 var takenCols = Set<Int>()
                 for (r, col) in assigned.enumerated() {
@@ -2699,6 +2737,10 @@ final class LibraryStore: ObservableObject {
         leftoverStreak = MatchMath.leftoverHoldRemint(hold: leftoverStreak, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys, padRescue: fillXRescue)
         leftoverStreakBox = MatchMath.leftoverHoldRemint(hold: leftoverStreakBox, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys, padRescue: fillXRescue)
         leftoverStreakSince = MatchMath.leftoverHoldRemint(hold: leftoverStreakSince, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys, padRescue: fillXRescue)
+        let keepIds = Set(remintLive.map(\.id)).union(Set(identities.map(\.id)))
+        leftoverPairLast = MatchMath.leftoverUUIDUUIDMapDropDangling(leftoverPairLast, keep: keepIds)
+        leftoverPairCommit = MatchMath.leftoverUUIDUUIDMapDropDangling(leftoverPairCommit, keep: keepIds)
+        leftoverHoldTrail = leftoverHoldTrail.mapValues { MatchMath.leftoverHoldTrailCap($0) }
         leftoverStreakBox = MatchMath.leftoverStreakBoxLive(
             boxes: leftoverStreakBox,
             live: adopted.map { (id: $0.id, box: $0.box) },

@@ -1,3 +1,34 @@
+# Helios + Aegis — Analyse 2026-09-06 (2.1.138)
+
+Helios **1.5.128** (Build 147). Aegis **2.1.138 alpha** (Build 163). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.137: Schema 8 PairLast/NameLock remaining/HoldTrail, AssignAtomic, FillX Pref. PairStreak/Commit/Streak RAM-only. leftoverStreakSince absolute Epoch. Assign greedy. FillX Pad ohne Slider. Gate Crowd max 2.
+
+## Warum Taufe und Restart nach 2.1.137 weiter rissen
+
+1. **leftoverPairStreak / leftoverPairCommit / leftoverStreak nicht persist.** Majority und Streak nach App-Restart tot. Schema 8 hatte PairLast, nicht die Stimmen.
+2. **leftoverStreakSince absolute Epoch.** Survive nach Restart: Hold-TTL abgelaufen, Remint hat nichts. Schema 8 >100 = Epoch, jetzt remaining analog NameLockUntil.
+3. **leftoverAssign greedy + 2-opt.** n=3 Crowd: 3-Zyklus unbehandelt. Hungarian nach leftoverAssign.
+4. **Hash-Rescue Spatial auch bei Twin.** Hamming-1 / `#101` stiehlt den Nachbarn. facesInFrame ≥ 2 Exact-only.
+5. **leftoverHoldRemint erster Pass hart Pad 0,12.** Walker 18 cm tot, dritter Pass padRescue kam zu spät.
+6. **FillX Pad Pref ohne UI.** Math 0,06–0,20, Slider fehlte. Gate Crowd max 2 trotz Hungarian n=3.
+7. **HoldTrail unbeschränkt.** RAM. leftoverUUIDUUIDMap dest tot nach Vision-Restart.
+8. **restoreFromBackup wischte Schema-9-Maps.** extra load, dann `leftoverStreak = [:]`.
+
+## Was 2.1.138 ändert
+
+1. **Schema 9.** leftoverPairStreak, leftoverPairCommit, leftoverStreak persist. Backup restore lädt extra nach den Transient-Wipes.
+2. **leftoverSeenRemainingEncode / leftoverSeenRestore.** Remaining seconds. Schema 8 Epoch (>100) rebase auf now.
+3. **leftoverAssignHungarian** 3-Zyklus nach leftoverAssign. leftoverAssignLive Hungarian + padFill.
+4. **leftoverHoldHashRescue facesInFrame.** Twin Exact, Solo Spatial. leftoverHoldRemint erster Pass padRescue.
+5. **leftoverFillXPad Pref UI 0,06–0,20.** Gate Crowd 3.
+6. **leftoverHoldTrailCap 4.** leftoverUUIDUUIDMapDropDangling, Decode dest==key tot.
+7. Tests + VERSION = Models = MARKETING 2.1.138 (Build 163).
+
+Helios 1.5.128: CADisplayLink 120, Kalman-Scale, Pad-UUID, Keep je Hand. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-06 (2.1.137)
 
 Helios **1.5.127** (Build 146). Aegis **2.1.137 alpha** (Build 162). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

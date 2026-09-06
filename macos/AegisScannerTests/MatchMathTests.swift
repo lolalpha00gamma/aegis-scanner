@@ -396,7 +396,7 @@ enum MatchMathTests {
         ok(!MatchMath.leftoverNamedTrack(hadName: false), "namenlos kein leftover")
         ok(MatchMath.leftoverNeedsPrint(cosine: nil), "ohne Print kein leftover-Pin")
         ok(!MatchMath.leftoverNeedsPrint(cosine: 0.90), "mit Print leftover darf")
-        ok(MatchMath.gallerySchema == 8, "gallery.json Schema 8")
+        ok(MatchMath.gallerySchema == 9, "gallery.json Schema 9")
 
         ok(MatchMath.holdStillSkip(iou: 0.50), "Bewegung 0,50 skippt neuen Print")
         ok(!MatchMath.holdStillSkip(iou: 0.90), "Stillstand 0,90 nimmt Print")
@@ -2603,7 +2603,7 @@ enum MatchMathTests {
         )
         ok(over[tickTo] == "5.5.4.6#101" && over[tickFrom] == nil, "Tick Copy überschreibt Live")
         ok(MatchMath.leftoverAssignLiveGate(unnamed: 1, unused: 1, need: 2) == false, "Gate Pref 2 Solo tot")
-        ok(MatchMath.leftoverAssignLiveGateNeed(0) == 1 && MatchMath.leftoverAssignLiveGateNeed(9) == 2, "Gate Need Clamp")
+        ok(MatchMath.leftoverAssignLiveGateNeed(0) == 1 && MatchMath.leftoverAssignLiveGateNeed(9) == 3, "Gate Need Clamp 3")
         let binRescueOld = MatchMath.leftoverHoldKey(id: hashOld, bin: 0)
         let binRescue = MatchMath.leftoverHoldRemintBins(
             hold: [binRescueOld: 0.66],
@@ -2673,6 +2673,8 @@ enum MatchMathTests {
         ok(byHashFar[hashSoloNew] == nil, "ohne Table Far tot")
         ok(MatchMath.leftoverAssignLiveGate(unnamed: 2, unused: 2, need: 2), "Crowd Gate 2")
         ok(!MatchMath.leftoverAssignLiveGate(unnamed: 1, unused: 2, need: 2), "Crowd Gate Solo tot")
+        ok(MatchMath.leftoverAssignLiveGate(unnamed: 3, unused: 3, need: 3), "Crowd Gate 3")
+        ok(!MatchMath.leftoverAssignLiveGate(unnamed: 2, unused: 3, need: 3), "Crowd 3 bei 2 tot")
         let mergeKeep = UUID(), mergeFill = UUID()
         let merged = MatchMath.leftoverStoredHashMerge(
             last: [mergeKeep: "5.5.4.6", mergeFill: ""],
@@ -2841,6 +2843,67 @@ enum MatchMathTests {
             padRescue: 0.28
         )
         ok(padWide[atomicNew] == 0.81, "Remint padRescue 0,28")
+        ok(
+            MatchMath.leftoverHoldHashRescue(
+                liveHash: "5.5.4.6#101",
+                stored: [(id: hashOld, hash: "5.5.4.6")],
+                facesInFrame: 2
+            ) == nil,
+            "Twin Hash Spatial tot"
+        )
+        ok(
+            MatchMath.leftoverHoldHashRescue(
+                liveHash: "5.5.4.6#101",
+                stored: [(id: hashOld, hash: "5.5.4.6#101")],
+                facesInFrame: 2
+            ) == hashOld,
+            "Twin Hash Exact"
+        )
+        ok(
+            MatchMath.leftoverHoldHashRescue(
+                liveHash: "5.5.4.6#101",
+                stored: [(id: hashOld, hash: "5.5.4.6")],
+                facesInFrame: 1
+            ) == hashOld,
+            "Solo Hash Spatial"
+        )
+        let hun2 = MatchMath.leftoverAssignHungarian(scores: [
+            [0.40, 0.90],
+            [0.85, 0.30]
+        ])
+        ok(hun2[0] == 1 && hun2[1] == 0, "Hungarian 2×2 = leftoverAssign")
+        let hun3 = MatchMath.leftoverAssignHungarian(scores: [
+            [0.10, 0.90, 0.10],
+            [0.10, 0.10, 0.90],
+            [0.90, 0.10, 0.10]
+        ])
+        ok(hun3[0] == 1 && hun3[1] == 2 && hun3[2] == 0, "Hungarian 3-Zyklus")
+        ok(Set(hun3.compactMap { $0 }).count == 3, "Hungarian keine Doppel-Spalte")
+        ok(MatchMath.leftoverHoldTrailCap([1, 2, 3, 4, 5]) == [2.0, 3.0, 4.0, 5.0], "Trail Cap 4")
+        ok(MatchMath.leftoverHoldTrailCap([1, 2]) == [1.0, 2.0], "Trail Cap unter 4")
+        let trailLong = MatchMath.leftoverUUIDTrailEncode([persistId: [0.1, 0.2, 0.3, 0.4, 0.5]])
+        ok(MatchMath.leftoverUUIDTrailDecode(trailLong)[persistId] == [0.2, 0.3, 0.4, 0.5], "Trail Encode Cap")
+        let dangA = UUID(), dangB = UUID(), dangC = UUID()
+        let dang = MatchMath.leftoverUUIDUUIDMapDropDangling([dangA: dangB, dangC: dangA], keep: [dangB])
+        ok(dang[dangA] == dangB && dang[dangC] == nil, "Pair dest tot nach Restart")
+        ok(MatchMath.leftoverUUIDUUIDMapDecode([dangA.uuidString: dangA.uuidString]).isEmpty, "Pair dest==key tot")
+        let streakEnc = MatchMath.leftoverUUIDIntMapEncode([persistId: 3])
+        ok(MatchMath.leftoverUUIDIntMapDecode(streakEnc)[persistId] == 3, "Streak persist")
+        let seenNow: TimeInterval = 1000
+        let seenRem = MatchMath.leftoverSeenRemainingEncode(
+            since: [persistId: seenNow - 0.4],
+            now: seenNow,
+            ttl: 1.2
+        )
+        ok(abs((seenRem[persistId.uuidString] ?? 0) - 0.8) < 0.02, "Seen remaining Encode")
+        let seenRest = MatchMath.leftoverSeenRestore(seenRem, now: 2000, ttl: 1.2)
+        ok(abs((seenRest[persistId] ?? 0) - 1999.6) < 0.02, "Seen remaining Restore")
+        let seenEpoch = MatchMath.leftoverSeenRestore(
+            [persistId.uuidString: 1_700_000_000],
+            now: 1000,
+            ttl: 1.2
+        )
+        ok(abs((seenEpoch[persistId] ?? 0) - 1000) < 0.01, "Schema 8 Epoch rebase now")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)
