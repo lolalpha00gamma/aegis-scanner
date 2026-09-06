@@ -3485,6 +3485,57 @@ enum MatchMathTests {
             emptyKeeps: false
         )
         ok(heldLive.isEmpty, "Held Live Until leer wischt")
+        ok(MatchMath.leftoverHoldMissCoast(miss: 1, need: 2), "Miss-Coast 1")
+        ok(MatchMath.leftoverHoldMissCoast(miss: 2, need: 2), "Miss-Coast 2")
+        ok(!MatchMath.leftoverHoldMissCoast(miss: 3, need: 2), "Miss-Coast 3 tot")
+        let hashLive = UUID(), hashOld = UUID()
+        ok(
+            MatchMath.leftoverSparkChipTickKeeps(
+                id: hashOld,
+                live: [hashLive],
+                hold: [],
+                lastHash: "ab12",
+                liveHash: ["ab12"]
+            ),
+            "Spark tick lastHash"
+        )
+        ok(
+            !MatchMath.leftoverSparkChipTickKeeps(
+                id: hashOld,
+                live: [hashLive],
+                hold: [],
+                lastHash: "ab12",
+                liveHash: ["zz99"]
+            ),
+            "Spark tick Hash mismatch tot"
+        )
+        ok(
+            MatchMath.leftoverSparkChipTickDest(
+                id: hashOld,
+                live: [hashLive],
+                lastHash: "ab12",
+                liveByHash: ["ab12": hashLive]
+            ) == hashLive,
+            "Spark dest remint"
+        )
+        ok(
+            MatchMath.leftoverSparkChipTickDest(
+                id: hashLive,
+                live: [hashLive],
+                lastHash: "ab12",
+                liveByHash: ["ab12": hashLive]
+            ) == hashLive,
+            "Spark dest live"
+        )
+        ok(
+            MatchMath.leftoverSparkChipTickDest(
+                id: hashOld,
+                live: [hashLive],
+                lastHash: "ab12",
+                liveByHash: ["zz99": hashLive]
+            ) == hashOld,
+            "Spark dest mismatch hält alt"
+        )
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

@@ -1,3 +1,24 @@
+# Helios + Aegis — Analyse 2026-09-06 (2.1.157)
+
+Helios **1.5.147** (Build 166). Aegis **2.1.157 alpha** (Build 182). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.156: Steal 2-opt, Held emptyKeeps, CostIoU. leftoverHoldMissCoast ohne `return`. Spark-Chip UUID-only nach Remint.
+
+## Warum Taufe nach 2.1.156 weiter riss
+
+1. **leftoverHoldMissCoast ohne return.** `let n = …` plus Ausdruck. Swift 6: Missing return. MatchMath.swift kompiliert nicht — CI rot, Binary 2.1.154–156 ggf. Altlast.
+2. **Spark-Chip UUID-only.** leftoverSparkChipTickKeeps hold = leftoverLastHash.keys. Remint-Miss: Overlay liest Live-UUID, Chip sitzt alt. Gast-Flash.
+
+## Was 2.1.157 ändert
+
+1. **leftoverHoldMissCoast return.** Swift 6 kompiliert. Tests Miss 1/2 hält, 3 tot.
+2. **leftoverSparkChipTickKeeps lastHash + leftoverSparkChipTickDest.** Live-Hash hält Chip, Rebind alt→Live.
+3. Tests + VERSION = Models = MARKETING 2.1.157 (Build 182). Schema 15 bleibt.
+
+Helios 1.5.147: Smooth dt, Span max-Paar, DisplayLink max-Screen. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-06 (2.1.156)
 
 Helios **1.5.146** (Build 165). Aegis **2.1.156 alpha** (Build 181). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

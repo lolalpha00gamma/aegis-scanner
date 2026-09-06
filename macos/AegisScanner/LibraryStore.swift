@@ -1680,13 +1680,35 @@ final class LibraryStore: ObservableObject {
     }
 
     private func tickLeftoverSparkChips(liveFaceIds: Set<UUID>) {
-        leftoverSparkChipHeld = leftoverSparkChipHeld.filter {
-            MatchMath.leftoverSparkChipTickKeeps(
-                id: $0.key,
-                live: liveFaceIds,
-                hold: Set(leftoverLastHash.keys)
-            )
+        var liveByHash: [String: UUID] = [:]
+        var liveHash: Set<String> = []
+        for (fid, hash) in leftoverLiveHashTick where liveFaceIds.contains(fid) && !hash.isEmpty {
+            liveHash.insert(hash)
+            if liveByHash[hash] == nil { liveByHash[hash] = fid }
         }
+        for (fid, hash) in leftoverLastHash where liveFaceIds.contains(fid) && !hash.isEmpty {
+            liveHash.insert(hash)
+            if liveByHash[hash] == nil { liveByHash[hash] = fid }
+        }
+        var next: [UUID: (chip: String, hold: Int)] = [:]
+        for (id, val) in leftoverSparkChipHeld {
+            let lastH = leftoverLastHash[id] ?? leftoverLiveHashTick[id]
+            guard MatchMath.leftoverSparkChipTickKeeps(
+                id: id,
+                live: liveFaceIds,
+                hold: Set(leftoverHold.keys),
+                lastHash: lastH,
+                liveHash: liveHash
+            ) else { continue }
+            let dest = MatchMath.leftoverSparkChipTickDest(
+                id: id,
+                live: liveFaceIds,
+                lastHash: lastH,
+                liveByHash: liveByHash
+            )
+            if next[dest] == nil { next[dest] = val }
+        }
+        leftoverSparkChipHeld = next
         for fid in liveFaceIds {
             let yaw = faces.first { $0.id == fid }.map { abs($0.quality.yaw) }
             let nowChip = leftoverSparkChipNow(faceId: fid, yawAbs: yaw)

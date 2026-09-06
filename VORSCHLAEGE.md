@@ -1,8 +1,8 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.154 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.157 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 
-Neu in 2.1.154: DropHold Ghosts+Miss, CI macos-15 zuerst.
+Neu in 2.1.157: MissCoast return, Spark Hash-Rebind.
 
 ## In 2.1.95 wirklich im Code
 

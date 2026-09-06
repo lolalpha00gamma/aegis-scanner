@@ -1,3 +1,59 @@
+# Nachtrag 2026-09-06 (2.1.157)
+
+Siehe ANALYSE.md. **2.1.157** MissCoast return, Spark Hash-Rebind.
+
+## In 2.1.157 gelandet
+
+1. leftoverHoldMissCoast — `return` (Swift 6)
+2. leftoverSparkChipTickKeeps lastHash + leftoverSparkChipTickDest — Remint-Miss kein Gast-Flash
+3. VERSION = Models = MARKETING_VERSION 2.1.157 (Build 182)
+
+## Nächste, zusätzlich
+
+- leftoverAssign n>8 Jonker-Volgenant, nicht nur HungarianX 8 + wide FillX.
+- leftoverSparkChipHash persist (hash→chip) neben UUID. TickDest sitzt RAM-only.
+- Hamming-Gewicht im Hash selbst, nicht nur Spatial-Strip `#`.
+- FaceEngine Detect auf outputQueue. JPEG-Reextract gegen denselben Buffer.
+- Hold-SM: Unseen / Tentative / Held / Named. MatchMath split: Hold, Hash, Baptize, Assign.
+- **Ein FaceTrack-Struct** statt leftover-Map-Stapel. leftoverHoldRemint 20× dieselben Args.
+- Helios Frame-Pump, eine TCC. Shared XPC / IOSurface mit Helios 1.5.147.
+- Overlay 60 Hz CAMetalLayer, Detect 8–24 fps.
+- VNTrackObjectRequest statt nur Rectangles. TTL 12 Frames nach Detect-Miss.
+- Temperature-skalierte Cosine statt hart 0,80 Baptize.
+- Softmax über Galerie statt Argmax-Taufe — Open-Set Energy-Score.
+- Quality-Produkt Blur × Pose × Occlusion als Baptize-Gate, nicht OR.
+- gallery.json.bak Rotate 3, printRevision je Identity. gallery.json zstd.
+- Watch-Folder PhotoKit, Export `.aegis` verschlüsselt.
+- P-Slot Maske/Schal, Brille-Slot als Twin-Veto.
+- Temporal ReID-Graph über Hold-Trail.
+- Per-Box CLAHE statt Full-Frame.
+- Continuity Desk-View yaw-floor 0,36.
+- Print-Bank 5 Pose-Slots. DBSCAN vor Merge.
+- Aktive Enrollment-HUD: 3 Posen + Liveness-Blink.
+- RTSP 420f, Reconnect Exponential-Backoff.
+- VNDetectFaceCaptureQuality als Baptize-Gate.
+- Continuity LiDAR depth als Box-Z.
+- Kleidungsfarbe als Weak-Track zwischen Face-Dropouts.
+- Time-of-day Prior als schwacher Track-Cue.
+- Identity-Graph über Tage.
+- leftoverHoldKalmanJump Pref je Camera-UUID.
+- **Print-EMA nur sharpness > 0,55.**
+- **Unsure-Chip** statt Gast. Majority < Need zeigt „?“.
+- **Kalman-Box yaw-normalisiert.**
+- **Per-Camera Baptize-Floor.** Continuity 8 fps 0,76, Webcam 0,80.
+- **ByteTrack-Score** α·IoU + β·print + γ·hashHamming.
+- **Pairwise-Heatmap klickbar** (`bugfix` 2.1.15).
+- **Identity-Merge Wizard** (`bugfix`).
+- **Overlay-Name Mehrheit auch Standbilder** (`bugfix`).
+- **Platt-Skalierung** Leave-one-out (`bugfix`).
+- **Drop-in `.mlmodel`.** FaceEmbedder-Protokoll (`bugfix`).
+
+`bugfix` 2.1.15 gelesen, nicht gemergt.
+
+Die historische Liste bis 2.1.156: ANALYSE.md. Review: `REVIEW-2.1.134.md`.
+
+Nur main.
+
 # Nachtrag 2026-09-06 (2.1.156)
 
 Siehe ANALYSE.md. **2.1.156** Steal 2-opt, Held emptyKeeps, CostIoU.

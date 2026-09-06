@@ -2723,8 +2723,31 @@ enum MatchMath {
     }
 
     /// persist UUID tot nach Restart. stabilize vor Remint — lastHash hält Chip.
-    static func leftoverSparkChipTickKeeps(id: UUID, live: Set<UUID>, hold: Set<UUID> = []) -> Bool {
-        live.contains(id) || hold.contains(id)
+    /// Remint-Miss: UUID neu, Hash gleich — Chip sonst Gast-Flash.
+    static func leftoverSparkChipTickKeeps(
+        id: UUID,
+        live: Set<UUID>,
+        hold: Set<UUID> = [],
+        lastHash: String? = nil,
+        liveHash: Set<String> = []
+    ) -> Bool {
+        if live.contains(id) || hold.contains(id) { return true }
+        guard let lastHash, !lastHash.isEmpty, !liveHash.isEmpty else { return false }
+        return liveHash.contains(lastHash)
+    }
+
+    /// Remint-Miss: Chip unter alter UUID, Overlay liest Live. Gleiches Hash → Live-UUID.
+    static func leftoverSparkChipTickDest(
+        id: UUID,
+        live: Set<UUID>,
+        lastHash: String?,
+        liveByHash: [String: UUID]
+    ) -> UUID {
+        if live.contains(id) { return id }
+        guard let lastHash, !lastHash.isEmpty, let dest = liveByHash[lastHash], live.contains(dest) else {
+            return id
+        }
+        return dest
     }
 
     /// 720p @ 15–30 schlägt 360p @ 60 und 800p @ 8. Desk-View 4:3 bis 1920×1440.
@@ -4850,7 +4873,7 @@ enum MatchMath {
 
     static func leftoverHoldMissCoast(miss: Int, need: Int = 2) -> Bool {
         let n = leftoverHoldMissNeedPref(need)
-        miss > 0 && miss <= n
+        return miss > 0 && miss <= n
     }
 
     static func leftoverPredictOnMissCoast(_ missCoast: Bool) -> Bool { missCoast }

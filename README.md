@@ -1,4 +1,4 @@
-# Aegis **2.1.156 alpha**
+# Aegis **2.1.157 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,14 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.157 alpha
+
+leftoverHoldMissCoast ohne return — Swift 6 tot. Spark UUID-only nach Remint — Gast-Flash.
+
+- **leftoverHoldMissCoast return.** CI kompiliert.
+- **leftoverSparkChipTickKeeps lastHash + TickDest.** Remint-Miss rebindet Chip auf Live-UUID.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.157 (Build 182). Schema 15 bleibt.
 
 ## Neu in 2.1.156 alpha
 
