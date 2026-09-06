@@ -5779,6 +5779,15 @@ enum MatchMath {
     /// Key live, Dest Twin-weg: PairCommit halten, nicht droppen.
     /// Hold-Key A overlay, dest Twin-B ghost: Key nicht live — Taufe sonst Tick 1.
     /// keep leer + hold: nur Hold-Keys, nicht die ganze Tabelle.
+    /// Ghost-UUID fehlt in leftoverHold: Twin-Session fällt, Majority tauft Tick 1.
+    static func leftoverUUIDUUIDMapDropHold(
+        hold: Set<UUID>,
+        ghosts: [UUID] = [],
+        missKeys: [UUID] = []
+    ) -> Set<UUID> {
+        hold.union(ghosts).union(missKeys)
+    }
+
     static func leftoverUUIDUUIDMapDropDangling(
         _ table: [UUID: UUID],
         keep: Set<UUID>,
@@ -5788,7 +5797,7 @@ enum MatchMath {
         let destOk = keep.union(hold)
         var out: [UUID: UUID] = [:]
         for (k, v) in table {
-            if destOk.contains(k) || destOk.contains(v) || hold.contains(k) {
+            if destOk.contains(k) || destOk.contains(v) {
                 out[k] = v
             }
         }

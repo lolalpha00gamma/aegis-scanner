@@ -1,3 +1,57 @@
+# Nachtrag 2026-09-06 (2.1.154)
+
+Siehe ANALYSE.md. **2.1.154** DropHold Ghosts+Miss, CI macos-15 zuerst.
+
+## In 2.1.154 gelandet
+
+1. leftoverUUIDUUIDMapDropHold — hold ∪ ghosts ∪ missKeys, Twin-Session hält PairCommit
+2. DropDangling destOk Key|Dest — hold.contains(k) redundant
+3. CI matrix macos-15+26, fail-fast false, Publish macos-15 Artifact zuerst
+4. VERSION = Models = MARKETING_VERSION 2.1.154 (Build 179)
+
+## Nächste, zusätzlich
+
+- leftoverAssign n>8 Jonker-Volgenant, nicht nur HungarianX 8 + wide FillX.
+- **Hungarian cost 1−IoU + 0,3·(1−printCos).** IoU allein tauft Geschwister bei Crowd.
+- leftoverNameLockHeld ohne Until remaining nach Schema-7-Backup — Restore arm sitzt, Backup-Decode Schema 7 ohne Held.
+- Hamming-Gewicht im Hash selbst, nicht nur Spatial-Strip `#`.
+- FaceEngine Detect auf outputQueue. JPEG-Reextract gegen denselben Buffer.
+- Hold-SM: Unseen / Tentative / Held / Named. MatchMath split: Hold, Hash, Baptize, Assign.
+- **Ein FaceTrack-Struct** statt leftover-Map-Stapel. leftoverHoldRemint 20× dieselben Args.
+- **Ghost-TTL vs PairCommit-TTL.** Overlay HOLD stirbt früher als Ghost — Majority tauft nach Coast.
+- Helios Frame-Pump, eine TCC. Shared XPC / IOSurface mit Helios 1.5.144.
+- Overlay 60 Hz CAMetalLayer, Detect 8–24 fps.
+- VNTrackObjectRequest statt nur Rectangles.
+- Temperature-skalierte Cosine statt hart 0,80 Baptize.
+- Softmax über Galerie statt Argmax-Taufe — Open-Set Energy-Score.
+- Quality-Produkt Blur × Pose × Occlusion als Baptize-Gate, nicht OR.
+- gallery.json.bak Rotate 3, printRevision je Identity.
+- Watch-Folder PhotoKit, Export `.aegis` verschlüsselt.
+- P-Slot Maske/Schal, Brille-Slot als Twin-Veto.
+- Temporal ReID-Graph über Hold-Trail (EMA Cap 4 ist Pflaster).
+- Per-Box CLAHE statt Full-Frame.
+- Continuity Desk-View yaw-floor 0,36.
+- Print-Bank 5 Pose-Slots. DBSCAN vor Merge.
+- Aktive Enrollment-HUD: 3 Posen prompten statt Burst-Ingest.
+- RTSP 420f, Reconnect Exponential-Backoff.
+- VNDetectFaceCaptureQuality als Baptize-Gate — Sharpness AND Quality, nicht OR.
+- Continuity LiDAR depth als Box-Z.
+- Kleidungsfarbe als Weak-Track zwischen Face-Dropouts.
+- Time-of-day Prior (wer ist um 8 Uhr hier) als schwacher Track-Cue.
+- Identity-Graph: dieselbe Person über Tage, Trail-Cosine nicht nur Hold.
+- leftoverHoldKalmanJump Pref je Camera-UUID, nicht nur dt.
+- **Pairwise-Heatmap klickbar.** Labor-Zelle öffnet die beiden Fotos (`bugfix` 2.1.15).
+- **Identity-Merge Wizard** Centroid 0,89–0,94 — nicht still mergen (`bugfix`).
+- **Overlay-Name Mehrheit auch Standbilder** 3 Fotos derselben Datei (`bugfix`).
+- **Platt-Skalierung** Leave-one-out statt globaler Sigmoid (`bugfix`).
+- **Drop-in `.mlmodel`.** FaceEmbedder-Protokoll, Apple-Print default (`bugfix`).
+
+`bugfix` 2.1.15 gelesen, nicht gemergt. Spark persist + Capture-Hist remaining sitzen in 2.1.153.
+
+Die historische Liste bis 2.1.153: ANALYSE.md. Review: `REVIEW-2.1.134.md`.
+
+Nur main.
+
 # Nachtrag 2026-09-06 (2.1.153)
 
 Siehe ANALYSE.md. **2.1.153** Spark persist + Tick lastHash, Capture-Hist remaining (Key fehlt hält), DropDangling keep leer.

@@ -1,4 +1,4 @@
-# Aegis **2.1.153 alpha**
+# Aegis **2.1.154 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -12,7 +12,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 2. **Aegis** in den Ordner Programme ziehen
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
-macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.154 alpha
+
+DropHold nur leftoverHold.keys — Twin-Ghost fällt, Majority tauft Tick 1. CI nur macos-26.
+
+- **leftoverUUIDUUIDMapDropHold.** hold ∪ ghosts ∪ missKeys hält PairCommit.
+- **CI matrix macos-15+26.** Publish macos-15 Artifact zuerst.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.154 (Build 179). Schema 15 bleibt.
 
 ## Neu in 2.1.153 alpha
 

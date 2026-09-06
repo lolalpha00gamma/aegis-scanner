@@ -1,8 +1,8 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.152 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.154 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 
-Neu in 2.1.128: AssignLive Remint, leftoverHold UUID/Bins/NameLock Remint.
+Neu in 2.1.154: DropHold Ghosts+Miss, CI macos-15 zuerst.
 
 ## In 2.1.95 wirklich im Code
 

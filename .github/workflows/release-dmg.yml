@@ -10,7 +10,12 @@ permissions:
 
 jobs:
   package:
-    runs-on: macos-26
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, macos-26]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 50
     steps:
       - uses: actions/checkout@v4
 
@@ -42,17 +47,10 @@ jobs:
           xcrun --show-sdk-version
 
       - name: Read version
-        id: ver
         run: |
           MARKETING=$(awk -F' = ' '/MARKETING_VERSION/{gsub(/;/, "", $2); print $2; exit}' macos/AegisScanner.xcodeproj/project.pbxproj)
-          CHANNEL=alpha
-          TAG="v${MARKETING}-${CHANNEL}"
-          TITLE="Aegis ${MARKETING} ${CHANNEL}"
-          echo "marketing=$MARKETING" >> "$GITHUB_OUTPUT"
-          echo "channel=$CHANNEL" >> "$GITHUB_OUTPUT"
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "title=$TITLE" >> "$GITHUB_OUTPUT"
-          echo "Publishing $TITLE as $TAG"
+          echo "$MARKETING" > marketing.txt
+          echo "Aegis ${MARKETING} alpha"
 
       - name: Match math tests
         run: |
@@ -102,15 +100,48 @@ jobs:
           file Aegis.dmg
           ls -lh Aegis.dmg
 
+      - name: Upload Aegis.dmg artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dmg-${{ matrix.os }}
+          path: |
+            Aegis.dmg
+            marketing.txt
+          if-no-files-found: error
+
+  publish:
+    needs: package
+    if: always() && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: dmg-*
+          merge-multiple: false
+          path: dist
+
       - name: Publish Aegis.dmg
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          TAG="${{ steps.ver.outputs.tag }}"
-          TITLE="${{ steps.ver.outputs.title }}"
+          find dist -type f -print
+          DMG=$(find dist -path '*macos-15*' -name 'Aegis.dmg' | head -n 1)
+          if [ -z "$DMG" ] || [ ! -f "$DMG" ]; then
+            DMG=$(find dist -name 'Aegis.dmg' | head -n 1)
+          fi
+          if [ -z "$DMG" ] || [ ! -f "$DMG" ]; then
+            echo "Kein Aegis.dmg" >&2
+            exit 1
+          fi
+          MARKETING=$(cat "$(dirname "$DMG")/marketing.txt" 2>/dev/null || echo "2.1.154")
+          TAG="v${MARKETING}-alpha"
+          TITLE="Aegis ${MARKETING} alpha"
+          cp "$DMG" Aegis.dmg
+          file Aegis.dmg
           NOTES="$(cat <<EOF
-          Aegis ${{ steps.ver.outputs.marketing }} ${{ steps.ver.outputs.channel }} — macOS-Image, kein Xcode, kein Python, kein Browser.
+          Aegis ${MARKETING} alpha — macOS-Image, kein Xcode, kein Python, kein Browser.
 
           1. Aegis.dmg öffnen
           2. Aegis in den Ordner Programme ziehen

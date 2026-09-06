@@ -1,3 +1,26 @@
+# Helios + Aegis — Analyse 2026-09-06 (2.1.154)
+
+Helios **1.5.144** (Build 163). Aegis **2.1.154 alpha** (Build 179). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.153: Spark persist, Capture-Hist remaining, DropDangling keep leer. Hold = leftoverHold.keys. Twin-Session-UUID sitzt in ghostIds, nicht leftoverHold. PairCommit tot, Majority tauft Tick 1. CI nur macos-26.
+
+## Warum Taufe nach 2.1.153 weiter riss
+
+1. **DropHold nur leftoverHold.keys.** Ghost-Twin nicht im Hold. DropDangling dest tot. PairCommit fällt. Majority tauft Tick 1.
+2. **Miss-Coast Keys tot.** leftoverPairCommit.keys während Dropout nicht in hold. Coast-Return tauft.
+3. **CI macos-26 allein.** macos-26 startet oft nicht. Helios 1.5.142 baut auf 15.
+
+## Was 2.1.154 ändert
+
+1. **leftoverUUIDUUIDMapDropHold** hold ∪ ghosts ∪ missKeys.
+2. **DropDangling destOk** Key|Dest — `hold.contains(k)` redundant nach Union.
+3. **CI matrix macos-15+26**, fail-fast false. Publish macos-15 zuerst, Artifact analog Helios.
+4. Tests + VERSION = Models = MARKETING 2.1.154 (Build 179). Schema 15 bleibt.
+
+Helios 1.5.144: HandCount 4, Fingerkette, Span-Veto Prop, Smooth 0,35. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-06 (2.1.153)
 
 Helios **1.5.143** (Build 162). Aegis **2.1.153 alpha** (Build 178). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

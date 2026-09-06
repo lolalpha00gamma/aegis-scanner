@@ -2944,7 +2944,11 @@ final class LibraryStore: ObservableObject {
         boxKalman = MatchMath.leftoverHoldKalmanKeep(kalman: boxKalman, live: adopted.map(\.id), missCoast: predictOnly)
         boxKalmanV = MatchMath.leftoverHoldKalmanKeep(kalman: boxKalmanV, live: adopted.map(\.id), missCoast: predictOnly)
         let keepIds = Set(remintLive.map(\.id)).union(Set(identities.map(\.id)))
-        let holdIds = Set(leftoverHold.keys)
+        let holdIds = MatchMath.leftoverUUIDUUIDMapDropHold(
+            hold: Set(leftoverHold.keys),
+            ghosts: ghostIds,
+            missKeys: missCoast ? Array(leftoverPairCommit.keys) + Array(leftoverPairLast.keys) : []
+        )
         leftoverPairLast = MatchMath.leftoverUUIDUUIDMapDropDangling(leftoverPairLast, keep: keepIds, hold: holdIds)
         leftoverPairCommit = MatchMath.leftoverUUIDUUIDMapDropDangling(leftoverPairCommit, keep: keepIds, hold: holdIds)
         leftoverHoldTrail = leftoverHoldTrail.mapValues { MatchMath.leftoverHoldTrailCap($0) }
