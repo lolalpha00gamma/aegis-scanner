@@ -1,4 +1,4 @@
-# Aegis **2.1.166 alpha**
+# Aegis **2.1.167 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -14,7 +14,19 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
 
+## Neu in 2.1.167 alpha
+
+Warum FaceTrack-Remint leftover nach UUID-Wechsel weiter als Gast taufte, 24-fps-Jitter Continuity-Prints skippte, und skipPrints leftoverHold mit Müll-Cosine überschrieb:
+
+- **FaceTrack Yaw/Still/EMA/Blink/Vote.** Pack+RemintDropMaps. LibraryStore verdrahtet — nicht nur Hold.
+- **Name-Hist / Print-Trail / 1-Euro / Drift remintet.** keepBoxes-Filter allein ließ Mehrheit, Median-Print, Blink und Box-Glättung auf der Source-UUID sterben.
+- **leftoverCoastCosine(livePrintEmpty:).** Detect-Skip ohne Print nimmt leftoverHold, nicht einen Rest-liveCos.
+- **printBudgetSkip(continuity:).** Desk-View nie skip, auch wenn liveDt 16 ms jittet.
+- **Yaw-Snapshot vor Task.detached.** MainActor-Map nicht im Detached-Task.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.167 (Build 192). Schema 15 bleibt.
+
 ## Neu in 2.1.166 alpha
+
 
 Warum FaceTrack-Pack leftover nach Remint weiter Zombies ließ, 24 fps den Print bei Kopfdrehung skippte, und der Mutex-Chip Contention verschluckte:
 

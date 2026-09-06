@@ -1,28 +1,27 @@
-# Nachtrag 2026-09-06 — 1.5.164 / 2.1.166 (kein Merge von `bugfix`)
+# Nachtrag 2026-09-06 — 1.5.165 / 2.1.167 (kein Merge von `bugfix`)
 
-Helios `bpms9cmnxc-debug/Helios` **1.5.164** (Build 183).
-Aegis `lolalpha00gamma/aegis-scanner` **2.1.166 alpha** (Build 191).
+Helios `bpms9cmnxc-debug/Helios` **1.5.165** (Build 184).
+Aegis `lolalpha00gamma/aegis-scanner` **2.1.167 alpha** (Build 192).
 Nur `main`. Agent-Regel: keine Nebenbranches. `bugfix` gelesen, nicht gemergt.
 
 ## Warum es schlecht wirkte (dieser Pass)
 
-1. **LibraryStore remintete 24 Maps einzeln.** FaceTrack-Pack saß seit 2.1.165, Store rief ihn nie auf. Eine vergessene Map (liveYaw) blieb auf der Source-UUID — nach Remint war Yaw tot, printBudget und Lookaway trafen Luft.
-2. **printBudgetSkip nur dt + 18 ms.** 24 fps + Vision 19 ms skippte den Print auch bei IoU 0,50 und Yaw 20°. leftoverCoastCosine hielt die alte Cosine, Twin-Taufe nach Kopfdrehung.
-3. **Mutex expected-gen tot.** LockedLine bumpte Gen unter LOCK_EX, prüfte die SH-Read-Gen nicht. Aegis Heartbeat + Claim konnten dieselbe Zeile zweimal auf Gen N schreiben.
-4. **Aegis zählte LOCK_NB-Fails nicht.** Helios hatte ClaimBackoff, Aegis-Heartbeat behandelte busy als holder=nil-Pause ohne Fail-Zähler. Chip log „—“ während Helios schrieb.
-5. **HUD-Chip ohne Druck.** `helios` / `YIELD` ohne Fail-Count. Contention unsichtbar.
+1. **Name-Hist / Print-Trail / Blink / Still / 1-Euro nur `filter keepBoxes`.** FaceTrack remintete Hold/Yaw. Nach Vision-UUID-Remint blieben Mehrheit, Median-Print, Liveness und Box-Euro auf der Source-UUID — Overlay **Gast** 3 Ticks, Taufe neu.
+2. **leftoverCoastCosine nahm live vor Hold.** skipPrints + leerer Print: Rest-Cosine überschrieb leftoverHold. Twin nach Detect-Skip falsch.
+3. **printBudget ohne Continuity-Gate.** liveDt-Jitter 16 ms skippte Desk-View-Prints obwohl 8 fps gemeint war.
+4. **Task.detached las `liveYaw`.** MainActor-Map im Detached-Task — printBudget-Yaw raste.
+5. **palmBindHandsFirst Observation-Order.** Gleiche Scale/Counts: Vision-Reihenfolge, nicht Conf. Gitarre/zweite Hand stiehlt S1.
 6. Von `bugfix` (1.5.8 / 2.1.15) bewusst nicht gemergt: IOHID Event-Tap, AX SetPosition/Frame, Per-App-Gain, JSONL, familyBump-only-Best-Paar (längst auf main).
 
-## In 1.5.164 / 2.1.166 gelandet
+## In 1.5.165 / 2.1.167 gelandet
 
-- **LibraryStore → FaceTrack-Remint.** Hold/Pending/Streak/Hash/IoU/Name/Miss/StreakBox/Pair in einem Pack, ein RemintDrop, Unpack ohne Defaults. Kalman-Vel bleibt eigene Map (px/py).
-- **liveYaw/Pitch/Roll reminten** mit dem Plan — sonst printBudget-Yaw und Lookaway nach UUID-Remint tot.
-- **printBudgetSkip(minIoU:yawAbs:).** Skip nur wenn IoU ≥ 0,92 *und* |yaw| < 8°. Unstabiler Track druckt trotz 19 ms.
-- **cameraMutexCasAllows / expectedGen.** Aegis bricht bei Gen-Mismatch ab, Helios schreibt (Continuity-Vorrang).
-- **cameraMutexClaimChip.** `helios · 1nb` / `helios · backoff` / `YIELD`. Overlay-Ton backoff = 1.
-- **Aegis mutexClaimFails + ClaimDue** analog Helios. SkipClaim busy zählt.
-- Unpack schreibt Defaults nicht mehr in die Maps (Hold 0 / pending "" / miss 0).
-- Tests + MARKETING 1.5.164 / 2.1.166 (Build 183 / 191). Schema 15 bleibt.
+- **FaceTrack Yaw/Still/EMA/Blink/Lid/Open/Vote.** Pack+RemintDropMaps. LibraryStore verdrahtet.
+- **leftoverHoldRemintDrop** auf Name-Hist, Print-Trail, Drift, Score-Ticks, 1-Euro, Landmark, Capture-Hist, Tap-Lock, Mask-Hold, Jump-Pending.
+- **leftoverCoastCosine(livePrintEmpty:).** Skip ohne Print nimmt Hold.
+- **printBudgetSkip(continuity:).** Continuity nie skip.
+- **Yaw-Snapshot vor Task.detached.**
+- **palmBindHandsFirst(confs:).** Höhere Vision-Conf vor Observation-Order.
+- Tests + MARKETING 1.5.165 / 2.1.167 (Build 184 / 192). Schema 15 bleibt.
 
 ## Restlöcher
 
@@ -30,15 +29,15 @@ Nur `main`. Agent-Regel: keine Nebenbranches. `bugfix` gelesen, nicht gemergt.
 
 - Frame-Pump XPC fehlt. Zwei DisplayLinks seit 1.5.149.
 - Overlay SwiftUI, nicht Metal 90 Hz.
-- Observation-order von Vision. Scale-Gate 0,28 zittert bei 8 fps.
+- Scale-Gate 0,28 zittert bei 8 fps. Conf-Tie sitzt, Joint-Group fehlt.
 - GestureTests > 180 kB, CoordMath ~200 kB.
 - CGEvent-Post statt IOHID (`bugfix`).
 - Yield-Pref liegt in Helios-UserDefaults; Aegis hat eigene Keys. Kein App-Group bis CameraBroker.
 
 ### Aegis
 
-- FaceTrack remintet, Store hält die Maps noch parallel — nächster Schritt: ein `[UUID: FaceTrack]` als Source of Truth.
-- Kalman-Vel (px/py) nicht im FaceTrack. Coast-Print speichert nur Cosine, nicht den letzten featurePrint.
+- FaceTrack remintet Skalare, Store hält die Maps noch parallel — nächster Schritt: ein `[UUID: FaceTrack]` als Source of Truth.
+- Kalman-Vel (px/py) nicht im FaceTrack. Coast-Print speichert Trail, nicht den letzten `VNFaceObservation`.
 - LiveCapture MainActor plus startRunning auf outputQueue.
 - gallery.json ohne WAL-Log (rotate 3 mildert, ersetzt kein Journal).
 - leftoverSoftmaxBlocks läuft weiter auf leftoverScore, nicht Roh — absichtlich.
@@ -56,24 +55,25 @@ Pass 4: RemintDrop alle Maps, Gallery-Floor Roh, flock NB, CAS LockedLine, tmp-W
 Pass 5: ClaimDue 80 ms, leftoverPickArgmax Roh, Coast-Print, fsync, Yield-Pref Panel — 1.5.162 / 2.1.164.
 Pass 6: skipDetect Scope, skipPrints-Coast, leftoverPickPrint Hold, FaceTrack extra, ClaimBackoff — 1.5.163 / 2.1.165.
 Pass 7: FaceTrack-Remint verdrahtet, printBudget IoU+Yaw, expected-gen CAS, ClaimChip, liveYaw Remint, Aegis ClaimBackoff — 1.5.164 / 2.1.166.
+Pass 8: FaceTrack Live-Skalare, Name-Hist/Print-Trail/1-Euro remintet, Coast livePrintEmpty, Continuity nie skip, Bind-Conf, Yaw-Snapshot — 1.5.165 / 2.1.167.
 
 ## Erweiterungen (zusätzlich, neu oben)
 
-1. **LibraryStore `[UUID: FaceTrack]` als Source of Truth.** Remint sitzt. Maps bleiben Schatten — ein Dict, Apply/Decode/Encode einmal.
-2. **Coast-Print Vector:** letzten `VNFaceObservation.featurePrint` je Track cachen. Detect-Skip rechnet Cosine gegen den Cache, nicht nur leftoverHold-Zahl.
-3. **Kalman-Vel in FaceTrack** (px/py/pw/ph). Sonst Predict nach Remint 0.
+1. **LibraryStore `[UUID: FaceTrack]` als Source of Truth.** Skalare reminten. Maps bleiben Schatten — ein Dict, Apply/Decode/Encode einmal.
+2. **Coast-Print Vector:** letzten `VNFaceObservation.featurePrint` je Track cachen. Trail remintet, der Vision-Blob nicht.
+3. **Kalman-Vel in FaceTrack** (px/py/pw/ph). Sonst Predict nach Remint 0. Vel-Map remintet extra, nicht im Struct.
 4. **CameraBroker-XPC:** ein Prozess besitzt AVCapture, IOSurface an Helios und Aegis. Eine TCC. Größter einzelner Effizienzgewinn.
 5. **App-Group `group.helios.aegis`:** Yield-Grace, Mutex-Pfad, destEdgePad je Display-UUID einmal. Panel in Helios steuert Aegis ohne Broker.
 6. **Two-Phase Mutex INTENT → Yield → CONFIRM** in der Lock-Zeile (Palm-Rect / Face-Rect) bis CameraBroker.
 7. **Lock-Zeile Mini-IPC:** Palm-Rect / Face-Rect + Mutex-Chip bis der Broker sitzt.
 8. **Detect 8–12 fps, Overlay 60 Hz Metal, Baptize nur Detect-Tick.**
-9. **Enrollment-HUD:** 3 Yaw-Slots + Blink bevor Taufe.
-10. **Prefs je camera uniqueID** (Orient, Format, Pad).
+9. **Enrollment-HUD:** 3 Yaw-Slots + Blink bevor Taufe. Blink überlebt Remint, HUD fehlt.
+10. **Prefs je camera uniqueID** (Orient, Format, Pad). printBudget Continuity-Gate sitzt, Pref je Cam fehlt.
 11. **VNDetectHumanBodyPose** als Prop-Veto. Hand Shape-Prior statt neuer Thresholds.
 12. **Gemeinsames CameraMath-Package** (Mutex/Format/Rotation/Yield leben doppelt).
 13. **Lokaler Telemetry-Ring 30 s** (fps, ranks, remint, mutex, skip-ratio, claim-dt) + OSLog.
 14. **Center Stage force-off nach Sleep** in beiden Clients.
-15. **Szenario-Fixtures:** Gitarre+Hand 8 fps, Twin Restart, Helios hält Lock, Aegis weicht live, Auto-Return nach 4 s, Detect-Skip Hold überlebt, skipPrints 24 fps nur bei IoU≥0,92, Yaw 20° druckt, liveYaw überlebt Remint, CAS Gen mismatch Aegis tot.
+15. **Szenario-Fixtures:** Gitarre+Hand 8 fps, Twin Restart, Helios hält Lock, Aegis weicht live, Auto-Return nach 4 s, Detect-Skip Hold überlebt, skipPrints 24 fps nur bei IoU≥0,92, Yaw 20° druckt, liveYaw überlebt Remint, Name-Hist überlebt Remint, Continuity nie skip, Bind-Conf vor Order, CAS Gen mismatch Aegis tot.
 16. **Echte Maus:** HID-Tap, Warp 0,8 s Pause. Reanchor 4 Hz, RMS > 8 px (Kamera-Tick sitzt, HID fehlt).
 17. **Palm-Occlusion S2∩S1.** Hand-over-Face Mute über die Lock-Zeile.
 18. **Speaker-Diarization** als Aegis-Cue (wer spricht, bleibt S1).
@@ -85,7 +85,7 @@ Pass 7: FaceTrack-Remint verdrahtet, printBudget IoU+Yaw, expected-gen CAS, Clai
 24. **Kalman-Zeiger 2D** constant-velocity statt 1-Euro + Predict.
 25. **SpaceMap Auto-Recalib** RMS > 24 px / 2 s, eine Karte je Display-UUID.
 26. **Two-mode Pointer:** Desk absolut, 0,8 s Dwell relativ.
-27. **maximumHandCount 2 + Joint-Group** statt Observation-first.
+27. **maximumHandCount 2 + Joint-Group** statt Observation-first. Conf-Tie sitzt.
 28. **Latency-HUD** Tick zu AX-move, über 40 ms Gain halb.
 29. **Tests splitten** (GestureTests / MatchMathTests).
 30. **Continuity USB-Hub Watchdog** nach Sleep (uniqueID wechselt, Format 0×0).
@@ -101,8 +101,14 @@ Pass 7: FaceTrack-Remint verdrahtet, printBudget IoU+Yaw, expected-gen CAS, Clai
 40. **leftoverSoftmaxBlocks bleibt auf leftoverScore.** Nicht auf Roh umstellen — 0,72 scharf vs 0,73 blur muss durch.
 41. **Claim-Telemetry Ring** 30 s skip-ratio + lastDt neben dem Chip (Chip sitzt, Ring fehlt).
 42. **Mutex flock owner-PID in der Zeile schon da** — nach Sleep SIGKILL des Zombies, nicht 12 s stale.
-43. **printBudget je uniqueID:** Continuity 8 fps nie skip, Built-in 24 fps mit IoU-Gate (Gate sitzt, Pref je Cam fehlt).
+43. **printBudget je uniqueID:** Continuity-Gate sitzt (nie skip). Pref je Cam (Built-in 30 fps vs 24) fehlt.
 44. **FaceTrack Encode in gallery.json extra** — Restart lädt Maps, nicht das Struct.
+45. **leftoverLivePrintVec** neben Trail: letzter Roh-Vektor, nicht Median-5. Twin-Coast ehrlich.
+46. **stabilizeLiveMatches vor matchLive remint-aware.** Hist sitzt. Vote-Cap nach Remint 1 Tick statt 3 wäre weicher.
+47. **OneEuro State in FaceTrack.** boxEuro remintet extra, Struct kennt den Filter nicht.
+48. **Vision revision + observation UUID persist** über VNTrackObjectRequest statt eigenes Remint.
+49. **Helios Slot-Conf EMA** in PalmSlot — Conf-Tie sitzt pro Tick, Slot hält die schwächere Hand über 1 Frame.
+50. **Kill-Switch + Baptize-Mute Datei** testdriven: Helios schreibt, Aegis skippt leftoverPick solange Faust-Lock.
 
 Bewusst nicht: Blind-Patch MatchMath/CoordMath-Schwellen, Merge `bugfix`, leftoverSoftmaxBlocks auf Roh, Kalman-Vel in FaceTrack ohne Test auf der Maschine.
 Nächster Code-Schritt: `[UUID: FaceTrack]` als Store oder CameraBroker oder Overlay-Metal.

@@ -1,8 +1,19 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.166 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-GROK.md](VORSCHLAEGE-GROK.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.167 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-GROK.md](VORSCHLAEGE-GROK.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 
-Neu in 2.1.166: FaceTrack-Remint verdrahtet, printBudget IoU+Yaw, expected-gen CAS, liveYaw Remint.
+Neu in 2.1.167: FaceTrack Live-Skalare, Name-Hist/Print-Trail remintet, Continuity nie printBudget.
+
+## In 2.1.167 wirklich im Code
+
+2.1.166: FaceTrack remintete Hold/Yaw. Name-Hist/Print-Trail/Blink/1-Euro nur Filter — Overlay Gast nach Remint.
+
+1. **FaceTrack Yaw/Still/EMA/Blink/Vote** im Pack.
+2. **leftoverHoldRemintDrop** Name-Hist, Print-Trail, 1-Euro, Drift, Capture-Hist, Tap-Lock.
+3. **leftoverCoastCosine(livePrintEmpty:).**
+4. **printBudgetSkip(continuity:).**
+5. **Yaw-Snapshot vor Task.detached.**
+6. Tests + VERSION = Models = MARKETING_VERSION 2.1.167 (Build 192). Schema 15 bleibt.
 
 ## In 2.1.166 wirklich im Code
 

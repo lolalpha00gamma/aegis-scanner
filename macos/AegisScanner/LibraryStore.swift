@@ -2168,12 +2168,15 @@ final class LibraryStore: ObservableObject {
         )
         liveRoiTick += 1
         liveRoiSkipOnce = false
+        let yawAbsSnap = kalmanSnap.compactMap { liveYaw[$0.id] }.map { abs($0) }.max()
+        let minIoUSnap = liveIous.min()
         Task.detached(priority: .userInitiated) {
             let skipPrints = skipDetect || MatchMath.printBudgetSkip(
                 visionMs: vis,
                 dt: dt,
-                minIoU: liveIous.min(),
-                yawAbs: kalmanSnap.compactMap { liveYaw[$0.id] }.map { abs($0) }.max()
+                minIoU: minIoUSnap,
+                yawAbs: yawAbsSnap,
+                continuity: cont
             )
             let t0 = CFAbsoluteTimeGetCurrent()
             var roi = skipRoi ? nil : roiTuple.map { FaceBox(x: $0.x, y: $0.y, width: $0.w, height: $0.h) }
@@ -3030,7 +3033,15 @@ final class LibraryStore: ObservableObject {
             Set(leftoverPairCommit.keys), Set(leftoverPairCommitMiss.keys), Set(leftoverDisagree.keys),
             Set(leftoverStreak.keys), Set(leftoverStreakBox.keys), Set(leftoverStreakSince.keys),
             Set(boxKalman.keys), Set(boxKalmanV.keys), Set(freezeAxis.keys),
-            Set(liveYaw.keys), Set(livePitch.keys), Set(liveRoll.keys)
+            Set(liveYaw.keys), Set(livePitch.keys), Set(liveRoll.keys),
+            Set(livePrintTrail.keys), Set(livePrintTrailSlot.keys), Set(liveStillFor.keys),
+            Set(livePrintDrift.keys), Set(liveNameHist.keys), Set(liveNameLock.keys),
+            Set(liveScoreEma.keys), Set(liveScoreTicks.keys), Set(liveNameVoteAt.keys),
+            Set(tapNameLockUntil.keys), Set(maskHoldSince.keys), Set(livePoseAt.keys),
+            Set(liveExposureUntil.keys), Set(liveCaptureHist.keys), Set(livePosterJitter.keys),
+            Set(livePosterStill.keys), Set(liveLandmarkPrev.keys), Set(liveLidClosed.keys),
+            Set(liveBlinkSeen.keys), Set(liveOpenStreak.keys), Set(boxEuro.keys),
+            Set(boxJumpPending.keys)
         ])
         let remintPlan = MatchMath.leftoverHoldRemintMap(
             live: remintLive,
@@ -3054,6 +3065,16 @@ final class LibraryStore: ObservableObject {
             streakBox: leftoverStreakBox.mapValues { MatchMath.leftoverFaceTrackBox($0) },
             pairLast: leftoverPairLast,
             pairStreak: leftoverPairStreak,
+            yaw: liveYaw,
+            pitch: livePitch,
+            roll: liveRoll,
+            stillFor: liveStillFor,
+            scoreEma: liveScoreEma,
+            poseAt: livePoseAt,
+            blinkSeen: liveBlinkSeen,
+            lidClosed: liveLidClosed,
+            openStreak: liveOpenStreak,
+            voteAt: liveNameVoteAt,
             remap: remintPlan
         )
         leftoverHold = faceMaps.hold
@@ -3067,6 +3088,16 @@ final class LibraryStore: ObservableObject {
         leftoverStreakBox = faceMaps.streakBox.mapValues { MatchMath.leftoverFaceBox($0) }
         leftoverPairLast = faceMaps.pairLast
         leftoverPairStreak = faceMaps.pairStreak
+        liveYaw = faceMaps.yaw
+        livePitch = faceMaps.pitch
+        liveRoll = faceMaps.roll
+        liveStillFor = faceMaps.stillFor
+        liveScoreEma = faceMaps.scoreEma
+        livePoseAt = faceMaps.poseAt
+        liveBlinkSeen = faceMaps.blinkSeen
+        liveLidClosed = faceMaps.lidClosed
+        liveOpenStreak = faceMaps.openStreak
+        liveNameVoteAt = faceMaps.voteAt
         leftoverHoldTrail = MatchMath.leftoverHoldRemintDrop(hold: leftoverHoldTrail, remap: remintPlan)
         liveSlotHold = MatchMath.leftoverHoldRemintDrop(hold: liveSlotHold, remap: remintPlan)
         leftoverSparkChipHeld = MatchMath.leftoverHoldRemintDrop(hold: leftoverSparkChipHeld, remap: remintPlan)
@@ -3083,9 +3114,21 @@ final class LibraryStore: ObservableObject {
         leftoverDisagree = MatchMath.leftoverHoldRemintDrop(hold: leftoverDisagree, remap: remintPlan)
         leftoverStreakSince = MatchMath.leftoverHoldRemintDrop(hold: leftoverStreakSince, remap: remintPlan)
         freezeAxis = MatchMath.leftoverHoldRemintDrop(hold: freezeAxis, remap: remintPlan)
-        liveYaw = MatchMath.leftoverHoldRemintDrop(hold: liveYaw, remap: remintPlan)
-        livePitch = MatchMath.leftoverHoldRemintDrop(hold: livePitch, remap: remintPlan)
-        liveRoll = MatchMath.leftoverHoldRemintDrop(hold: liveRoll, remap: remintPlan)
+        livePrintTrail = MatchMath.leftoverHoldRemintDrop(hold: livePrintTrail, remap: remintPlan)
+        livePrintTrailSlot = MatchMath.leftoverHoldRemintDrop(hold: livePrintTrailSlot, remap: remintPlan)
+        livePrintDrift = MatchMath.leftoverHoldRemintDrop(hold: livePrintDrift, remap: remintPlan)
+        liveNameHist = MatchMath.leftoverHoldRemintDrop(hold: liveNameHist, remap: remintPlan)
+        liveNameLock = MatchMath.leftoverHoldRemintDrop(hold: liveNameLock, remap: remintPlan)
+        liveScoreTicks = MatchMath.leftoverHoldRemintDrop(hold: liveScoreTicks, remap: remintPlan)
+        tapNameLockUntil = MatchMath.leftoverHoldRemintDrop(hold: tapNameLockUntil, remap: remintPlan)
+        maskHoldSince = MatchMath.leftoverHoldRemintDrop(hold: maskHoldSince, remap: remintPlan)
+        liveExposureUntil = MatchMath.leftoverHoldRemintDrop(hold: liveExposureUntil, remap: remintPlan)
+        liveCaptureHist = MatchMath.leftoverHoldRemintDrop(hold: liveCaptureHist, remap: remintPlan)
+        livePosterJitter = MatchMath.leftoverHoldRemintDrop(hold: livePosterJitter, remap: remintPlan)
+        livePosterStill = MatchMath.leftoverHoldRemintDrop(hold: livePosterStill, remap: remintPlan)
+        liveLandmarkPrev = MatchMath.leftoverHoldRemintDrop(hold: liveLandmarkPrev, remap: remintPlan)
+        boxEuro = MatchMath.leftoverHoldRemintDrop(hold: boxEuro, remap: remintPlan)
+        boxJumpPending = MatchMath.leftoverHoldRemintDrop(hold: boxJumpPending, remap: remintPlan)
         leftoverMissCoastTicks = MatchMath.leftoverHoldMissAdvance(
             prev: leftoverMissCoastTicks,
             hit: MatchMath.leftoverHoldMissHit(live: liveIds.count, adopted: adopted.count)
@@ -3340,7 +3383,8 @@ final class LibraryStore: ObservableObject {
                         skipDetect: skipDetect,
                         skipPrints: skipPrints,
                         live: liveCos,
-                        stored: leftoverHold[old.id]
+                        stored: leftoverHold[old.id],
+                        livePrintEmpty: face.featurePrint.isEmpty && face.printVec.count < 32
                     )
                     cands.append((j, o, cosine))
                 }

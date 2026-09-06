@@ -1,3 +1,27 @@
+# Helios + Aegis — Analyse 2026-09-06 (2.1.167)
+
+Helios **1.5.165** (Build 184). Aegis **2.1.167 alpha** (Build 192). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.166: FaceTrack remintete Hold/Pending/Streak/Yaw. Name-Hist, Print-Trail, Blink, Still, 1-Euro nur `filter keepBoxes` — nach UUID-Remint tot. Overlay Gast 3 Ticks. Continuity printBudget über liveDt-Jitter.
+
+## Warum Taufe nach 2.1.166 weiter riss
+
+1. **Live-Maps nur gefiltert.** liveNameHist / livePrintTrail / liveStillFor / liveBlinkSeen / boxEuro blieben auf der Source-UUID. keepBoxes hält Live-IDs — Mehrheit, Median-Print, Still-Hold, Blink-Liveness, 1-Euro tot.
+2. **leftoverCoastCosine live vor Hold.** skipPrints + leerer Print: embedding leer, aber ein Rest-liveCos überschrieb leftoverHold.
+3. **printBudget ohne Continuity-Gate.** liveDt 16 ms (Burst) skippte Desk-View-Prints.
+4. **Task.detached las liveYaw.** MainActor-Map im Detached-Task — Yaw-Gate raste.
+
+## Was 2.1.167 ändert
+
+1. **FaceTrack Yaw/Still/EMA/Blink/Vote.** Pack+RemintDropMaps. LibraryStore verdrahtet.
+2. **leftoverHoldRemintDrop** auf Name-Hist, Print-Trail, Drift, Score-Ticks, 1-Euro, Landmark, Capture-Hist, Tap-Lock.
+3. **leftoverCoastCosine(livePrintEmpty:).** Skip ohne Print nimmt Hold, nicht Müll-Cosine.
+4. **printBudgetSkip(continuity:).** Continuity nie skip.
+5. **Yaw-Snapshot vor Task.detached.**
+6. Tests + VERSION = Models = MARKETING 2.1.167 (Build 192). Schema 15 bleibt.
+
+`bugfix` mergen: nein.
+
 # Helios + Aegis — Analyse 2026-09-06 (2.1.166)
 
 Helios **1.5.164** (Build 183). Aegis **2.1.166 alpha** (Build 191). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

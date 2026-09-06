@@ -465,8 +465,12 @@ enum MatchMath {
         skipDetect: Bool,
         skipPrints: Bool = false,
         live: Double?,
-        stored: Double?
+        stored: Double?,
+        livePrintEmpty: Bool = false
     ) -> Double? {
+        if leftoverCoastPrintKeeps(skipDetect: skipDetect, skipPrints: skipPrints), livePrintEmpty {
+            return stored
+        }
         if let live { return live }
         if leftoverCoastPrintKeeps(skipDetect: skipDetect, skipPrints: skipPrints) { return stored }
         return nil
@@ -2958,7 +2962,8 @@ enum MatchMath {
         return out
     }
 
-    /// Identität als ein Objekt. LibraryStore remintet Hold/Pending/Streak/Hash/IoU/Name/Miss/Pair über Pack.
+    /// Identität als ein Objekt. LibraryStore remintet Hold/Pending/Streak/Hash/IoU/Name/Miss/Pair
+    /// plus Live-Skalare (Yaw/Still/Blink/EMA) über Pack. Arrays (Print-Trail, Name-Hist) extra.
     struct FaceTrackBox: Equatable {
         var x: Double = 0
         var y: Double = 0
@@ -2979,6 +2984,16 @@ enum MatchMath {
         var kalman: FaceTrackBox? = nil
         var pairLast: UUID? = nil
         var pairStreak: Int = 0
+        var yaw: Double = 0
+        var pitch: Double = 0
+        var roll: Double = 0
+        var stillFor: TimeInterval = 0
+        var scoreEma: Double = 0
+        var poseAt: TimeInterval = 0
+        var blinkSeen: Bool = false
+        var lidClosed: Bool = false
+        var openStreak: Int = 0
+        var voteAt: TimeInterval = 0
     }
 
     static func leftoverFaceTrackRemintPair(
@@ -3023,12 +3038,25 @@ enum MatchMath {
         streakBox: [UUID: FaceTrackBox] = [:],
         kalman: [UUID: FaceTrackBox] = [:],
         pairLast: [UUID: UUID] = [:],
-        pairStreak: [UUID: Int] = [:]
+        pairStreak: [UUID: Int] = [:],
+        yaw: [UUID: Double] = [:],
+        pitch: [UUID: Double] = [:],
+        roll: [UUID: Double] = [:],
+        stillFor: [UUID: TimeInterval] = [:],
+        scoreEma: [UUID: Double] = [:],
+        poseAt: [UUID: TimeInterval] = [:],
+        blinkSeen: [UUID: Bool] = [:],
+        lidClosed: [UUID: Bool] = [:],
+        openStreak: [UUID: Int] = [:],
+        voteAt: [UUID: TimeInterval] = [:]
     ) -> [UUID: FaceTrack] {
         let keys = leftoverHoldRemintKeys([
             Set(hold.keys), Set(pending.keys), Set(streak.keys), Set(lastHash.keys),
             Set(lastIoU.keys), Set(nameHeld.keys), Set(nameUntil.keys), Set(miss.keys),
-            Set(streakBox.keys), Set(kalman.keys), Set(pairLast.keys), Set(pairStreak.keys)
+            Set(streakBox.keys), Set(kalman.keys), Set(pairLast.keys), Set(pairStreak.keys),
+            Set(yaw.keys), Set(pitch.keys), Set(roll.keys), Set(stillFor.keys),
+            Set(scoreEma.keys), Set(poseAt.keys), Set(blinkSeen.keys), Set(lidClosed.keys),
+            Set(openStreak.keys), Set(voteAt.keys)
         ])
         var out: [UUID: FaceTrack] = [:]
         out.reserveCapacity(keys.count)
@@ -3045,7 +3073,17 @@ enum MatchMath {
                 streakBox: streakBox[id],
                 kalman: kalman[id],
                 pairLast: pairLast[id],
-                pairStreak: pairStreak[id] ?? 0
+                pairStreak: pairStreak[id] ?? 0,
+                yaw: yaw[id] ?? 0,
+                pitch: pitch[id] ?? 0,
+                roll: roll[id] ?? 0,
+                stillFor: stillFor[id] ?? 0,
+                scoreEma: scoreEma[id] ?? 0,
+                poseAt: poseAt[id] ?? 0,
+                blinkSeen: blinkSeen[id] ?? false,
+                lidClosed: lidClosed[id] ?? false,
+                openStreak: openStreak[id] ?? 0,
+                voteAt: voteAt[id] ?? 0
             )
         }
         return out
@@ -3064,9 +3102,19 @@ enum MatchMath {
         var kalman: [UUID: FaceTrackBox] = [:]
         var pairLast: [UUID: UUID] = [:]
         var pairStreak: [UUID: Int] = [:]
+        var yaw: [UUID: Double] = [:]
+        var pitch: [UUID: Double] = [:]
+        var roll: [UUID: Double] = [:]
+        var stillFor: [UUID: TimeInterval] = [:]
+        var scoreEma: [UUID: Double] = [:]
+        var poseAt: [UUID: TimeInterval] = [:]
+        var blinkSeen: [UUID: Bool] = [:]
+        var lidClosed: [UUID: Bool] = [:]
+        var openStreak: [UUID: Int] = [:]
+        var voteAt: [UUID: TimeInterval] = [:]
     }
 
-    /// Pack-Inverse. Nur gesetzte Felder — Defaults nicht in die 25 Maps schreiben.
+    /// Pack-Inverse. Nur gesetzte Felder — Defaults nicht in die Maps schreiben.
     static func leftoverFaceTrackUnpack(_ tracks: [UUID: FaceTrack]) -> FaceTrackMaps {
         var m = FaceTrackMaps()
         m.hold.reserveCapacity(tracks.count)
@@ -3090,6 +3138,16 @@ enum MatchMath {
             if let kal = t.kalman { m.kalman[id] = kal }
             if let pair = t.pairLast { m.pairLast[id] = pair }
             if t.pairStreak != 0 { m.pairStreak[id] = t.pairStreak }
+            if t.yaw != 0 { m.yaw[id] = t.yaw }
+            if t.pitch != 0 { m.pitch[id] = t.pitch }
+            if t.roll != 0 { m.roll[id] = t.roll }
+            if t.stillFor != 0 { m.stillFor[id] = t.stillFor }
+            if t.scoreEma != 0 { m.scoreEma[id] = t.scoreEma }
+            if t.poseAt != 0 { m.poseAt[id] = t.poseAt }
+            if t.blinkSeen { m.blinkSeen[id] = true }
+            if t.lidClosed { m.lidClosed[id] = true }
+            if t.openStreak != 0 { m.openStreak[id] = t.openStreak }
+            if t.voteAt != 0 { m.voteAt[id] = t.voteAt }
         }
         return m
     }
@@ -3103,6 +3161,7 @@ enum MatchMath {
     }
 
     /// Ein Remint für die Identitäts-Maps. Kalman-Vel bleibt draußen (px/py).
+    /// Live-Skalare (Yaw/Still/Blink/EMA) mit Pack. Arrays (Trail/Hist) extra Drop.
     static func leftoverFaceTrackRemintDropMaps(
         hold: [UUID: Double],
         pending: [UUID: String],
@@ -3116,6 +3175,16 @@ enum MatchMath {
         kalman: [UUID: FaceTrackBox] = [:],
         pairLast: [UUID: UUID] = [:],
         pairStreak: [UUID: Int] = [:],
+        yaw: [UUID: Double] = [:],
+        pitch: [UUID: Double] = [:],
+        roll: [UUID: Double] = [:],
+        stillFor: [UUID: TimeInterval] = [:],
+        scoreEma: [UUID: Double] = [:],
+        poseAt: [UUID: TimeInterval] = [:],
+        blinkSeen: [UUID: Bool] = [:],
+        lidClosed: [UUID: Bool] = [:],
+        openStreak: [UUID: Int] = [:],
+        voteAt: [UUID: TimeInterval] = [:],
         remap: [UUID: UUID]
     ) -> FaceTrackMaps {
         leftoverFaceTrackUnpack(
@@ -3132,7 +3201,17 @@ enum MatchMath {
                     streakBox: streakBox,
                     kalman: kalman,
                     pairLast: pairLast,
-                    pairStreak: pairStreak
+                    pairStreak: pairStreak,
+                    yaw: yaw,
+                    pitch: pitch,
+                    roll: roll,
+                    stillFor: stillFor,
+                    scoreEma: scoreEma,
+                    poseAt: poseAt,
+                    blinkSeen: blinkSeen,
+                    lidClosed: lidClosed,
+                    openStreak: openStreak,
+                    voteAt: voteAt
                 ),
                 remap: remap
             )
@@ -5778,6 +5857,7 @@ enum MatchMath {
 
     /// 24 fps: Print skip wenn Vision > 18 ms. 8 fps nie — leftover braucht den Print.
     /// skipPrints nur bei stabilem Track: Kalman-IoU ≥ 0,92 *und* |yaw| < 8°.
+    /// Continuity nie — liveDt-Jitter 16 ms darf Desk-View nicht skippen.
     /// Sonst ein Print trotz 19 ms — Twin-Taufe nach Kopf-Drehung.
     static let printBudgetMs = 18.0
     static let printBudgetIoU: Double = leftoverDetectSkipIoU
@@ -5787,8 +5867,10 @@ enum MatchMath {
         visionMs: Double,
         dt: TimeInterval,
         minIoU: Double? = nil,
-        yawAbs: Double? = nil
+        yawAbs: Double? = nil,
+        continuity: Bool = false
     ) -> Bool {
+        if continuity { return false }
         if dt >= 0.08 { return false }
         if visionMs <= printBudgetMs { return false }
         if let iou = minIoU, iou + 1e-9 < printBudgetIoU { return false }

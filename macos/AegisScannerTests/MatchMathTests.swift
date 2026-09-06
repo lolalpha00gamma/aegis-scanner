@@ -3965,6 +3965,58 @@ enum MatchMathTests {
         ok(mapsDrop.miss[trackLive] == nil, "FaceTrack Unpack Default tot")
         let boxConv = MatchMath.leftoverFaceBox(MatchMath.leftoverFaceTrackBox(FaceBox(x: 1, y: 2, width: 3, height: 4)))
         ok(boxConv.x == 1 && boxConv.height == 4, "FaceTrack Box roundtrip")
+        ok(
+            MatchMath.leftoverCoastCosine(
+                skipDetect: true, live: 0.90, stored: 0.70, livePrintEmpty: true
+            ) == 0.70,
+            "Coast leerer Print nimmt Hold"
+        )
+        ok(
+            MatchMath.leftoverCoastCosine(
+                skipDetect: false, skipPrints: true, live: 0.90, stored: 0.70, livePrintEmpty: true
+            ) == 0.70,
+            "skipPrints leerer Print nimmt Hold"
+        )
+        ok(
+            MatchMath.leftoverCoastCosine(
+                skipDetect: false, skipPrints: true, live: 0.90, stored: 0.70, livePrintEmpty: false
+            ) == 0.90,
+            "skipPrints mit Print live"
+        )
+        ok(!MatchMath.printBudgetSkip(visionMs: 19, dt: 0.016, minIoU: 0.95, yawAbs: 0.05, continuity: true), "Continuity nie Print-Skip")
+        ok(MatchMath.printBudgetSkip(visionMs: 19, dt: 0.016, minIoU: 0.95, yawAbs: 0.05, continuity: false), "Built-in Print-Skip")
+        let liveOld = UUID()
+        let liveNew = UUID()
+        let extraDrop = MatchMath.leftoverFaceTrackRemintDropMaps(
+            hold: [liveOld: 0.72],
+            pending: [:],
+            streak: [:],
+            lastHash: [:],
+            lastIoU: [:],
+            nameHeld: [:],
+            nameUntil: [:],
+            miss: [:],
+            yaw: [liveOld: 0.20],
+            stillFor: [liveOld: 0.40],
+            scoreEma: [liveOld: 82],
+            blinkSeen: [liveOld: true],
+            openStreak: [liveOld: 3],
+            voteAt: [liveOld: 9],
+            remap: [liveOld: liveNew]
+        )
+        ok(extraDrop.yaw[liveNew] == 0.20 && extraDrop.yaw[liveOld] == nil, "FaceTrack Yaw Drop")
+        ok(extraDrop.stillFor[liveNew] == 0.40, "FaceTrack Still Drop")
+        ok(extraDrop.scoreEma[liveNew] == 82, "FaceTrack EMA Drop")
+        ok(extraDrop.blinkSeen[liveNew] == true && extraDrop.openStreak[liveNew] == 3, "FaceTrack Blink Drop")
+        ok(extraDrop.voteAt[liveNew] == 9, "FaceTrack Vote Drop")
+        let histDrop = MatchMath.leftoverHoldRemintDrop(
+            hold: [liveOld: ["Ada", "Ada"]], remap: [liveOld: liveNew]
+        )
+        ok(histDrop[liveNew] == ["Ada", "Ada"] && histDrop[liveOld] == nil, "Name-Hist RemintDrop")
+        let trailDrop = MatchMath.leftoverHoldRemintDrop(
+            hold: [liveOld: [[0.1, 0.2]]], remap: [liveOld: liveNew]
+        )
+        ok(trailDrop[liveNew]?.first?.first == 0.1 && trailDrop[liveOld] == nil, "Print-Trail RemintDrop")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)
