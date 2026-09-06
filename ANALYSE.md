@@ -1,3 +1,30 @@
+# Helios + Aegis — Analyse 2026-09-06 (2.1.143)
+
+Helios **1.5.132** (Build 151). Aegis **2.1.143 alpha** (Build 168). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.142: Remint vor Survive, Occupied Spatial unique, JPEG persist Schema 11, Spread-Veto Twin-Mitte.
+
+## Warum Taufe und Restart nach 2.1.142 weiter rissen
+
+1. **1-Face-Miss ohne Ghost.** Detect-Drop: live=[], ghosts=[], leftoverHold persist. Survive wischt. Restart erster dunkler Tick = Taufe.
+2. **Occupied live Rank.** leftoverOccupiedMerge unique-by-spatial, emit Original. Tick `#101` bleibt Occupied-Key. Exact Spatial tot.
+3. **JPEG persist ungekürzt.** leftoverJpegProbeStore Cap 64, Encode dumpte alles.
+4. **Kalman RAM-only.** Restart Box-Sprung 3 Frames. Remint sitzt, Persist fehlte.
+5. **HungarianX n>4 FillX greedy.** 5. Person tot.
+
+## Was 2.1.143 ändert
+
+1. **leftoverHoldMissCoast 1 Tick.** leftoverHoldSurvive / Bins / LastHash / Tick halten. leftoverPredictOnMissCoast.
+2. **leftoverOccupiedMerge Spatial-emit.** live Rank → Spatial.
+3. **leftoverJpegByHashCapped** Encode Cap 64.
+4. **Schema 12 leftoverHoldKalman persist.** x/y/w/h/p + vel. Restore wischt nicht.
+5. **leftoverAssignHungarianX n≤5.** leftoverAssignHungarianN.
+6. Tests + VERSION = Models = MARKETING 2.1.143 (Build 168).
+
+Helios 1.5.132: Press-Skip, Fill Press, Coast Predict, Coast Pref, Ghost Alpha, Writer-Chip. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-06 (2.1.142)
 
 Helios **1.5.131** (Build 150). Aegis **2.1.142 alpha** (Build 167). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

@@ -1,3 +1,57 @@
+# Nachtrag 2026-09-06 (2.1.143)
+
+Siehe ANALYSE.md. **2.1.143** Miss-Coast 1 Frame, Occupied Spatial-emit, JPEG Cap, Kalman Schema 12, HungarianX n=5.
+
+## In 2.1.143 gelandet
+
+1. leftoverHoldMissCoast / leftoverHoldMissAdvance — Survive + LastHash + Tick 1 Frame
+2. leftoverPredictOnMissCoast — Kalman-Predict analog emptyLatch
+3. leftoverOccupiedMerge Spatial-emit — live Rank kein Occupied-Key
+4. leftoverJpegByHashCapped Encode Cap 64
+5. leftoverHoldKalmanEncode/Decode persist Schema 12
+6. leftoverAssignHungarianX n≤5 leftoverAssignHungarianN
+7. VERSION = Models = MARKETING_VERSION 2.1.143 (Build 168)
+
+## Nächste, zusätzlich
+
+- leftoverHold TTL remaining analog NameLockUntil / Seen — leftoverHold ist Cosine, HashHold `at` startet nach Restore neu.
+- leftoverAssign n>5 Jonker-Volgenant, nicht nur HungarianX 5.
+- leftoverLastIoU / leftoverSparkChipHeld persist (Mirror sitzt, gallery.json fehlt).
+- leftoverNameLockHeld ohne Until remaining nach Schema-7-Backup.
+- leftoverPairLast Value-Remint persist: dest tot nach Vision-Restart — DropDangling nach Remint.
+- leftoverHoldBins Rank `#101` nach Restore rebase analog leftoverHoldByHash (Bins sind UUID.bin).
+- leftoverCaptureHistByHash persist analog leftoverHoldTrailHash — Encode sitzt, Keep nur LastHash.
+- Hamming-Gewicht im Hash selbst, nicht nur Spatial-Strip `#`.
+- FaceEngine Detect auf outputQueue. JPEG-Reextract gegen denselben Buffer.
+- Hold-SM: Unseen / Tentative / Held / Named.
+- MatchMath split: Hold, Hash, Baptize, Assign.
+- Helios Frame-Pump, eine TCC. Shared XPC mit Helios 1.5.132.
+- Overlay 60 Hz CAMetalLayer, Detect 8–24 fps.
+- VNTrackObjectRequest statt nur Rectangles.
+- Temperature-skalierte Cosine statt hart 0,80 Baptize.
+- gallery.json.bak Rotate 3, printRevision je Identity.
+- Watch-Folder PhotoKit, Export `.aegis` verschlüsselt.
+- P-Slot Maske/Schal, Brille-Slot als Twin-Veto.
+- Temporal ReID-Graph über Hold-Trail (EMA Cap 4 ist Pflaster).
+- Per-Box CLAHE statt Full-Frame.
+- Continuity Desk-View yaw-floor 0,36.
+- Print-Bank 5 Pose-Slots. DBSCAN vor Merge.
+- RTSP 420f, Reconnect Exponential-Backoff.
+- Live-Centroid EMA Reset nach Vision-Restart.
+- leftoverHoldTrailByHash EMA analog UUID-Trail.
+- leftoverJpegByHash remaining TTL, nicht at=now nach Restore — Probe sonst 1,2 s zu frisch.
+- leftoverOccupiedMerge Twin-Yaw in Merge: zwei Live gleiches Spatial, kleinerer yawAbs Exact.
+- leftoverHold miss-coast Predict Box mit Kalman-v, nicht nur Survive-Keep. PredictOnMissCoast sitzt, v nach Restore Schema 12.
+- leftoverHoldKalman IoU-Reset nach Restore ohne Live-Box — 1. Tick meas weit, Reset statt Kriechen.
+- leftoverAssignHungarianX n=6 Cap nur wenn Pad eng, sonst FillX für Crowd 6+.
+- leftoverHold TTL remaining analog leftoverSeenRemainingEncode.
+- VNDetectFaceCaptureQuality als Baptize-Gate.
+- leftoverPairCommit Majority 3-Tick persist nach Value-Remint prüfen.
+
+Die historische Liste bis 2.1.142: ANALYSE.md. Review: `REVIEW-2.1.134.md`.
+
+Nur main.
+
 # Nachtrag 2026-09-06 (2.1.142)
 
 Siehe ANALYSE.md. **2.1.142** Remint vor Survive, Occupied Spatial, JPEG persist Schema 11, Spread-Veto Twin-Mitte.

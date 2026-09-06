@@ -1,4 +1,4 @@
-# Aegis **2.1.142 alpha**
+# Aegis **2.1.143 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.143 alpha
+
+Detect-Drop wischt persist leftoverHold. Occupied live Rank. JPEG Encode ungekürzt. Kalman RAM-only. Hungarian n=4.
+
+- **leftoverHoldMissCoast 1 Tick.** Survive / LastHash / Tick halten. leftoverPredictOnMissCoast.
+- **leftoverOccupiedMerge Spatial-emit.** leftoverJpegByHashCapped Encode 64.
+- **Schema 12 leftoverHoldKalman persist.** leftoverAssignHungarianX n≤5.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.143 (Build 168).
 
 ## Neu in 2.1.142 alpha
 

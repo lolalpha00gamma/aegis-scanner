@@ -86,8 +86,8 @@ enum MatchMath {
     /// ¾/Profil: Maße vs. Frontal-Centroid lügen. Print ≥ 80 nicht vetoen.
     static let geoVetoYawSkip = 0.28
     static let geoVetoYawPrint = 80.0
-    /// gallery.json Schema neben printRevision. 11 = leftoverJpegByHash persist.
-    static let gallerySchema = 11
+    /// gallery.json Schema neben printRevision. 12 = leftoverHoldKalman persist.
+    static let gallerySchema = 12
     /// Box-IoU unter dem Wert: Bewegung. Mit Schärfe: kleines Nicken darf den Print.
     static let holdStillIoU = 0.70
     static let holdStillSharp = 0.18
@@ -723,11 +723,20 @@ enum MatchMath {
     }
 
     /// JPEG-Probe RAM-only tot nach Restart. Spatial-Key, at = now.
+    /// Cap analog leftoverHashHoldCapN — Encode sonst ungekürzt.
+    static func leftoverJpegByHashCapped(
+        _ table: [String: (delta: Double, at: TimeInterval, cosine: Double)],
+        cap: Int = leftoverHashHoldCapN
+    ) -> [String: (delta: Double, at: TimeInterval, cosine: Double)] {
+        if table.count <= cap { return table }
+        return Dictionary(uniqueKeysWithValues: table.sorted { $0.value.at > $1.value.at }.prefix(cap).map { ($0.key, $0.value) })
+    }
+
     static func leftoverJpegByHashEncode(
         _ table: [String: (delta: Double, at: TimeInterval, cosine: Double)]
     ) -> [String: [Double]] {
         var out: [String: [Double]] = [:]
-        for (k, v) in table {
+        for (k, v) in leftoverJpegByHashCapped(table) {
             let key = leftoverHoldHashSpatial(k)
             guard !key.isEmpty else { continue }
             out[key] = [v.delta, v.cosine]
@@ -1260,12 +1269,14 @@ enum MatchMath {
     /// leftoverLastHash ist Vor-Tick. Erster Twin-Frame: stored leer, Exact-Steal.
     /// Live zuerst — Ghost-Hashes sonst Exact auf Tote.
     /// Rank `#101` nach Restore Spatial: sonst Occupied doppelt.
+    /// Tick schreibt `#101`: emit Spatial, nicht Original — live Rank sonst Occupied Rank.
     static func leftoverOccupiedMerge(stored: [String], live: [String]) -> [String] {
         var seen = Set<String>()
         var out: [String] = []
         for h in live + stored where !h.isEmpty {
             let key = leftoverHoldHashSpatial(h)
-            if seen.insert(key).inserted { out.append(h) }
+            if key.isEmpty { continue }
+            if seen.insert(key).inserted { out.append(key) }
         }
         return out
     }
@@ -1376,8 +1387,9 @@ enum MatchMath {
     }
 
     /// empty wischt leftoverLastHash. Ghost-Bins sonst blocken Re-Entry.
-    static func leftoverLastHashWipes(empty: Bool, overlayKeep: Bool = false) -> Bool {
-        empty && !overlayKeep
+    /// Miss-Coast 1 Tick: Detect-Drop darf LastHash nicht leeren.
+    static func leftoverLastHashWipes(empty: Bool, overlayKeep: Bool = false, missCoast: Bool = false) -> Bool {
+        empty && !overlayKeep && !missCoast
     }
 
     /// Tick vor Last vor Spatial. Twin R sonst leftoverHoldPut auf denselben Key.
@@ -1493,7 +1505,9 @@ enum MatchMath {
         return out
     }
 
-    /// n≤4 min-cost. Greedy sperrt den nahen Twin und lässt Hold 0 tot (0,00/0,08 vs 0,04/0,20).
+    /// n≤5 min-cost. n=5 Crowd FillX greedy ließ 5. Person tot.
+    static let leftoverAssignHungarianN = 5
+
     static func leftoverAssignHungarianX(
         assigned: [Int?],
         liveX: [Double],
@@ -1508,7 +1522,7 @@ enum MatchMath {
         let n = holdX.count
         let m = liveX.count
         if n == 0 || m == 0 { return out }
-        if n > 4 || m > 4 {
+        if n > leftoverAssignHungarianN || m > leftoverAssignHungarianN {
             return leftoverAssignFillX(assigned: assigned, liveX: liveX, holdX: holdX, pad: pad, spread: spread)
         }
         let used = Set(out.prefix(n).compactMap { $0 })
@@ -2110,6 +2124,36 @@ enum MatchMath {
         return out
     }
 
+    /// Kalman RAM-only tot nach Restart. Schema 12 x/y/w/h/p + vel.
+    static func leftoverHoldKalmanEncode(
+        _ table: [UUID: (x: Double, y: Double, w: Double, h: Double, px: Double, py: Double, pw: Double, ph: Double)],
+        vel: [UUID: (vx: Double, vy: Double)] = [:]
+    ) -> [String: [Double]] {
+        Dictionary(uniqueKeysWithValues: table.map { id, k in
+            let v = vel[id] ?? (vx: 0, vy: 0)
+            return (id.uuidString, [k.x, k.y, k.w, k.h, k.px, k.py, k.pw, k.ph, v.vx, v.vy])
+        })
+    }
+
+    static func leftoverHoldKalmanDecode(
+        _ raw: [String: [Double]]?
+    ) -> (
+        kalman: [UUID: (x: Double, y: Double, w: Double, h: Double, px: Double, py: Double, pw: Double, ph: Double)],
+        vel: [UUID: (vx: Double, vy: Double)]
+    ) {
+        guard let raw else { return ([:], [:]) }
+        var kalman: [UUID: (x: Double, y: Double, w: Double, h: Double, px: Double, py: Double, pw: Double, ph: Double)] = [:]
+        var vel: [UUID: (vx: Double, vy: Double)] = [:]
+        for (k, v) in raw {
+            guard let id = UUID(uuidString: k), v.count >= 8 else { continue }
+            kalman[id] = (x: v[0], y: v[1], w: v[2], h: v[3], px: v[4], py: v[5], pw: v[6], ph: v[7])
+            if v.count >= 10 {
+                vel[id] = (vx: v[8], vy: v[9])
+            }
+        }
+        return (kalman, vel)
+    }
+
     /// Remint kopiert Kalman auf neue UUID. IoU-Sprung = Reset, sonst Box klebt am Ghost.
     static func leftoverHoldKalmanResets(iou: Double?, jump: Double = leftoverIoUJump) -> Bool {
         guard let iou else { return false }
@@ -2122,7 +2166,9 @@ enum MatchMath {
         return kalman.filter { keep.contains($0.key) }
     }
 
-    static func leftoverLiveHashTickWipes(empty: Bool) -> Bool { empty }
+    static func leftoverLiveHashTickWipes(empty: Bool, missCoast: Bool = false) -> Bool {
+        empty && !missCoast
+    }
 
     static func leftoverHoldIndoorChip(seenSlow: Bool, ttl: TimeInterval) -> String? {
         seenSlow ? String(format: "INDOOR %.0fs", ttl) : nil
@@ -3410,9 +3456,10 @@ enum MatchMath {
         live: [UUID] = [],
         emptyKeeps: Bool = false,
         emptyFor: TimeInterval = 0,
-        locked: [UUID] = []
+        locked: [UUID] = [],
+        missCoast: Bool = false
     ) -> [String: Double] {
-        leftoverHoldSurviveBinMap(hold: hold, ghosts: ghosts, live: live, emptyKeeps: emptyKeeps, emptyFor: emptyFor, locked: locked)
+        leftoverHoldSurviveBinMap(hold: hold, ghosts: ghosts, live: live, emptyKeeps: emptyKeeps, emptyFor: emptyFor, locked: locked, missCoast: missCoast)
     }
 
     static func leftoverHoldSurviveBinMap<Value>(
@@ -3421,11 +3468,13 @@ enum MatchMath {
         live: [UUID] = [],
         emptyKeeps: Bool = false,
         emptyFor: TimeInterval = 0,
-        locked: [UUID] = []
+        locked: [UUID] = [],
+        missCoast: Bool = false
     ) -> [String: Value] {
         let keep = Set(ghosts + live + locked)
         if keep.isEmpty {
             if emptyKeeps && leftoverLatchKeeps(emptyFor: emptyFor) { return hold }
+            if missCoast { return hold }
             return [:]
         }
         return hold.filter { row in
@@ -4300,17 +4349,30 @@ enum MatchMath {
 
     /// Dropout: UUID-Hold/Trail/Slot am Ghost **und** an Live. Nur Ghosts wischte den Live-Hold.
     /// emptyFor begrenzt emptyKeeps — sonst Tasche-im-Dunkeln ewig Hold.
+    /// 1-Face-Miss ohne Ghost: Detect-Drop wischt persist leftoverHold. Coast 1 Tick.
+    static func leftoverHoldMissAdvance(prev: Int, hit: Bool) -> Int {
+        hit ? 0 : prev + 1
+    }
+
+    static func leftoverHoldMissCoast(miss: Int, need: Int = 1) -> Bool {
+        miss > 0 && miss <= need
+    }
+
+    static func leftoverPredictOnMissCoast(_ missCoast: Bool) -> Bool { missCoast }
+
     static func leftoverHoldSurvive<Value>(
         hold: [UUID: Value],
         ghosts: [UUID],
         live: [UUID] = [],
         emptyKeeps: Bool = false,
         emptyFor: TimeInterval = 0,
-        locked: [UUID] = []
+        locked: [UUID] = [],
+        missCoast: Bool = false
     ) -> [UUID: Value] {
         let keep = Set(ghosts + live + locked)
         if keep.isEmpty {
             if emptyKeeps && leftoverLatchKeeps(emptyFor: emptyFor) { return hold }
+            if missCoast { return hold }
             return [:]
         }
         return hold.filter { keep.contains($0.key) }

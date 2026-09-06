@@ -126,6 +126,7 @@ final class LibraryStore: ObservableObject {
         MatchMath.leftoverHoldTTLOf(seenSlow: leftoverHoldSeenSlow, pref: holdTTLFloor)
     }
     private var leftoverLiveHashTick: [UUID: String] = [:]
+    private var leftoverMissCoastTicks: Int = 0
     private func leftoverOccupiedHashes(except id: UUID? = nil) -> [String] {
         let merged = MatchMath.leftoverOccupiedMerge(
             stored: leftoverLastHash.compactMap { key, value in key == id ? nil : value },
@@ -248,6 +249,9 @@ final class LibraryStore: ObservableObject {
             if let gate = extra.leftoverAssignLiveGate {
                 assignLiveGate = MatchMath.leftoverAssignLiveGateNeed(gate)
             }
+            let kal = MatchMath.leftoverHoldKalmanDecode(extra.leftoverHoldKalman)
+            boxKalman = kal.kalman
+            boxKalmanV = kal.vel
         }
         let lockStored = UserDefaults.standard.double(forKey: "aegis.nameLockSec")
         if lockStored > 0 {
@@ -329,7 +333,8 @@ final class LibraryStore: ObservableObject {
             leftoverStreak: MatchMath.leftoverUUIDIntMapEncode(leftoverStreak),
             leftoverStreakBox: MatchMath.leftoverStreakBoxEncode(leftoverStreakBox),
             leftoverAssignLiveGate: assignLiveGate,
-            leftoverJpegByHash: MatchMath.leftoverJpegByHashEncode(leftoverJpegByHash)
+            leftoverJpegByHash: MatchMath.leftoverJpegByHashEncode(leftoverJpegByHash),
+            leftoverHoldKalman: MatchMath.leftoverHoldKalmanEncode(boxKalman, vel: boxKalmanV)
         )
         if !liveActive {
             refreshMergeHint()
@@ -419,6 +424,7 @@ final class LibraryStore: ObservableObject {
         leftoverHoldSeenSlow = false
         leftoverHoldFastFor = 0
         leftoverLiveHashTick = [:]
+        leftoverMissCoastTicks = 0
         liveNameVoteAt = [:]
         tapNameLockUntil = [:]
         liveFaceStreak = 0
@@ -438,14 +444,18 @@ final class LibraryStore: ObservableObject {
             if let gate = extra.leftoverAssignLiveGate {
                 assignLiveGate = MatchMath.leftoverAssignLiveGateNeed(gate)
             }
+            let kal = MatchMath.leftoverHoldKalmanDecode(extra.leftoverHoldKalman)
+            boxKalman = kal.kalman
+            boxKalmanV = kal.vel
         } else {
             leftoverStreak = [:]
             leftoverPairStreak = [:]
             leftoverPairCommit = [:]
             leftoverStreakBox = [:]
             leftoverJpegByHash = [:]
+            boxKalman = [:]
+            boxKalmanV = [:]
         }
-        boxKalman = [:]        boxKalmanV = [:]
         liveGhosts = []
         guestOrder = []
         guestSeenAt = [:]
@@ -1809,6 +1819,7 @@ final class LibraryStore: ObservableObject {
         leftoverHoldSeenSlow = false
         leftoverHoldFastFor = 0
         leftoverLiveHashTick = [:]
+        leftoverMissCoastTicks = 0
         leftoverNameLockUntil = [:]
         leftoverNameLockHeld = [:]
         liveNameVoteAt = [:]
@@ -2806,12 +2817,17 @@ final class LibraryStore: ObservableObject {
         let lockedIds = MatchMath.leftoverNameLockLive(until: leftoverNameLockUntil, now: now)
         leftoverNameLockUntil = leftoverNameLockUntil.filter { lockedIds.contains($0.key) }
         leftoverNameLockHeld = leftoverNameLockHeld.filter { leftoverNameLockUntil[$0.key] != nil }
-        leftoverHold = MatchMath.leftoverHoldSurvive(hold: leftoverHold, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds)
-        leftoverHoldBins = MatchMath.leftoverHoldSurviveBins(hold: leftoverHoldBins, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds)
-        leftoverHoldTrail = MatchMath.leftoverHoldSurvive(hold: leftoverHoldTrail, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds)
-        leftoverHoldTrailBins = MatchMath.leftoverHoldSurviveBinMap(hold: leftoverHoldTrailBins, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds)
-        liveSlotHold = MatchMath.leftoverHoldSurvive(hold: liveSlotHold, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds)
-        leftoverMissFrames = MatchMath.leftoverHoldSurvive(hold: leftoverMissFrames, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds)
+        leftoverMissCoastTicks = MatchMath.leftoverHoldMissAdvance(
+            prev: leftoverMissCoastTicks,
+            hit: !liveIds.isEmpty
+        )
+        let missCoast = MatchMath.leftoverHoldMissCoast(miss: leftoverMissCoastTicks)
+        leftoverHold = MatchMath.leftoverHoldSurvive(hold: leftoverHold, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)
+        leftoverHoldBins = MatchMath.leftoverHoldSurviveBins(hold: leftoverHoldBins, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)
+        leftoverHoldTrail = MatchMath.leftoverHoldSurvive(hold: leftoverHoldTrail, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)
+        leftoverHoldTrailBins = MatchMath.leftoverHoldSurviveBinMap(hold: leftoverHoldTrailBins, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)
+        liveSlotHold = MatchMath.leftoverHoldSurvive(hold: liveSlotHold, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)
+        leftoverMissFrames = MatchMath.leftoverHoldSurvive(hold: leftoverMissFrames, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)
         leftoverStreakBox = MatchMath.leftoverStreakBoxLive(
             boxes: leftoverStreakBox,
             live: adopted.map { (id: $0.id, box: $0.box) },
@@ -2836,14 +2852,14 @@ final class LibraryStore: ObservableObject {
         ) {
             status = line
         }
-        if MatchMath.leftoverPredictOnEmptyLike(emptyLike), emptyLatch {
+        if MatchMath.leftoverPredictOnMissCoast(missCoast) || (MatchMath.leftoverPredictOnEmptyLike(emptyLike) && emptyLatch) {
             leftoverPredictHeld(keep: keepBoxes, skip: used)
         }
         if found.isEmpty {
-            if MatchMath.leftoverLiveHashTickWipes(empty: true) {
+            if MatchMath.leftoverLiveHashTickWipes(empty: true, missCoast: missCoast) {
                 leftoverLiveHashTick = [:]
             }
-            if MatchMath.leftoverLastHashWipes(empty: true, overlayKeep: emptyChip) {
+            if MatchMath.leftoverLastHashWipes(empty: true, overlayKeep: emptyChip, missCoast: missCoast) {
                 leftoverLastHash = [:]
             }
             if !MatchMath.leftoverEmptyKeepsOverlay(liveEmpty: true) || !emptyChip {
@@ -2904,6 +2920,7 @@ final class LibraryStore: ObservableObject {
             var leftoverItems: [(old: FaceObservation, bestCos: Double?, cands: [(index: Int, iou: Double, cosine: Double?)])] = []
             leftoverItems.reserveCapacity(leftoverPinned.count)
             leftoverLiveHashTick = [:]
+            leftoverMissCoastTicks = 0
             var rawLiveHash: [UUID: String] = [:]
             var liveXs: [UUID: Double] = [:]
             for face in adopted {

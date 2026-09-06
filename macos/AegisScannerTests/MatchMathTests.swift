@@ -3035,6 +3035,7 @@ enum MatchMathTests {
         )
         ok(hun4[0] == 0 && hun4[1] == 1 && hun4[2] == 2 && hun4[3] == 3, "HungarianX n=4")
         ok(MatchMath.leftoverOccupiedMerge(stored: ["5.5.4.6#101"], live: ["5.5.4.6"]) == ["5.5.4.6"], "Occupied Rank+Spatial unique")
+        ok(MatchMath.leftoverOccupiedMerge(stored: ["5.5.4.6"], live: ["5.5.4.6#101"]) == ["5.5.4.6"], "Occupied live Rank Spatial")
         ok(MatchMath.leftoverHashOwnOccupied(live: ["5.5.4.6#101"], hash: "5.5.4.6"), "Own Occupied Spatial")
         let hunMid = MatchMath.leftoverAssignHungarianX(
             assigned: [nil, nil],
@@ -3088,7 +3089,45 @@ enum MatchMathTests {
         near(jpegDec["6.6.4.6"]?.delta ?? 1, 0.03, 0.001, "JPEG persist Spatial")
         near(jpegDec["6.6.4.6"]?.at ?? 0, 9.0, 0.001, "JPEG persist at=now")
         ok(MatchMath.leftoverJpegByHashDecode(nil, now: 1).isEmpty, "JPEG persist nil")
-        ok(MatchMath.gallerySchema == 11, "Schema 11")
+        ok(MatchMath.gallerySchema == 12, "Schema 12")
+        ok(MatchMath.leftoverHoldMissAdvance(prev: 0, hit: true) == 0, "Miss Hit reset")
+        ok(MatchMath.leftoverHoldMissAdvance(prev: 0, hit: false) == 1, "Miss +1")
+        ok(MatchMath.leftoverHoldMissCoast(miss: 1), "Miss Coast Tick 1")
+        ok(!MatchMath.leftoverHoldMissCoast(miss: 0), "Miss Hit tot")
+        ok(!MatchMath.leftoverHoldMissCoast(miss: 2), "Miss Tick 2 tot")
+        let missKeep = MatchMath.leftoverHoldSurvive(hold: persistHold, ghosts: [], live: [], missCoast: true)
+        ok(missKeep[persistOld] == 0.80, "Miss-Coast 1 Frame hält")
+        let missWipe = MatchMath.leftoverHoldSurvive(hold: persistHold, ghosts: [], live: [], missCoast: false)
+        ok(missWipe.isEmpty, "Miss ohne Coast tot")
+        ok(MatchMath.leftoverPredictOnMissCoast(true), "Predict Miss-Coast")
+        ok(!MatchMath.leftoverLastHashWipes(empty: true, missCoast: true), "LastHash Miss hält")
+        ok(MatchMath.leftoverLastHashWipes(empty: true, missCoast: false), "LastHash leer wischt")
+        ok(!MatchMath.leftoverLiveHashTickWipes(empty: true, missCoast: true), "Tick Miss hält")
+        ok(MatchMath.leftoverLiveHashTickWipes(empty: true), "Tick leer wischt")
+        let hun5 = MatchMath.leftoverAssignHungarianX(
+            assigned: [nil, nil, nil, nil, nil],
+            liveX: [0.05, 0.25, 0.45, 0.65, 0.85],
+            holdX: [0.00, 0.20, 0.40, 0.60, 0.80],
+            pad: 0.12
+        )
+        ok(hun5[0] == 0 && hun5[1] == 1 && hun5[2] == 2 && hun5[3] == 3 && hun5[4] == 4, "HungarianX n=5")
+        var jpegCapTab: [String: (delta: Double, at: TimeInterval, cosine: Double)] = [:]
+        for i in 0..<70 {
+            jpegCapTab["6.6.4.\(i)"] = (delta: 0.01, at: Double(i), cosine: 0.80)
+        }
+        ok(MatchMath.leftoverJpegByHashCapped(jpegCapTab).count == MatchMath.leftoverHashHoldCapN, "JPEG Cap 64")
+        let jpegCapEnc = MatchMath.leftoverJpegByHashEncode(jpegCapTab)
+        ok(jpegCapEnc.count == MatchMath.leftoverHashHoldCapN, "JPEG persist Cap 64")
+        let kEncId = persistOld
+        let kEnc = MatchMath.leftoverHoldKalmanEncode(
+            [kEncId: (x: 0.20, y: 0.30, w: 0.10, h: 0.12, px: 0.04, py: 0.04, pw: 0.04, ph: 0.04)],
+            vel: [kEncId: (vx: 0.08, vy: -0.02)]
+        )
+        let kDec = MatchMath.leftoverHoldKalmanDecode(kEnc)
+        near(kDec.kalman[kEncId]?.x ?? 0, 0.20, 0.001, "Kalman persist x")
+        near(kDec.kalman[kEncId]?.h ?? 0, 0.12, 0.001, "Kalman persist h")
+        near(kDec.vel[kEncId]?.vx ?? 0, 0.08, 0.001, "Kalman persist vx")
+        ok(MatchMath.leftoverHoldKalmanDecode(nil).kalman.isEmpty, "Kalman persist nil")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)
