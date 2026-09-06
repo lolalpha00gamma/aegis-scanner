@@ -2837,6 +2837,12 @@ final class LibraryStore: ObservableObject {
         let missNeed = MatchMath.leftoverHoldMissNeedAuto(dt: liveDt, pref: leftoverMissNeed)
         let missCoast = MatchMath.leftoverHoldMissCoast(miss: leftoverMissCoastTicks, need: missNeed)
         let skipKalmanReset = MatchMath.leftoverHoldKalmanSkipReset(ago: leftoverKalmanRestoredAgo)
+        let predictOnly = MatchMath.leftoverHoldKalmanPredictOnly(
+            ago: leftoverKalmanRestoredAgo,
+            liveEmpty: adopted.isEmpty,
+            ghostHeld: !ghostIds.isEmpty,
+            missCoast: missCoast
+        )
         boxKalman = MatchMath.leftoverHoldRemint(hold: boxKalman, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys, pad: fillXPad, padRescue: fillXRescue)
         boxKalmanV = MatchMath.leftoverHoldRemint(hold: boxKalmanV, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys, pad: fillXPad, padRescue: fillXRescue)
         for face in adopted {
@@ -2851,8 +2857,8 @@ final class LibraryStore: ObservableObject {
             prev: leftoverKalmanRestoredAgo,
             restored: false
         )
-        boxKalman = MatchMath.leftoverHoldKalmanKeep(kalman: boxKalman, live: adopted.map(\.id), missCoast: missCoast)
-        boxKalmanV = MatchMath.leftoverHoldKalmanKeep(kalman: boxKalmanV, live: adopted.map(\.id), missCoast: missCoast)
+        boxKalman = MatchMath.leftoverHoldKalmanKeep(kalman: boxKalman, live: adopted.map(\.id), missCoast: predictOnly)
+        boxKalmanV = MatchMath.leftoverHoldKalmanKeep(kalman: boxKalmanV, live: adopted.map(\.id), missCoast: predictOnly)
         let keepIds = Set(remintLive.map(\.id)).union(Set(identities.map(\.id)))
         leftoverPairLast = MatchMath.leftoverUUIDUUIDMapDropDangling(leftoverPairLast, keep: keepIds)
         leftoverPairCommit = MatchMath.leftoverUUIDUUIDMapDropDangling(leftoverPairCommit, keep: keepIds)

@@ -1,3 +1,53 @@
+# Nachtrag 2026-09-06 (2.1.148)
+
+Siehe ANALYSE.md. **2.1.148** PairCommit Keeps nach Remint, Kalman PredictOnly Ghost, KeepBoxes Ghost-Kalman, Jump Pref 0,30–0,50.
+
+## In 2.1.148 gelandet
+
+1. leftoverPairCommitKeeps — Majority hält committed==proposed
+2. leftoverHoldKalmanPredictOnly — Restore / Miss / Ghost-only Predict
+3. leftoverKeepBoxes Kalman ∩ Ghosts ohne missCoast
+4. leftoverHoldKalmanJumpPref 0,30–0,50
+5. VERSION = Models = MARKETING_VERSION 2.1.148 (Build 173)
+
+## Nächste, zusätzlich
+
+- leftoverAssign n>8 Jonker-Volgenant, nicht nur HungarianX 8 + wide FillX.
+- leftoverLastIoU / leftoverSparkChipHeld persist (Mirror sitzt, gallery.json fehlt).
+- leftoverNameLockHeld ohne Until remaining nach Schema-7-Backup.
+- leftoverPairLast Value-Remint persist: dest tot nach Vision-Restart — DropDangling nach Remint.
+- leftoverHoldBins Rank `#101` nach Restore rebase analog leftoverHoldByHash (Bins sind UUID.bin).
+- leftoverCaptureHistByHash persist analog leftoverHoldTrailHash — Encode sitzt, Keep nur LastHash.
+- leftoverCaptureHist remaining wall-clock analog HashHold Schema 14 — Hist ist 8 Doubles ohne at.
+- Hamming-Gewicht im Hash selbst, nicht nur Spatial-Strip `#`.
+- FaceEngine Detect auf outputQueue. JPEG-Reextract gegen denselben Buffer.
+- Hold-SM: Unseen / Tentative / Held / Named. MatchMath split: Hold, Hash, Baptize, Assign.
+- Helios Frame-Pump, eine TCC. Shared XPC / IOSurface mit Helios 1.5.137.
+- Overlay 60 Hz CAMetalLayer, Detect 8–24 fps.
+- VNTrackObjectRequest statt nur Rectangles.
+- Temperature-skalierte Cosine statt hart 0,80 Baptize.
+- gallery.json.bak Rotate 3, printRevision je Identity.
+- Watch-Folder PhotoKit, Export `.aegis` verschlüsselt.
+- P-Slot Maske/Schal, Brille-Slot als Twin-Veto.
+- Temporal ReID-Graph über Hold-Trail (EMA Cap 4 ist Pflaster).
+- Per-Box CLAHE statt Full-Frame.
+- Continuity Desk-View yaw-floor 0,36.
+- Print-Bank 5 Pose-Slots. DBSCAN vor Merge.
+- RTSP 420f, Reconnect Exponential-Backoff.
+- Live-Centroid EMA Reset nach Vision-Restart.
+- leftoverHoldTrailByHash EMA analog UUID-Trail.
+- VNDetectFaceCaptureQuality als Baptize-Gate — Sharpness AND Quality, nicht OR.
+- Continuity LiDAR depth als Box-Z. Twin-Tie ohne Yaw.
+- leftoverJpegByHash remaining wall-clock — Schema 13 ist Restore-stale, In-Session TTL sitzt RAM.
+- leftoverOccupied stored Rank nach Yaw-Merge live Exact nicht `#101` überschreiben wenn Twin weg.
+- leftoverHoldKalman Jump-Slider UI 0,30–0,50 — Pref sitzt, HUD fehlt.
+- leftoverPairCommit Majority 3-Tick Overlay nach Remint-Miss, nicht nur Keeps.
+- leftoverKeepBoxes Kalman ∩ Hold ohne Ghost wenn Survive Hold allein.
+
+Die historische Liste bis 2.1.147: ANALYSE.md. Review: `REVIEW-2.1.134.md`.
+
+Nur main.
+
 # Nachtrag 2026-09-06 (2.1.147)
 
 Siehe ANALYSE.md. **2.1.147** Backup remaining, HashTrail remaining Schema 15, KeepBoxes nach Survive, Hungarian wide FillX.

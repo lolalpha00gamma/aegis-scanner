@@ -1,3 +1,28 @@
+# Helios + Aegis — Analyse 2026-09-06 (2.1.148)
+
+Helios **1.5.137** (Build 156). Aegis **2.1.148 alpha** (Build 173). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.147: Backup remaining, HashTrail remaining Schema 15, KeepBoxes nach Survive, Hungarian wide FillX. Majority committed==proposed inline. Kalman Keep nur missCoast. KeepBoxes droppt Ghost-Kalman ohne missCoast. IoU-Reset hart 0,40.
+
+## Warum Taufe und Restart nach 2.1.147 weiter rissen
+
+1. **leftoverPairCommit nach Remint.** leftoverHoldRemintId setzt Value auf Live-UUID. Majority-Streak 0 wenn proposed ≠ committed. Inline `committed == proposed` nicht testbar, Remint-Miss tauft Twin nach 3 Ticks neu.
+2. **Kalman Keep nur missCoast.** Survive hält Ghosts, miss > need: leftoverHoldKalmanKeep live=[] wischt. leftoverPredictHeld tot. Ghost-Box freeze, nächster Tick IoU-Reset.
+3. **KeepBoxes Kalman nur missCoast.** Ghost-IDs in Survive, Filter droppt Kalman ohne Miss. Ghost-only Hold tot.
+4. **IoU-Reset hart 0,40.** Continuity 8 fps Box zittert 0,32–0,38. Pref 0,30–0,50 fehlte.
+
+## Was 2.1.148 ändert
+
+1. **leftoverPairCommitKeeps.** Majority hält wenn committed == proposed nach Remint.
+2. **leftoverHoldKalmanPredictOnly.** Restore / Miss-Coast / Live-leer+Ghost → Keep Predict, kein Wipe.
+3. **leftoverKeepBoxes Ghost-Kalman** auch ohne missCoast.
+4. **leftoverHoldKalmanJumpPref** 0,30–0,50. leftoverHoldKalmanResets clamped.
+5. Tests + VERSION = Models = MARKETING 2.1.148 (Build 173). Schema 15 bleibt.
+
+Helios 1.5.137: Overlay 90 Hz Bezier, Wrist–MCP Median, Span-Veto. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-06 (2.1.147)
 
 Helios **1.5.136** (Build 155). Aegis **2.1.147 alpha** (Build 172). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

@@ -3233,6 +3233,30 @@ enum MatchMathTests {
         near(trailRemDec["ab#0"]?.at ?? 0, 8.50, 0.001, "Trail remaining restore")
         let trailStale = MatchMath.leftoverHashTrailDecode(["ab#0": [0.80]], now: 9.0)
         near(trailStale["ab#0"]?.at ?? 0, 9.0, 0.001, "Trail Schema 14 at=now")
+        let majA = UUID()
+        ok(MatchMath.leftoverPairCommitKeeps(committed: majA, proposed: majA), "PairCommit Keeps")
+        ok(!MatchMath.leftoverPairCommitKeeps(committed: majA, proposed: UUID()), "PairCommit Remint tot")
+        ok(!MatchMath.leftoverPairCommitKeeps(committed: nil, proposed: majA), "PairCommit nil tot")
+        let keepSame = MatchMath.leftoverAssignMajority(committed: majA, proposed: majA, lastProposed: nil, streak: 2)
+        ok(keepSame.commit == majA && !keepSame.ready, "PairCommit Majority hält")
+        ok(MatchMath.leftoverHoldKalmanPredictOnly(ago: 0, liveEmpty: true), "PredictOnly Restore")
+        ok(MatchMath.leftoverHoldKalmanPredictOnly(ago: 9, liveEmpty: true, ghostHeld: true), "PredictOnly Ghost")
+        ok(MatchMath.leftoverHoldKalmanPredictOnly(ago: 9, liveEmpty: true, missCoast: true), "PredictOnly Miss")
+        ok(!MatchMath.leftoverHoldKalmanPredictOnly(ago: 9, liveEmpty: true), "PredictOnly Empty tot")
+        ok(!MatchMath.leftoverHoldKalmanPredictOnly(ago: 9, liveEmpty: false, ghostHeld: true), "PredictOnly Live tot")
+        near(MatchMath.leftoverHoldKalmanJumpPref(0.22), 0.30, 0.001, "Kalman Jump Floor")
+        near(MatchMath.leftoverHoldKalmanJumpPref(0.66), 0.50, 0.001, "Kalman Jump Cap")
+        near(MatchMath.leftoverHoldKalmanJumpPref(0.40), 0.40, 0.001, "Kalman Jump 0,40")
+        ok(MatchMath.leftoverHoldKalmanResets(iou: 0.20, jump: 0.22), "Kalman Reset Floor 0,30")
+        ok(!MatchMath.leftoverHoldKalmanResets(iou: 0.45), "Kalman 0,45 kein Reset")
+        let keepGhost = MatchMath.leftoverKeepBoxes(
+            used: [], dropped: [], ghosts: [kid], hold: [], missCoast: false, kalman: [kid]
+        )
+        ok(keepGhost.contains(kid), "KeepBoxes Ghost Kalman")
+        let keepGhostMiss = MatchMath.leftoverKeepBoxes(
+            used: [], dropped: [], ghosts: [], hold: [], missCoast: false, kalman: [kid]
+        )
+        ok(!keepGhostMiss.contains(kid), "KeepBoxes ohne Ghost tot")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

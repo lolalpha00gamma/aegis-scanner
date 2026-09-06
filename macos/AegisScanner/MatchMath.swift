@@ -2261,14 +2261,31 @@ enum MatchMath {
     }
 
     /// Remint kopiert Kalman auf neue UUID. IoU-Sprung = Reset, sonst Box klebt am Ghost.
+    static func leftoverHoldKalmanJumpPref(_ pref: Double) -> Double {
+        min(0.50, max(0.30, pref))
+    }
+
     static func leftoverHoldKalmanResets(iou: Double?, jump: Double = leftoverIoUJump) -> Bool {
         guard let iou else { return false }
-        return iou + 1e-12 < jump
+        return iou + 1e-12 < leftoverHoldKalmanJumpPref(jump)
     }
 
     /// Restore: Meas weit, IoU-Reset Tick 1 statt Kriechen. 2 Ticks Skip.
     static func leftoverHoldKalmanSkipReset(ago: Int, ticks: Int = 2) -> Bool {
         ago >= 0 && ago < ticks
+    }
+
+    /// Live leer: Meas tot. Ghost-only Hold: Kalman Predict, kein IoU-Reset.
+    static func leftoverHoldKalmanPredictOnly(
+        ago: Int,
+        liveEmpty: Bool,
+        ghostHeld: Bool = false,
+        missCoast: Bool = false,
+        ticks: Int = 2
+    ) -> Bool {
+        leftoverHoldKalmanSkipReset(ago: ago, ticks: ticks)
+            || missCoast
+            || (liveEmpty && ghostHeld)
     }
 
     static func leftoverHoldKalmanRestoredAdvance(prev: Int, restored: Bool) -> Int {
@@ -3663,6 +3680,7 @@ enum MatchMath {
 
     /// Zweiter leerer Frame: previous schon []. used∪dropped wischt Kalman. Ghosts+Hold halten.
     /// Miss-Coast: Kalman-IDs nach Keep nicht droppen wenn Hold nach Remint leer.
+    /// Ghost-only: Kalman ∩ Ghosts auch ohne missCoast — sonst Predict tot.
     static func leftoverKeepBoxes(
         used: Set<UUID>,
         dropped: Set<UUID>,
@@ -3674,7 +3692,12 @@ enum MatchMath {
         var keep = used.union(dropped)
         keep.formUnion(ghosts)
         keep.formUnion(hold)
-        if missCoast { keep.formUnion(kalman) }
+        if missCoast {
+            keep.formUnion(kalman)
+        } else {
+            let ghostSet = Set(ghosts)
+            keep.formUnion(kalman.filter { ghostSet.contains($0) })
+        }
         return keep
     }
 
@@ -4415,6 +4438,12 @@ enum MatchMath {
     /// 3 Frames gleiche Zuordnung, dann UUID-Switch. Ein 2-opt-Tick tauft sonst den Twin.
     static let leftoverMajorityNeed = 3
 
+    /// Remint: dest tot, Majority-Streak 0. Commit bleibt wenn Value == proposed.
+    static func leftoverPairCommitKeeps(committed: UUID?, proposed: UUID?) -> Bool {
+        guard let committed, let proposed else { return false }
+        return committed == proposed
+    }
+
     static func leftoverAssignMajority(
         committed: UUID?,
         proposed: UUID?,
@@ -4429,7 +4458,7 @@ enum MatchMath {
         guard let proposed else {
             return (committed, nil, 0, false)
         }
-        if let committed, proposed == committed {
+        if leftoverPairCommitKeeps(committed: committed, proposed: proposed) {
             return (committed, proposed, 0, false)
         }
         if lastProposed == proposed {

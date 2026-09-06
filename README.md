@@ -1,4 +1,4 @@
-# Aegis **2.1.147 alpha**
+# Aegis **2.1.148 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.148 alpha
+
+PairCommit nach Remint Majority neu. Kalman Keep nur missCoast — Ghost freeze. KeepBoxes droppt Ghost-Kalman. IoU-Reset hart 0,40.
+
+- **leftoverPairCommitKeeps.** Majority hält committed==proposed.
+- **leftoverHoldKalmanPredictOnly.** Restore / Miss / Ghost-only Predict.
+- **leftoverKeepBoxes Ghost-Kalman.** leftoverHoldKalmanJumpPref 0,30–0,50.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.148 (Build 173).
 
 ## Neu in 2.1.147 alpha
 
