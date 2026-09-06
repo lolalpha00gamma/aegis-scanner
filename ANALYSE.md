@@ -1,3 +1,24 @@
+# Aegis + Helios — Analyse 2026-09-06 (2.1.168)
+
+Aegis **2.1.168 alpha** (Build 193). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.167: livePrintEmpty, Continuity nie skip, Yaw-Snapshot. Coast speicherte die Zahl. printBudget |yaw| nicht Δ.
+
+## Warum leftover nach 2.1.167 weiter Twin taufte
+
+1. **printBudget |yaw| < 8°.** Frontal 0° → 5° skippt Print. leftoverHold 0,85 vom Frontal-Tick.
+2. **livePrintEmpty → leftoverHold-Zahl.** Kein Print-Vec. Twin im Kalman-Kasten erbt 0,85.
+3. **Helios Hist-Veto tot.** Bind-EMA 0,21 unter 0,28.
+
+## Was 2.1.168 ändert
+
+1. **leftoverPrintBudgetYawDelta.** Drehung seit letztem Print. leftoverPrintYaw nur nach Print.
+2. **leftoverCoastPrintSkipCosine.** skipPrints Cache ≥32 gegen Twin, ohne `v.count ≥ 32`.
+3. **printBudgetSkip(yawDelta:).** |Δ| ≥ 8° → Print trotz |yaw| 5°.
+4. Tests + VERSION = Models = MARKETING 2.1.168 (Build 193).
+
+`bugfix` mergen: nein.
+
 # Helios + Aegis — Analyse 2026-09-06 (2.1.167)
 
 Helios **1.5.165** (Build 184). Aegis **2.1.167 alpha** (Build 192). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

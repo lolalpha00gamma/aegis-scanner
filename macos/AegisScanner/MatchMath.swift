@@ -476,6 +476,66 @@ enum MatchMath {
         return nil
     }
 
+    /// Letzter Voll-Print-Vektor. skipPrints ohne Vec = leftoverHold-Zahl bleibt tot gegen Twin.
+    static func leftoverCoastPrintVecOf(live: [Double], stored: [Double]) -> [Double] {
+        if live.count >= 32 { return live }
+        if stored.count >= 32 { return stored }
+        return live
+    }
+
+    static func leftoverCoastPrintCosine(live: [Double], stored: [Double]) -> Double? {
+        guard live.count >= 32, stored.count == live.count else { return nil }
+        return cosine(live, stored)
+    }
+
+    /// skipPrints: Live leer, Cache ≥32. `v.count ≥ 32` tot — sonst Coast nie gegen Twin.
+    static func leftoverCoastPrintSkipCosine(
+        live: [Double],
+        liveStored: [Double],
+        old: [Double],
+        oldStored: [Double]
+    ) -> Double? {
+        if live.count >= 32, old.count == live.count { return cosine(live, old) }
+        return leftoverCoastPrintCosine(
+            live: leftoverCoastPrintVecOf(live: live, stored: liveStored),
+            stored: leftoverCoastPrintVecOf(live: old, stored: oldStored)
+        )
+    }
+
+    /// skipPrints hält den letzten Print-Yaw. Copy liveYaw vorher macht Δ immer 0.
+    static func leftoverPrintYawMerge(
+        printed: [UUID: Double],
+        live: [UUID: Double],
+        skipPrints: Bool
+    ) -> [UUID: Double] {
+        guard !skipPrints else { return printed }
+        var out = printed
+        for (id, yaw) in live { out[id] = yaw }
+        return out
+    }
+
+    static func leftoverCoastPrintMerge(
+        stored: [UUID: [Double]],
+        live: [UUID: [Double]],
+        skipPrints: Bool
+    ) -> [UUID: [Double]] {
+        guard !skipPrints else { return stored }
+        var out = stored
+        for (id, vec) in live {
+            let next = leftoverCoastPrintVecOf(live: vec, stored: out[id] ?? [])
+            if next.count >= 32 { out[id] = next }
+        }
+        return out
+    }
+
+    static func leftoverPrintBudgetYawDelta(printed: [UUID: Double], live: [UUID: Double]) -> Double? {
+        let ds = live.compactMap { id, yaw -> Double? in
+            guard let p = printed[id] else { return nil }
+            return abs(yaw - p)
+        }
+        return ds.max()
+    }
+
     /// Zwillinge: Top-2 Print < 0,08 Spread — kein Adopt, Overlay statt still taufen.
     static let leftoverAmbiguousSpread = 0.08
 
@@ -5857,6 +5917,7 @@ enum MatchMath {
 
     /// 24 fps: Print skip wenn Vision > 18 ms. 8 fps nie — leftover braucht den Print.
     /// skipPrints nur bei stabilem Track: Kalman-IoU ≥ 0,92 *und* |yaw| < 8°.
+    /// yawDelta: Drehung seit letztem Print. |yaw| allein lässt langsame Drehung 5° skippen.
     /// Continuity nie — liveDt-Jitter 16 ms darf Desk-View nicht skippen.
     /// Sonst ein Print trotz 19 ms — Twin-Taufe nach Kopf-Drehung.
     static let printBudgetMs = 18.0
@@ -5868,13 +5929,15 @@ enum MatchMath {
         dt: TimeInterval,
         minIoU: Double? = nil,
         yawAbs: Double? = nil,
-        continuity: Bool = false
+        continuity: Bool = false,
+        yawDelta: Double? = nil
     ) -> Bool {
         if continuity { return false }
         if dt >= 0.08 { return false }
         if visionMs <= printBudgetMs { return false }
         if let iou = minIoU, iou + 1e-9 < printBudgetIoU { return false }
         if let yaw = yawAbs, abs(yaw) + 1e-9 >= printBudgetYawRad { return false }
+        if let delta = yawDelta, abs(delta) + 1e-9 >= printBudgetYawRad { return false }
         return true
     }
 

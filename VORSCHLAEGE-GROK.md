@@ -1,3 +1,26 @@
+# Nachtrag 2026-09-06 — 1.5.166 / 2.1.168 (kein Merge von `bugfix`)
+
+Helios `bpms9cmnxc-debug/Helios` **1.5.166** (Build 185).
+Aegis `lolalpha00gamma/aegis-scanner` **2.1.168 alpha** (Build 193).
+Nur `main`. Agent-Regel: keine Nebenbranches. `bugfix` gelesen, nicht gemergt.
+
+## Warum es schlecht wirkte (dieser Pass)
+
+1. **printBudget |yaw| < 8°.** Frontal → 5° skippt Print. leftoverHold-Zahl vom Frontal-Tick tauft Twin. Δ seit Print fehlte.
+2. **livePrintEmpty → leftoverHold-Zahl.** Kein Print-Vec. Twin im Kalman-Kasten erbt 0,85. `v.count ≥ 32` hätte Coast-Vec tot gemacht.
+3. **palmBindScaleOf EMA.** Gitarre 0,29 → 0,21. Scale-Max 0,72 = Hand. Conf-Tie sitzt, Hist-Veto fehlte.
+4. Von `bugfix` (1.5.8 / 2.1.15) bewusst nicht gemergt: IOHID Event-Tap, AX SetPosition/Frame, Per-App-Gain, JSONL.
+
+## In 1.5.166 / 2.1.168 gelandet
+
+- `leftoverPrintBudgetYawDelta` + `leftoverPrintYawMerge` — Yaw nur nach Print.
+- `leftoverCoastPrintSkipCosine` — skipPrints Cache ≥32, ohne Live-Print.
+- `printBudgetSkip(yawDelta:)` — |Δ| ≥ 8° → Print. Continuity-Gate bleibt.
+- `palmScaleHistVeto` auf Live-Scale — Bind-EMA tot.
+- Tests + 1.5.166 / 2.1.168 (Build 185 / 193).
+
+Pass 9: Coast-Vec, Print-Yaw-Δ, Hist-Veto Live — 1.5.166 / 2.1.168.
+
 # Nachtrag 2026-09-06 — 1.5.165 / 2.1.167 (kein Merge von `bugfix`)
 
 Helios `bpms9cmnxc-debug/Helios` **1.5.165** (Build 184).
@@ -59,7 +82,9 @@ Pass 8: FaceTrack Live-Skalare, Name-Hist/Print-Trail/1-Euro remintet, Coast liv
 
 ## Erweiterungen (zusätzlich, neu oben)
 
-1. **LibraryStore `[UUID: FaceTrack]` als Source of Truth.** Skalare reminten. Maps bleiben Schatten — ein Dict, Apply/Decode/Encode einmal.
+1. **leftoverPrintYaw in FaceTrack.** Extra-Map nach Remint, Print-Budget sonst nach Twin-ID taub.
+2. **CI `swiftc` MatchMathTests + GestureTests vor DMG.** Linux-Sandbox hat kein Swift.
+3. **LibraryStore `[UUID: FaceTrack]` als Source of Truth.** Skalare reminten. Maps bleiben Schatten — ein Dict, Apply/Decode/Encode einmal.
 2. **Coast-Print Vector:** letzten `VNFaceObservation.featurePrint` je Track cachen. Trail remintet, der Vision-Blob nicht.
 3. **Kalman-Vel in FaceTrack** (px/py/pw/ph). Sonst Predict nach Remint 0. Vel-Map remintet extra, nicht im Struct.
 4. **CameraBroker-XPC:** ein Prozess besitzt AVCapture, IOSurface an Helios und Aegis. Eine TCC. Größter einzelner Effizienzgewinn.

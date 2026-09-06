@@ -1,5 +1,21 @@
 # Aegis — Vorschlagsliste
 
+Stand: **2.1.168 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-GROK.md](VORSCHLAEGE-GROK.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+Neu in 2.1.168: Coast-Print-Vec, Print-Yaw-Δ, skipPrints Cache gegen Twin.
+
+## In 2.1.168 wirklich im Code
+
+2.1.167: livePrintEmpty, Continuity nie skip. Coast Zahl. printBudget |yaw| nicht Δ.
+
+1. **`leftoverPrintBudgetYawDelta` / `leftoverPrintYawMerge`.** Yaw nur nach Print.
+2. **`leftoverCoastPrintSkipCosine`.** skipPrints Cache ≥32.
+3. **`printBudgetSkip(yawDelta:)`.** |Δ| ≥ 8° → Print.
+4. Tests + VERSION = Models = MARKETING_VERSION 2.1.168 (Build 193).
+
+
+# Aegis — Vorschlagsliste
+
 Stand: **2.1.167 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-GROK.md](VORSCHLAEGE-GROK.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 
 Neu in 2.1.167: FaceTrack Live-Skalare, Name-Hist/Print-Trail remintet, Continuity nie printBudget.

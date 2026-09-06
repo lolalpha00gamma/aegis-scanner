@@ -4017,6 +4017,34 @@ enum MatchMathTests {
             hold: [liveOld: [[0.1, 0.2]]], remap: [liveOld: liveNew]
         )
         ok(trailDrop[liveNew]?.first?.first == 0.1 && trailDrop[liveOld] == nil, "Print-Trail RemintDrop")
+        let vecA = [Double](repeating: 1, count: 32)
+        var vecB = vecA; vecB[0] = 0.2
+        ok(MatchMath.leftoverCoastPrintVecOf(live: vecA, stored: []).count == 32, "Coast Vec live")
+        ok(MatchMath.leftoverCoastPrintVecOf(live: [], stored: vecA).count == 32, "Coast Vec stored")
+        ok((MatchMath.leftoverCoastPrintSkipCosine(live: vecA, liveStored: [], old: vecA, oldStored: []) ?? 0) > 0.99, "Coast Skip Live self")
+        ok((MatchMath.leftoverCoastPrintSkipCosine(live: [], liveStored: vecA, old: [], oldStored: vecB) ?? 1) < 0.99, "Coast Skip Cache Twin")
+        ok(MatchMath.leftoverCoastPrintSkipCosine(live: [], liveStored: [], old: [], oldStored: vecA) == nil, "Coast Skip leer tot")
+        ok(MatchMath.leftoverPrintBudgetYawDelta(printed: [liveOld: 0], live: [liveOld: 0]) == 0, "Yaw still Δ 0")
+        ok((MatchMath.leftoverPrintBudgetYawDelta(printed: [liveOld: 0], live: [liveOld: 0.30]) ?? 0) > 0.2, "Yaw dreh")
+        ok(MatchMath.leftoverPrintBudgetYawDelta(printed: [:], live: [liveOld: 0.10]) == nil, "Yaw ohne Print tot")
+        ok(
+            MatchMath.leftoverPrintYawMerge(printed: [liveOld: 0], live: [liveOld: 0.30], skipPrints: true)[liveOld] == 0,
+            "PrintYaw skip hält"
+        )
+        ok(
+            abs((MatchMath.leftoverPrintYawMerge(printed: [liveOld: 0], live: [liveOld: 0.30], skipPrints: false)[liveOld] ?? -1) - 0.30) < 1e-9,
+            "PrintYaw nach Print"
+        )
+        ok(
+            !MatchMath.printBudgetSkip(visionMs: 19, dt: 0.016, minIoU: 0.95, yawAbs: 0.05, yawDelta: 0.30),
+            "Print bleibt Yaw-Δ 17°"
+        )
+        ok(
+            MatchMath.printBudgetSkip(visionMs: 19, dt: 0.016, minIoU: 0.95, yawAbs: 0.05, yawDelta: 0.05),
+            "Print skip Yaw-Δ still"
+        )
+        ok(MatchMath.leftoverCoastPrintMerge(stored: [:], live: [liveOld: vecA], skipPrints: true)[liveOld] == nil, "Coast Merge skip tot")
+        ok(MatchMath.leftoverCoastPrintMerge(stored: [:], live: [liveOld: vecA], skipPrints: false)[liveOld]?.count == 32, "Coast Merge nach Print")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

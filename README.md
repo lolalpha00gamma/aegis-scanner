@@ -1,4 +1,4 @@
-# Aegis **2.1.167 alpha**
+# Aegis **2.1.168 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.168 alpha
+
+Warum 24 fps skipPrints bei langsamer Kopfdrehung leftoverHold stahl, und Coast nur die Zahl kannte:
+
+- **leftoverPrintBudgetYawDelta.** |yaw| 5° allein reicht nicht. Drehung seit letztem Print ≥ 8° → Print. leftoverPrintYaw nur nach Print — Copy liveYaw macht Δ immer 0.
+- **leftoverCoastPrintSkipCosine.** skipPrints Cache ≥32 gegen Twin. `v.count ≥ 32` tot — sonst Coast nie. livePrintEmpty bleibt Fallback ohne Cache.
+- **printBudgetSkip(yawDelta:).** Continuity-Gate aus 2.1.167 bleibt.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.168 (Build 193). Schema 15 bleibt.
 
 ## Neu in 2.1.167 alpha
 
