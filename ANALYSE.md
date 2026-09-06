@@ -1,3 +1,22 @@
+# Helios + Aegis — Analyse 2026-09-06 (2.1.152)
+
+Helios **1.5.141** (Build 160). Aegis **2.1.152 alpha** (Build 177). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.151: Rank-Rebase Yaw, DropDangling Key|Dest, Jump Cam, PairCommitMiss persist. DropDangling Key muss live sein — leftoverHold-Ghost fällt, Twin-dest tot, Taufe Tick 1.
+
+## Warum Taufe nach 2.1.151 weiter riss
+
+1. **DropDangling Key|Dest ohne Hold.** Overlay-Hold A nicht in remintLive, dest Twin-B ghost. PairCommit tot, Majority tauft.
+
+## Was 2.1.152 ändert
+
+1. **leftoverUUIDUUIDMapDropDangling hold.** Key im leftoverHold hält dest.
+2. Tests + VERSION = Models = MARKETING 2.1.152 (Build 177). Schema 15 bleibt.
+
+Helios 1.5.141: Bind lastS1, Freeze-Clock, Scale-Pass ROI-Map. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-06 (2.1.151)
 
 Helios **1.5.140** (Build 159). Aegis **2.1.151 alpha** (Build 176). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

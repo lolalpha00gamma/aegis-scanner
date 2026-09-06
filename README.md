@@ -1,4 +1,4 @@
-# Aegis **2.1.151 alpha**
+# Aegis **2.1.152 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,13 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.152 alpha
+
+DropDangling Key|Dest lässt Hold-Ghosts fallen — Twin-dest tot, Overlay tauft Tick 1.
+
+- **leftoverUUIDUUIDMapDropDangling hold.** Key im leftoverHold hält dest, auch wenn Twin ghost.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.152 (Build 177). Schema 15 bleibt.
 
 ## Neu in 2.1.151 alpha
 

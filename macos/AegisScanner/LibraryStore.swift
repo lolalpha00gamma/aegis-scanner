@@ -2900,8 +2900,9 @@ final class LibraryStore: ObservableObject {
         boxKalman = MatchMath.leftoverHoldKalmanKeep(kalman: boxKalman, live: adopted.map(\.id), missCoast: predictOnly)
         boxKalmanV = MatchMath.leftoverHoldKalmanKeep(kalman: boxKalmanV, live: adopted.map(\.id), missCoast: predictOnly)
         let keepIds = Set(remintLive.map(\.id)).union(Set(identities.map(\.id)))
-        leftoverPairLast = MatchMath.leftoverUUIDUUIDMapDropDangling(leftoverPairLast, keep: keepIds)
-        leftoverPairCommit = MatchMath.leftoverUUIDUUIDMapDropDangling(leftoverPairCommit, keep: keepIds)
+        let holdIds = Set(leftoverHold.keys)
+        leftoverPairLast = MatchMath.leftoverUUIDUUIDMapDropDangling(leftoverPairLast, keep: keepIds, hold: holdIds)
+        leftoverPairCommit = MatchMath.leftoverUUIDUUIDMapDropDangling(leftoverPairCommit, keep: keepIds, hold: holdIds)
         leftoverHoldTrail = leftoverHoldTrail.mapValues { MatchMath.leftoverHoldTrailCap($0) }
         let holdBefore = leftoverHold.count
         let lockedIds = MatchMath.leftoverNameLockLive(until: leftoverNameLockUntil, now: now)

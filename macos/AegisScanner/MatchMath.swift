@@ -5685,11 +5685,19 @@ enum MatchMath {
 
     /// Dest tot nach Vision-Restart. keep = Live ∪ Identitäten.
     /// Key live, Dest Twin-weg: PairCommit halten, nicht droppen.
-    static func leftoverUUIDUUIDMapDropDangling(_ table: [UUID: UUID], keep: Set<UUID>) -> [UUID: UUID] {
+    /// Hold-Key A overlay, dest Twin-B ghost: Key nicht live — Taufe sonst Tick 1.
+    static func leftoverUUIDUUIDMapDropDangling(
+        _ table: [UUID: UUID],
+        keep: Set<UUID>,
+        hold: Set<UUID> = []
+    ) -> [UUID: UUID] {
         guard !keep.isEmpty else { return table }
+        let destOk = keep.union(hold)
         var out: [UUID: UUID] = [:]
-        for (k, v) in table where keep.contains(k) || keep.contains(v) {
-            out[k] = v
+        for (k, v) in table {
+            if destOk.contains(k) || destOk.contains(v) || hold.contains(k) {
+                out[k] = v
+            }
         }
         return out
     }

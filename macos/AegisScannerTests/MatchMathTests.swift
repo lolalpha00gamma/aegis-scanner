@@ -3322,6 +3322,11 @@ enum MatchMathTests {
         let keyLive = UUID(), destGone = UUID()
         let holdPair = MatchMath.leftoverUUIDUUIDMapDropDangling([keyLive: destGone], keep: [keyLive])
         ok(holdPair[keyLive] == destGone, "DropDangling Key live Dest tot hält")
+        let holdKey = UUID(), holdGone = UUID(), holdLive = UUID()
+        let holdOnly = MatchMath.leftoverUUIDUUIDMapDropDangling(
+            [holdKey: holdGone], keep: [holdLive], hold: [holdKey]
+        )
+        ok(holdOnly[holdKey] == holdGone, "DropDangling Hold-Key dest tot hält")
         near(MatchMath.leftoverHoldKalmanJumpCam(dt: 0.125, pref: 0.40), 0.34, 0.001, "Jump Cam Continuity")
         near(MatchMath.leftoverHoldKalmanJumpCam(dt: 0.04, pref: 0.40), 0.40, 0.001, "Jump Cam Webcam")
         near(MatchMath.leftoverHoldKalmanJumpCam(dt: 0.125, pref: 0.30), 0.30, 0.001, "Jump Cam Floor")
