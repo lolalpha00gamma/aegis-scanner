@@ -88,6 +88,11 @@ enum MatchMath {
     static let geoVetoYawPrint = 80.0
     /// gallery.json Schema neben printRevision. 15 = HashTrail remaining + KeepBoxes nach Survive.
     static let gallerySchema = 15
+    /// gallery.json.bak + .bak.1 + .bak.2. Crash während Save hält drei Stände.
+    static func galleryBakRotate() -> Int { 3 }
+    static func galleryBakName(_ i: Int) -> String {
+        i <= 0 ? "gallery.json.bak" : "gallery.json.bak.\(i)"
+    }
     /// Box-IoU unter dem Wert: Bewegung. Mit Schärfe: kleines Nicken darf den Print.
     static let holdStillIoU = 0.70
     static let holdStillSharp = 0.18
@@ -417,10 +422,14 @@ enum MatchMath {
                 )
             )
         }
+        let origRaw = Dictionary(uniqueKeysWithValues: candidates.map { ($0.index, $0.cosine ?? -1.0) })
         let raw = pool.map { $0.cosine ?? -1 }
+        let floorRaw = pool.map { origRaw[$0.index] ?? ($0.cosine ?? -1) }
         if leftoverAmbiguousBlocks(raw: raw, scored: scored) { return nil }
         if leftoverSoftmaxBlocks(leftoverScoreSoftmax(scored), capture: session) { return nil }
         if leftoverOpenSetUnsure(scores: scored) { return nil }
+        let topYaw = floorRaw.enumerated().max(by: { $0.element < $1.element }).flatMap { yawAbs[pool[$0.offset].index] }
+        if leftoverOpenSetGalleryFloor(floorRaw, floor: leftoverSessionFloor(yawAbs: topYaw, capture: session)) { return nil }
         if let i = scored.enumerated().max(by: { $0.element < $1.element })?.offset {
             let idx = pool[i].index
             if !conflictTickAgrees(
@@ -811,6 +820,30 @@ enum MatchMath {
     static func cameraMutexWriteKind() -> String { "caches" }
     static func cameraMutexReadOrder() -> [String] { ["caches", "tmp"] }
     static func cameraMutexFlockExclusive() -> Bool { true }
+    /// Heartbeat auf der Capture-Queue darf nicht hinter LOCK_EX warten.
+    static func cameraMutexFlockNonblock() -> Bool { true }
+    static func cameraMutexFlockReadShared() -> Bool { true }
+    /// 2.1.163: Caches-only Write. tmp bleibt Read-Legacy für Helios < 1.5.161.
+    static func cameraMutexWriteTmp() -> Bool { false }
+    /// LOCK_SH|NB fehlgeschlagen: nicht als holder=nil claimen.
+    static func cameraMutexSkipClaim(readBusy: Bool) -> Bool { readBusy }
+    /// Unter LOCK_EX neu lesen. Aegis schreibt nicht über Helios, der nach dem unlocked Read kam.
+    static func cameraMutexWriteAllowed(existing: String?, owner: String, now: TimeInterval) -> Bool {
+        let holder = existing.flatMap { cameraMutexParse($0, now: now) }
+        return cameraMutexClaimWrites(holder: holder, owner: owner)
+    }
+    static func cameraMutexBumpGen(_ existing: String?) -> UInt32 {
+        (existing.flatMap { cameraMutexGen($0) } ?? 0) &+ 1
+    }
+    static func cameraMutexLockedLine(
+        existing: String?,
+        owner: String,
+        pid: Int32,
+        now: TimeInterval
+    ) -> String? {
+        guard cameraMutexWriteAllowed(existing: existing, owner: owner, now: now) else { return nil }
+        return cameraMutexLine(owner: owner, pid: pid, now: now, gen: cameraMutexBumpGen(existing))
+    }
     /// 3 s war kürzer als Continuity-Frame. Heartbeat 2 s, Stale 12.
     static func cameraMutexStale() -> TimeInterval { 12 }
 
@@ -2904,12 +2937,56 @@ enum MatchMath {
         return out
     }
 
+    struct FaceTrackMaps: Equatable {
+        var hold: [UUID: Double] = [:]
+        var pending: [UUID: String] = [:]
+        var streak: [UUID: Int] = [:]
+        var lastHash: [UUID: String] = [:]
+        var lastIoU: [UUID: Double] = [:]
+        var nameHeld: [UUID: String] = [:]
+        var nameUntil: [UUID: TimeInterval] = [:]
+        var miss: [UUID: Int] = [:]
+    }
+
+    /// Pack-Inverse. Nur Keys aus tracks — Defaults nicht in die 25 Maps schreiben.
+    static func leftoverFaceTrackUnpack(_ tracks: [UUID: FaceTrack]) -> FaceTrackMaps {
+        var m = FaceTrackMaps()
+        m.hold.reserveCapacity(tracks.count)
+        m.pending.reserveCapacity(tracks.count)
+        m.streak.reserveCapacity(tracks.count)
+        m.lastHash.reserveCapacity(tracks.count)
+        m.lastIoU.reserveCapacity(tracks.count)
+        m.nameHeld.reserveCapacity(tracks.count)
+        m.nameUntil.reserveCapacity(tracks.count)
+        m.miss.reserveCapacity(tracks.count)
+        for (id, t) in tracks {
+            m.hold[id] = t.hold
+            m.pending[id] = t.pending
+            m.streak[id] = t.streak
+            m.lastHash[id] = t.lastHash
+            m.lastIoU[id] = t.lastIoU
+            m.nameHeld[id] = t.nameHeld
+            m.nameUntil[id] = t.nameUntil
+            m.miss[id] = t.miss
+        }
+        return m
+    }
+
     static func leftoverHoldRemintApplyId(hold: [UUID: UUID], remap: [UUID: UUID]) -> [UUID: UUID] {
         var out = leftoverHoldRemintApply(hold: hold, remap: remap)
         for (k, v) in out {
             if let nv = remap[v], nv != v {
                 out[k] = nv
             }
+        }
+        return out
+    }
+
+    /// PairLast/Commit: Source-Key nach Value-Remap droppen, sonst Zombie-Commit.
+    static func leftoverHoldRemintDropId(hold: [UUID: UUID], remap: [UUID: UUID]) -> [UUID: UUID] {
+        var out = leftoverHoldRemintApplyId(hold: hold, remap: remap)
+        for (stored, live) in remap where stored != live {
+            out.removeValue(forKey: stored)
         }
         return out
     }
@@ -2928,6 +3005,18 @@ enum MatchMath {
             for (key, v) in hold {
                 guard leftoverHoldId(from: key) == stored, let bin = leftoverHoldBinFromKey(key) else { continue }
                 out[leftoverHoldKey(id: live, bin: bin)] = v
+            }
+        }
+        return out
+    }
+
+    static func leftoverHoldRemintDropBins<Value>(hold: [String: Value], remap: [UUID: UUID]) -> [String: Value] {
+        var out = leftoverHoldRemintApplyBins(hold: hold, remap: remap)
+        for (stored, live) in remap where stored != live {
+            for key in hold.keys {
+                if leftoverHoldId(from: key) == stored {
+                    out.removeValue(forKey: key)
+                }
             }
         }
         return out
@@ -3589,6 +3678,13 @@ enum MatchMath {
         let sorted = ok.sorted(by: >)
         if leftoverOpenSetGapNow(top: sorted[0], second: sorted[1], floor: gap) { return true }
         return leftoverOpenSetEnergy(ok) > floor
+    }
+
+    /// leftoverPick: Roh-Cosine unter Genuine = Unsure. Nicht leftoverHoldSmooth (0,70/0,50 → 0,57).
+    static func leftoverOpenSetGalleryFloor(_ scores: [Double], floor: Double = leftoverPrintGenuine) -> Bool {
+        let ok = scores.filter { $0.isFinite }
+        guard let top = ok.max() else { return true }
+        return top < floor
     }
 
     /// Overlay: ohne Mehrheit „?“, nie Gast-Name Tick 1.

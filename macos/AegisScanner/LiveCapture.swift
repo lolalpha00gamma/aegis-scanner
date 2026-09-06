@@ -48,6 +48,7 @@ final class LiveCapture: NSObject {
     private(set) var orientOverride: String = "auto"
     private(set) var isContinuity = false
     private(set) var formatChip = ""
+    private(set) var mutexChip = "—"
     var choice: CameraChoice = .auto
     private var cameraMutexYielded = false
     private var yieldSince: TimeInterval = 0
@@ -236,11 +237,17 @@ final class LiveCapture: NSObject {
             mediaType: .video,
             position: .unspecified
         ).devices
-        let yield = MatchMath.cameraMutexYieldsNow(
-            holder: readCameraMutex(),
-            owner: MatchMath.cameraMutexOwnerAegis(),
-            wasYielded: cameraMutexYielded
-        )
+        let read = readCameraMutex()
+        let yield: Bool
+        if MatchMath.cameraMutexSkipClaim(readBusy: read.busy) {
+            yield = cameraMutexYielded
+        } else {
+            yield = MatchMath.cameraMutexYieldsNow(
+                holder: read.holder,
+                owner: MatchMath.cameraMutexOwnerAegis(),
+                wasYielded: cameraMutexYielded
+            )
+        }
         cameraMutexYielded = yield
         if yield {
             // Helios hält Continuity — Built-in, sonst 8 fps und TCC.
@@ -295,11 +302,32 @@ final class LiveCapture: NSObject {
 
     private func cameraMutexURL() -> URL { cameraMutexCachesURL() }
 
-    private func writeCameraMutexLine(_ line: String, url: URL) {
+    @discardableResult
+    private func writeCameraMutexClaim(owner: String, url: URL) -> Bool {
+        let pid = ProcessInfo.processInfo.processIdentifier
+        let now = Date().timeIntervalSince1970
         #if canImport(Darwin)
-        let fd = open(url.path, O_WRONLY | O_CREAT, 0o644)
+        let fd = open(url.path, O_RDWR | O_CREAT, 0o644)
         if fd >= 0 {
-            _ = flock(fd, LOCK_EX)
+            let flags: Int32 = MatchMath.cameraMutexFlockNonblock() ? (LOCK_EX | LOCK_NB) : LOCK_EX
+            if flock(fd, flags) != 0 {
+                close(fd)
+                return false
+            }
+            let size = lseek(fd, 0, SEEK_END)
+            _ = lseek(fd, 0, SEEK_SET)
+            var buf = [UInt8](repeating: 0, count: max(0, Int(size)))
+            if !buf.isEmpty {
+                _ = buf.withUnsafeMutableBytes { Darwin.read(fd, $0.baseAddress, $0.count) }
+            }
+            let existing = buf.isEmpty ? nil : String(bytes: buf, encoding: .utf8)
+            guard let line = MatchMath.cameraMutexLockedLine(
+                existing: existing, owner: owner, pid: pid, now: now
+            ) else {
+                _ = flock(fd, LOCK_UN)
+                close(fd)
+                return false
+            }
             _ = ftruncate(fd, 0)
             _ = lseek(fd, 0, SEEK_SET)
             if let data = line.data(using: .utf8) {
@@ -311,26 +339,69 @@ final class LiveCapture: NSObject {
             }
             _ = flock(fd, LOCK_UN)
             close(fd)
-            return
+            return true
         }
         #endif
+        let existing = try? String(contentsOf: url, encoding: .utf8)
+        guard let line = MatchMath.cameraMutexLockedLine(
+            existing: existing, owner: owner, pid: pid, now: now
+        ) else { return false }
         try? line.write(to: url, atomically: true, encoding: .utf8)
+        return true
     }
 
-    private func readCameraMutex() -> String? {
+    private func readCameraMutexLocked(url: URL, busy: inout Bool) -> String? {
+        #if canImport(Darwin)
+        let fd = open(url.path, O_RDONLY)
+        if fd >= 0 {
+            let flags: Int32 = MatchMath.cameraMutexFlockNonblock() ? (LOCK_SH | LOCK_NB) : LOCK_SH
+            if MatchMath.cameraMutexFlockReadShared(), flock(fd, flags) != 0 {
+                busy = true
+                close(fd)
+                return nil
+            }
+            let size = lseek(fd, 0, SEEK_END)
+            _ = lseek(fd, 0, SEEK_SET)
+            var buf = [UInt8](repeating: 0, count: max(0, Int(size)))
+            if !buf.isEmpty {
+                _ = buf.withUnsafeMutableBytes { Darwin.read(fd, $0.baseAddress, $0.count) }
+            }
+            if MatchMath.cameraMutexFlockReadShared() {
+                _ = flock(fd, LOCK_UN)
+            }
+            close(fd)
+            return buf.isEmpty ? "" : String(bytes: buf, encoding: .utf8)
+        }
+        #endif
+        return try? String(contentsOf: url, encoding: .utf8)
+    }
+
+    private func readCameraMutex() -> (holder: String?, busy: Bool) {
         let cachesURL = cameraMutexCachesURL()
         let cachesPresent = FileManager.default.fileExists(atPath: cachesURL.path)
-        let caches = try? String(contentsOf: cachesURL, encoding: .utf8)
-        let tmp = try? String(contentsOf: cameraMutexLegacyURL(), encoding: .utf8)
+        var busy = false
+        let caches = readCameraMutexLocked(url: cachesURL, busy: &busy)
+        if busy { return (nil, true) }
+        var tmpBusy = false
+        let tmp = MatchMath.cameraMutexReadOrder().contains("tmp")
+            ? readCameraMutexLocked(url: cameraMutexLegacyURL(), busy: &tmpBusy)
+            : nil
+        if tmpBusy { return (nil, true) }
         let empty = cachesPresent && (caches == nil || caches?.isEmpty == true)
-        guard let text = MatchMath.cameraMutexPickText(caches: caches, tmp: tmp, cachesEmpty: empty) else { return nil }
+        guard let text = MatchMath.cameraMutexPickText(caches: caches, tmp: tmp, cachesEmpty: empty) else {
+            return (nil, false)
+        }
         let pid = MatchMath.cameraMutexPid(text)
         let live = pid.map { p in p > 0 && (kill(p, 0) == 0 || errno == EPERM) }
-        return MatchMath.cameraMutexParse(text, now: Date().timeIntervalSince1970, pidLive: live)
+        return (MatchMath.cameraMutexParse(text, now: Date().timeIntervalSince1970, pidLive: live), false)
     }
 
     private func beatCameraMutex() {
-        let holder = readCameraMutex()
+        let read = readCameraMutex()
+        if MatchMath.cameraMutexSkipClaim(readBusy: read.busy) {
+            return
+        }
+        let holder = read.holder
         let owner = MatchMath.cameraMutexOwnerAegis()
         let now = Date().timeIntervalSince1970
         let yielded = MatchMath.cameraMutexYieldsNow(
@@ -339,12 +410,14 @@ final class LiveCapture: NSObject {
         if yielded && !cameraMutexYielded {
             yieldSince = now
             cameraMutexYielded = true
+            mutexChip = MatchMath.cameraMutexChip(holder: holder, yielded: true)
             if MatchMath.cameraMutexYieldReconfigure(yielded: true, isContinuity: isContinuity) {
                 reconfigureAfterYield()
             }
             return
         }
         cameraMutexYielded = yielded
+        mutexChip = MatchMath.cameraMutexChip(holder: holder, yielded: yielded)
         if MatchMath.cameraMutexYieldAutoReturn(
             yielded: yielded,
             holder: holder,
@@ -387,18 +460,21 @@ final class LiveCapture: NSObject {
     }
 
     private func claimCameraMutex() {
-        let holder = readCameraMutex()
+        let owner = MatchMath.cameraMutexOwnerAegis()
+        let read = readCameraMutex()
+        if MatchMath.cameraMutexSkipClaim(readBusy: read.busy) { return }
+        let holder = read.holder
         guard MatchMath.cameraMutexClaimWrites(
             holder: holder,
-            owner: MatchMath.cameraMutexOwnerAegis()
+            owner: owner
         ) else { return }
-        let line = MatchMath.cameraMutexLine(
-            owner: MatchMath.cameraMutexOwnerAegis(),
-            pid: ProcessInfo.processInfo.processIdentifier,
-            now: Date().timeIntervalSince1970
-        )
-        writeCameraMutexLine(line, url: cameraMutexCachesURL())
-        writeCameraMutexLine(line, url: cameraMutexLegacyURL())
+        let wrote = writeCameraMutexClaim(owner: owner, url: cameraMutexCachesURL())
+        if MatchMath.cameraMutexWriteTmp() {
+            _ = writeCameraMutexClaim(owner: owner, url: cameraMutexLegacyURL())
+        }
+        if wrote {
+            mutexChip = MatchMath.cameraMutexChip(holder: owner, yielded: false)
+        }
     }
 
     private func releaseCameraMutex() {

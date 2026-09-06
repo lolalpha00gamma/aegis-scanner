@@ -72,6 +72,12 @@ struct ContentView: View {
                     .foregroundStyle(.orange)
                     .help("Capture-Format. BGRA 8 = Continuity tot.")
             }
+            if store.mutexChip != "—" && !store.mutexChip.isEmpty {
+                Text(store.mutexChip.uppercased())
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(store.mutexChip == "YIELD" ? .red : .cyan)
+                    .help("Kamera-Mutex: helios hält Continuity, YIELD = Aegis weicht.")
+            }
             Button("Erkennen") { Task { await store.scan() } }
                 .disabled(store.busy || store.media.isEmpty)
             if store.busy {

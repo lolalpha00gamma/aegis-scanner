@@ -3741,6 +3741,77 @@ enum MatchMathTests {
         ok(!MatchMath.leftoverOpenSetGapNow(top: 0.90, second: 0.70), "OpenSet Gap tot")
         ok(MatchMath.leftoverOpenSetUnsure(scores: [0.80, 0.72]), "OpenSet Unsure Gap")
         ok(!MatchMath.leftoverOpenSetUnsure(scores: [0.92, 0.40]), "OpenSet klar")
+        ok(MatchMath.leftoverOpenSetGalleryFloor([0.50, 0.40]), "Gallery Floor Unsure")
+        ok(!MatchMath.leftoverOpenSetGalleryFloor([0.70, 0.40]), "Gallery Floor Genuine")
+        ok(MatchMath.leftoverOpenSetGalleryFloor([0.61]), "Gallery Floor Solo 0,61")
+        ok(!MatchMath.leftoverOpenSetGalleryFloor([0.62]), "Gallery Floor 0,62 hält")
+        ok(MatchMath.leftoverOpenSetGalleryFloor([]), "Gallery Floor leer Unsure")
+        let smHold = MatchMath.leftoverHoldSmooth(raw: 0.70, prev: 0.50) ?? 0
+        ok(smHold < MatchMath.leftoverPrintGenuine, "Smooth 0,70/0,50 unter Genuine")
+        ok(
+            MatchMath.leftoverPick(candidates: [(0, 0.50, 0.70)], holdPrev: 0.50) == 0,
+            "Gallery-Floor auf Roh, nicht Smooth"
+        )
+        ok(
+            MatchMath.leftoverOpenSetGalleryFloor(
+                [0.65],
+                floor: MatchMath.leftoverSessionFloor(yawAbs: 0.50, capture: nil)
+            ),
+            "Gallery Floor Profil 0,65"
+        )
+        ok(!MatchMath.cameraMutexWriteTmp(), "Mutex tmp-Write tot")
+        ok(MatchMath.cameraMutexSkipClaim(readBusy: true), "Mutex Skip Claim busy")
+        ok(!MatchMath.cameraMutexSkipClaim(readBusy: false), "Mutex Skip Claim frei")
+        ok(
+            MatchMath.cameraMutexWriteAllowed(
+                existing: MatchMath.cameraMutexLine(owner: "helios", pid: 1, now: 1_000, gen: 3),
+                owner: "aegis",
+                now: 1_001
+            ) == false,
+            "Aegis CAS tot über Helios"
+        )
+        ok(
+            MatchMath.cameraMutexWriteAllowed(
+                existing: MatchMath.cameraMutexLine(owner: "aegis", pid: 2, now: 1_000),
+                owner: "helios",
+                now: 1_001
+            ),
+            "Helios CAS überschreibt Aegis"
+        )
+        ok(MatchMath.cameraMutexBumpGen(nil) == 1, "Mutex Gen 1")
+        let casLine = MatchMath.cameraMutexLockedLine(
+            existing: MatchMath.cameraMutexLine(owner: "aegis", pid: 2, now: 1_000, gen: 4),
+            owner: "helios",
+            pid: 9,
+            now: 1_001
+        )
+        ok(MatchMath.cameraMutexGen(casLine ?? "") == 5, "Mutex CAS gen++")
+        ok(
+            MatchMath.cameraMutexLockedLine(
+                existing: MatchMath.cameraMutexLine(owner: "helios", pid: 1, now: 1_000, gen: 2),
+                owner: "aegis",
+                pid: 3,
+                now: 1_001
+            ) == nil,
+            "Aegis LockedLine tot"
+        )
+        let binKey = MatchMath.leftoverHoldKey(id: oldId, bin: 0)
+        let binsDropped = MatchMath.leftoverHoldRemintDropBins(hold: [binKey: 0.64], remap: [oldId: liveId])
+        ok(binsDropped[MatchMath.leftoverHoldKey(id: liveId, bin: 0)] == 0.64, "DropBins kopiert")
+        ok(binsDropped[binKey] == nil, "DropBins räumt Source")
+        let pairHold: [UUID: UUID] = [oldId: oldId]
+        let pairDrop = MatchMath.leftoverHoldRemintDropId(hold: pairHold, remap: [oldId: liveId])
+        ok(pairDrop[liveId] == liveId, "DropId Value")
+        ok(pairDrop[oldId] == nil, "DropId Source tot")
+        let unpacked = MatchMath.leftoverFaceTrackUnpack(faceDrop)
+        ok(unpacked.hold[liveId] == 0.72 && unpacked.pending[liveId] == "Ada", "FaceTrack Unpack")
+        ok(unpacked.hold[oldId] == nil, "FaceTrack Unpack drop")
+        ok(MatchMath.galleryBakRotate() == 3, "gallery.bak rotate 3")
+        ok(MatchMath.galleryBakName(0) == "gallery.json.bak", "bak 0")
+        ok(MatchMath.galleryBakName(2) == "gallery.json.bak.2", "bak 2")
+        ok(MatchMath.cameraMutexFlockNonblock(), "Mutex flock NB")
+        ok(MatchMath.cameraMutexFlockReadShared(), "Mutex flock SH")
+        ok(!MatchMath.cameraMutexWriteTmp(), "Mutex tmp-Write tot")
         ok(MatchMath.leftoverOverlayUnsureFirst(voted: nil, hist: [], need: 3, guest: "Gast 1") == "?", "Overlay Unsure leer")
         ok(MatchMath.leftoverOverlayUnsureFirst(voted: "Ada", hist: ["Ada", "Ada", "Ada"], need: 3, guest: "Gast 1") == "Ada", "Overlay Mehrheit")
         ok(abs(MatchMath.cameraMutexYieldGrace() - 4) < 0.01, "Yield Grace 4 s")

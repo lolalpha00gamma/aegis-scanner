@@ -1,4 +1,4 @@
-# Aegis **2.1.162 alpha**
+# Aegis **2.1.163 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,18 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.163 alpha
+
+Warum Matches nach Track-Verlust den Nachbarn tauften, Yield den Capture-Tick stallte, und tmp-Lock mit Helios raste:
+
+- **RemintDrop alle leftover-Maps inkl. freezeAxis.** Apply hielt Source — leftoverHold/Streak/Pending-Zombies erbten den Namen. Nur leftoverLastIoU droppte. Jetzt Drop + DropBins + DropId.
+- **leftoverOpenSetGalleryFloor auf Roh-Cosine.** leftoverPick Smooth 0,57 ließ Roh 0,70 sterben. Floor = Session-Genuine, Yaw des Top-Cands.
+- **flock LOCK_EX|LOCK_NB + LOCK_SH|LOCK_NB + CAS.** Blocking flock auf der Capture-Queue stallte 8 fps. Busy-Read = kein Claim (sonst Aegis über Helios). Unter LOCK_EX neu lesen, gen++.
+- **tmp-Write tot.** Caches-only. tmp bleibt Read-Legacy.
+- **gallery.bak rotate 3** (.bak / .bak.1 / .bak.2).
+- **Mutex-Chip** in der Toolbar (helios / YIELD / aegis).
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.163 (Build 188). Schema 15 bleibt.
 
 ## Neu in 2.1.162 alpha
 

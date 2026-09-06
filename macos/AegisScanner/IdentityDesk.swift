@@ -57,6 +57,14 @@ enum GalleryFile {
         directory.appendingPathComponent("gallery.json.bak")
     }
 
+    static var backup1URL: URL {
+        directory.appendingPathComponent(MatchMath.galleryBakName(1))
+    }
+
+    static var backup2URL: URL {
+        directory.appendingPathComponent(MatchMath.galleryBakName(2))
+    }
+
     static func loadPayload() -> GalleryPayload? { decodePayload(url) }
 
     static func loadBackupPayload() -> GalleryPayload? { decodePayload(backupURL) }
@@ -162,7 +170,17 @@ enum GalleryFile {
         guard let data = try? encoder.encode(payload) else { return }
         let fm = FileManager.default
         if fm.fileExists(atPath: url.path) {
-            try? fm.removeItem(at: backupURL)
+            if MatchMath.galleryBakRotate() >= 3 {
+                try? fm.removeItem(at: backup2URL)
+                if fm.fileExists(atPath: backup1URL.path) {
+                    try? fm.moveItem(at: backup1URL, to: backup2URL)
+                }
+                if fm.fileExists(atPath: backupURL.path) {
+                    try? fm.moveItem(at: backupURL, to: backup1URL)
+                }
+            } else {
+                try? fm.removeItem(at: backupURL)
+            }
             try? fm.copyItem(at: url, to: backupURL)
             if let fh = FileHandle(forUpdatingAtPath: backupURL.path) {
                 try? fh.synchronize()

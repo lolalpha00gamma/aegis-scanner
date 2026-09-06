@@ -1,8 +1,19 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.162 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.163 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-GROK.md](VORSCHLAEGE-GROK.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 
-Neu in 2.1.162: Detect-Skip Vision/Coast, RemintDrop, Yield-Grace Auto-Return, Open-Set Unsure.
+Neu in 2.1.163: RemintDrop alle Maps inkl. freezeAxis, Gallery-Floor auf Roh-Cosine, flock NB, CAS, tmp-Write tot, bak rotate 3, Mutex-Chip.
+
+## In 2.1.163 wirklich im Code
+
+2.1.162 droppte nur leftoverLastIoU. Apply hielt Source auf 24 Maps. Blocking flock stallte Capture. tmp-Write raste mit Helios. Gallery-Floor auf leftoverHoldSmooth 0,57 ließ Roh 0,70 sterben.
+
+1. **`leftoverHoldRemintDrop` auf alle Hold-Maps** plus DropBins/DropId/freezeAxis. Zombies tot.
+2. **`leftoverOpenSetGalleryFloor` auf Roh-Cosine** (nicht Smooth). Session-Genuine, Yaw des Top-Cands.
+3. **`cameraMutexFlockNonblock` / `FlockReadShared` / `WriteTmp false` / `SkipClaim` / `LockedLine`.** LOCK_NB. Caches-only. CAS unter LOCK_EX.
+4. **`galleryBakRotate` 3.** .bak / .bak.1 / .bak.2.
+5. **Mutex-Chip** in der Toolbar.
+6. Tests + VERSION = Models = MARKETING_VERSION 2.1.163 (Build 188). Schema 15 bleibt.
 
 ## In 2.1.162 wirklich im Code
 
