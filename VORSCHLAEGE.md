@@ -1,8 +1,17 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.159 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.160 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 
-Neu in 2.1.159: HungarianX Print-Cost, Spark Hash persist.
+Neu in 2.1.160: Mutex Claim-Gate, HungarianX n>8 Greedy+2-opt, Detect-Skip.
+
+## In 2.1.160 wirklich im Code
+
+2.1.159 HungarianX Print n≤8, Spark Hash persist. n>8 FillX. Mutex Int(now). Detect jedes Tick.
+
+1. **`leftoverAssignHungarianXGreedy` / `X2opt`.** n>8 Cost statt FillX.
+2. **`cameraMutexLine` %.3f, Pid, pidLive, ClaimWrites, YieldsNow.** Heartbeat weicht live.
+3. **`leftoverDetectSkip` / `SkipAll` / `SkipTick`.** IoU ≥ 0,92 skipPrints, Tick 8 voll.
+4. Tests + VERSION = Models = MARKETING_VERSION 2.1.160 (Build 185). Schema 15 bleibt.
 
 ## In 2.1.95 wirklich im Code
 

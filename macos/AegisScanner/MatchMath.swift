@@ -805,14 +805,30 @@ enum MatchMath {
     /// 3 s war kürzer als Continuity-Frame. Heartbeat 2 s, Stale 12.
     static func cameraMutexStale() -> TimeInterval { 12 }
 
+    static func cameraMutexHeartbeatSec() -> TimeInterval { 2 }
+
+    /// Int(now) = Sekundenraster: Claim 12,9 / Parse 13,0 = 1 s tot. %.3f hält ms.
     static func cameraMutexLine(owner: String, pid: Int32, now: TimeInterval) -> String {
-        "\(owner) \(pid) \(Int(now))"
+        String(format: "%@ %d %.3f", owner, pid, now)
     }
 
-    static func cameraMutexParse(_ text: String, now: TimeInterval, stale: TimeInterval = cameraMutexStale()) -> String? {
+    static func cameraMutexPid(_ text: String) -> Int32? {
+        let parts = text.split(whereSeparator: { $0 == " " || $0 == "\n" }).map(String.init)
+        guard parts.count >= 2 else { return nil }
+        return Int32(parts[1])
+    }
+
+    /// pidLive nil = Tests ohne kill(2). Crash: pid tot → Lock frei, nicht 12 s warten.
+    static func cameraMutexParse(
+        _ text: String,
+        now: TimeInterval,
+        stale: TimeInterval = cameraMutexStale(),
+        pidLive: Bool? = nil
+    ) -> String? {
         let parts = text.split(whereSeparator: { $0 == " " || $0 == "\n" }).map(String.init)
         guard parts.count >= 3, let stamp = TimeInterval(parts[2]) else { return nil }
         if now - stamp > stale { return nil }
+        if let pidLive, !pidLive { return nil }
         let owner = parts[0]
         if owner != cameraMutexOwnerHelios() && owner != cameraMutexOwnerAegis() { return nil }
         return owner
@@ -825,6 +841,24 @@ enum MatchMath {
 
     static func cameraMutexYieldsContinuity(holder: String?, owner: String) -> Bool {
         holder == cameraMutexOwnerHelios() && owner == cameraMutexOwnerAegis()
+    }
+
+    /// Helios hat Continuity-Vorrang. Aegis schreibt nie über einen fremden Holder.
+    static func cameraMutexClaimWrites(holder: String?, owner: String) -> Bool {
+        if owner == cameraMutexOwnerHelios() { return true }
+        if owner == cameraMutexOwnerAegis() {
+            return holder == nil || holder == cameraMutexOwnerAegis()
+        }
+        return false
+    }
+
+    static func cameraMutexYieldsNow(holder: String?, owner: String, wasYielded: Bool) -> Bool {
+        wasYielded || cameraMutexYieldsContinuity(holder: holder, owner: owner)
+    }
+
+    static func cameraMutexPidDead(_ pid: Int32?) -> Bool {
+        guard let pid else { return true }
+        return pid <= 0
     }
 
     /// Overlay: 3-Tick-Mittel wenn voll, sonst EMA.
@@ -1706,7 +1740,9 @@ enum MatchMath {
         let m = liveX.count
         if n == 0 || m == 0 { return out }
         if leftoverAssignHungarianWide(pad) || n > leftoverAssignHungarianN || m > leftoverAssignHungarianN {
-            return leftoverAssignFillX(assigned: assigned, liveX: liveX, holdX: holdX, pad: pad, spread: spread)
+            return leftoverAssignHungarianXGreedy(
+                assigned: assigned, liveX: liveX, holdX: holdX, pad: pad, spread: spread, scores: scores
+            )
         }
         let used = Set(out.prefix(n).compactMap { $0 })
         let rows = (0..<n).filter { out[$0] == nil }
@@ -1738,10 +1774,109 @@ enum MatchMath {
         }
         rec(0, [], 0, 0, out)
         guard let chosen = best else {
-            return leftoverAssignFillX(assigned: assigned, liveX: liveX, holdX: holdX, pad: pad, spread: spread)
+            return leftoverAssignHungarianXGreedy(
+                assigned: assigned, liveX: liveX, holdX: holdX, pad: pad, spread: spread, scores: scores
+            )
         }
         if leftoverAssignHungarianXHasPrint(scores) { return chosen }
         return leftoverAssignSpreadVeto(assigned: chosen, liveX: liveX, holdX: holdX, pad: pad, spread: spread)
+    }
+
+    /// n>8: Recursion tot. FillX nur |Δx|. Cost-Greedy + 2-opt hält Print im Crowd.
+    static func leftoverAssignHungarianXGreedy(
+        assigned: [Int?],
+        liveX: [Double],
+        holdX: [Double],
+        pad: Double,
+        spread: Double = leftoverAmbiguousSpread,
+        scores: [[Double?]]? = nil
+    ) -> [Int?] {
+        var out = assigned
+        if out.count < holdX.count {
+            out += Array(repeating: Optional<Int>.none, count: holdX.count - out.count)
+        }
+        var used = Set(out.prefix(holdX.count).compactMap { $0 })
+        var pairs: [(cost: Double, r: Int, c: Int)] = []
+        for r in 0..<holdX.count {
+            if r < out.count, out[r] != nil { continue }
+            for c in 0..<liveX.count where !used.contains(c) {
+                let d = abs(liveX[c] - holdX[r])
+                if d > pad { continue }
+                let cost = leftoverAssignHungarianXStep(dx: d, pad: pad, row: r, col: c, scores: scores)
+                pairs.append((cost, r, c))
+            }
+        }
+        pairs.sort { a, b in
+            if abs(a.cost - b.cost) > 1e-12 { return a.cost < b.cost }
+            if a.r != b.r { return a.r < b.r }
+            return a.c < b.c
+        }
+        for p in pairs {
+            if p.r < out.count, out[p.r] != nil { continue }
+            if used.contains(p.c) { continue }
+            out[p.r] = p.c
+            used.insert(p.c)
+        }
+        out = leftoverAssignHungarianX2opt(assigned: out, liveX: liveX, holdX: holdX, pad: pad, scores: scores)
+        if leftoverAssignHungarianXHasPrint(scores) { return out }
+        return leftoverAssignSpreadVeto(assigned: out, liveX: liveX, holdX: holdX, pad: pad, spread: spread)
+    }
+
+    static func leftoverAssignHungarianX2opt(
+        assigned: [Int?],
+        liveX: [Double],
+        holdX: [Double],
+        pad: Double,
+        scores: [[Double?]]?
+    ) -> [Int?] {
+        var out = assigned
+        var improved = true
+        var guardN = 0
+        while improved, guardN < 16 {
+            improved = false
+            guardN += 1
+            let n = min(out.count, holdX.count)
+            for i in 0..<n {
+                guard let c1 = out[i], c1 < liveX.count else { continue }
+                for j in (i + 1)..<n {
+                    guard let c2 = out[j], c2 < liveX.count else { continue }
+                    let d11 = abs(liveX[c1] - holdX[i])
+                    let d22 = abs(liveX[c2] - holdX[j])
+                    let d12 = abs(liveX[c2] - holdX[i])
+                    let d21 = abs(liveX[c1] - holdX[j])
+                    if d12 > pad || d21 > pad { continue }
+                    let cur = leftoverAssignHungarianXStep(dx: d11, pad: pad, row: i, col: c1, scores: scores)
+                        + leftoverAssignHungarianXStep(dx: d22, pad: pad, row: j, col: c2, scores: scores)
+                    let sw = leftoverAssignHungarianXStep(dx: d12, pad: pad, row: i, col: c2, scores: scores)
+                        + leftoverAssignHungarianXStep(dx: d21, pad: pad, row: j, col: c1, scores: scores)
+                    if sw + 1e-9 < cur {
+                        out[i] = c2
+                        out[j] = c1
+                        improved = true
+                    }
+                }
+            }
+        }
+        return out
+    }
+
+    /// Kalman-Box sitzt: VNDetect + Print sparen. Coast 7/8 Ticks, Tick 0 voll.
+    static let leftoverDetectSkipIoU: Double = 0.92
+
+    static func leftoverDetectSkip(iou: Double?, floor: Double = leftoverDetectSkipIoU) -> Bool {
+        guard let iou else { return false }
+        return iou >= floor
+    }
+
+    static func leftoverDetectSkipAll(ious: [Double], floor: Double = leftoverDetectSkipIoU, need: Int = 1) -> Bool {
+        guard !ious.isEmpty else { return false }
+        let hits = ious.filter { $0 >= floor }.count
+        return hits >= max(need, 1) && hits == ious.count
+    }
+
+    static func leftoverDetectSkipTick(skip: Bool, tick: Int, every: Int = 8) -> Bool {
+        guard skip, every > 0 else { return false }
+        return tick % every != 0
     }
 
     /// Print da: Twin-Spread-Veto tot — sonst 0,90 vs 0,40 fällt auf |Δx|.

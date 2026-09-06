@@ -1,4 +1,4 @@
-# Aegis **2.1.159 alpha**
+# Aegis **2.1.160 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.160 alpha
+
+Mutex-Stamp Sekunden, PID tot, Aegis-Heartbeat überschreibt Helios. HungarianX n>8 = FillX |Δx|. Detect jedes Tick trotz Kalman 0,95.
+
+- **leftoverAssignHungarianXGreedy + 2-opt.** n>8 Cost (IoU+Print), Twin-Print im Crowd.
+- **cameraMutex** %.3f, PID, ClaimWrites, YieldsNow. Heartbeat weicht live, stoppt Timer.
+- **leftoverDetectSkip** IoU ≥ 0,92 skipPrints, Tick % 8 voll.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.160 (Build 185). Schema 15 bleibt.
 
 ## Neu in 2.1.159 alpha
 

@@ -1,3 +1,27 @@
+# Helios + Aegis — Analyse 2026-09-06 (2.1.160)
+
+Helios **1.5.152** (Build 171). Aegis **2.1.160 alpha** (Build 185). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.159: HungarianX Print-Cost n≤8, Spark Hash persist. n>8 fiel auf FillX |Δx|. Mutex `Int(now)`. Aegis-Heartbeat überschrieb Helios. Detect jedes Tick, auch wenn Kalman-IoU 0,95.
+
+## Warum Taufe und Live nach 2.1.159 weiter riss
+
+1. **HungarianX n>8 = FillX.** Crowd 9: Recursion tot, Greedy nur |Δx|. Print 0,90 vs 0,20 an Twins mit Δx 0,02 verliert.
+2. **Mutex-Stamp Sekunden + PID tot.** Crash 12 s. Helios-Claim, Aegis-Timer schreibt zurück.
+3. **Yield nur Configure.** Helios startet während Aegis läuft: Lock-Kampf, Continuity 8 fps.
+4. **Detect jedes Frame.** Kalman sitzt (IoU 0,95), trotzdem VNDetect + Print. Jank auf Continuity.
+
+## Was 2.1.160 ändert
+
+1. **leftoverAssignHungarianXGreedy + 2-opt.** n>8 und Wide-Pad: Cost (IoU+Print), nicht FillX. Twin-Print überlebt Crowd.
+2. **cameraMutexLine %.3f, Pid, pidLive, ClaimWrites, YieldsNow.** Aegis-Heartbeat weicht live, stoppt Timer. Toter PID gibt Lock frei.
+3. **leftoverDetectSkip / SkipAll / SkipTick.** Kalman-IoU ≥ 0,92: skipPrints, kein Full-Retry. Tick % 8 voll.
+4. Tests + VERSION = Models = MARKETING 2.1.160 (Build 185). Schema 15 bleibt.
+
+Helios 1.5.152: Mutex-Stamp, PID, Claim-Vorrang. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`. FaceTrack-Struct, flock, CameraBroker bleiben auf der Liste.
+
 # Helios + Aegis — Analyse 2026-09-06 (2.1.159)
 
 Helios **1.5.150** (Build 169). Aegis **2.1.159 alpha** (Build 184). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

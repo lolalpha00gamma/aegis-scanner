@@ -3570,6 +3570,18 @@ enum MatchMathTests {
         ok(MatchMath.cameraMutexParse(lockLine, now: 61) == "helios", "Mutex 12 s hält")
         ok(MatchMath.cameraMutexYieldsContinuity(holder: "helios", owner: "aegis"), "Aegis weicht")
         ok(!MatchMath.cameraMutexYieldsContinuity(holder: "aegis", owner: "helios"), "Helios weicht nicht")
+        ok(MatchMath.cameraMutexPid(lockLine) == 9, "Mutex PID")
+        ok(lockLine.contains("50.000"), "Mutex Stamp ms")
+        ok(MatchMath.cameraMutexParse(lockLine, now: 51, pidLive: false) == nil, "Mutex tot PID")
+        ok(MatchMath.cameraMutexParse(lockLine, now: 51, pidLive: true) == "helios", "Mutex live PID")
+        ok(MatchMath.cameraMutexPidDead(0), "PID 0 tot")
+        ok(!MatchMath.cameraMutexPidDead(9), "PID 9 lebend")
+        ok(MatchMath.cameraMutexClaimWrites(holder: "aegis", owner: "helios"), "Helios überschreibt")
+        ok(!MatchMath.cameraMutexClaimWrites(holder: "helios", owner: "aegis"), "Aegis nicht über Helios")
+        ok(MatchMath.cameraMutexClaimWrites(holder: nil, owner: "aegis"), "Aegis frei")
+        ok(MatchMath.cameraMutexYieldsNow(holder: "helios", owner: "aegis", wasYielded: false), "Yield live")
+        ok(MatchMath.cameraMutexYieldsNow(holder: nil, owner: "aegis", wasYielded: true), "Yield hält")
+        ok(!MatchMath.cameraMutexYieldsNow(holder: nil, owner: "aegis", wasYielded: false), "Yield tot")
         let mapA = UUID()
         let mapC = UUID()
         let remapPlan = MatchMath.leftoverHoldRemintMap(
@@ -3632,6 +3644,34 @@ enum MatchMathTests {
         ok(MatchMath.leftoverAssignHungarianXHasPrint([[0.40, 0.90]]), "Print da")
         ok(!MatchMath.leftoverAssignHungarianXHasPrint([[nil, nil]]), "Print leer tot")
         ok(!MatchMath.leftoverAssignHungarianXHasPrint(nil), "Print nil tot")
+        var crowdScores: [[Double?]] = (0..<9).map { r in
+            (0..<9).map { c -> Double? in
+                if r == 0 && c == 1 { return 0.90 }
+                if r == 1 && c == 0 { return 0.88 }
+                if r == c { return 0.90 }
+                return 0.20
+            }
+        }
+        crowdScores[0][0] = 0.20
+        crowdScores[1][1] = 0.20
+        let crowdX: [Double] = [0.10, 0.12, 0.26, 0.34, 0.42, 0.50, 0.58, 0.66, 0.74]
+        let crowd = MatchMath.leftoverAssignHungarianX(
+            assigned: Array(repeating: Optional<Int>.none, count: 9),
+            liveX: crowdX,
+            holdX: crowdX,
+            pad: 0.12,
+            scores: crowdScores
+        )
+        ok(crowd[0] == 1 && crowd[1] == 0, "HungarianX n=9 Print-Greedy Twin")
+        ok(crowd[2] == 2 && crowd[8] == 8, "HungarianX n=9 Rest Diagonale")
+        ok(MatchMath.leftoverDetectSkip(iou: 0.95), "Detect-Skip 0,95")
+        ok(!MatchMath.leftoverDetectSkip(iou: 0.80), "Detect-Skip 0,80 tot")
+        ok(!MatchMath.leftoverDetectSkip(iou: nil), "Detect-Skip nil tot")
+        ok(MatchMath.leftoverDetectSkipAll(ious: [0.94, 0.93], need: 2), "Detect-Skip alle")
+        ok(!MatchMath.leftoverDetectSkipAll(ious: [0.94, 0.40], need: 2), "Detect-Skip Misch tot")
+        ok(MatchMath.leftoverDetectSkipTick(skip: true, tick: 1, every: 8), "Skip Tick 1")
+        ok(!MatchMath.leftoverDetectSkipTick(skip: true, tick: 8, every: 8), "Skip Tick 8 voll")
+        ok(!MatchMath.leftoverDetectSkipTick(skip: false, tick: 1), "Skip tot")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

@@ -1,3 +1,61 @@
+# Nachtrag 2026-09-06 (2.1.160)
+
+Siehe ANALYSE.md. **2.1.160** Mutex Claim-Gate, HungarianX n>8 Greedy+2-opt, Detect-Skip.
+
+## In 2.1.160 gelandet
+
+1. leftoverAssignHungarianXGreedy + X2opt — n>8 Cost (IoU+Print), nicht FillX
+2. cameraMutexLine %.3f, Pid, pidLive, ClaimWrites, YieldsNow. Heartbeat weicht live, stoppt Timer
+3. leftoverDetectSkip / SkipAll / SkipTick — IoU ≥ 0,92 skipPrints, Tick % 8 voll
+4. VERSION = Models = MARKETING_VERSION 2.1.160 (Build 185)
+
+## Nächste, zusätzlich
+
+- leftoverAssign n>8 **Jonker-Volgenant O(n³)** statt Greedy+2-opt (2-opt hängt 4-Zyklus).
+- Hamming-Gewicht im Hash selbst, nicht nur Spatial-Strip `#`.
+- FaceEngine Detect auf outputQueue. JPEG-Reextract gegen denselben Buffer.
+- Hold-SM: Unseen / Tentative / Held / Named. MatchMath split: Hold, Hash, Baptize, Assign.
+- **Ein FaceTrack-Struct** statt leftover-Map-Stapel. Remint-Plan sitzt, 25 Maps bleiben.
+- Helios Frame-Pump, eine TCC. Shared XPC / IOSurface statt Datei-Lock. Helios 1.5.152.
+- Overlay 60 Hz CAMetalLayer, Detect 8–24 fps.
+- VNTrackObjectRequest statt nur Rectangles. TTL 12 Frames nach Detect-Miss.
+- Temperature-skalierte Cosine statt hart 0,80 Baptize.
+- Softmax über Galerie statt Argmax-Taufe — Open-Set Energy-Score.
+- gallery.json.bak Rotate 3, printRevision je Identity. gallery.json zstd. WAL.
+- Watch-Folder PhotoKit, Export `.aegis` verschlüsselt.
+- P-Slot Maske/Schal, Brille-Slot als Twin-Veto.
+- Temporal ReID-Graph über Hold-Trail.
+- Per-Box CLAHE statt Full-Frame.
+- Continuity Desk-View yaw-floor 0,36.
+- Print-Bank 5 Pose-Slots. DBSCAN vor Merge.
+- Aktive Enrollment-HUD: 3 Posen + Liveness-Blink.
+- RTSP 420f, Reconnect Exponential-Backoff.
+- VNDetectFaceCaptureQuality als Baptize-Gate.
+- Continuity LiDAR depth als Box-Z.
+- Kleidungsfarbe / Haar-Histogramm als Weak-Track zwischen Face-Dropouts.
+- Time-of-day Prior als schwacher Track-Cue.
+- Identity-Graph über Tage.
+- leftoverHoldKalmanJump Pref je Camera-UUID.
+- **Print-EMA nur sharpness > 0,55.**
+- **Kalman-Box yaw-normalisiert.**
+- **ByteTrack-Score** α·IoU + β·print + γ·hashHamming.
+- **Speaker-Diarization** (wenn Mic an) als Identity-Cue.
+- **fcntl flock** statt Datei-Stamp. Lock in ~/Library/Caches.
+- **OSLog Signposts** Detect-ms, Remint, Mutex-Yield.
+- **Pairwise-Heatmap klickbar** (`bugfix` 2.1.15).
+- **Identity-Merge Wizard** (`bugfix`).
+- **Overlay-Name Mehrheit auch Standbilder** (`bugfix`).
+- **Platt-Skalierung** Leave-one-out (`bugfix`).
+- **Drop-in `.mlmodel`.** FaceEmbedder-Protokoll (`bugfix`).
+- **BaptizeFloor Pref Slider** 0,72–0,84 je Camera-UUID.
+- Gallery compact on sleep. JPEG-Bank cap 12/Identity.
+
+`bugfix` 2.1.15 gelesen, nicht gemergt.
+
+Die historische Liste bis 2.1.159: ANALYSE.md. Review: `REVIEW-2.1.134.md`.
+
+Nur main.
+
 # Nachtrag 2026-09-06 (2.1.159)
 
 Siehe ANALYSE.md. **2.1.159** HungarianX Print-Cost, Spark Hash persist.

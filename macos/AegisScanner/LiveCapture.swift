@@ -7,6 +7,9 @@ import CoreVideo
 import Foundation
 import ImageIO
 import Vision
+#if canImport(Darwin)
+import Darwin
+#endif
 
 enum LiveKind: String {
     case webcam, hls, mjpeg, httpVideo, snapshot, rtsp
@@ -205,8 +208,10 @@ final class LiveCapture: NSObject {
         } else {
             claimCameraMutex()
             mutexBeat?.invalidate()
-            let beat = Timer(timeInterval: 2, repeats: true) { [weak self] _ in
-                self?.claimCameraMutex()
+            let beat = Timer(timeInterval: MatchMath.cameraMutexHeartbeatSec(), repeats: true) { [weak self] _ in
+                Task { @MainActor in
+                    self?.beatCameraMutex()
+                }
             }
             RunLoop.main.add(beat, forMode: .common)
             mutexBeat = beat
@@ -279,10 +284,31 @@ final class LiveCapture: NSObject {
 
     private func readCameraMutex() -> String? {
         guard let text = try? String(contentsOf: cameraMutexURL(), encoding: .utf8) else { return nil }
-        return MatchMath.cameraMutexParse(text, now: Date().timeIntervalSince1970)
+        let pid = MatchMath.cameraMutexPid(text)
+        let live = pid.map { p in p > 0 && (kill(p, 0) == 0 || errno == EPERM) }
+        return MatchMath.cameraMutexParse(text, now: Date().timeIntervalSince1970, pidLive: live)
+    }
+
+    private func beatCameraMutex() {
+        let holder = readCameraMutex()
+        let owner = MatchMath.cameraMutexOwnerAegis()
+        cameraMutexYielded = MatchMath.cameraMutexYieldsNow(
+            holder: holder, owner: owner, wasYielded: cameraMutexYielded
+        )
+        if cameraMutexYielded {
+            mutexBeat?.invalidate()
+            mutexBeat = nil
+            return
+        }
+        claimCameraMutex()
     }
 
     private func claimCameraMutex() {
+        let holder = readCameraMutex()
+        guard MatchMath.cameraMutexClaimWrites(
+            holder: holder,
+            owner: MatchMath.cameraMutexOwnerAegis()
+        ) else { return }
         let line = MatchMath.cameraMutexLine(
             owner: MatchMath.cameraMutexOwnerAegis(),
             pid: ProcessInfo.processInfo.processIdentifier,

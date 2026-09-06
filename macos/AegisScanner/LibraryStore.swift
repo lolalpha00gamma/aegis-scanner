@@ -2127,14 +2127,21 @@ final class LibraryStore: ObservableObject {
             imageH: Double(image.height)
         )
         let skipRoi = liveRoiSkipOnce || MatchMath.liveRoiPeriodicFull(tick: liveRoiTick)
+        let skipDetect = MatchMath.leftoverDetectSkipTick(
+            skip: MatchMath.leftoverDetectSkipAll(
+                ious: Array(leftoverLastIoU.values),
+                need: max(1, kalmanSnap.count)
+            ),
+            tick: liveRoiTick
+        )
         liveRoiTick += 1
         liveRoiSkipOnce = false
         Task.detached(priority: .userInitiated) {
-            let skipPrints = MatchMath.printBudgetSkip(visionMs: vis, dt: dt)
+            let skipPrints = skipDetect || MatchMath.printBudgetSkip(visionMs: vis, dt: dt)
             let t0 = CFAbsoluteTimeGetCurrent()
             var roi = skipRoi ? nil : roiTuple.map { FaceBox(x: $0.x, y: $0.y, width: $0.w, height: $0.h) }
             var found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true, skipPrints: skipPrints, roi: roi)) ?? []
-            if found.isEmpty, roi != nil, MatchMath.liveRoiMissRetries(hadROI: true, empty: true) {
+            if !skipDetect, found.isEmpty, roi != nil, MatchMath.liveRoiMissRetries(hadROI: true, empty: true) {
                 if MatchMath.liveRoiMissGoesFull(dt: dt) {
                     roi = nil
                     found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true, skipPrints: skipPrints, roi: nil)) ?? []
