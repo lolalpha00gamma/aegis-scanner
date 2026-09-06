@@ -86,8 +86,8 @@ enum MatchMath {
     /// ¾/Profil: Maße vs. Frontal-Centroid lügen. Print ≥ 80 nicht vetoen.
     static let geoVetoYawSkip = 0.28
     static let geoVetoYawPrint = 80.0
-    /// gallery.json Schema neben printRevision. 9 = PairStreak/Commit + Streak + Seen remaining.
-    static let gallerySchema = 10
+    /// gallery.json Schema neben printRevision. 11 = leftoverJpegByHash persist.
+    static let gallerySchema = 11
     /// Box-IoU unter dem Wert: Bewegung. Mit Schärfe: kleines Nicken darf den Print.
     static let holdStillIoU = 0.70
     static let holdStillSharp = 0.18
@@ -722,6 +722,33 @@ enum MatchMath {
         return out
     }
 
+    /// JPEG-Probe RAM-only tot nach Restart. Spatial-Key, at = now.
+    static func leftoverJpegByHashEncode(
+        _ table: [String: (delta: Double, at: TimeInterval, cosine: Double)]
+    ) -> [String: [Double]] {
+        var out: [String: [Double]] = [:]
+        for (k, v) in table {
+            let key = leftoverHoldHashSpatial(k)
+            guard !key.isEmpty else { continue }
+            out[key] = [v.delta, v.cosine]
+        }
+        return out
+    }
+
+    static func leftoverJpegByHashDecode(
+        _ raw: [String: [Double]]?,
+        now: TimeInterval
+    ) -> [String: (delta: Double, at: TimeInterval, cosine: Double)] {
+        guard let raw else { return [:] }
+        var out: [String: (delta: Double, at: TimeInterval, cosine: Double)] = [:]
+        for (k, v) in raw {
+            let key = leftoverHoldHashSpatial(k)
+            guard !key.isEmpty, !v.isEmpty else { continue }
+            out[key] = (delta: v[0], at: now, cosine: v.count >= 2 ? v[1] : 0)
+        }
+        return out
+    }
+
     /// Mehrheit UND 3 gleiche Ticks. Mehrheit allein springt Geschwister.
     /// JUMP-LOCK: neue Majority tot, Overlay hält `held` — nil wischt sonst den Namen.
     static func leftoverLiveNameAnd(voted: String?, hist: [String], need: Int = 3, locked: Bool = false, held: String? = nil) -> String? {
@@ -1225,16 +1252,20 @@ enum MatchMath {
 
     /// Gleiche Bin, zwei Live-Kisten: Exact-Hold tot. Twin liest sonst 0,80 vom selben Key.
     static func leftoverHashOwnOccupied(live: [String], hash: String) -> Bool {
-        live.contains(hash)
+        let spatial = leftoverHoldHashSpatial(hash)
+        if spatial.isEmpty { return live.contains(hash) }
+        return live.contains { leftoverHoldHashSpatial($0) == spatial }
     }
 
     /// leftoverLastHash ist Vor-Tick. Erster Twin-Frame: stored leer, Exact-Steal.
     /// Live zuerst — Ghost-Hashes sonst Exact auf Tote.
+    /// Rank `#101` nach Restore Spatial: sonst Occupied doppelt.
     static func leftoverOccupiedMerge(stored: [String], live: [String]) -> [String] {
         var seen = Set<String>()
         var out: [String] = []
         for h in live + stored where !h.isEmpty {
-            if seen.insert(h).inserted { out.append(h) }
+            let key = leftoverHoldHashSpatial(h)
+            if seen.insert(key).inserted { out.append(h) }
         }
         return out
     }
@@ -1507,19 +1538,49 @@ enum MatchMath {
             }
         }
         rec(0, [], 0, 0, out)
-        guard var chosen = best else {
+        guard let chosen = best else {
             return leftoverAssignFillX(assigned: assigned, liveX: liveX, holdX: holdX, pad: pad, spread: spread)
         }
-        for r in rows {
-            guard let c = chosen[r] else { continue }
-            let d = abs(liveX[c] - holdX[r])
-            var d2 = Double.infinity
-            for h in 0..<n where h != r && chosen[h] == nil {
-                d2 = min(d2, abs(liveX[c] - holdX[h]))
-            }
-            if leftoverXAmbiguous(d: d, d2: d2, pad: pad, spread: spread) { chosen[r] = nil }
+        return leftoverAssignSpreadVeto(assigned: chosen, liveX: liveX, holdX: holdX, pad: pad, spread: spread)
+    }
+
+    /// Unassigned-Hold und Twin-Mitte 0,08. Hungarian n=2 (0,00/0,10 vs 0,09/0,20) bleibt.
+    static func leftoverAssignSpreadVeto(
+        assigned: [Int?],
+        liveX: [Double],
+        holdX: [Double],
+        pad: Double = leftoverFillXPad,
+        spread: Double = leftoverAmbiguousSpread
+    ) -> [Int?] {
+        var out = assigned
+        if out.count < holdX.count {
+            out += Array(repeating: Optional<Int>.none, count: holdX.count - out.count)
         }
-        return chosen
+        let n = holdX.count
+        for r in 0..<n {
+            guard let c = out[r], c < liveX.count else { continue }
+            let d = abs(liveX[c] - holdX[r])
+            var d2Unassigned = Double.infinity
+            var d2Twin = Double.infinity
+            var twin = false
+            for h in 0..<n where h != r {
+                let dH = abs(liveX[c] - holdX[h])
+                if out[h] == nil { d2Unassigned = min(d2Unassigned, dH) }
+                let gap = abs(holdX[r] - holdX[h])
+                if gap <= spread + 1e-12 {
+                    twin = true
+                    d2Twin = min(d2Twin, dH)
+                }
+            }
+            if leftoverXAmbiguous(d: d, d2: d2Unassigned, pad: pad, spread: spread) {
+                out[r] = nil
+                continue
+            }
+            if twin, leftoverXAmbiguous(d: d, d2: d2Twin, pad: pad, spread: spread) {
+                out[r] = nil
+            }
+        }
+        return out
     }
 
     /// Print-Assign, x-Fill nur für leere Zeilen, Twin-Spread danach.
@@ -1769,6 +1830,29 @@ enum MatchMath {
                     taken.insert(match)
                 }
             }
+        }
+        return out
+    }
+
+    /// Survive vor Remint wischt persistierte UUIDs. Live-mediaId ≠ Gallery nach Restart.
+    static func leftoverHoldRemintBeforeSurvive() -> Bool { true }
+
+    /// Hold ohne StreakBox: x-Match tot, Hash-Rescue bleibt.
+    static func leftoverHoldRemintXUnknown() -> Double { -1 }
+
+    /// Streak x zuerst, Ghosts, dann Hold-Keys. Sonst persist Hold ohne Box tot.
+    static func leftoverHoldRemintRows(
+        streak: [(id: UUID, x: Double)],
+        holdIds: [UUID],
+        ghosts: [(id: UUID, x: Double)] = []
+    ) -> [(id: UUID, x: Double)] {
+        var seen = Set<UUID>()
+        var out: [(id: UUID, x: Double)] = []
+        for row in streak + ghosts where seen.insert(row.id).inserted {
+            out.append(row)
+        }
+        for id in holdIds where seen.insert(id).inserted {
+            out.append((id: id, x: leftoverHoldRemintXUnknown()))
         }
         return out
     }
@@ -5267,6 +5351,16 @@ enum MatchMath {
             let spatial = leftoverHoldHashSpatial(k)
             if spatial.isEmpty { continue }
             if out[spatial] == nil { out[spatial] = v }
+        }
+        return out
+    }
+
+    /// leftoverLastHash Werte `#101` nach Restore. Occupied sonst Rank+Spatial doppelt.
+    static func leftoverLastHashRankRebase(_ table: [UUID: String]) -> [UUID: String] {
+        var out: [UUID: String] = [:]
+        for (k, v) in table {
+            let s = leftoverHoldHashSpatial(v)
+            if !s.isEmpty { out[k] = s }
         }
         return out
     }

@@ -3034,6 +3034,61 @@ enum MatchMathTests {
             pad: 0.12
         )
         ok(hun4[0] == 0 && hun4[1] == 1 && hun4[2] == 2 && hun4[3] == 3, "HungarianX n=4")
+        ok(MatchMath.leftoverOccupiedMerge(stored: ["5.5.4.6#101"], live: ["5.5.4.6"]) == ["5.5.4.6"], "Occupied Rank+Spatial unique")
+        ok(MatchMath.leftoverHashOwnOccupied(live: ["5.5.4.6#101"], hash: "5.5.4.6"), "Own Occupied Spatial")
+        let hunMid = MatchMath.leftoverAssignHungarianX(
+            assigned: [nil, nil],
+            liveX: [0.50],
+            holdX: [0.45, 0.55],
+            pad: 0.12
+        )
+        ok(hunMid[0] == nil && hunMid[1] == nil, "HungarianX Twin-Mitte tot")
+        let spreadKeep = MatchMath.leftoverAssignSpreadVeto(
+            assigned: [0, 1],
+            liveX: [0.09, 0.20],
+            holdX: [0.00, 0.10],
+            pad: 0.12
+        )
+        ok(spreadKeep[0] == 0 && spreadKeep[1] == 1, "SpreadVeto n=2 Unique hält")
+        ok(MatchMath.leftoverHoldRemintBeforeSurvive(), "Remint vor Survive")
+        near(MatchMath.leftoverHoldRemintXUnknown(), -1, 0.001, "Remint x unbekannt")
+        let persistOld = UUID(), persistLive = UUID()
+        let persistHold = [persistOld: 0.80]
+        let tooLate = MatchMath.leftoverHoldSurvive(hold: persistHold, ghosts: [], live: [persistLive])
+        let remintLate = MatchMath.leftoverHoldRemint(
+            hold: tooLate,
+            live: [(id: persistLive, x: 0.20)],
+            stored: [(id: persistOld, x: 0.21)]
+        )
+        ok(remintLate[persistLive] == nil, "Survive vor Remint tot")
+        let remintFirst = MatchMath.leftoverHoldRemint(
+            hold: persistHold,
+            live: [(id: persistLive, x: 0.20)],
+            stored: MatchMath.leftoverHoldRemintRows(
+                streak: [(id: persistOld, x: 0.21)],
+                holdIds: [persistOld]
+            )
+        )
+        let afterRemint = MatchMath.leftoverHoldSurvive(hold: remintFirst, ghosts: [], live: [persistLive])
+        ok(afterRemint[persistLive] == 0.80, "Remint vor Survive hält")
+        let rowsHold = MatchMath.leftoverHoldRemintRows(
+            streak: [],
+            holdIds: [persistOld],
+            ghosts: []
+        )
+        ok(rowsHold.contains(where: { $0.id == persistOld && $0.x == MatchMath.leftoverHoldRemintXUnknown() }), "RemintRows Hold ohne Box")
+        let hashRank = MatchMath.leftoverLastHashRankRebase([persistOld: "6.6.4.6#101"])
+        ok(hashRank[persistOld] == "6.6.4.6", "LastHash Rank strip")
+        var jpegEncTab: [String: (delta: Double, at: TimeInterval, cosine: Double)] = [:]
+        jpegEncTab = MatchMath.leftoverJpegProbeStore(
+            table: jpegEncTab, hash: "6.6.4.6#101", delta: 0.03, at: 1.0, cosine: 0.88
+        )
+        let jpegEnc = MatchMath.leftoverJpegByHashEncode(jpegEncTab)
+        let jpegDec = MatchMath.leftoverJpegByHashDecode(jpegEnc, now: 9.0)
+        near(jpegDec["6.6.4.6"]?.delta ?? 1, 0.03, 0.001, "JPEG persist Spatial")
+        near(jpegDec["6.6.4.6"]?.at ?? 0, 9.0, 0.001, "JPEG persist at=now")
+        ok(MatchMath.leftoverJpegByHashDecode(nil, now: 1).isEmpty, "JPEG persist nil")
+        ok(MatchMath.gallerySchema == 11, "Schema 11")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

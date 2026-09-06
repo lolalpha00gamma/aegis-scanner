@@ -1,3 +1,28 @@
+# Helios + Aegis — Analyse 2026-09-06 (2.1.142)
+
+Helios **1.5.131** (Build 150). Aegis **2.1.142 alpha** (Build 167). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.141: leftoverHoldXMatch Call-Order. Survive vor Remint. Occupied exact. JPEG RAM-only. Twin-Mitte Hungarian nur Unassigned.
+
+## Warum Taufe und Restart nach 2.1.141 weiter rissen
+
+1. **Survive vor Remint.** Nach Restart: `faces` Gallery-mediaId, Live neue UUIDs, Ghosts leer. Survive wischt persist leftoverHold. Remint `hold[old]==nil`. Taufe Gast n+1.
+2. **leftoverOccupiedMerge exact.** Rank `#101` + Spatial nach Restore zwei Occupied. Twin Exact tot oder Steal.
+3. **JPEG per Hash RAM-only.** Restart: Probe-Cache tot, 8 fps Indoor reextract jedes Frame.
+4. **HungarianX Spread nur Unassigned.** Twin-Mitte 1-Live saß, Assigned-Twins nicht.
+
+## Was 2.1.142 ändert
+
+1. **Remint vor Survive.** leftoverHoldRemintRows (Streak + Hold + Ghosts). Survive live ∪ adopted.
+2. **leftoverOccupiedMerge Spatial unique.** leftoverHashOwnOccupied Spatial. leftoverLastHashRankRebase.
+3. **Schema 11 leftoverJpegByHash persist.** Spatial-Key, at=now Restore.
+4. **leftoverAssignSpreadVeto.** Unassigned + Twin-Mitte. n=2 Unique hält.
+5. Tests + VERSION = Models = MARKETING 2.1.142 (Build 167).
+
+Helios 1.5.131: Palm-Coast 2 Ticks, ein Warp-Writer. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-06 (2.1.141)
 
 Helios **1.5.130** (Build 149). Aegis **2.1.141 alpha** (Build 166). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

@@ -1,4 +1,4 @@
-# Aegis **2.1.141 alpha**
+# Aegis **2.1.142 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.142 alpha
+
+Survive vor Remint nach App-Restart. Occupied Rank+Spatial doppelt. JPEG-Cache RAM-only. Twin-Mitte Assigned.
+
+- **Remint vor Survive.** leftoverHoldRemintRows Streak+Hold+Ghosts. Survive live ∪ adopted.
+- **leftoverOccupiedMerge Spatial unique.** leftoverLastHashRankRebase.
+- **Schema 11 leftoverJpegByHash persist.** leftoverAssignSpreadVeto Twin-Mitte.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.142 (Build 167).
 
 ## Neu in 2.1.141 alpha
 
