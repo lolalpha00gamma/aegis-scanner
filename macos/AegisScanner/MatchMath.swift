@@ -420,6 +420,7 @@ enum MatchMath {
         let raw = pool.map { $0.cosine ?? -1 }
         if leftoverAmbiguousBlocks(raw: raw, scored: scored) { return nil }
         if leftoverSoftmaxBlocks(leftoverScoreSoftmax(scored), capture: session) { return nil }
+        if leftoverOpenSetUnsure(scores: scored) { return nil }
         if let i = scored.enumerated().max(by: { $0.element < $1.element })?.offset {
             let idx = pool[i].index
             if !conflictTickAgrees(
@@ -836,8 +837,10 @@ enum MatchMath {
         return UInt32(parts[3])
     }
 
-    static func cameraMutexPickText(caches: String?, tmp: String?) -> String? {
+    /// cachesEmpty: ftruncate-Rennen. Leerer Caches-String ist Write-in-flight, nicht Legacy-tmp.
+    static func cameraMutexPickText(caches: String?, tmp: String?, cachesEmpty: Bool = false) -> String? {
         if let caches, !caches.isEmpty { return caches }
+        if cachesEmpty { return nil }
         if let tmp, !tmp.isEmpty { return tmp }
         return nil
     }
@@ -889,6 +892,28 @@ enum MatchMath {
     /// Live-Yield: Session auf Built-in umlegen, nicht nur Heartbeat killen.
     static func cameraMutexYieldReconfigure(yielded: Bool, isContinuity: Bool) -> Bool {
         yielded && isContinuity
+    }
+
+    /// Heartbeat bleibt. 4 s nach Helios-Weg = Continuity zurück, nicht für immer Built-in.
+    static func cameraMutexYieldGrace() -> TimeInterval { 4 }
+
+    static func cameraMutexYieldAutoReturn(
+        yielded: Bool,
+        holder: String?,
+        owner: String,
+        since: TimeInterval,
+        now: TimeInterval,
+        grace: TimeInterval = cameraMutexYieldGrace()
+    ) -> Bool {
+        guard yielded else { return false }
+        if cameraMutexYieldsContinuity(holder: holder, owner: owner) { return false }
+        if now - since < grace { return false }
+        return holder == nil || holder == owner
+    }
+
+    static func cameraMutexChip(holder: String?, yielded: Bool) -> String {
+        if yielded { return "YIELD" }
+        return holder ?? "—"
     }
 
     static func cameraMutexPidDead(_ pid: Int32?) -> Bool {
@@ -2156,6 +2181,14 @@ enum MatchMath {
         return tick % every != 0
     }
 
+    /// skipDetect: VNDetect tot, Kalman-Coast. skipPrints allein ließ detectOnce laufen.
+    static func leftoverDetectSkipVision(skipDetect: Bool) -> Bool { skipDetect }
+
+    /// Zombie-Keys nach Remint-Apply (Source bleibt) dürfen Skip nicht kippen.
+    static func leftoverDetectSkipLiveIous(stored: [UUID: Double], live: [UUID]) -> [Double] {
+        live.compactMap { stored[$0] }
+    }
+
     /// Print da: Twin-Spread-Veto tot — sonst 0,90 vs 0,40 fällt auf |Δx|.
     static func leftoverAssignHungarianXHasPrint(_ scores: [[Double?]]?) -> Bool {
         guard let scores else { return false }
@@ -2805,6 +2838,15 @@ enum MatchMath {
         return out
     }
 
+    /// Apply hält Source (Rollback). Drop räumt Zombies — leftoverLastIoU sonst skippt nie.
+    static func leftoverHoldRemintDrop<Value>(hold: [UUID: Value], remap: [UUID: UUID]) -> [UUID: Value] {
+        var out = leftoverHoldRemintApply(hold: hold, remap: remap)
+        for (stored, live) in remap where stored != live {
+            out.removeValue(forKey: stored)
+        }
+        return out
+    }
+
     /// Identität als ein Objekt. 25 leftover-Maps bleiben bis LibraryStore umzieht.
     struct FaceTrack: Equatable {
         var hold: Double = 0
@@ -2822,6 +2864,13 @@ enum MatchMath {
         remap: [UUID: UUID]
     ) -> [UUID: FaceTrack] {
         leftoverHoldRemintApply(hold: tracks, remap: remap)
+    }
+
+    static func leftoverFaceTrackRemintDrop(
+        _ tracks: [UUID: FaceTrack],
+        remap: [UUID: UUID]
+    ) -> [UUID: FaceTrack] {
+        leftoverHoldRemintDrop(hold: tracks, remap: remap)
     }
 
     static func leftoverFaceTrackPack(
@@ -3512,6 +3561,41 @@ enum MatchMath {
         guard p.count >= 2 else { return false }
         let f = floor ?? leftoverSoftmaxFloorOf(capture: capture)
         return (p.max() ?? 0) < f
+    }
+
+    /// Open-Set: Gap ≤ 0,08 oder Energy klein = Unsure, nicht Gast-Taufe.
+    static let leftoverOpenSetGap: Double = 0.08
+    static let leftoverOpenSetEnergyFloor: Double = 0.04
+
+    static func leftoverOpenSetGapNow(top: Double, second: Double, floor: Double = leftoverOpenSetGap) -> Bool {
+        top - second <= floor
+    }
+
+    /// logΣexp / t. Klare 1-Klasse ≈ 0. Zwei nahe Scores → größer. Unsure wenn > Floor.
+    static func leftoverOpenSetEnergy(_ scores: [Double], t: Double = leftoverScoreTemp) -> Double {
+        guard !scores.isEmpty else { return 0 }
+        let m = scores.max() ?? 0
+        let z = scores.reduce(0.0) { acc, s in
+            let e = t * (s - m)
+            if e < -20 { return acc }
+            return acc + exp(e)
+        }
+        return log(max(z, 1e-12)) / max(t, 1e-6)
+    }
+
+    static func leftoverOpenSetUnsure(scores: [Double], floor: Double = leftoverOpenSetEnergyFloor, gap: Double = leftoverOpenSetGap) -> Bool {
+        let ok = scores.filter { $0.isFinite }
+        guard ok.count >= 2 else { return false }
+        let sorted = ok.sorted(by: >)
+        if leftoverOpenSetGapNow(top: sorted[0], second: sorted[1], floor: gap) { return true }
+        return leftoverOpenSetEnergy(ok) > floor
+    }
+
+    /// Overlay: ohne Mehrheit „?“, nie Gast-Name Tick 1.
+    static func leftoverOverlayUnsureFirst(voted: String?, hist: [String], need: Int, guest: String) -> String {
+        let tokens = hist.filter { !$0.isEmpty }
+        if let name = leftoverLiveNameHolds(tokens, need: need) { return name }
+        return leftoverUnsureChip(voted: voted, hist: hist, need: need) ?? "?"
     }
 
     /// Twin: Anna links bleibt links. Gast-Kiste rechts stiehlt nicht.

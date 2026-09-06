@@ -1,4 +1,4 @@
-# Aegis **2.1.161 alpha**
+# Aegis **2.1.162 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,17 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.162 alpha
+
+Detect-Skip sparte nur Print, VNDetect lief weiter. Yield killte den Heartbeat — Aegis blieb für immer auf Built-in. leftoverLastIoU-Zombies nach Remint. Overlay tauft Tick 1 als Gast.
+
+- **leftoverDetectSkipVision + Kalman-Coast.** IoU live-Keys, Tick 7/8 ohne VNDetect. FaceObservation.coast hält UUID.
+- **leftoverHoldRemintDrop.** leftoverLastIoU räumt Source. Skip sieht keine Zombies.
+- **Yield-Grace 4 s + Auto-Return.** Heartbeat bleibt. Helios weg → Continuity zurück.
+- **Open-Set Gap/Energy.** leftoverPick und Overlay „?“ statt Gast.
+- **Mutex Pick cachesEmpty.** ftruncate fällt nicht auf stale tmp.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.162 (Build 187). Schema 15 bleibt.
 
 ## Neu in 2.1.161 alpha
 

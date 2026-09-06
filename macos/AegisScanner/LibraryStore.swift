@@ -1597,11 +1597,12 @@ final class LibraryStore: ObservableObject {
     func leftoverOverlayGuest(for id: UUID) -> String {
         let hist = liveNameHist[id] ?? []
         let need = 3
-        return MatchMath.leftoverUnsureChip(
+        return MatchMath.leftoverOverlayUnsureFirst(
             voted: MatchMath.nameMajorityAgreeing(hist, window: max(need, hist.count), need: need),
             hist: hist,
-            need: need
-        ) ?? guestName(for: id)
+            need: need,
+            guest: guestName(for: id)
+        )
     }
 
     func leftoverSparkChip(faceId: UUID, yawAbs: Double? = nil) -> String? {
@@ -2118,18 +2119,23 @@ final class LibraryStore: ObservableObject {
         let cont = liveCapture.isContinuity
         let dt = liveDt
         let vis = lastLiveVisMs
-        let kalmanSnap: [(x: Double, y: Double, w: Double, h: Double)] = boxKalman.map { (_, v) in
-            (x: v.x, y: v.y, w: v.w, h: v.h)
+        let kalmanSnap: [(id: UUID, x: Double, y: Double, w: Double, h: Double)] = boxKalman.map { (id, v) in
+            (id: id, x: v.x, y: v.y, w: v.w, h: v.h)
         }
+        let kalmanBoxes = kalmanSnap.map { (x: $0.x, y: $0.y, w: $0.w, h: $0.h) }
         let roiTuple = MatchMath.liveRoiBox(
-            kalman: kalmanSnap,
+            kalman: kalmanBoxes,
             imageW: Double(image.width),
             imageH: Double(image.height)
         )
         let skipRoi = liveRoiSkipOnce || MatchMath.liveRoiPeriodicFull(tick: liveRoiTick)
+        let liveIous = MatchMath.leftoverDetectSkipLiveIous(
+            stored: leftoverLastIoU,
+            live: kalmanSnap.map(\.id)
+        )
         let skipDetect = MatchMath.leftoverDetectSkipTick(
             skip: MatchMath.leftoverDetectSkipAll(
-                ious: Array(leftoverLastIoU.values),
+                ious: liveIous,
                 need: max(1, kalmanSnap.count)
             ),
             tick: liveRoiTick
@@ -2140,7 +2146,18 @@ final class LibraryStore: ObservableObject {
             let skipPrints = skipDetect || MatchMath.printBudgetSkip(visionMs: vis, dt: dt)
             let t0 = CFAbsoluteTimeGetCurrent()
             var roi = skipRoi ? nil : roiTuple.map { FaceBox(x: $0.x, y: $0.y, width: $0.w, height: $0.h) }
-            var found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true, skipPrints: skipPrints, roi: roi)) ?? []
+            var found: [FaceObservation]
+            if MatchMath.leftoverDetectSkipVision(skipDetect: skipDetect) {
+                found = kalmanSnap.map {
+                    FaceObservation.coast(
+                        id: $0.id,
+                        mediaId: mediaId,
+                        box: FaceBox(x: $0.x, y: $0.y, width: $0.w, height: $0.h)
+                    )
+                }
+            } else {
+                found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true, skipPrints: skipPrints, roi: roi)) ?? []
+            }
             if !skipDetect, found.isEmpty, roi != nil, MatchMath.liveRoiMissRetries(hadROI: true, empty: true) {
                 if MatchMath.liveRoiMissGoesFull(dt: dt) {
                     roi = nil
@@ -2986,7 +3003,7 @@ final class LibraryStore: ObservableObject {
         leftoverNameLockHeld = MatchMath.leftoverHoldRemintApply(hold: leftoverNameLockHeld, remap: remintPlan)
         leftoverPending = MatchMath.leftoverHoldRemintApply(hold: leftoverPending, remap: remintPlan)
         leftoverLastHash = MatchMath.leftoverHoldRemintApply(hold: leftoverLastHash, remap: remintPlan)
-        leftoverLastIoU = MatchMath.leftoverHoldRemintApply(hold: leftoverLastIoU, remap: remintPlan)
+        leftoverLastIoU = MatchMath.leftoverHoldRemintDrop(hold: leftoverLastIoU, remap: remintPlan)
         leftoverSparkChipHeld = MatchMath.leftoverHoldRemintApply(hold: leftoverSparkChipHeld, remap: remintPlan)
         leftoverJpegDelta = MatchMath.leftoverHoldRemintApply(hold: leftoverJpegDelta, remap: remintPlan)
         leftoverJpegAt = MatchMath.leftoverHoldRemintApply(hold: leftoverJpegAt, remap: remintPlan)

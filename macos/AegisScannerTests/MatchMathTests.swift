@@ -3721,6 +3721,51 @@ enum MatchMathTests {
         let reminted = MatchMath.leftoverFaceTrackRemint(packed, remap: [oldId: liveId])
         ok(reminted[liveId]?.hold == 0.72, "FaceTrack Remint kopiert")
         ok(reminted[oldId]?.hold == 0.72, "FaceTrack Remint hält Source")
+        let dropped = MatchMath.leftoverHoldRemintDrop(hold: [oldId: 0.72], remap: [oldId: liveId])
+        ok(dropped[liveId] == 0.72, "RemintDrop kopiert")
+        ok(dropped[oldId] == nil, "RemintDrop räumt Source")
+        let faceDrop = MatchMath.leftoverFaceTrackRemintDrop(packed, remap: [oldId: liveId])
+        ok(faceDrop[liveId]?.hold == 0.72 && faceDrop[oldId] == nil, "FaceTrack Drop")
+        let z1 = UUID()
+        let z2 = UUID()
+        let liveIous = MatchMath.leftoverDetectSkipLiveIous(
+            stored: [z1: 0.95, z2: 0.40],
+            live: [z1]
+        )
+        ok(liveIous == [0.95], "Skip IoU nur live")
+        ok(MatchMath.leftoverDetectSkipAll(ious: liveIous, need: 1), "Skip live hoch")
+        ok(!MatchMath.leftoverDetectSkipAll(ious: [0.95, 0.40], need: 1), "Skip Zombie tot")
+        ok(MatchMath.leftoverDetectSkipVision(skipDetect: true), "Skip Vision")
+        ok(!MatchMath.leftoverDetectSkipVision(skipDetect: false), "Skip Vision tot")
+        ok(MatchMath.leftoverOpenSetGapNow(top: 0.80, second: 0.72), "OpenSet Gap 0,08")
+        ok(!MatchMath.leftoverOpenSetGapNow(top: 0.90, second: 0.70), "OpenSet Gap tot")
+        ok(MatchMath.leftoverOpenSetUnsure(scores: [0.80, 0.72]), "OpenSet Unsure Gap")
+        ok(!MatchMath.leftoverOpenSetUnsure(scores: [0.92, 0.40]), "OpenSet klar")
+        ok(MatchMath.leftoverOverlayUnsureFirst(voted: nil, hist: [], need: 3, guest: "Gast 1") == "?", "Overlay Unsure leer")
+        ok(MatchMath.leftoverOverlayUnsureFirst(voted: "Ada", hist: ["Ada", "Ada", "Ada"], need: 3, guest: "Gast 1") == "Ada", "Overlay Mehrheit")
+        ok(abs(MatchMath.cameraMutexYieldGrace() - 4) < 0.01, "Yield Grace 4 s")
+        ok(
+            MatchMath.cameraMutexYieldAutoReturn(
+                yielded: true, holder: nil, owner: "aegis", since: 0, now: 5
+            ),
+            "Auto-Return nach Grace"
+        )
+        ok(
+            !MatchMath.cameraMutexYieldAutoReturn(
+                yielded: true, holder: "helios", owner: "aegis", since: 0, now: 9
+            ),
+            "Auto-Return tot solange Helios hält"
+        )
+        ok(
+            !MatchMath.cameraMutexYieldAutoReturn(
+                yielded: true, holder: nil, owner: "aegis", since: 0, now: 2
+            ),
+            "Auto-Return vor Grace tot"
+        )
+        ok(MatchMath.cameraMutexChip(holder: nil, yielded: true) == "YIELD", "Mutex Chip YIELD")
+        ok(MatchMath.cameraMutexChip(holder: "helios", yielded: false) == "helios", "Mutex Chip Holder")
+        ok(MatchMath.cameraMutexPickText(caches: "", tmp: "aegis 1 1.000", cachesEmpty: true) == nil, "Pick empty Caches tot")
+        ok(MatchMath.cameraMutexPickText(caches: "", tmp: "aegis 1 1.000") == "aegis 1 1.000", "Pick Legacy ohne empty-Flag")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

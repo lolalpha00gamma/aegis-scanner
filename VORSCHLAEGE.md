@@ -1,8 +1,19 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.161 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.162 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-NEU.md](VORSCHLAEGE-NEU.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 
-Neu in 2.1.161: Munkres n>8, Yield-Reconfigure Built-in, FaceTrack, Caches-Lock.
+Neu in 2.1.162: Detect-Skip Vision/Coast, RemintDrop, Yield-Grace Auto-Return, Open-Set Unsure.
+
+## In 2.1.162 wirklich im Code
+
+2.1.161 skipPrints, Heartbeat tot nach Yield, leftoverLastIoU-Zombies, Overlay Gast Tick 1.
+
+1. **`leftoverDetectSkipVision` / `SkipLiveIous` / `FaceObservation.coast`.** VNDetect 7/8 tot, UUID hält.
+2. **`leftoverHoldRemintDrop` / FaceTrack Drop.** leftoverLastIoU ohne Source.
+3. **`cameraMutexYieldGrace` / `YieldAutoReturn`.** Heartbeat bleibt. Continuity nach 4 s zurück.
+4. **`leftoverOpenSetUnsure` / `OverlayUnsureFirst`.** Gap/Energy → „?“, nicht Gast.
+5. **`cameraMutexPickText(cachesEmpty:)`.** ftruncate-Rennen tot.
+6. Tests + VERSION = Models = MARKETING_VERSION 2.1.162 (Build 187). Schema 15 bleibt.
 
 ## In 2.1.161 wirklich im Code
 

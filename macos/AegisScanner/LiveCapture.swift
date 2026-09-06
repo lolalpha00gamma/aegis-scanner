@@ -50,6 +50,7 @@ final class LiveCapture: NSObject {
     private(set) var formatChip = ""
     var choice: CameraChoice = .auto
     private var cameraMutexYielded = false
+    private var yieldSince: TimeInterval = 0
     private var mutexBeat: Timer?
 
     static func orientKey(_ uniqueID: String) -> String { "aegis.camOrient.\(uniqueID)" }
@@ -203,11 +204,10 @@ final class LiveCapture: NSObject {
             #endif
         }
         self.session = session
-        if cameraMutexYielded {
-            // Helios hält Continuity — Lock nicht überschreiben.
-        } else {
+        if !cameraMutexYielded {
             claimCameraMutex()
-            mutexBeat?.invalidate()
+        }
+        if mutexBeat == nil {
             let beat = Timer(timeInterval: MatchMath.cameraMutexHeartbeatSec(), repeats: true) { [weak self] _ in
                 Task { @MainActor in
                     self?.beatCameraMutex()
@@ -318,9 +318,12 @@ final class LiveCapture: NSObject {
     }
 
     private func readCameraMutex() -> String? {
-        let caches = try? String(contentsOf: cameraMutexCachesURL(), encoding: .utf8)
+        let cachesURL = cameraMutexCachesURL()
+        let cachesPresent = FileManager.default.fileExists(atPath: cachesURL.path)
+        let caches = try? String(contentsOf: cachesURL, encoding: .utf8)
         let tmp = try? String(contentsOf: cameraMutexLegacyURL(), encoding: .utf8)
-        guard let text = MatchMath.cameraMutexPickText(caches: caches, tmp: tmp) else { return nil }
+        let empty = cachesPresent && (caches == nil || caches?.isEmpty == true)
+        guard let text = MatchMath.cameraMutexPickText(caches: caches, tmp: tmp, cachesEmpty: empty) else { return nil }
         let pid = MatchMath.cameraMutexPid(text)
         let live = pid.map { p in p > 0 && (kill(p, 0) == 0 || errno == EPERM) }
         return MatchMath.cameraMutexParse(text, now: Date().timeIntervalSince1970, pidLive: live)
@@ -329,28 +332,46 @@ final class LiveCapture: NSObject {
     private func beatCameraMutex() {
         let holder = readCameraMutex()
         let owner = MatchMath.cameraMutexOwnerAegis()
-        cameraMutexYielded = MatchMath.cameraMutexYieldsNow(
+        let now = Date().timeIntervalSince1970
+        let yielded = MatchMath.cameraMutexYieldsNow(
             holder: holder, owner: owner, wasYielded: cameraMutexYielded
         )
-        if cameraMutexYielded {
-            mutexBeat?.invalidate()
-            mutexBeat = nil
+        if yielded && !cameraMutexYielded {
+            yieldSince = now
+            cameraMutexYielded = true
             if MatchMath.cameraMutexYieldReconfigure(yielded: true, isContinuity: isContinuity) {
                 reconfigureAfterYield()
             }
             return
         }
+        cameraMutexYielded = yielded
+        if MatchMath.cameraMutexYieldAutoReturn(
+            yielded: yielded,
+            holder: holder,
+            owner: owner,
+            since: yieldSince,
+            now: now
+        ) {
+            cameraMutexYielded = false
+            yieldSince = 0
+            if choice != .builtIn {
+                reconfigureAfterYield(keepYielded: false)
+            }
+            claimCameraMutex()
+            return
+        }
+        if cameraMutexYielded { return }
         claimCameraMutex()
     }
 
-    private func reconfigureAfterYield() {
+    private func reconfigureAfterYield(keepYielded: Bool = true) {
         guard !yieldReconfiguring else { return }
         yieldReconfiguring = true
         let s = session
         session = nil
         tap = nil
         rotationCoordinator = nil
-        cameraMutexYielded = true
+        cameraMutexYielded = keepYielded
         if let s {
             outputQueue.async { [weak self] in
                 s.stopRunning()

@@ -2,9 +2,9 @@ import CoreGraphics
 import Foundation
 
 enum AppVersion {
-    static let marketing = "2.1.161"
+    static let marketing = "2.1.162"
     static let channel = "alpha"
-    static let display = "2.1.161 alpha"
+    static let display = "2.1.162 alpha"
 }
 
 enum StrategyTrack: String, CaseIterable, Identifiable {
@@ -269,6 +269,24 @@ struct FaceObservation: Identifiable, Hashable, Codable {
         self.partialVec = partialVec
         self.forcedPartial = forcedPartial
         self.enrolledAt = enrolledAt
+    }
+
+    /// Kalman-Coast ohne VNDetect. Gleiche UUID, Box aus Kalman, kein Print.
+    static func coast(id: UUID, mediaId: UUID, box: FaceBox) -> FaceObservation {
+        FaceObservation(
+            id: id,
+            mediaId: mediaId,
+            box: box,
+            score: 1,
+            landmarks: [],
+            aligned: [],
+            featurePrint: Data(),
+            appearance: [],
+            graph: [],
+            geom3d: [],
+            quality: FaceQuality(sharpness: 1, size: min(box.width, box.height), frontal: 1, capture: 1),
+            trackId: id
+        )
     }
 
     init(from decoder: Decoder) throws {

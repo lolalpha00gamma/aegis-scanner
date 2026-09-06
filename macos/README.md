@@ -1,7 +1,7 @@
 # Aegis
 
 Lokaler Image- & Video-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**  
-Version **2.1.157 alpha**.
+Version **2.1.162 alpha**.
 
 ## Image-Datei
 

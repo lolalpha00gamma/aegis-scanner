@@ -1,3 +1,31 @@
+# Aegis Nachtrag 2.1.162 — 2026-09-06
+
+Binary **2.1.162 alpha Build 187**. Detect-Skip Vision, RemintDrop, Yield-Grace, Open-Set.
+
+## In 2.1.162 gelandet
+
+1. leftoverDetectSkipVision + FaceObservation.coast — VNDetect 7/8 tot, UUID hält
+2. leftoverDetectSkipLiveIous — keine Remint-Zombies im Skip
+3. leftoverHoldRemintDrop auf leftoverLastIoU
+4. Yield-Grace 4 s, Auto-Return, Heartbeat bleibt
+5. leftoverOpenSetUnsure / OverlayUnsureFirst — „?“ statt Gast
+6. cameraMutexPickText(cachesEmpty:)
+7. Tests + VERSION = Models = MARKETING_VERSION 2.1.162 (Build 187)
+
+`bugfix` 2.1.15 gelesen, nicht gemergt.
+
+## Nächste, zusätzlich
+
+- LibraryStore → ein FaceTrack-Dict, Drop alle 25 Maps
+- Open-Set Gallery-Floor leftoverPrintGenuine
+- CameraBroker-XPC mit Helios
+- Detect 8–12 fps, Overlay Metal, Baptize nur Detect-Tick
+- Enrollment-HUD 3 Yaw + Blink
+- gallery.json WAL
+- Yield Pref Grace 2–8 s
+- flock LOCK_NB
+- Telemetry skip-ratio
+
 # Nachtrag 2026-09-06 (2.1.161)
 
 Siehe ANALYSE.md. **2.1.161** Munkres n>8, Yield-Reconfigure Built-in, FaceTrack, Caches-Lock.
