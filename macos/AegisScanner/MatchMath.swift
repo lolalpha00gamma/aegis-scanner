@@ -1297,6 +1297,8 @@ enum MatchMath {
     /// Nächster Hold nach x, nicht UUID. Restart mintet neue Vision-IDs.
     /// Ohne Pad tauft 0,90 den Hold bei 0,10.
     static let leftoverFillXPad = 0.12
+    /// Hash leer, Person ging. 0,90 bleibt tot (Test Far).
+    static let leftoverFillXRescue = 0.28
 
     /// Twin-Mitte: d≈d2. Nächster Hold 4× näher bleibt (0,02 vs 0,08).
     /// `d2 - d <= spread` allein tötete leftoverHoldXMatch(0,22) trotz eindeutigem 0,20.
@@ -1483,6 +1485,18 @@ enum MatchMath {
                 }
             }
         }
+        for row in live {
+            if hold[row.id] != nil { continue }
+            if out[row.id] != nil { continue }
+            guard let match = leftoverHoldXMatch(
+                liveX: row.x, holds: holds, occupied: taken, pad: leftoverFillXRescue
+            ) else { continue }
+            if match == row.id { continue }
+            if let v = hold[match] {
+                out[row.id] = v
+                taken.insert(match)
+            }
+        }
         return out
     }
 
@@ -1535,6 +1549,19 @@ enum MatchMath {
                 taken.insert(match)
             }
         }
+        for row in live {
+            if present.contains(row.id) { continue }
+            if out.keys.contains(where: { leftoverHoldId(from: $0) == row.id }) { continue }
+            guard let match = leftoverHoldXMatch(
+                liveX: row.x, holds: holds, occupied: taken, pad: leftoverFillXRescue
+            ) else { continue }
+            if match == row.id { continue }
+            for (key, v) in hold {
+                guard leftoverHoldId(from: key) == match, let bin = leftoverHoldBinFromKey(key) else { continue }
+                out[leftoverHoldKey(id: row.id, bin: bin)] = v
+            }
+            taken.insert(match)
+        }
         return out
     }
 
@@ -1550,6 +1577,24 @@ enum MatchMath {
         var out = tick
         out[to] = v
         out.removeValue(forKey: from)
+        return out
+    }
+
+    /// PairLast/Streak/Commit/Disagree nach AssignLive. TickCopy ist String-only.
+    static func leftoverHoldMove<Value>(hold: [UUID: Value], from: UUID, to: UUID) -> [UUID: Value] {
+        guard from != to, let v = hold[from] else { return hold }
+        var out = hold
+        if out[to] == nil { out[to] = v }
+        out.removeValue(forKey: from)
+        return out
+    }
+
+    /// PairLast/Commit: Value ist Live-UUID. Key-Move allein lässt Commit auf newId.
+    static func leftoverHoldMoveId(hold: [UUID: UUID], from: UUID, to: UUID) -> [UUID: UUID] {
+        var out = leftoverHoldMove(hold: hold, from: from, to: to)
+        for (k, v) in out where v == from {
+            out[k] = to
+        }
         return out
     }
 

@@ -2613,6 +2613,18 @@ enum MatchMathTests {
             storedHash: [hashOld: "4.4.3.5"]
         )
         ok(binRescue[MatchMath.leftoverHoldKey(id: hashNew, bin: 0)] == 0.66, "RemintBins Hash-Rescue")
+        let walkOld = UUID(), walkNew = UUID()
+        let walked = MatchMath.leftoverHoldRemint(
+            hold: [walkOld: 0.81],
+            live: [(id: walkNew, x: 0.40)],
+            stored: [(id: walkOld, x: 0.22)]
+        )
+        ok(walked[walkNew] == 0.81, "x-Rescue 0,28 ohne Hash")
+        ok(MatchMath.leftoverHoldXMatch(liveX: 0.40, holds: [(id: walkOld, x: 0.22)]) == nil, "Pad 0,12 Far tot")
+        let pairMoved = MatchMath.leftoverHoldMove(hold: [walkOld: walkOld], from: walkOld, to: walkNew)
+        ok(pairMoved[walkNew] == walkOld && pairMoved[walkOld] == nil, "Pair HoldMove")
+        let pairVal = MatchMath.leftoverHoldMoveId(hold: [walkOld: walkOld], from: walkOld, to: walkNew)
+        ok(pairVal[walkNew] == walkNew && pairVal[walkOld] == nil, "Pair Value-Remint")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

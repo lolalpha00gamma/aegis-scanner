@@ -1,4 +1,4 @@
-# Aegis **2.1.130 alpha**
+# Aegis **2.1.131 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,14 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.131 alpha
+
+Tick-Copy rettete Hash, nicht PairLast/Streak/Commit. x-Pad 0,12 ohne Hash tot sobald der Kopf 18 cm ging.
+
+- **`leftoverFillXRescue` 0,28.** Dritter Remint-Pass. Far 0,90 bleibt tot.
+- **`leftoverHoldMove` / `leftoverHoldMoveId`.** Mirror Pending bewegt Pair* Keys + Commit-Value.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.131 (Build 157).
 
 ## Neu in 2.1.130 alpha
 

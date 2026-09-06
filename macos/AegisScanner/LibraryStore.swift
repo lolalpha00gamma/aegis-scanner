@@ -1914,6 +1914,10 @@ final class LibraryStore: ObservableObject {
         leftoverPending = MatchMath.leftoverPendingMirror(pending: leftoverPending, from: from, to: to)
         leftoverLiveHashTick = MatchMath.leftoverLiveHashTickCopy(tick: leftoverLiveHashTick, from: from, to: to)
         leftoverLastHash = MatchMath.leftoverLiveHashTickCopy(tick: leftoverLastHash, from: from, to: to)
+        leftoverPairLast = MatchMath.leftoverHoldMoveId(hold: leftoverPairLast, from: from, to: to)
+        leftoverPairStreak = MatchMath.leftoverHoldMove(hold: leftoverPairStreak, from: from, to: to)
+        leftoverPairCommit = MatchMath.leftoverHoldMoveId(hold: leftoverPairCommit, from: from, to: to)
+        leftoverDisagree = MatchMath.leftoverHoldMove(hold: leftoverDisagree, from: from, to: to)
     }
 
     private func leftoverBlendAdopted(_ face: inout FaceObservation, oldId: UUID) {

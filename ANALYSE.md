@@ -1,3 +1,27 @@
+# Helios + Aegis — Analyse 2026-09-06 (2.1.131)
+
+Helios **1.5.121** (Build 141). Aegis **2.1.131 alpha** (Build 157). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.130: Hash-Rescue, Tick-Copy, Gate Need. Pair* nach Transfer tot. x-Pad 0,12 ohne Hash tot wenn Person ging.
+
+## 2.1.130 → 2.1.131
+
+1. **leftoverLiveHashTickCopy String-only.** leftoverMirrorPending kopiert Tick/LastHash, nicht PairLast/Streak/Commit/Disagree. Swap + AssignLive: Majority-Streak auf newId, Overlay keyed old.id.
+2. **leftoverHoldRemint nur x 0,12 dann Hash.** Hash leer, Kopf 18 cm: d=0,18 > 0,12, Remint tot, Name springt.
+3. **PairCommit Value ist Live-UUID.** Key-Move allein lässt Commit auf newId nach Transfer.
+
+## Was 2.1.131 ändert
+
+1. **`leftoverFillXRescue` 0,28.** Dritter Pass nach x 0,12 und Hash. 0,90 vs 0,20 bleibt tot (d=0,70).
+2. **leftoverHoldRemint / RemintBins** x-Rescue nach Hash-Miss.
+3. **`leftoverHoldMove` generic.** leftoverMirrorPending bewegt PairLast/Streak/Commit/Disagree.
+4. **`leftoverHoldMoveId`.** PairLast/Commit Value new→old.
+5. Tests (walked 0,40 vs 0,22, Pair HoldMove, Value-Remint) + VERSION = Models = MARKETING 2.1.131 (Build 157).
+
+Helios 1.5.121: Prop-S1 Full, Zweit-Hand Full. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-06 (2.1.130)
 
 Helios **1.5.120** (Build 140). Aegis **2.1.130 alpha** (Build 156). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
