@@ -1,4 +1,4 @@
-# Aegis **2.1.149 alpha**
+# Aegis **2.1.150 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,14 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.150 alpha
+
+PairCommit dest=self nach Remint — Twin-proposed tot, Majority tauft. Bins `#101` nach Restore tot. Jump Pref ohne Slider.
+
+- **leftoverHoldRemintId Dest.** Twin-proposed hält. leftoverPairCommitHold 3 Ticks Overlay, HOLD-Label.
+- **leftoverHoldBinsDecode Rank-Rebase.** leftoverHoldKalmanJumpPref Slider 0,30–0,50.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.150 (Build 175). Schema 15 bleibt.
 
 ## Neu in 2.1.149 alpha
 

@@ -200,6 +200,19 @@ struct ContentView: View {
             Text("Miss \(store.leftoverMissNeed)")
                 .font(.caption2.monospacedDigit())
                 .foregroundStyle(.secondary)
+            Slider(
+                value: Binding(
+                    get: { store.kalmanJump },
+                    set: { store.setKalmanJump($0) }
+                ),
+                in: 0.30 ... 0.50,
+                step: 0.02
+            )
+            .frame(width: 80)
+            .help("Kalman IoU-Reset. 0,40 Default. Continuity 8 fps 0,30, Webcam 0,50.")
+            Text(String(format: "Jump %.2f", store.kalmanJump))
+                .font(.caption2.monospacedDigit())
+                .foregroundStyle(.secondary)
             if !store.revisionWarning.isEmpty {
                 Text(store.revisionWarning)
                     .font(.caption2)

@@ -28,6 +28,7 @@ final class LibraryStore: ObservableObject {
     @Published var fillXPad: Double = MatchMath.leftoverFillXPad
     @Published var jpegProbeTTL: Double = 0.80
     @Published var leftoverMissNeed: Int = 2
+    @Published var kalmanJump: Double = MatchMath.leftoverIoUJump
     @Published var strategy: StrategyID = .aegis
     @Published var showAnatomy = true
     @Published var showNMSDebug = false
@@ -64,6 +65,7 @@ final class LibraryStore: ObservableObject {
     private var leftoverPairLast: [UUID: UUID] = [:]
     private var leftoverPairStreak: [UUID: Int] = [:]
     private var leftoverPairCommit: [UUID: UUID] = [:]
+    private var leftoverPairCommitMiss: [UUID: Int] = [:]
     private var tapGuestPending: Set<UUID> = []
     private var lastLiveVisMs: Double = 0
     private var liveSlotHold: [UUID: (slot: String, n: Int)] = [:]
@@ -307,6 +309,10 @@ final class LibraryStore: ObservableObject {
         if let missStored {
             leftoverMissNeed = MatchMath.leftoverHoldMissNeedPref(missStored)
         }
+        let jumpStored = UserDefaults.standard.double(forKey: "aegis.kalmanJump")
+        if jumpStored > 0 {
+            kalmanJump = MatchMath.leftoverHoldKalmanJumpPref(jumpStored)
+        }
         liveCapture.choice = cameraChoice
         let digest = GalleryFile.digestStatus()
         if let note = MatchMath.shaVerifyNote(ok: digest.ok, missing: digest.missing) {
@@ -476,6 +482,7 @@ final class LibraryStore: ObservableObject {
         leftoverStreak = [:]
         leftoverPairStreak = [:]
         leftoverPairCommit = [:]
+        leftoverPairCommitMiss = [:]
         leftoverPending = [:]
         if let extra = GalleryFile.loadBackupPayload() {
             leftoverPairStreak = MatchMath.leftoverUUIDIntMapDecode(extra.leftoverPairStreak)
@@ -498,6 +505,7 @@ final class LibraryStore: ObservableObject {
             leftoverStreak = [:]
             leftoverPairStreak = [:]
             leftoverPairCommit = [:]
+            leftoverPairCommitMiss = [:]
             leftoverStreakBox = [:]
             leftoverJpegByHash = [:]
             boxKalman = [:]
@@ -1505,6 +1513,11 @@ final class LibraryStore: ObservableObject {
         UserDefaults.standard.set(leftoverMissNeed, forKey: "aegis.missNeed")
     }
 
+    func setKalmanJump(_ v: Double) {
+        kalmanJump = MatchMath.leftoverHoldKalmanJumpPref(v)
+        UserDefaults.standard.set(kalmanJump, forKey: "aegis.kalmanJump")
+    }
+
     func voteProgress(faceId: UUID) -> String? {
         let hist = liveNameHist[faceId] ?? []
         let hit = matches.first { $0.faceId == faceId }?.hits.first { $0.strategy == .aegis }
@@ -1894,6 +1907,7 @@ final class LibraryStore: ObservableObject {
         leftoverPairLast = [:]
         leftoverPairStreak = [:]
         leftoverPairCommit = [:]
+        leftoverPairCommitMiss = [:]
         leftoverPending = [:]
         tapGuestPending = []
         leftoverHold = [:]
@@ -2126,6 +2140,7 @@ final class LibraryStore: ObservableObject {
             leftoverPairLast.removeValue(forKey: id)
             leftoverPairStreak.removeValue(forKey: id)
             leftoverPairCommit.removeValue(forKey: id)
+            leftoverPairCommitMiss.removeValue(forKey: id)
             leftoverDisagree.removeValue(forKey: id)
         }
     }
@@ -2137,6 +2152,7 @@ final class LibraryStore: ObservableObject {
         leftoverPairLast = MatchMath.leftoverHoldMoveId(hold: leftoverPairLast, from: from, to: to)
         leftoverPairStreak = MatchMath.leftoverHoldMove(hold: leftoverPairStreak, from: from, to: to)
         leftoverPairCommit = MatchMath.leftoverHoldMoveId(hold: leftoverPairCommit, from: from, to: to)
+        leftoverPairCommitMiss = MatchMath.leftoverHoldMove(hold: leftoverPairCommitMiss, from: from, to: to)
         leftoverDisagree = MatchMath.leftoverHoldMove(hold: leftoverDisagree, from: from, to: to)
         leftoverHold = MatchMath.leftoverAssignAtomic(hold: leftoverHold, from: from, to: to)
         leftoverHoldTrail = MatchMath.leftoverAssignAtomic(hold: leftoverHoldTrail, from: from, to: to)
@@ -2728,15 +2744,23 @@ final class LibraryStore: ObservableObject {
                     leftoverTried.insert(old.id)
                     let proposed = adopted[i].id
                     let prevLast = leftoverPairLast[old.id]
+                    let committed = leftoverPairCommit[old.id]
+                    let prevMiss = leftoverPairCommitMiss[old.id] ?? 0
                     let maj = MatchMath.leftoverAssignMajority(
-                        committed: leftoverPairCommit[old.id],
+                        committed: committed,
                         proposed: proposed,
                         lastProposed: leftoverPairLast[old.id],
                         streak: leftoverPairStreak[old.id] ?? 0,
                         locked: MatchMath.leftoverNameLockBlocks(
                             until: leftoverNameLockUntil[old.id] ?? leftoverNameLockUntil[proposed],
                             now: now
-                        )
+                        ),
+                        commitMiss: prevMiss
+                    )
+                    leftoverPairCommitMiss[old.id] = MatchMath.leftoverPairCommitMissAdvance(
+                        prev: prevMiss,
+                        keeps: MatchMath.leftoverPairCommitKeeps(committed: committed, proposed: proposed),
+                        hold: MatchMath.leftoverPairCommitHold(committed: committed, proposed: proposed, miss: prevMiss)
                     )
                     leftoverDisagree[old.id] = MatchMath.clusterSplitAdvance(
                         prev: leftoverDisagree[old.id] ?? 0,
@@ -2748,11 +2772,14 @@ final class LibraryStore: ObservableObject {
                         leftoverPending[adopted[i].id] = MatchMath.clusterSplitNote()
                         continue
                     }
-                    if let majLabel = MatchMath.leftoverMajorityLabel(streak: maj.streak) {
+                    if let holdLabel = MatchMath.leftoverPairCommitHoldLabel(miss: leftoverPairCommitMiss[old.id] ?? 0) {
+                        leftoverPending[adopted[i].id] = holdLabel
+                    } else if let majLabel = MatchMath.leftoverMajorityLabel(streak: maj.streak) {
                         leftoverPending[adopted[i].id] = majLabel
                     }
                     guard maj.ready else { continue }
                     leftoverPairCommit[old.id] = maj.commit
+                    leftoverPairCommitMiss[old.id] = 0
                     leftoverDisagree[old.id] = 0
                     let step = leftoverAdvance(oldId: old.id, box: adopted[i].box, now: now, boxId: adopted[i].id, dt: liveDt, yawAbs: abs(adopted[i].quality.yaw))
                     if let label = step.label {
@@ -2826,6 +2853,7 @@ final class LibraryStore: ObservableObject {
         leftoverPairLast = MatchMath.leftoverHoldRemintId(hold: leftoverPairLast, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys, pad: fillXPad, padRescue: fillXRescue)
         leftoverPairStreak = MatchMath.leftoverHoldRemint(hold: leftoverPairStreak, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys, pad: fillXPad, padRescue: fillXRescue)
         leftoverPairCommit = MatchMath.leftoverHoldRemintId(hold: leftoverPairCommit, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys, pad: fillXPad, padRescue: fillXRescue)
+        leftoverPairCommitMiss = MatchMath.leftoverHoldRemint(hold: leftoverPairCommitMiss, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys, pad: fillXPad, padRescue: fillXRescue)
         leftoverDisagree = MatchMath.leftoverHoldRemint(hold: leftoverDisagree, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys, pad: fillXPad, padRescue: fillXRescue)
         leftoverStreak = MatchMath.leftoverHoldRemint(hold: leftoverStreak, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys, pad: fillXPad, padRescue: fillXRescue)
         leftoverStreakBox = MatchMath.leftoverHoldRemint(hold: leftoverStreakBox, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys, pad: fillXPad, padRescue: fillXRescue)
@@ -2848,7 +2876,7 @@ final class LibraryStore: ObservableObject {
         for face in adopted {
             if let k = boxKalman[face.id] {
                 let kb = FaceBox(x: k.x, y: k.y, width: k.w, height: k.h)
-                if !skipKalmanReset, MatchMath.leftoverHoldKalmanResets(iou: FaceEngine.iou(kb, face.box)) {
+                if !skipKalmanReset, MatchMath.leftoverHoldKalmanResets(iou: FaceEngine.iou(kb, face.box), jump: kalmanJump) {
                     boxKalmanDrop(face.id)
                 }
             }
@@ -2947,6 +2975,7 @@ final class LibraryStore: ObservableObject {
                 leftoverPairLast = [:]
                 leftoverPairStreak = [:]
                 leftoverPairCommit = [:]
+                leftoverPairCommitMiss = [:]
                 leftoverDisagree = [:]
                 leftoverWipeUntil = [:]
                 boxKalman = [:]
@@ -3726,6 +3755,7 @@ final class LibraryStore: ObservableObject {
             leftoverPairLast = leftoverPairLast.filter { leftoverIds.contains($0.key) && !used.contains($0.key) }
             leftoverPairStreak = leftoverPairStreak.filter { leftoverIds.contains($0.key) && !used.contains($0.key) }
             leftoverPairCommit = leftoverPairCommit.filter { leftoverIds.contains($0.key) && !used.contains($0.key) }
+            leftoverPairCommitMiss = leftoverPairCommitMiss.filter { leftoverIds.contains($0.key) && !used.contains($0.key) }
             leftoverDisagree = leftoverDisagree.filter { leftoverIds.contains($0.key) && !used.contains($0.key) }
             leftoverHoldTrail = leftoverHoldTrail.filter {
                 liveIds.contains($0.key) || (leftoverIds.contains($0.key) && !used.contains($0.key))

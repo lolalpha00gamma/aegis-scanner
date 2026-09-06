@@ -1174,11 +1174,11 @@ enum MatchMath {
     }
 
     static func leftoverHoldBinsDecode(_ raw: [String: Double]?) -> [String: Double] {
-        raw ?? [:]
+        leftoverHashRankRebase(raw ?? [:])
     }
 
     static func leftoverHoldTrailBinsDecode(_ raw: [String: [Double]]?) -> [String: [Double]] {
-        raw ?? [:]
+        leftoverHashRankRebase(raw ?? [:])
     }
 
     /// Hash-Hold überlebt UUID-Steal und App-Neustart. `at` = now beim Restore, TTL startet neu.
@@ -2156,6 +2156,47 @@ enum MatchMath {
     }
 
     /// PairLast/Commit nach x-Remint: Value auf Live-UUID, nicht nur Key.
+    /// Dest nicht auf self überschreiben — Twin-proposed sonst tot, Majority neu.
+    static func leftoverHoldRemintMap(
+        live: [(id: UUID, x: Double)],
+        stored: [(id: UUID, x: Double)],
+        holdKeys: Set<UUID>,
+        occupied: Set<UUID> = [],
+        liveHash: [UUID: String] = [:],
+        storedHash: [UUID: String] = [:],
+        hashTableKeys: [String] = [],
+        pad: Double = leftoverFillXPad,
+        padRescue: Double = leftoverFillXRescue
+    ) -> [UUID: UUID] {
+        let seed = Dictionary(uniqueKeysWithValues: holdKeys.map { ($0, $0) })
+        let moved = leftoverHoldRemint(
+            hold: seed,
+            live: live,
+            stored: stored,
+            occupied: occupied,
+            liveHash: liveHash,
+            storedHash: storedHash,
+            hashTableKeys: hashTableKeys,
+            pad: pad,
+            padRescue: padRescue
+        )
+        var remap: [UUID: UUID] = [:]
+        for (liveId, storedId) in moved {
+            remap[storedId] = liveId
+        }
+        return remap
+    }
+
+    static func leftoverUUIDUUIDMapRemintDest(_ table: [UUID: UUID], remap: [UUID: UUID]) -> [UUID: UUID] {
+        var out: [UUID: UUID] = [:]
+        for (k, v) in table {
+            let nk = remap[k] ?? k
+            let nv = remap[v] ?? v
+            out[nk] = nv
+        }
+        return out
+    }
+
     static func leftoverHoldRemintId(
         hold: [UUID: UUID],
         live: [(id: UUID, x: Double)],
@@ -2167,6 +2208,17 @@ enum MatchMath {
         pad: Double = leftoverFillXPad,
         padRescue: Double = leftoverFillXRescue
     ) -> [UUID: UUID] {
+        let remap = leftoverHoldRemintMap(
+            live: live,
+            stored: stored,
+            holdKeys: Set(hold.keys),
+            occupied: occupied,
+            liveHash: liveHash,
+            storedHash: storedHash,
+            hashTableKeys: hashTableKeys,
+            pad: pad,
+            padRescue: padRescue
+        )
         var out = leftoverHoldRemint(
             hold: hold,
             live: live,
@@ -2178,17 +2230,17 @@ enum MatchMath {
             pad: pad,
             padRescue: padRescue
         )
-        for row in live {
-            if hold[row.id] != nil { continue }
-            guard let v = out[row.id], v != row.id else { continue }
-            out[row.id] = row.id
+        for (k, v) in out {
+            if let nv = remap[v] {
+                out[k] = nv
+            }
         }
         return out
     }
 
     static func overlayChipKeep(_ chip: String) -> Int {
         let u = chip.uppercased()
-        if u.hasPrefix("JUMP") || u.hasPrefix("LOCK") || u.hasPrefix("TWIN") || u.hasPrefix("NBR") { return 0 }
+        if u.hasPrefix("JUMP") || u.hasPrefix("LOCK") || u.hasPrefix("TWIN") || u.hasPrefix("NBR") || u.hasPrefix("HOLD") { return 0 }
         if u.hasPrefix("HASH") || u.hasPrefix("JPEG") { return 1 }
         return 2
     }
@@ -4457,13 +4509,31 @@ enum MatchMath {
         return committed == proposed
     }
 
+    /// Remint-Miss: proposed ≠ committed. Majority 3 Ticks Overlay, nicht sofort Gast.
+    static func leftoverPairCommitHold(
+        committed: UUID?,
+        proposed: UUID?,
+        miss: Int,
+        need: Int = leftoverMajorityNeed
+    ) -> Bool {
+        guard committed != nil, proposed != nil, committed != proposed else { return false }
+        return miss < need
+    }
+
+    static func leftoverPairCommitMissAdvance(prev: Int, keeps: Bool, hold: Bool) -> Int {
+        if keeps { return 0 }
+        if hold || prev >= leftoverMajorityNeed { return min(8, prev + 1) }
+        return 0
+    }
+
     static func leftoverAssignMajority(
         committed: UUID?,
         proposed: UUID?,
         lastProposed: UUID?,
         streak: Int,
         need: Int = leftoverMajorityNeed,
-        locked: Bool = false
+        locked: Bool = false,
+        commitMiss: Int = 0
     ) -> (commit: UUID?, last: UUID?, streak: Int, ready: Bool) {
         if locked {
             return (committed, lastProposed, 0, false)
@@ -4473,6 +4543,9 @@ enum MatchMath {
         }
         if leftoverPairCommitKeeps(committed: committed, proposed: proposed) {
             return (committed, proposed, 0, false)
+        }
+        if leftoverPairCommitHold(committed: committed, proposed: proposed, miss: commitMiss, need: need) {
+            return (committed, lastProposed, streak, false)
         }
         if lastProposed == proposed {
             let n = streak + 1
@@ -4487,6 +4560,12 @@ enum MatchMath {
     static func leftoverMajorityLabel(streak: Int, need: Int = leftoverMajorityNeed) -> String? {
         guard streak > 0, streak < need else { return nil }
         return "MAJ \(streak)/\(need)"
+    }
+
+    /// Remint-Miss Overlay. Majority-Label sonst lügt während Hold.
+    static func leftoverPairCommitHoldLabel(miss: Int, need: Int = leftoverMajorityNeed) -> String? {
+        guard miss > 0, miss < need else { return nil }
+        return "HOLD \(miss)/\(need)"
     }
 
     /// 24 fps: Print skip wenn Vision > 18 ms. 8 fps nie — leftover braucht den Print.

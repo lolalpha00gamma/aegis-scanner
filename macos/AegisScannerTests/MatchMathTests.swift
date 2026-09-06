@@ -2633,6 +2633,16 @@ enum MatchMathTests {
             stored: [(id: walkOld, x: 0.22)]
         )
         ok(pairId[walkNew] == walkNew, "Pair Value-Remint nach x-Rescue")
+        let twinDest = UUID()
+        let pairTwin = MatchMath.leftoverHoldRemintId(
+            hold: [walkOld: twinDest],
+            live: [(id: walkNew, x: 0.40)],
+            stored: [(id: walkOld, x: 0.22)]
+        )
+        ok(pairTwin[walkNew] == twinDest, "Remint Dest Twin hält")
+        ok(pairTwin[walkNew] != walkNew, "Remint Dest nicht self")
+        let destMap = MatchMath.leftoverUUIDUUIDMapRemintDest([walkOld: twinDest], remap: [walkOld: walkNew])
+        ok(destMap[walkNew] == twinDest, "RemintDest Map Twin")
         let rescueLive = MatchMath.leftoverAssignLive(scores: [[nil]], liveX: [0.40], holdX: [0.22])
         ok(rescueLive[0] == 0, "AssignLive x-Rescue 0,28")
         ok(
@@ -3233,12 +3243,12 @@ enum MatchMathTests {
         near(trailRemDec["ab#0"]?.at ?? 0, 8.50, 0.001, "Trail remaining restore")
         let trailStale = MatchMath.leftoverHashTrailDecode(["ab#0": [0.80]], now: 9.0)
         near(trailStale["ab#0"]?.at ?? 0, 9.0, 0.001, "Trail Schema 14 at=now")
-        let majA = UUID()
-        ok(MatchMath.leftoverPairCommitKeeps(committed: majA, proposed: majA), "PairCommit Keeps")
-        ok(!MatchMath.leftoverPairCommitKeeps(committed: majA, proposed: UUID()), "PairCommit Remint tot")
-        ok(!MatchMath.leftoverPairCommitKeeps(committed: nil, proposed: majA), "PairCommit nil tot")
-        let keepSame = MatchMath.leftoverAssignMajority(committed: majA, proposed: majA, lastProposed: nil, streak: 2)
-        ok(keepSame.commit == majA && !keepSame.ready, "PairCommit Majority hält")
+        let majKeep = UUID()
+        ok(MatchMath.leftoverPairCommitKeeps(committed: majKeep, proposed: majKeep), "PairCommit Keeps")
+        ok(!MatchMath.leftoverPairCommitKeeps(committed: majKeep, proposed: UUID()), "PairCommit Remint tot")
+        ok(!MatchMath.leftoverPairCommitKeeps(committed: nil, proposed: majKeep), "PairCommit nil tot")
+        let keepSame = MatchMath.leftoverAssignMajority(committed: majKeep, proposed: majKeep, lastProposed: nil, streak: 2)
+        ok(keepSame.commit == majKeep && !keepSame.ready, "PairCommit Majority hält")
         ok(MatchMath.leftoverHoldKalmanPredictOnly(ago: 0, liveEmpty: true), "PredictOnly Restore")
         ok(MatchMath.leftoverHoldKalmanPredictOnly(ago: 9, liveEmpty: true, ghostHeld: true), "PredictOnly Ghost")
         ok(MatchMath.leftoverHoldKalmanPredictOnly(ago: 9, liveEmpty: true, missCoast: true), "PredictOnly Miss")
@@ -3277,6 +3287,31 @@ enum MatchMathTests {
         ok(MatchMath.leftoverUUIDUUIDMapDecode(
             MatchMath.leftoverUUIDUUIDMapEncode([pairId: pairId])
         )[pairId] == pairId, "PairCommit dest==key roundtrip")
+        ok(MatchMath.leftoverPairCommitHold(committed: majKeep, proposed: UUID(), miss: 0), "Hold miss 0")
+        ok(MatchMath.leftoverPairCommitHold(committed: majKeep, proposed: UUID(), miss: 2), "Hold miss 2")
+        ok(!MatchMath.leftoverPairCommitHold(committed: majKeep, proposed: UUID(), miss: 3), "Hold miss 3 tot")
+        ok(!MatchMath.leftoverPairCommitHold(committed: majKeep, proposed: majKeep, miss: 0), "Keeps kein Hold")
+        ok(MatchMath.leftoverPairCommitMissAdvance(prev: 0, keeps: false, hold: true) == 1, "Miss Advance")
+        ok(MatchMath.leftoverPairCommitMissAdvance(prev: 0, keeps: true, hold: false) == 0, "Miss Keeps reset")
+        ok(MatchMath.leftoverPairCommitMissAdvance(prev: 3, keeps: false, hold: false) == 4, "Miss Latch")
+        let majHoldB = UUID()
+        let holdMaj = MatchMath.leftoverAssignMajority(
+            committed: majKeep, proposed: majHoldB, lastProposed: majHoldB, streak: 2, commitMiss: 1
+        )
+        ok(holdMaj.commit == majKeep && !holdMaj.ready, "Remint-Miss Majority hält")
+        let afterHold = MatchMath.leftoverAssignMajority(
+            committed: majKeep, proposed: majHoldB, lastProposed: majHoldB, streak: 2, commitMiss: 3
+        )
+        ok(afterHold.ready && afterHold.commit == majHoldB, "nach 3 Miss Majority")
+        ok(MatchMath.leftoverPairCommitHoldLabel(miss: 1) == "HOLD 1/3", "HOLD-Label")
+        ok(MatchMath.leftoverPairCommitHoldLabel(miss: 0) == nil, "HOLD 0 tot")
+        ok(MatchMath.leftoverPairCommitHoldLabel(miss: 3) == nil, "HOLD ready tot")
+        let binKey = MatchMath.leftoverHoldKey(id: kid, bin: 0)
+        ok(MatchMath.leftoverHoldBinsDecode([binKey: 0.70])[binKey] == 0.70, "Bins UUID.bin hält")
+        ok(MatchMath.leftoverHoldBinsDecode(["6.6.4.6#101": 0.81])["6.6.4.6"] == 0.81, "Bins Rank Rebase")
+        ok(MatchMath.leftoverHoldBinsDecode(["6.6.4.6#101": 0.81])["6.6.4.6#101"] == nil, "Bins Rank tot")
+        let trailBin = MatchMath.leftoverHoldTrailBinsDecode(["6.6.4.6#101": [0.80]])
+        ok(trailBin["6.6.4.6"] == [0.80] && trailBin["6.6.4.6#101"] == nil, "TrailBins Rank Rebase")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

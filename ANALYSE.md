@@ -1,3 +1,27 @@
+# Helios + Aegis — Analyse 2026-09-06 (2.1.150)
+
+Helios **1.5.139** (Build 158). Aegis **2.1.150 alpha** (Build 175). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.149: Pair dest==key persist, Occupied Twin-weg, KeepBoxes PredictOnly. leftoverHoldRemintId dest=self. Majority ohne Overlay nach Remint-Miss. Bins `#101` Decode roh. Jump Pref ohne HUD.
+
+## Warum Taufe und Restart nach 2.1.149 weiter rissen
+
+1. **leftoverHoldRemintId dest=self.** PairCommit Value = Live-self. Twin-proposed tot. Majority-Streak 0, Remint-Miss tauft Twin nach 3 Ticks neu.
+2. **leftoverAssignMajority nur Keeps.** committed ≠ proposed nach Remint: 3 Ticks Overlay fehlen, Gast-Taufe.
+3. **leftoverHoldBins `#101`.** leftoverHoldByHash rebase sitzt, Bins Decode roh. Rank nach Restore tot.
+4. **Jump Pref ohne Slider.** Continuity 8 fps Box 0,32–0,38, Pref 0,40 hart im HUD.
+
+## Was 2.1.150 ändert
+
+1. **leftoverHoldRemintId Dest.** leftoverHoldRemintMap + leftoverUUIDUUIDMapRemintDest. Twin-proposed hält.
+2. **leftoverPairCommitHold.** 3 Ticks Overlay, leftoverPairCommitMiss Latch, HOLD n/3.
+3. **leftoverHoldBinsDecode Rank-Rebase.** leftoverHoldKalmanJumpPref Slider 0,30–0,50.
+4. Tests + VERSION = Models = MARKETING 2.1.150 (Build 175). Schema 15 bleibt.
+
+Helios 1.5.139: ROI Thaw Same-Tick/Expand, FullAfter 24 fps, Bind Hands-First. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-06 (2.1.149)
 
 Helios **1.5.138** (Build 157). Aegis **2.1.149 alpha** (Build 174). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
