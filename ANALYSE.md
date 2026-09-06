@@ -1,3 +1,30 @@
+# Helios + Aegis — Analyse 2026-09-06 (2.1.140)
+
+Helios **1.5.130** (Build 149). Aegis **2.1.140 alpha** (Build 165). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.139: Rank Spatial Dist, HungarianX n=3, Hamming Solo, JPEG TTL Pref. leftoverStreakBox RAM-only. Kalman nach Remint tot. JPEG per UUID. Hungarian n>3 FillX. AssignLiveGate nur UserDefaults.
+
+## Warum Taufe und Restart nach 2.1.139 weiter rissen
+
+1. **leftoverStreakBox nicht persist.** Restart: Remint nur per Hash. x-Pad 18 cm tot ohne Box.
+2. **boxKalman nach Remint auf alter UUID.** keepBoxes filtert alt, Live hat kein Kalman — Box springt, Hash-Bin falsch.
+3. **JPEG-Probe per UUID.** Twin fallback `old.id` teilt die Probe. Spatial-Hash fehlte.
+4. **HungarianX n>3 → FillX greedy.** Drei-plus Crowd: 4. Person tot.
+5. **AssignLiveGate nur UserDefaults.** gallery.json.bak Restore setzt Gate 1, Crowd tauft.
+
+## Was 2.1.140 ändert
+
+1. **Schema 10 leftoverStreakBox persist.** Encode x/y/w/h. Restore wischt nicht.
+2. **leftoverHoldKalmanRemint + Reset.** IoU < 0,40 drop, Keep live UUIDs.
+3. **leftoverJpegProbeByHash.** Spatial-Key, Twin teilt nicht. Rank `#` strip.
+4. **leftoverAssignHungarianX n≤4.** 4. Person min-cost.
+5. **leftoverAssignLiveGate in gallery.json.** Restore + persist().
+6. Tests + VERSION = Models = MARKETING 2.1.140 (Build 165).
+
+Helios 1.5.130: Scale-Jump-Veto, Fill-Cap UUID, Slot-Kalman, DisplayLink Hz. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-06 (2.1.139)
 
 Helios **1.5.129** (Build 148). Aegis **2.1.139 alpha** (Build 164). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

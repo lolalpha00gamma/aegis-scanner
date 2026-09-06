@@ -87,7 +87,7 @@ enum MatchMath {
     static let geoVetoYawSkip = 0.28
     static let geoVetoYawPrint = 80.0
     /// gallery.json Schema neben printRevision. 9 = PairStreak/Commit + Streak + Seen remaining.
-    static let gallerySchema = 9
+    static let gallerySchema = 10
     /// Box-IoU unter dem Wert: Bewegung. Mit Schärfe: kleines Nicken darf den Print.
     static let holdStillIoU = 0.70
     static let holdStillSharp = 0.18
@@ -688,6 +688,38 @@ enum MatchMath {
     static func leftoverJpegProbeGet(_ stored: Double?) -> Double? {
         guard let stored, stored >= 0 else { return nil }
         return stored
+    }
+
+    /// Twin teilt sonst die UUID-Probe. Spatial-Key, Rank `#101` strip.
+    static func leftoverJpegProbeKey(_ hash: String) -> String {
+        leftoverHoldHashSpatial(hash)
+    }
+
+    static func leftoverJpegProbeLookup(
+        table: [String: (delta: Double, at: TimeInterval, cosine: Double)],
+        hash: String
+    ) -> (delta: Double, at: TimeInterval, cosine: Double)? {
+        let key = leftoverJpegProbeKey(hash)
+        guard !key.isEmpty else { return nil }
+        return table[key]
+    }
+
+    static func leftoverJpegProbeStore(
+        table: [String: (delta: Double, at: TimeInterval, cosine: Double)],
+        hash: String,
+        delta: Double?,
+        at: TimeInterval,
+        cosine: Double?
+    ) -> [String: (delta: Double, at: TimeInterval, cosine: Double)] {
+        let key = leftoverJpegProbeKey(hash)
+        guard !key.isEmpty else { return table }
+        var out = table
+        out[key] = (delta: leftoverJpegProbePut(delta), at: at, cosine: cosine ?? 0)
+        if out.count > leftoverHashHoldCapN {
+            let keep = out.sorted { $0.value.at > $1.value.at }.prefix(leftoverHashHoldCapN)
+            out = Dictionary(uniqueKeysWithValues: keep.map { ($0.key, $0.value) })
+        }
+        return out
     }
 
     /// Mehrheit UND 3 gleiche Ticks. Mehrheit allein springt Geschwister.
@@ -1430,7 +1462,7 @@ enum MatchMath {
         return out
     }
 
-    /// n≤3 min-cost. Greedy sperrt den nahen Twin und lässt Hold 0 tot (0,00/0,08 vs 0,04/0,20).
+    /// n≤4 min-cost. Greedy sperrt den nahen Twin und lässt Hold 0 tot (0,00/0,08 vs 0,04/0,20).
     static func leftoverAssignHungarianX(
         assigned: [Int?],
         liveX: [Double],
@@ -1445,7 +1477,7 @@ enum MatchMath {
         let n = holdX.count
         let m = liveX.count
         if n == 0 || m == 0 { return out }
-        if n > 3 || m > 3 {
+        if n > 4 || m > 4 {
             return leftoverAssignFillX(assigned: assigned, liveX: liveX, holdX: holdX, pad: pad, spread: spread)
         }
         var used = Set(out.prefix(n).compactMap { $0 })
@@ -1976,6 +2008,34 @@ enum MatchMath {
             out[row.id] = row.box
         }
         return out
+    }
+
+    static func leftoverStreakBoxEncode(_ boxes: [UUID: FaceBox]) -> [String: [Double]] {
+        Dictionary(uniqueKeysWithValues: boxes.map {
+            ($0.key.uuidString, [$0.value.x, $0.value.y, $0.value.width, $0.value.height])
+        })
+    }
+
+    static func leftoverStreakBoxDecode(_ raw: [String: [Double]]?) -> [UUID: FaceBox] {
+        guard let raw else { return [:] }
+        var out: [UUID: FaceBox] = [:]
+        for (k, v) in raw {
+            guard let id = UUID(uuidString: k), v.count >= 4 else { continue }
+            out[id] = FaceBox(x: v[0], y: v[1], width: v[2], height: v[3])
+        }
+        return out
+    }
+
+    /// Remint kopiert Kalman auf neue UUID. IoU-Sprung = Reset, sonst Box klebt am Ghost.
+    static func leftoverHoldKalmanResets(iou: Double?, jump: Double = leftoverIoUJump) -> Bool {
+        guard let iou else { return false }
+        return iou + 1e-12 < jump
+    }
+
+    static func leftoverHoldKalmanKeep<Value>(kalman: [UUID: Value], live: [UUID]) -> [UUID: Value] {
+        let keep = Set(live)
+        if keep.isEmpty { return [:] }
+        return kalman.filter { keep.contains($0.key) }
     }
 
     static func leftoverLiveHashTickWipes(empty: Bool) -> Bool { empty }

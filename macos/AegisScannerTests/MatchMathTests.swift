@@ -2999,6 +2999,41 @@ enum MatchMathTests {
             toRank: 1
         )
         ok(movedRank["6.6.4.6#101"] == 0.70 && movedRank["6.6.4.6"] == nil, "Rank-Key Move")
+        let boxId = UUID()
+        let boxEnc = MatchMath.leftoverStreakBoxEncode([
+            boxId: FaceBox(x: 0.20, y: 0.30, width: 0.10, height: 0.15)
+        ])
+        let boxDec = MatchMath.leftoverStreakBoxDecode(boxEnc)
+        near(boxDec[boxId]?.x ?? 0, 0.20, 0.001, "StreakBox persist x")
+        near(boxDec[boxId]?.height ?? 0, 0.15, 0.001, "StreakBox persist h")
+        ok(MatchMath.leftoverStreakBoxDecode(nil).isEmpty, "StreakBox nil")
+        ok(MatchMath.leftoverHoldKalmanResets(iou: 0.20), "Kalman Reset JUMP")
+        ok(!MatchMath.leftoverHoldKalmanResets(iou: 0.80), "Kalman Reset hält")
+        ok(!MatchMath.leftoverHoldKalmanResets(iou: nil), "Kalman Reset nil tot")
+        let kOld = UUID(), kNew = UUID()
+        let kRem = MatchMath.leftoverHoldRemint(
+            hold: [kOld: 1.0],
+            live: [(id: kNew, x: 0.11)],
+            stored: [(id: kOld, x: 0.10)]
+        )
+        ok(kRem[kNew] == 1.0, "Kalman Remint Value")
+        let kKeep = MatchMath.leftoverHoldKalmanKeep(kalman: [kOld: 1, kNew: 2], live: [kNew])
+        ok(kKeep[kNew] == 2 && kKeep[kOld] == nil, "Kalman Keep live")
+        var jpegTab: [String: (delta: Double, at: TimeInterval, cosine: Double)] = [:]
+        jpegTab = MatchMath.leftoverJpegProbeStore(
+            table: jpegTab, hash: "6.6.4.6#101", delta: 0.02, at: 1.0, cosine: 0.90
+        )
+        let jpegHit = MatchMath.leftoverJpegProbeLookup(table: jpegTab, hash: "6.6.4.6")
+        near(jpegHit?.delta ?? 1, 0.02, 0.001, "JPEG per Hash Spatial")
+        ok(MatchMath.leftoverJpegProbeLookup(table: jpegTab, hash: "5.5.4.6") == nil, "JPEG Twin teilt nicht")
+        ok(MatchMath.leftoverJpegProbeKey("6.6.4.6#101") == "6.6.4.6", "JPEG Key strip Rank")
+        let hun4 = MatchMath.leftoverAssignHungarianX(
+            assigned: [nil, nil, nil, nil],
+            liveX: [0.05, 0.25, 0.45, 0.65],
+            holdX: [0.00, 0.20, 0.40, 0.60],
+            pad: 0.12
+        )
+        ok(hun4[0] == 0 && hun4[1] == 1 && hun4[2] == 2 && hun4[3] == 3, "HungarianX n=4")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

@@ -1,4 +1,4 @@
-# Aegis **2.1.139 alpha**
+# Aegis **2.1.140 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.140 alpha
+
+StreakBox RAM-only nach Restart. Kalman auf alter UUID. JPEG-Probe Twin-Steal. Hungarian n>3 greedy. AssignLiveGate nur UserDefaults.
+
+- **Schema 10 leftoverStreakBox persist.** Restore wischt x nicht.
+- **leftoverHoldKalman Remint + Reset.** IoU < 0,40 drop.
+- **leftoverJpegProbeByHash.** Spatial-Key, Twin teilt nicht.
+- **leftoverAssignHungarianX n≤4.** AssignLiveGate in gallery.json.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.140 (Build 165).
 
 ## Neu in 2.1.139 alpha
 

@@ -171,6 +171,7 @@ final class LibraryStore: ObservableObject {
     private var leftoverJpegAt: [UUID: TimeInterval] = [:]
     private var leftoverJpegHash: [UUID: String] = [:]
     private var leftoverJpegCos: [UUID: Double] = [:]
+    private var leftoverJpegByHash: [String: (delta: Double, at: TimeInterval, cosine: Double)] = [:]
     private var leftoverEmptySince: TimeInterval?
     private var guestOrder: [UUID] = []
     private var guestSeenAt: [UUID: TimeInterval] = [:]
@@ -237,6 +238,10 @@ final class LibraryStore: ObservableObject {
             leftoverPairStreak = MatchMath.leftoverUUIDIntMapDecode(extra.leftoverPairStreak)
             leftoverPairCommit = MatchMath.leftoverUUIDUUIDMapDecode(extra.leftoverPairCommit)
             leftoverStreak = MatchMath.leftoverUUIDIntMapDecode(extra.leftoverStreak)
+            leftoverStreakBox = MatchMath.leftoverStreakBoxDecode(extra.leftoverStreakBox)
+            if let gate = extra.leftoverAssignLiveGate {
+                assignLiveGate = MatchMath.leftoverAssignLiveGateNeed(gate)
+            }
         }
         let lockStored = UserDefaults.standard.double(forKey: "aegis.nameLockSec")
         if lockStored > 0 {
@@ -313,7 +318,9 @@ final class LibraryStore: ObservableObject {
             leftoverHoldTrail: MatchMath.leftoverUUIDTrailEncode(leftoverHoldTrail),
             leftoverPairStreak: MatchMath.leftoverUUIDIntMapEncode(leftoverPairStreak),
             leftoverPairCommit: MatchMath.leftoverUUIDUUIDMapEncode(leftoverPairCommit),
-            leftoverStreak: MatchMath.leftoverUUIDIntMapEncode(leftoverStreak)
+            leftoverStreak: MatchMath.leftoverUUIDIntMapEncode(leftoverStreak),
+            leftoverStreakBox: MatchMath.leftoverStreakBoxEncode(leftoverStreakBox),
+            leftoverAssignLiveGate: assignLiveGate
         )
         if !liveActive {
             refreshMergeHint()
@@ -404,16 +411,23 @@ final class LibraryStore: ObservableObject {
         liveNameVoteAt = [:]
         tapNameLockUntil = [:]
         liveFaceStreak = 0
-        leftoverStreakBox = [:]
+        leftoverStreak = [:]
+        leftoverPairStreak = [:]
+        leftoverPairCommit = [:]
         leftoverPending = [:]
         if let extra = GalleryFile.loadBackupPayload() {
             leftoverPairStreak = MatchMath.leftoverUUIDIntMapDecode(extra.leftoverPairStreak)
             leftoverPairCommit = MatchMath.leftoverUUIDUUIDMapDecode(extra.leftoverPairCommit)
             leftoverStreak = MatchMath.leftoverUUIDIntMapDecode(extra.leftoverStreak)
+            leftoverStreakBox = MatchMath.leftoverStreakBoxDecode(extra.leftoverStreakBox)
+            if let gate = extra.leftoverAssignLiveGate {
+                assignLiveGate = MatchMath.leftoverAssignLiveGateNeed(gate)
+            }
         } else {
             leftoverStreak = [:]
             leftoverPairStreak = [:]
             leftoverPairCommit = [:]
+            leftoverStreakBox = [:]
         }
         boxKalman = [:]        boxKalmanV = [:]
         liveGhosts = []
@@ -1393,6 +1407,7 @@ final class LibraryStore: ObservableObject {
     func setAssignLiveGate(_ v: Int) {
         assignLiveGate = MatchMath.leftoverAssignLiveGateNeed(v)
         UserDefaults.standard.set(assignLiveGate, forKey: "aegis.assignLiveGate")
+        persist()
         status = assignLiveGate == 1 ? "AssignLive Solo 1" : "AssignLive Crowd \(assignLiveGate)"
     }
 
@@ -2766,6 +2781,18 @@ final class LibraryStore: ObservableObject {
         leftoverStreak = MatchMath.leftoverHoldRemint(hold: leftoverStreak, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys, pad: fillXPad, padRescue: fillXRescue)
         leftoverStreakBox = MatchMath.leftoverHoldRemint(hold: leftoverStreakBox, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys, pad: fillXPad, padRescue: fillXRescue)
         leftoverStreakSince = MatchMath.leftoverHoldRemint(hold: leftoverStreakSince, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys, pad: fillXPad, padRescue: fillXRescue)
+        boxKalman = MatchMath.leftoverHoldRemint(hold: boxKalman, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys, pad: fillXPad, padRescue: fillXRescue)
+        boxKalmanV = MatchMath.leftoverHoldRemint(hold: boxKalmanV, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys, pad: fillXPad, padRescue: fillXRescue)
+        for face in adopted {
+            if let k = boxKalman[face.id] {
+                let kb = FaceBox(x: k.x, y: k.y, width: k.w, height: k.h)
+                if MatchMath.leftoverHoldKalmanResets(iou: FaceEngine.iou(kb, face.box)) {
+                    boxKalmanDrop(face.id)
+                }
+            }
+        }
+        boxKalman = MatchMath.leftoverHoldKalmanKeep(kalman: boxKalman, live: adopted.map(\.id))
+        boxKalmanV = MatchMath.leftoverHoldKalmanKeep(kalman: boxKalmanV, live: adopted.map(\.id))
         let keepIds = Set(remintLive.map(\.id)).union(Set(identities.map(\.id)))
         leftoverPairLast = MatchMath.leftoverUUIDUUIDMapDropDangling(leftoverPairLast, keep: keepIds)
         leftoverPairCommit = MatchMath.leftoverUUIDUUIDMapDropDangling(leftoverPairCommit, keep: keepIds)
@@ -3285,7 +3312,20 @@ final class LibraryStore: ObservableObject {
                 if MatchMath.leftoverBaptize(cosine: pinCos), printReady {
                     let probeId = adopted[bestJ].id
                     let boxHash = leftoverLastHash[probeId] ?? leftoverLastHash[old.id]
-                    if MatchMath.leftoverJpegProbeReuse(
+                    if let boxHash,
+                       let hit = MatchMath.leftoverJpegProbeLookup(table: leftoverJpegByHash, hash: boxHash),
+                       MatchMath.leftoverJpegProbeReuse(
+                        now: now,
+                        last: hit.at,
+                        ttl: jpegProbeTTL,
+                        hash: boxHash,
+                        cachedHash: boxHash,
+                        cosine: pinCos,
+                        cachedCosine: hit.cosine
+                       )
+                    {
+                        jpegDelta = MatchMath.leftoverJpegProbeGet(hit.delta)
+                    } else if MatchMath.leftoverJpegProbeReuse(
                         now: now,
                         last: leftoverJpegAt[probeId] ?? leftoverJpegAt[old.id],
                         ttl: jpegProbeTTL,
@@ -3303,7 +3343,16 @@ final class LibraryStore: ObservableObject {
                         )
                         leftoverJpegDelta[probeId] = MatchMath.leftoverJpegProbePut(jpegDelta)
                         leftoverJpegAt[probeId] = now
-                        if let boxHash { leftoverJpegHash[probeId] = boxHash }
+                        if let boxHash {
+                            leftoverJpegHash[probeId] = boxHash
+                            leftoverJpegByHash = MatchMath.leftoverJpegProbeStore(
+                                table: leftoverJpegByHash,
+                                hash: boxHash,
+                                delta: jpegDelta,
+                                at: now,
+                                cosine: pinCos
+                            )
+                        }
                         if let pinCos { leftoverJpegCos[probeId] = pinCos }
                     }
                 }

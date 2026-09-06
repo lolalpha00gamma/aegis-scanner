@@ -29,6 +29,8 @@ struct GalleryPayload: Codable {
     var leftoverPairStreak: [String: Int]?
     var leftoverPairCommit: [String: String]?
     var leftoverStreak: [String: Int]?
+    var leftoverStreakBox: [String: [Double]]?
+    var leftoverAssignLiveGate: Int?
 }
 
 enum GalleryFile {
@@ -103,7 +105,9 @@ enum GalleryFile {
         leftoverHoldTrail: [String: [Double]]? = nil,
         leftoverPairStreak: [String: Int]? = nil,
         leftoverPairCommit: [String: String]? = nil,
-        leftoverStreak: [String: Int]? = nil
+        leftoverStreak: [String: Int]? = nil,
+        leftoverStreakBox: [String: [Double]]? = nil,
+        leftoverAssignLiveGate: Int? = nil
     ) {
         let enrolled = Set(identities.flatMap(\.faceIds))
         let payload = GalleryPayload(
@@ -125,7 +129,9 @@ enum GalleryFile {
             leftoverHoldTrail: leftoverHoldTrail,
             leftoverPairStreak: leftoverPairStreak,
             leftoverPairCommit: leftoverPairCommit,
-            leftoverStreak: leftoverStreak
+            leftoverStreak: leftoverStreak,
+            leftoverStreakBox: leftoverStreakBox,
+            leftoverAssignLiveGate: leftoverAssignLiveGate
         )
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]

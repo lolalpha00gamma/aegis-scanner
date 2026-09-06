@@ -1,3 +1,57 @@
+# Nachtrag 2026-09-06 (2.1.140)
+
+Siehe ANALYSE.md. **2.1.140** Schema 10 StreakBox persist, Kalman Remint/Reset, JPEG per Hash, HungarianX n=4, AssignLiveGate gallery.json.
+
+## In 2.1.140 gelandet
+
+1. leftoverStreakBoxEncode/Decode persist Schema 10
+2. leftoverHoldKalman Remint + Reset IoU 0,40 + Keep live
+3. leftoverJpegProbeByHash Spatial, Twin teilt nicht
+4. leftoverAssignHungarianX n≤4
+5. leftoverAssignLiveGate persist gallery.json
+6. VERSION = Models = MARKETING_VERSION 2.1.140 (Build 165)
+
+## Nächste, zusätzlich
+
+- leftoverHold TTL remaining analog NameLockUntil / Seen — leftoverHold ist Cosine, HashHold `at` startet nach Restore neu.
+- leftoverAssign n>4 Jonker-Volgenant, nicht nur HungarianX 4.
+- leftoverOccupiedMerge Hash-Key nach persist UUID-Restore.
+- leftoverLastIoU / leftoverSparkChipHeld persist (Mirror sitzt, gallery.json fehlt).
+- leftoverHoldSurvive vs leftoverHold persist Race nach App-Restart (Hold noch Epoch).
+- leftoverNameLockHeld ohne Until remaining nach Schema-7-Backup.
+- leftoverPairLast Value-Remint persist: dest tot nach Vision-Restart — DropDangling nach Remint.
+- leftoverHoldBins Rank `#101` nach Restore rebase analog leftoverHoldByHash (Bins sind UUID.bin).
+- leftoverCaptureHistByHash persist analog leftoverHoldTrailHash — Encode sitzt, Keep nur LastHash.
+- Hamming-Gewicht im Hash selbst, nicht nur Spatial-Strip `#`.
+- FaceEngine Detect auf outputQueue. JPEG-Reextract gegen denselben Buffer.
+- Hold-SM: Unseen / Tentative / Held / Named.
+- MatchMath split: Hold, Hash, Baptize, Assign.
+- Helios Frame-Pump, eine TCC. Shared XPC mit Helios 1.5.130.
+- Overlay 60 Hz CAMetalLayer, Detect 8–24 fps.
+- VNTrackObjectRequest statt nur Rectangles.
+- Temperature-skalierte Cosine statt hart 0,80 Baptize.
+- gallery.json.bak Rotate 3, printRevision je Identity.
+- Watch-Folder PhotoKit, Export `.aegis` verschlüsselt.
+- P-Slot Maske/Schal, Brille-Slot als Twin-Veto.
+- Temporal ReID-Graph über Hold-Trail (EMA Cap 4 ist Pflaster).
+- Per-Box CLAHE statt Full-Frame.
+- Continuity Desk-View yaw-floor 0,36.
+- Print-Bank 5 Pose-Slots. DBSCAN vor Merge.
+- RTSP 420f, Reconnect Exponential-Backoff.
+- Live-Centroid EMA Reset nach Vision-Restart.
+- leftoverHoldTrailByHash EMA analog UUID-Trail.
+- leftoverAssignHungarianX spread-Veto nach min-cost sitzt; Twin-Mitte 1-Live bleibt tot, 2-Live Unique hält.
+- leftoverJpegByHash persist in gallery.json analog leftoverLastHash.
+- leftoverHoldKalman persist (Remint sitzt, Restart tot).
+- leftoverHold miss-coast 1 Frame: Detect-Drop darf leftoverHoldSurvive nicht leeren.
+- leftoverJpegByHash persist analog leftoverLastHash — RAM-Cache tot nach Restart.
+- VNDetectFaceCaptureQuality als Baptize-Gate.
+- leftoverPairCommit Majority 3-Tick persist nach Value-Remint prüfen.
+
+Die historische Liste bis 2.1.139: ANALYSE.md. Review: `REVIEW-2.1.134.md`.
+
+Nur main.
+
 # Nachtrag 2026-09-06 (2.1.139)
 
 Siehe ANALYSE.md. **2.1.139** Rank Spatial Dist, Rebase Spatial-first, HungarianX n=3, Hamming Solo, RemintPad, Trail EMA, JPEG TTL Pref.
