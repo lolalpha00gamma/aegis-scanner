@@ -1761,7 +1761,7 @@ enum MatchMath {
             }
             used.insert(c)
         }
-        return leftoverAssignDropAmbiguous(
+        assigned = leftoverAssignDropAmbiguous(
             scores: scores,
             assigned: leftoverAssignHungarianX(
                 assigned: leftoverAssignHungarianX(
@@ -1775,6 +1775,93 @@ enum MatchMath {
                 pad: leftoverFillXRescuePref(pad)
             )
         )
+        return leftoverAssignPrintSteal2opt(assigned: assigned, printed: printed, scores: scores)
+    }
+
+    /// 1−IoU + 0,3·(1−print). X-Remint tauft Geschwister; Print darf stehlen.
+    static func leftoverAssignCost(iou: Double, printCos: Double?, printW: Double = 0.3) -> Double {
+        let i = max(0, min(1, iou))
+        let p = max(0, min(1, printCos ?? 0))
+        let w = max(0, min(1, printW))
+        return (1 - i) + w * (1 - p)
+    }
+
+    /// |Δx|/Pad → IoU. PrintW 0,3 verliert sonst gegen dx>Pad — Steal bleibt nötig.
+    static func leftoverAssignCostIoU(dx: Double, pad: Double) -> Double {
+        let p = max(1e-6, abs(pad))
+        return max(0, min(1, 1 - abs(dx) / p))
+    }
+
+    static func leftoverAssignPrintSteals(
+        remintCol: Int?,
+        printCol: Int?,
+        remintPrint: Double?,
+        printPrint: Double?,
+        gap: Double = 0.15
+    ) -> Bool {
+        guard let remintCol, let printCol else { return false }
+        if remintCol == printCol { return false }
+        let p = printPrint ?? -1
+        let r = remintPrint ?? -1
+        return p >= r + gap && p + 1e-12 >= leftoverPrintCosine
+    }
+
+    static func leftoverAssignPrintStealApply(
+        assigned: [Int?],
+        printed: [Int?],
+        scores: [[Double?]],
+        gap: Double = 0.15
+    ) -> [Int?] {
+        var out = assigned
+        let n = max(out.count, printed.count)
+        if out.count < n {
+            out += Array(repeating: Optional<Int>.none, count: n - out.count)
+        }
+        func score(_ r: Int, _ c: Int?) -> Double? {
+            guard let c, r < scores.count, c < scores[r].count else { return nil }
+            return scores[r][c]
+        }
+        for r in 0..<n {
+            let remintCol = out[r]
+            let printCol = r < printed.count ? printed[r] : nil
+            if leftoverAssignPrintSteals(
+                remintCol: remintCol,
+                printCol: printCol,
+                remintPrint: score(r, remintCol),
+                printPrint: score(r, printCol),
+                gap: gap
+            ), let pc = printCol {
+                if let other = out.enumerated().first(where: { $0.element == pc && $0.offset != r }) {
+                    out[other.offset] = remintCol
+                }
+                out[r] = pc
+            }
+        }
+        return out
+    }
+
+    /// Ein Pass lässt 3-Zyklus hängen wenn Zeile 0 nicht stiehlt. 2-opt bis Ruhe.
+    static func leftoverAssignPrintSteal2opt(
+        assigned: [Int?],
+        printed: [Int?],
+        scores: [[Double?]],
+        gap: Double = 0.15
+    ) -> [Int?] {
+        var out = assigned
+        var guardN = 0
+        var improved = true
+        while improved, guardN < 16 {
+            improved = false
+            guardN += 1
+            let nxt = leftoverAssignPrintStealApply(
+                assigned: out, printed: printed, scores: scores, gap: gap
+            )
+            if nxt != out {
+                out = nxt
+                improved = true
+            }
+        }
+        return out
     }
 
     /// AssignLive: Hash + Hold + PairLast in einem Schritt, sonst Desync.
@@ -5760,6 +5847,17 @@ enum MatchMath {
         return out
     }
 
+    /// Schema-7 Backup: Until leer darf Held nicht wischen — Restore-Arm sonst Gast.
+    /// Live-Tick: emptyKeeps false — Until leer nach Ablauf sonst Held-Leak.
+    static func leftoverNameLockHeldSurvive(
+        held: [UUID: String],
+        until: [UUID: TimeInterval],
+        emptyKeeps: Bool = true
+    ) -> [UUID: String] {
+        if until.isEmpty { return emptyKeeps ? held : [:] }
+        return held.filter { until[$0.key] != nil }
+    }
+
     static func leftoverUUIDUUIDMapEncode(_ table: [UUID: UUID]) -> [String: String] {
         Dictionary(uniqueKeysWithValues: table.map { ($0.key.uuidString, $0.value.uuidString) })
     }
@@ -5783,9 +5881,19 @@ enum MatchMath {
     static func leftoverUUIDUUIDMapDropHold(
         hold: Set<UUID>,
         ghosts: [UUID] = [],
-        missKeys: [UUID] = []
+        missKeys: [UUID] = [],
+        commitMiss: [UUID: Int] = [:]
     ) -> Set<UUID> {
-        hold.union(ghosts).union(missKeys)
+        var out = hold.union(ghosts).union(missKeys)
+        for (k, miss) in commitMiss where leftoverGhostHoldsCommit(miss: miss) {
+            out.insert(k)
+        }
+        return out
+    }
+
+    /// Overlay HOLD stirbt vor Ghost: PairCommit fällt, Majority tauft Tick 1.
+    static func leftoverGhostHoldsCommit(miss: Int, need: Int = leftoverMajorityNeed) -> Bool {
+        miss > 0 && miss < need
     }
 
     static func leftoverUUIDUUIDMapDropDangling(

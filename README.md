@@ -1,4 +1,4 @@
-# Aegis **2.1.154 alpha**
+# Aegis **2.1.156 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,23 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.156 alpha
+
+HeldSurvive auf Live-Tick hält abgelaufene Namen. Steal ein Pass hängt 3-Zyklus. Cost aus |Δx| stiehlt nicht.
+
+- **leftoverNameLockHeldSurvive emptyKeeps.** Decode Schema-7 hält, Live-Tick wischt.
+- **leftoverAssignPrintSteal2opt.** 3-Zyklus bis Ruhe. leftoverAssignCostIoU dokumentiert Steal.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.156 (Build 181). Schema 15 bleibt.
+
+## Neu in 2.1.155 alpha
+
+X-Remint tauft Geschwister. Overlay HOLD ohne Ghost fällt PairCommit. Schema-7 Until leer wischt Namen.
+
+- **leftoverAssignCost / leftoverAssignPrintSteals.** Print stiehlt Remint (Gap 0,15). Twin-nil bleibt.
+- **leftoverGhostHoldsCommit.** DropHold commitMiss hält PairCommit während HOLD.
+- **leftoverNameLockHeldSurvive.** Until leer hält Held.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.155 (Build 180). Schema 15 bleibt.
 
 ## Neu in 2.1.154 alpha
 

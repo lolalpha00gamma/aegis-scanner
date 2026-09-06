@@ -1,3 +1,49 @@
+# Helios + Aegis — Analyse 2026-09-06 (2.1.156)
+
+Helios **1.5.146** (Build 165). Aegis **2.1.156 alpha** (Build 181). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.155: Print-Steal, Ghost-HOLD, Held Survive. Survive auf Live-Tick: Until leer nach Ablauf hält Namen ewig. Steal ein Pass: 3-Zyklus hängt wenn Zeile 0 nicht stiehlt. leftoverAssignCost ungenutzt — PrintW 0,3 verliert gegen dx>Pad.
+
+## Warum Taufe nach 2.1.155 weiter riss
+
+1. **HeldSurvive Live emptyKeeps.** UntilRestore arm≥0,6 deckt Schema-7. Live-Tick Until leer = Lock abgelaufen, Survive hielt Held — Overlay-Namen Leak.
+2. **PrintSteal ein Pass.** 3-Zyklus [1,2,0]: Zeile 0 Gap tot, Zeile 1 stiehlt, Zeile 0 nie erneut. Majority tauft.
+3. **Cost aus |Δx|.** PrintW 0,3, dx>Pad → IoU 0, Cost ≥ 1. Steal bleibt der Override.
+
+## Was 2.1.156 ändert
+
+1. **leftoverNameLockHeldSurvive emptyKeeps.** Decode Schema-7 hält. Live-Tick Until leer wischt.
+2. **leftoverAssignPrintSteal2opt.** Bis 16 Pässe. 3-Zyklus landet.
+3. **leftoverAssignCostIoU.** |Δx|/Pad → IoU. Dokumentiert warum Steal bleibt.
+4. Tests + VERSION = Models = MARKETING 2.1.156 (Build 181). Schema 15 bleibt.
+
+Helios 1.5.146: Finger-Paare, Tip-Conf, Frozen-Write. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`. Pairwise-Heatmap, Identity-Merge Wizard, Drop-in `.mlmodel` bleiben auf der Liste.
+
+# Helios + Aegis — Analyse 2026-09-06 (2.1.155)
+
+Helios **1.5.145** (Build 164). Aegis **2.1.155 alpha** (Build 180). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.154: DropHold Ghosts+Miss, CI macos-15. Remint (x) zuerst — Print stiehlt keine Spalte. Geschwister bei Crowd taufen. Overlay HOLD stirbt, missCoast false, PairCommit fällt. Schema-7 Backup Until leer wischt Held.
+
+## Warum Taufe nach 2.1.154 weiter riss
+
+1. **leftoverAssignLive X-first.** Remint sperrt die Spalte. Print 0,82 vs Remint 0,40 darf nicht tauschen. Geschwister gleiche X.
+2. **DropHold missKeys nur missCoast.** Ghost-Overlay tot, PairCommitMiss 1–2, missCoast false — dest fällt, Majority tauft Tick 1.
+3. **NameLockHeld filter Until.** Schema-7 Backup Until leer: Held weg, Overlay Gast.
+
+## Was 2.1.155 ändert
+
+1. **leftoverAssignCost / leftoverAssignPrintSteals.** 1−IoU + 0,3·(1−print). Print stiehlt Remint wenn Gap ≥ 0,15 und ≥ leftoverPrintCosine. Twin-Veto-nil bleibt.
+2. **leftoverGhostHoldsCommit.** DropHold commitMiss hält PairCommit während HOLD 1/3 und 2/3, auch ohne Ghost.
+3. **leftoverNameLockHeldSurvive.** Until leer hält Held (Schema-7). Until gesetzt filtert.
+4. Tests + VERSION = Models = MARKETING 2.1.155 (Build 180). Schema 15 bleibt.
+
+Helios 1.5.145: Fingerkette hart, Conf-Gate, Chirality, ROI-Totpfad. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`. Pairwise-Heatmap, Identity-Merge Wizard, Drop-in `.mlmodel` bleiben auf der Liste.
+
 # Helios + Aegis — Analyse 2026-09-06 (2.1.154)
 
 Helios **1.5.144** (Build 163). Aegis **2.1.154 alpha** (Build 179). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

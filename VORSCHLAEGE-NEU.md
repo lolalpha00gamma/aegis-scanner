@@ -1,3 +1,114 @@
+# Nachtrag 2026-09-06 (2.1.156)
+
+Siehe ANALYSE.md. **2.1.156** Steal 2-opt, Held emptyKeeps, CostIoU.
+
+## In 2.1.156 gelandet
+
+1. leftoverNameLockHeldSurvive emptyKeeps — Decode hält, Live wischt
+2. leftoverAssignPrintSteal2opt — 3-Zyklus bis Ruhe
+3. leftoverAssignCostIoU — |Δx|/Pad, PrintW 0,3 dokumentiert
+4. VERSION = Models = MARKETING_VERSION 2.1.156 (Build 181)
+
+## Nächste, zusätzlich
+
+- leftoverAssign n>8 Jonker-Volgenant, nicht nur HungarianX 8 + wide FillX.
+- leftoverAssignHungarianX Cost = leftoverAssignCost mit **Box-IoU**, nicht |Δx|. PrintW 0,3 verliert gegen dx>Pad.
+- leftoverAssignCost printW 0,8 sobald echte CGRect-IoU sitzt — Steal dann überflüssig.
+- Hamming-Gewicht im Hash selbst, nicht nur Spatial-Strip `#`.
+- FaceEngine Detect auf outputQueue. JPEG-Reextract gegen denselben Buffer.
+- Hold-SM: Unseen / Tentative / Held / Named. MatchMath split: Hold, Hash, Baptize, Assign.
+- **Ein FaceTrack-Struct** statt leftover-Map-Stapel. leftoverHoldRemint 20× dieselben Args.
+- Helios Frame-Pump, eine TCC. Shared XPC / IOSurface mit Helios 1.5.146.
+- **Kamera-Mutex** mit Helios: Continuity 8 fps wenn beide Sessions. `helios.aegis.camera.lock`.
+- Overlay 60 Hz CAMetalLayer, Detect 8–24 fps.
+- VNTrackObjectRequest statt nur Rectangles.
+- Temperature-skalierte Cosine statt hart 0,80 Baptize.
+- Softmax über Galerie statt Argmax-Taufe — Open-Set Energy-Score.
+- Quality-Produkt Blur × Pose × Occlusion als Baptize-Gate, nicht OR.
+- gallery.json.bak Rotate 3, printRevision je Identity.
+- Watch-Folder PhotoKit, Export `.aegis` verschlüsselt.
+- P-Slot Maske/Schal, Brille-Slot als Twin-Veto.
+- Temporal ReID-Graph über Hold-Trail (EMA Cap 4 ist Pflaster).
+- Per-Box CLAHE statt Full-Frame.
+- Continuity Desk-View yaw-floor 0,36.
+- Print-Bank 5 Pose-Slots. DBSCAN vor Merge.
+- Aktive Enrollment-HUD: 3 Posen prompten statt Burst-Ingest.
+- RTSP 420f, Reconnect Exponential-Backoff.
+- VNDetectFaceCaptureQuality als Baptize-Gate — Sharpness AND Quality, nicht OR.
+- Continuity LiDAR depth als Box-Z.
+- Kleidungsfarbe als Weak-Track zwischen Face-Dropouts.
+- Time-of-day Prior (wer ist um 8 Uhr hier) als schwacher Track-Cue.
+- Identity-Graph: dieselbe Person über Tage, Trail-Cosine nicht nur Hold.
+- leftoverHoldKalmanJump Pref je Camera-UUID, nicht nur dt.
+- leftoverMajorityNeed 2 bei Webcam 24 fps, 3 bei Continuity 8 fps.
+- **Pairwise-Heatmap klickbar.** Labor-Zelle öffnet die beiden Fotos (`bugfix` 2.1.15).
+- **Identity-Merge Wizard** Centroid 0,89–0,94 — nicht still mergen (`bugfix`).
+- **Overlay-Name Mehrheit auch Standbilder** 3 Fotos derselben Datei (`bugfix`).
+- **Platt-Skalierung** Leave-one-out statt globaler Sigmoid (`bugfix`).
+- **Drop-in `.mlmodel`.** FaceEmbedder-Protokoll, Apple-Print default (`bugfix`).
+- **Ghost-TTL Pref** 1–8 Ticks, nicht hart MajorityNeed 3.
+
+`bugfix` 2.1.15 gelesen, nicht gemergt.
+
+Die historische Liste bis 2.1.155: ANALYSE.md. Review: `REVIEW-2.1.134.md`.
+
+Nur main.
+
+# Nachtrag 2026-09-06 (2.1.155)
+
+Siehe ANALYSE.md. **2.1.155** Print stiehlt Remint, Ghost-HOLD PairCommit, Held Survive.
+
+## In 2.1.155 gelandet
+
+1. leftoverAssignCost — 1−IoU + 0,3·(1−printCos)
+2. leftoverAssignPrintSteals / PrintStealApply — Gap 0,15, Floor leftoverPrintCosine, Twin-nil bleibt
+3. leftoverGhostHoldsCommit + DropHold commitMiss — Overlay HOLD ohne Ghost
+4. leftoverNameLockHeldSurvive — Schema-7 Until leer hält Namen
+5. VERSION = Models = MARKETING_VERSION 2.1.155 (Build 180)
+
+## Nächste, zusätzlich
+
+- leftoverAssign n>8 Jonker-Volgenant, nicht nur HungarianX 8 + wide FillX.
+- leftoverAssignHungarianX Cost = leftoverAssignCost, nicht nur |Δx|.
+- Hamming-Gewicht im Hash selbst, nicht nur Spatial-Strip `#`.
+- FaceEngine Detect auf outputQueue. JPEG-Reextract gegen denselben Buffer.
+- Hold-SM: Unseen / Tentative / Held / Named. MatchMath split: Hold, Hash, Baptize, Assign.
+- **Ein FaceTrack-Struct** statt leftover-Map-Stapel. leftoverHoldRemint 20× dieselben Args.
+- Helios Frame-Pump, eine TCC. Shared XPC / IOSurface mit Helios 1.5.145.
+- Overlay 60 Hz CAMetalLayer, Detect 8–24 fps.
+- VNTrackObjectRequest statt nur Rectangles.
+- Temperature-skalierte Cosine statt hart 0,80 Baptize.
+- Softmax über Galerie statt Argmax-Taufe — Open-Set Energy-Score.
+- Quality-Produkt Blur × Pose × Occlusion als Baptize-Gate, nicht OR.
+- gallery.json.bak Rotate 3, printRevision je Identity.
+- Watch-Folder PhotoKit, Export `.aegis` verschlüsselt.
+- P-Slot Maske/Schal, Brille-Slot als Twin-Veto.
+- Temporal ReID-Graph über Hold-Trail (EMA Cap 4 ist Pflaster).
+- Per-Box CLAHE statt Full-Frame.
+- Continuity Desk-View yaw-floor 0,36.
+- Print-Bank 5 Pose-Slots. DBSCAN vor Merge.
+- Aktive Enrollment-HUD: 3 Posen prompten statt Burst-Ingest.
+- RTSP 420f, Reconnect Exponential-Backoff.
+- VNDetectFaceCaptureQuality als Baptize-Gate — Sharpness AND Quality, nicht OR.
+- Continuity LiDAR depth als Box-Z.
+- Kleidungsfarbe als Weak-Track zwischen Face-Dropouts.
+- Time-of-day Prior (wer ist um 8 Uhr hier) als schwacher Track-Cue.
+- Identity-Graph: dieselbe Person über Tage, Trail-Cosine nicht nur Hold.
+- leftoverHoldKalmanJump Pref je Camera-UUID, nicht nur dt.
+- **Pairwise-Heatmap klickbar.** Labor-Zelle öffnet die beiden Fotos (`bugfix` 2.1.15).
+- **Identity-Merge Wizard** Centroid 0,89–0,94 — nicht still mergen (`bugfix`).
+- **Overlay-Name Mehrheit auch Standbilder** 3 Fotos derselben Datei (`bugfix`).
+- **Platt-Skalierung** Leave-one-out statt globaler Sigmoid (`bugfix`).
+- **Drop-in `.mlmodel`.** FaceEmbedder-Protokoll, Apple-Print default (`bugfix`).
+- **leftoverAssign n-cycle 2-opt** auch n=2 wenn Print-Steal und Remint widersprechen — Steal sitzt, 2-opt fehlt.
+- **Ghost-TTL Pref** 1–8 Ticks, nicht hart MajorityNeed 3.
+
+`bugfix` 2.1.15 gelesen, nicht gemergt.
+
+Die historische Liste bis 2.1.154: ANALYSE.md. Review: `REVIEW-2.1.134.md`.
+
+Nur main.
+
 # Nachtrag 2026-09-06 (2.1.154)
 
 Siehe ANALYSE.md. **2.1.154** DropHold Ghosts+Miss, CI macos-15 zuerst.

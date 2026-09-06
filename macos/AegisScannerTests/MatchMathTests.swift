@@ -3395,6 +3395,96 @@ enum MatchMathTests {
         ok(MatchMath.leftoverSparkChipTickKeeps(id: tickLive, live: [tickLive], hold: []), "Spark tick live")
         ok(MatchMath.leftoverSparkChipTickKeeps(id: tickHold, live: [], hold: [tickHold]), "Spark tick lastHash")
         ok(!MatchMath.leftoverSparkChipTickKeeps(id: UUID(), live: [tickLive], hold: [tickHold]), "Spark tick dangling tot")
+        near(MatchMath.leftoverAssignCost(iou: 1, printCos: 1), 0, 0.001, "Cost Perfect")
+        near(MatchMath.leftoverAssignCost(iou: 0, printCos: 0), 1.3, 0.001, "Cost tot")
+        near(MatchMath.leftoverAssignCost(iou: 0.70, printCos: 0.80), 0.36, 0.001, "Cost Mix")
+        ok(
+            MatchMath.leftoverAssignPrintSteals(
+                remintCol: 1, printCol: 0, remintPrint: 0.40, printPrint: 0.82
+            ),
+            "Print stiehlt Remint"
+        )
+        ok(
+            !MatchMath.leftoverAssignPrintSteals(
+                remintCol: 0, printCol: 0, remintPrint: 0.70, printPrint: 0.72
+            ),
+            "Print gleiche Spalte tot"
+        )
+        ok(
+            !MatchMath.leftoverAssignPrintSteals(
+                remintCol: 1, printCol: 0, remintPrint: 0.70, printPrint: 0.72
+            ),
+            "Print Gap tot"
+        )
+        ok(
+            !MatchMath.leftoverAssignPrintSteals(
+                remintCol: 1, printCol: 0, remintPrint: 0.10, printPrint: 0.50
+            ),
+            "Print unter Floor tot"
+        )
+        let stealScores: [[Double?]] = [[0.40, 0.82], [0.80, 0.41]]
+        let stolen = MatchMath.leftoverAssignPrintStealApply(
+            assigned: [0, 1],
+            printed: [1, 0],
+            scores: stealScores
+        )
+        ok(stolen[0] == 1 && stolen[1] == 0, "Steal Apply Swap")
+        let sib = MatchMath.leftoverAssignLive(
+            scores: [[0.40, 0.82], [0.80, 0.41]],
+            liveX: [0.20, 0.80],
+            holdX: [0.22, 0.78]
+        )
+        ok(sib[0] == 1, "AssignLive Print stiehlt Geschwister")
+        near(MatchMath.leftoverAssignCostIoU(dx: 0, pad: 0.12), 1, 0.001, "CostIoU dx0")
+        near(MatchMath.leftoverAssignCostIoU(dx: 0.12, pad: 0.12), 0, 0.001, "CostIoU Pad")
+        near(MatchMath.leftoverAssignCostIoU(dx: 0.06, pad: 0.12), 0.5, 0.001, "CostIoU halb")
+        let cycScores: [[Double?]] = [
+            [0.40, 0.82, 0.41],
+            [0.41, 0.40, 0.83],
+            [0.84, 0.42, 0.40]
+        ]
+        let cyc = MatchMath.leftoverAssignPrintSteal2opt(
+            assigned: [0, 1, 2],
+            printed: [1, 2, 0],
+            scores: cycScores
+        )
+        ok(cyc[0] == 1 && cyc[1] == 2 && cyc[2] == 0, "Steal 2opt 3-Zyklus")
+        ok(MatchMath.leftoverGhostHoldsCommit(miss: 1), "Ghost HOLD 1")
+        ok(MatchMath.leftoverGhostHoldsCommit(miss: 2), "Ghost HOLD 2")
+        ok(!MatchMath.leftoverGhostHoldsCommit(miss: 0), "Ghost HOLD 0 tot")
+        ok(!MatchMath.leftoverGhostHoldsCommit(miss: 3), "Ghost HOLD ready tot")
+        let commitId = UUID()
+        let commitHold = MatchMath.leftoverUUIDUUIDMapDropHold(
+            hold: [],
+            ghosts: [],
+            missKeys: [],
+            commitMiss: [commitId: 1]
+        )
+        ok(commitHold.contains(commitId), "DropHold Commit-Miss hält")
+        let commitReady = MatchMath.leftoverUUIDUUIDMapDropHold(
+            hold: [],
+            ghosts: [],
+            missKeys: [],
+            commitMiss: [commitId: 3]
+        )
+        ok(!commitReady.contains(commitId), "DropHold Commit ready tot")
+        let heldId = UUID()
+        let heldKeep = MatchMath.leftoverNameLockHeldSurvive(
+            held: [heldId: "Anna"],
+            until: [:]
+        )
+        ok(heldKeep[heldId] == "Anna", "Held Survive Until leer")
+        let heldDrop = MatchMath.leftoverNameLockHeldSurvive(
+            held: [heldId: "Anna", UUID(): "Bert"],
+            until: [heldId: 10]
+        )
+        ok(heldDrop[heldId] == "Anna" && heldDrop.count == 1, "Held Survive Until filter")
+        let heldLive = MatchMath.leftoverNameLockHeldSurvive(
+            held: [heldId: "Anna"],
+            until: [:],
+            emptyKeeps: false
+        )
+        ok(heldLive.isEmpty, "Held Live Until leer wischt")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

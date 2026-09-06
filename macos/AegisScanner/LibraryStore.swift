@@ -224,7 +224,10 @@ final class LibraryStore: ObservableObject {
             MatchMath.leftoverUUIDStringMapDecode(packed.leftoverLastHash)
         )
         leftoverHold = MatchMath.leftoverStreakSinceDecode(packed.leftoverHold)
-        leftoverNameLockHeld = MatchMath.leftoverUUIDStringMapDecode(packed.leftoverNameLockHeld)
+        leftoverNameLockHeld = MatchMath.leftoverNameLockHeldSurvive(
+            held: MatchMath.leftoverUUIDStringMapDecode(packed.leftoverNameLockHeld),
+            until: MatchMath.leftoverNameLockUntilDecode(packed.leftoverNameLockUntil, now: 0)
+        )
         leftoverPairLast = MatchMath.leftoverUUIDUUIDMapDecode(packed.leftoverPairLast)
         leftoverHoldTrail = MatchMath.leftoverUUIDTrailDecode(packed.leftoverHoldTrail)
         leftoverHoldByHash = MatchMath.leftoverHashRankRebase(leftoverHoldByHash)
@@ -474,7 +477,10 @@ final class LibraryStore: ObservableObject {
             MatchMath.leftoverUUIDStringMapDecode(packed.leftoverLastHash)
         )
         leftoverHold = MatchMath.leftoverStreakSinceDecode(packed.leftoverHold)
-        leftoverNameLockHeld = MatchMath.leftoverUUIDStringMapDecode(packed.leftoverNameLockHeld)
+        leftoverNameLockHeld = MatchMath.leftoverNameLockHeldSurvive(
+            held: MatchMath.leftoverUUIDStringMapDecode(packed.leftoverNameLockHeld),
+            until: MatchMath.leftoverNameLockUntilDecode(packed.leftoverNameLockUntil, now: 0)
+        )
         leftoverPairLast = MatchMath.leftoverUUIDUUIDMapDecode(packed.leftoverPairLast)
         leftoverHoldTrail = MatchMath.leftoverUUIDTrailDecode(packed.leftoverHoldTrail)
         leftoverNameLockUntil = MatchMath.leftoverNameLockUntilRestore(
@@ -2947,7 +2953,8 @@ final class LibraryStore: ObservableObject {
         let holdIds = MatchMath.leftoverUUIDUUIDMapDropHold(
             hold: Set(leftoverHold.keys),
             ghosts: ghostIds,
-            missKeys: missCoast ? Array(leftoverPairCommit.keys) + Array(leftoverPairLast.keys) : []
+            missKeys: missCoast ? Array(leftoverPairCommit.keys) + Array(leftoverPairLast.keys) : [],
+            commitMiss: leftoverPairCommitMiss
         )
         leftoverPairLast = MatchMath.leftoverUUIDUUIDMapDropDangling(leftoverPairLast, keep: keepIds, hold: holdIds)
         leftoverPairCommit = MatchMath.leftoverUUIDUUIDMapDropDangling(leftoverPairCommit, keep: keepIds, hold: holdIds)
@@ -2955,7 +2962,11 @@ final class LibraryStore: ObservableObject {
         let holdBefore = leftoverHold.count
         let lockedIds = MatchMath.leftoverNameLockLive(until: leftoverNameLockUntil, now: now)
         leftoverNameLockUntil = leftoverNameLockUntil.filter { lockedIds.contains($0.key) }
-        leftoverNameLockHeld = leftoverNameLockHeld.filter { leftoverNameLockUntil[$0.key] != nil }
+        leftoverNameLockHeld = MatchMath.leftoverNameLockHeldSurvive(
+            held: leftoverNameLockHeld,
+            until: leftoverNameLockUntil,
+            emptyKeeps: false
+        )
         leftoverHold = MatchMath.leftoverHoldSurvive(hold: leftoverHold, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)
         leftoverHoldBins = MatchMath.leftoverHoldSurviveBins(hold: leftoverHoldBins, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)
         leftoverHoldTrail = MatchMath.leftoverHoldSurvive(hold: leftoverHoldTrail, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)
