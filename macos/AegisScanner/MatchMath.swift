@@ -791,6 +791,42 @@ enum MatchMath {
         return voted
     }
 
+    /// Mehrheit < Need: Overlay „?“ statt Gast-Taufe.
+    static func leftoverUnsureChip(voted: String?, hist: [String], need: Int) -> String? {
+        let tokens = hist.filter { !$0.isEmpty }
+        if leftoverLiveNameHolds(tokens, need: need) != nil { return nil }
+        if tokens.isEmpty && voted == nil { return nil }
+        return "?"
+    }
+
+    static func cameraMutexOwnerHelios() -> String { "helios" }
+    static func cameraMutexOwnerAegis() -> String { "aegis" }
+    static func cameraMutexName() -> String { "helios.aegis.camera.lock" }
+    /// 3 s war kürzer als Continuity-Frame. Heartbeat 2 s, Stale 12.
+    static func cameraMutexStale() -> TimeInterval { 12 }
+
+    static func cameraMutexLine(owner: String, pid: Int32, now: TimeInterval) -> String {
+        "\(owner) \(pid) \(Int(now))"
+    }
+
+    static func cameraMutexParse(_ text: String, now: TimeInterval, stale: TimeInterval = cameraMutexStale()) -> String? {
+        let parts = text.split(whereSeparator: { $0 == " " || $0 == "\n" }).map(String.init)
+        guard parts.count >= 3, let stamp = TimeInterval(parts[2]) else { return nil }
+        if now - stamp > stale { return nil }
+        let owner = parts[0]
+        if owner != cameraMutexOwnerHelios() && owner != cameraMutexOwnerAegis() { return nil }
+        return owner
+    }
+
+    static func cameraMutexBlocks(holder: String?, owner: String) -> Bool {
+        guard let holder else { return false }
+        return holder != owner
+    }
+
+    static func cameraMutexYieldsContinuity(holder: String?, owner: String) -> Bool {
+        holder == cameraMutexOwnerHelios() && owner == cameraMutexOwnerAegis()
+    }
+
     /// Overlay: 3-Tick-Mittel wenn voll, sonst EMA.
     static func leftoverScoreTickOverlay(ema: Double, ticks: [Double]) -> Double {
         guard ticks.count >= 3, let mean = leftoverScoreTickMean(ticks) else { return ema }
@@ -822,18 +858,41 @@ enum MatchMath {
     }
 
     /// Overlay darf den Track halten. Taufe erst ab Pin-Print 0,80 — sonst erbt der Nachbar den Namen.
-    static func leftoverBaptize(cosine: Double?) -> Bool {
+    static func leftoverBaptizeFloor(continuity: Bool) -> Double {
+        continuity ? 0.76 : pinPrintCosine
+    }
+
+    static func leftoverBaptize(cosine: Double?, continuity: Bool = false) -> Bool {
         guard let cosine else { return false }
-        return cosine >= pinPrintCosine
+        return cosine >= leftoverBaptizeFloor(continuity: continuity)
+    }
+
+    static let leftoverBaptizeQualityFloor = 0.18
+
+    static func leftoverBaptizeQualityFloorOf(continuity: Bool) -> Double {
+        continuity ? 0.06 : leftoverBaptizeQualityFloor
+    }
+
+    /// Produkt Blur × Pose. Blink = 0. OR-Gates allein ließen weichen Blur + leichten Yaw durch.
+    static func leftoverBaptizeQualityProduct(sharpness: Double?, yawAbs: Double?, blink: Bool = false) -> Double {
+        if blink { return 0 }
+        let s = max(0, min(1, sharpness ?? 1))
+        let pose: Double
+        if let y = yawAbs {
+            pose = max(0, 1 - y / leftoverPrintProfileYaw)
+        } else {
+            pose = 1
+        }
+        return s * pose
     }
 
     /// Taufe roh ≥ 0,80 UND smooth ≥ 0,80. nil Smooth ist Dropout, nicht Taufe.
     /// Qualität: Blur / Blink / Profil sperren — Poster und Lid-Schluss taufen sonst den Nachbarn.
-    static func leftoverBaptizeQuality(sharpness: Double? = nil, yawAbs: Double? = nil, blink: Bool = false) -> Bool {
+    static func leftoverBaptizeQuality(sharpness: Double? = nil, yawAbs: Double? = nil, blink: Bool = false, continuity: Bool = false) -> Bool {
         if blink { return false }
         if let y = yawAbs, y >= leftoverPrintProfileYaw { return false }
-        if let s = sharpness, s < sharpnessFloor { return false }
-        return true
+        if let s = sharpness, s < activeSharpnessFloor(continuity: continuity) { return false }
+        return leftoverBaptizeQualityProduct(sharpness: sharpness, yawAbs: yawAbs, blink: blink) + 1e-12 >= leftoverBaptizeQualityFloorOf(continuity: continuity)
     }
 
     static func leftoverBaptizeBoth(
@@ -841,11 +900,12 @@ enum MatchMath {
         smooth: Double?,
         sharpness: Double? = nil,
         yawAbs: Double? = nil,
-        blink: Bool = false
+        blink: Bool = false,
+        continuity: Bool = false
     ) -> Bool {
-        leftoverBaptize(cosine: raw)
-            && leftoverBaptize(cosine: smooth)
-            && leftoverBaptizeQuality(sharpness: sharpness, yawAbs: yawAbs, blink: blink)
+        leftoverBaptize(cosine: raw, continuity: continuity)
+            && leftoverBaptize(cosine: smooth, continuity: continuity)
+            && leftoverBaptizeQuality(sharpness: sharpness, yawAbs: yawAbs, blink: blink, continuity: continuity)
     }
 
     static func leftoverBaptizeGate(
@@ -855,9 +915,10 @@ enum MatchMath {
         yawAbs: Double? = nil,
         blink: Bool = false,
         jpegDelta: Double? = nil,
-        jpegRequired: Bool = false
+        jpegRequired: Bool = false,
+        continuity: Bool = false
     ) -> Bool {
-        leftoverBaptizeBoth(raw: raw, smooth: smooth, sharpness: sharpness, yawAbs: yawAbs, blink: blink)
+        leftoverBaptizeBoth(raw: raw, smooth: smooth, sharpness: sharpness, yawAbs: yawAbs, blink: blink, continuity: continuity)
             && leftoverBaptizeJpegOk(jpegDelta, required: jpegRequired)
     }
 
@@ -865,10 +926,11 @@ enum MatchMath {
     static func leftoverBaptizeSpike(
         raw: Double?,
         prev: Double?,
-        spike: Double = leftoverHoldSpike
+        spike: Double = leftoverHoldSpike,
+        continuity: Bool = false
     ) -> Bool {
-        guard leftoverBaptize(cosine: raw), let prev else { return false }
-        if leftoverBaptize(cosine: prev) { return false }
+        guard leftoverBaptize(cosine: raw, continuity: continuity), let prev else { return false }
+        if leftoverBaptize(cosine: prev, continuity: continuity) { return false }
         return raw! - prev + 1e-9 >= spike
     }
 
@@ -890,22 +952,23 @@ enum MatchMath {
         iou: Double? = nil,
         jpegRequired: Bool = false,
         nameLockUntil: TimeInterval? = nil,
-        jump: Double = leftoverIoUJump
+        jump: Double = leftoverIoUJump,
+        continuity: Bool = false
     ) -> Bool {
         if tapNameLockBlocks(until: tapUntil, now: now) { return false }
         if leftoverNameLockBlocks(until: nameLockUntil, now: now) { return false }
-        if leftoverBaptizeStillBlocks(stillFor: stillFor, cosine: cosine, holdPrev: holdPrev) { return false }
+        if leftoverBaptizeStillBlocks(stillFor: stillFor, cosine: cosine, holdPrev: holdPrev, continuity: continuity) { return false }
         if leftoverIoUJumpBlocks(iou, jump: jump) { return false }
-        guard leftoverBaptize(cosine: cosine) else { return false }
-        if !leftoverBaptizeQuality(sharpness: sharpness, yawAbs: yawAbs, blink: blink) { return false }
+        guard leftoverBaptize(cosine: cosine, continuity: continuity) else { return false }
+        if !leftoverBaptizeQuality(sharpness: sharpness, yawAbs: yawAbs, blink: blink, continuity: continuity) { return false }
         if !leftoverBaptizeJpegOk(jpegDelta, required: jpegRequired) { return false }
         if printMADBlocks(trail) { return false }
         let trailMean: Double? = trail.isEmpty ? nil : trail.reduce(0, +) / Double(trail.count)
-        if leftoverBaptizeSpike(raw: cosine, prev: holdPrev) {
-            let n = trail.filter { leftoverBaptize(cosine: $0) }.count
-            return n >= 3 && leftoverBaptizeGate(raw: cosine, smooth: trailMean, sharpness: sharpness, yawAbs: yawAbs, blink: blink, jpegDelta: jpegDelta, jpegRequired: jpegRequired)
+        if leftoverBaptizeSpike(raw: cosine, prev: holdPrev, continuity: continuity) {
+            let n = trail.filter { leftoverBaptize(cosine: $0, continuity: continuity) }.count
+            return n >= 3 && leftoverBaptizeGate(raw: cosine, smooth: trailMean, sharpness: sharpness, yawAbs: yawAbs, blink: blink, jpegDelta: jpegDelta, jpegRequired: jpegRequired, continuity: continuity)
         }
-        return leftoverBaptizeGate(raw: cosine, smooth: holdPrev, sharpness: sharpness, yawAbs: yawAbs, blink: blink, jpegDelta: jpegDelta, jpegRequired: jpegRequired)
+        return leftoverBaptizeGate(raw: cosine, smooth: holdPrev, sharpness: sharpness, yawAbs: yawAbs, blink: blink, jpegDelta: jpegDelta, jpegRequired: jpegRequired, continuity: continuity)
     }
 
     static let leftoverBaptizeStillNeed: TimeInterval = 0.45
@@ -914,15 +977,16 @@ enum MatchMath {
     static func leftoverBaptizeStillBlocks(
         stillFor: TimeInterval,
         cosine: Double?,
-        holdPrev: Double?
+        holdPrev: Double?,
+        continuity: Bool = false
     ) -> Bool {
-        guard leftoverBaptize(cosine: cosine) else { return false }
+        guard leftoverBaptize(cosine: cosine, continuity: continuity) else { return false }
         if leftoverPrintOk(cosine: holdPrev) { return false }
         return stillFor < leftoverBaptizeStillNeed
     }
 
-    static func leftoverWipeHist(cosine: Double?) -> Bool {
-        !leftoverBaptize(cosine: cosine)
+    static func leftoverWipeHist(cosine: Double?, continuity: Bool = false) -> Bool {
+        !leftoverBaptize(cosine: cosine, continuity: continuity)
     }
 
     /// Leftover darf Genuine 0,62–0,79 halten. Pin-Print 0,80 bleibt für enrolled IoU-Steal.
@@ -2269,10 +2333,51 @@ enum MatchMath {
             padRescue: padRescue
         )
         var remap: [UUID: UUID] = [:]
-        for (liveId, storedId) in moved {
+        for (liveId, storedId) in moved where liveId != storedId {
             remap[storedId] = liveId
         }
         return remap
+    }
+
+    /// Ein Plan für alle Hold-Maps. 20× leftoverHoldRemint sonst Hold A→C und Streak B→C.
+    static func leftoverHoldRemintApply<Value>(hold: [UUID: Value], remap: [UUID: UUID]) -> [UUID: Value] {
+        guard !remap.isEmpty else { return hold }
+        var out = hold
+        for (stored, live) in remap where stored != live {
+            if let v = hold[stored] {
+                out[live] = v
+            }
+        }
+        return out
+    }
+
+    static func leftoverHoldRemintApplyId(hold: [UUID: UUID], remap: [UUID: UUID]) -> [UUID: UUID] {
+        var out = leftoverHoldRemintApply(hold: hold, remap: remap)
+        for (k, v) in out {
+            if let nv = remap[v], nv != v {
+                out[k] = nv
+            }
+        }
+        return out
+    }
+
+    static func leftoverHoldRemintKeys(_ maps: [Set<UUID>]) -> Set<UUID> {
+        var s = Set<UUID>()
+        for m in maps { s.formUnion(m) }
+        return s
+    }
+
+    /// Bin-Keys `UUID.bin` denselben Plan. 2× leftoverHoldRemintBins sonst Hold A→C, Bin B→C.
+    static func leftoverHoldRemintApplyBins<Value>(hold: [String: Value], remap: [UUID: UUID]) -> [String: Value] {
+        guard !remap.isEmpty else { return hold }
+        var out = hold
+        for (stored, live) in remap where stored != live {
+            for (key, v) in hold {
+                guard leftoverHoldId(from: key) == stored, let bin = leftoverHoldBinFromKey(key) else { continue }
+                out[leftoverHoldKey(id: live, bin: bin)] = v
+            }
+        }
+        return out
     }
 
     static func leftoverUUIDUUIDMapRemintDest(_ table: [UUID: UUID], remap: [UUID: UUID]) -> [UUID: UUID] {
@@ -2729,11 +2834,28 @@ enum MatchMath {
         live: Set<UUID>,
         hold: Set<UUID> = [],
         lastHash: String? = nil,
-        liveHash: Set<String> = []
+        liveHash: Set<String> = [],
+        hashTable: [String: String] = [:]
     ) -> Bool {
         if live.contains(id) || hold.contains(id) { return true }
-        guard let lastHash, !lastHash.isEmpty, !liveHash.isEmpty else { return false }
-        return liveHash.contains(lastHash)
+        guard let lastHash, !lastHash.isEmpty else { return false }
+        if !liveHash.isEmpty, liveHash.contains(lastHash) { return true }
+        return hashTable[lastHash] != nil && !liveHash.isEmpty
+    }
+
+    static func leftoverSparkChipHashPut(table: [String: String], hash: String?, chip: String?) -> [String: String] {
+        guard let hash, !hash.isEmpty, let chip, !chip.isEmpty else { return table }
+        var out = table
+        out[hash] = chip
+        if out.count > 64, let first = out.keys.first {
+            out.removeValue(forKey: first)
+        }
+        return out
+    }
+
+    static func leftoverSparkChipHashGet(table: [String: String], hash: String?) -> String? {
+        guard let hash, !hash.isEmpty else { return nil }
+        return table[hash]
     }
 
     /// Remint-Miss: Chip unter alter UUID, Overlay liest Live. Gleiches Hash → Live-UUID.
@@ -4837,14 +4959,15 @@ enum MatchMath {
         iou: Double? = nil,
         jpegRequired: Bool = false,
         nameLockUntil: TimeInterval? = nil,
-        jump: Double = leftoverIoUJump
+        jump: Double = leftoverIoUJump,
+        continuity: Bool = false
     ) -> Bool {
         if leftoverIoUJumpBlocks(iou, jump: jump) { return false }
         if leftoverNameLockBlocks(until: nameLockUntil, now: now) { return true }
         return leftoverPrintOk(cosine: cosine, sharpness: sharpness) && !leftoverTransfersId(
             cosine: cosine, holdPrev: holdPrev, trail: trail, tapUntil: tapUntil, now: now, stillFor: stillFor,
             sharpness: sharpness, yawAbs: yawAbs, blink: blink, jpegDelta: jpegDelta, iou: iou,
-            jpegRequired: jpegRequired, nameLockUntil: nameLockUntil, jump: jump
+            jpegRequired: jpegRequired, nameLockUntil: nameLockUntil, jump: jump, continuity: continuity
         )
     }
 

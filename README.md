@@ -1,4 +1,4 @@
-# Aegis **2.1.157 alpha**
+# Aegis **2.1.158 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.158 alpha
+
+20× leftoverHoldRemint divergiert (Hold A→C, Streak B→C). Spark nur UUID. Taufe 0,80 tot auf Continuity. Quality OR. Gast statt Unsure. Kamera-Streit mit Helios.
+
+- **leftoverHoldRemintMap einmal + Apply.** Ein Plan für alle Hold-Maps.
+- **leftoverSparkChipHash** hash→chip. TickKeeps liest die Tabelle.
+- **leftoverBaptizeQualityProduct** Blur × Pose. **leftoverBaptizeFloor(continuity)** 0,76.
+- **leftoverUnsureChip** `?`. **cameraMutex** — Aegis weicht Helios.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.158 (Build 183). Schema 15 bleibt.
 
 ## Neu in 2.1.157 alpha
 

@@ -1032,14 +1032,14 @@ struct FaceOverlay: View {
             let hold = store.leftoverHoldChip(faceId: faceId, yawAbs: yawAbs) ?? MatchMath.unknownRejectNote()
             if let spark = store.leftoverSparkChip(faceId: faceId, yawAbs: yawAbs) {
                 if let gate = store.leftoverGateChip(faceId: faceId) {
-                    return "\(store.guestName(for: faceId)) · \(hold) · \(spark) · \(gate)"
+                    return "\(store.leftoverOverlayGuest(for: faceId)) · \(hold) · \(spark) · \(gate)"
                 }
-                return "\(store.guestName(for: faceId)) · \(hold) · \(spark)"
+                return "\(store.leftoverOverlayGuest(for: faceId)) · \(hold) · \(spark)"
             }
             if let gate = store.leftoverGateChip(faceId: faceId) {
-                return "\(store.guestName(for: faceId)) · \(hold) · \(gate)"
+                return "\(store.leftoverOverlayGuest(for: faceId)) · \(hold) · \(gate)"
             }
-            return "\(store.guestName(for: faceId)) · \(hold)"
+            return "\(store.leftoverOverlayGuest(for: faceId)) · \(hold)"
         }
         if pinned, let owner {
             let held = store.liveHeldIds.contains(faceId)

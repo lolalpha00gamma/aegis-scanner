@@ -1,3 +1,32 @@
+# Helios + Aegis — Analyse 2026-09-06 (2.1.158)
+
+Helios **1.5.149** (Build 168). Aegis **2.1.158 alpha** (Build 183). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.157: MissCoast return, Spark Hash-Rebind. leftoverHoldRemint 20× dieselben Args — Hold A→C, Streak B→C. Spark Chip nur UUID. Taufe hart 0,80 auf Continuity 8 fps. Overlay Gast statt Unsure. Helios+Aegis reißen Continuity.
+
+## Warum Taufe nach 2.1.157 weiter riss
+
+1. **20× leftoverHoldRemint.** Jede Map matched allein. Hold remintet A→C, Streak remintet B→C. Namen-Leak, PairCommit fällt.
+2. **Spark Chip UUID-only.** Hash-Rebind sitzt RAM-Tick. Restart / Remint-Miss: Chip tot, Gast-Flash.
+3. **Taufe 0,80 hart.** Continuity Laplacian 0,10–0,14, Print 0,76–0,79 hält ewig Unbekannt.
+4. **Quality OR.** Blur-Gate und Yaw-Gate unabhängig. Weicher Blur + 12° Yaw tauft.
+5. **Kein Unsure-Chip.** Mehrheit < Need = Overlay Gast. Majority tauft Tick 1.
+6. **Kamera ohne Mutex.** Helios hält Continuity, Aegis startet dieselbe Session — 8 fps.
+
+## Was 2.1.158 ändert
+
+1. **leftoverHoldRemintMap einmal**, Apply auf alle Hold-Maps **und Bins**. Identity-Skip im Remap (sonst Dictionary-Order schreibt stored→stored über stored→live).
+2. **leftoverSparkChipHashPut/Get.** hash→chip neben UUID. TickKeeps liest die Tabelle.
+3. **leftoverBaptizeFloor(continuity)** 0,76 / 0,80 — **durch TransfersId / HoldsTrack / WipeHist verdrahtet**, nicht nur Math.
+4. **leftoverBaptizeQualityProduct** Blur × Pose. Continuity Floor 0,06 (Webcam 0,18). Blink 0.
+5. **leftoverUnsureChip** `?` **in ContentView overlayName** statt Gast.
+6. **cameraMutex** — Yield **vor** Auto-Early-Return (war tot). Aegis überschreibt Helios-Lock nicht. Heartbeat 2 s, Stale 12 s.
+7. Tests + VERSION = Models = MARKETING 2.1.158 (Build 183). Schema 15 bleibt.
+
+Helios 1.5.149: DisplayPulse je Screen + Cursor-Gate, MCP-Fächer, Bind-EMA, Mutex-Heartbeat. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`. Pairwise-Heatmap, Identity-Merge Wizard, Drop-in `.mlmodel` bleiben auf der Liste.
+
 # Helios + Aegis — Analyse 2026-09-06 (2.1.157)
 
 Helios **1.5.147** (Build 166). Aegis **2.1.157 alpha** (Build 182). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

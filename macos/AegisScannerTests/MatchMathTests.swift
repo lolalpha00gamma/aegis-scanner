@@ -3536,6 +3536,55 @@ enum MatchMathTests {
             ) == hashOld,
             "Spark dest mismatch hält alt"
         )
+        let oldId = UUID()
+        let liveId = UUID()
+        let remap = [oldId: liveId]
+        let hold = [oldId: 0.72]
+        let applied = MatchMath.leftoverHoldRemintApply(hold: hold, remap: remap)
+        ok(applied[liveId] == 0.72, "RemintApply kopiert Value")
+        ok(applied[oldId] == 0.72, "RemintApply hält Source")
+        let pairHold = [oldId: oldId]
+        let pairOut = MatchMath.leftoverHoldRemintApplyId(hold: pairHold, remap: remap)
+        ok(pairOut[liveId] == liveId, "RemintApplyId Value+Key")
+        var hashTab: [String: String] = [:]
+        hashTab = MatchMath.leftoverSparkChipHashPut(table: hashTab, hash: "ab12", chip: "BIN 3")
+        ok(MatchMath.leftoverSparkChipHashGet(table: hashTab, hash: "ab12") == "BIN 3", "Spark Hash persist")
+        ok(
+            MatchMath.leftoverSparkChipTickKeeps(
+                id: UUID(), live: [liveId], hold: [], lastHash: "ab12", liveHash: ["ab12"], hashTable: hashTab
+            ),
+            "Spark tick hashTable"
+        )
+        ok(MatchMath.leftoverBaptizeQualityProduct(sharpness: 0.40, yawAbs: 0.10) > 0.25, "Quality-Produkt frontal")
+        ok(MatchMath.leftoverBaptizeQualityProduct(sharpness: 0.40, yawAbs: 0.10, blink: true) == 0, "Quality Blink 0")
+        ok(MatchMath.leftoverBaptizeFloor(continuity: true) == 0.76, "Taufe Continuity 0,76")
+        ok(MatchMath.leftoverBaptizeFloor(continuity: false) == 0.80, "Taufe Webcam 0,80")
+        ok(MatchMath.leftoverBaptize(cosine: 0.77, continuity: true), "Continuity 0,77 tauft")
+        ok(!MatchMath.leftoverBaptize(cosine: 0.77, continuity: false), "Webcam 0,77 tot")
+        ok(MatchMath.leftoverUnsureChip(voted: "Ada", hist: ["Ada", "Ada"], need: 3) == "?", "Unsure Chip")
+        ok(MatchMath.leftoverUnsureChip(voted: "Ada", hist: ["Ada", "Ada", "Ada"], need: 3) == nil, "Unsure tot nach Need")
+        ok(MatchMath.leftoverUnsureChip(voted: nil, hist: ["", ""], need: 3) == nil, "Unsure Mute leer")
+        let lockLine = MatchMath.cameraMutexLine(owner: "helios", pid: 9, now: 50)
+        ok(MatchMath.cameraMutexParse(lockLine, now: 51) == "helios", "Mutex Helios")
+        ok(MatchMath.cameraMutexParse(lockLine, now: 60, stale: 3) == nil, "Mutex stale 3")
+        ok(MatchMath.cameraMutexParse(lockLine, now: 61) == "helios", "Mutex 12 s hält")
+        ok(MatchMath.cameraMutexYieldsContinuity(holder: "helios", owner: "aegis"), "Aegis weicht")
+        ok(!MatchMath.cameraMutexYieldsContinuity(holder: "aegis", owner: "helios"), "Helios weicht nicht")
+        let mapA = UUID()
+        let mapC = UUID()
+        let remapPlan = MatchMath.leftoverHoldRemintMap(
+            live: [(id: mapC, x: 0.20)],
+            stored: [(id: mapA, x: 0.20)],
+            holdKeys: [mapA]
+        )
+        ok(remapPlan[mapA] == mapC, "RemintMap stored→live")
+        ok(remapPlan[mapC] == nil, "RemintMap skip identity")
+        let binKey = MatchMath.leftoverHoldKey(id: oldId, bin: 0)
+        let binsApplied = MatchMath.leftoverHoldRemintApplyBins(hold: [binKey: 0.64], remap: remap)
+        ok(binsApplied[MatchMath.leftoverHoldKey(id: liveId, bin: 0)] == 0.64, "RemintApplyBins")
+        ok(MatchMath.leftoverBaptizeQuality(sharpness: 0.10, yawAbs: 0, continuity: true), "Continuity quality 0,10")
+        ok(!MatchMath.leftoverBaptizeQuality(sharpness: 0.10, yawAbs: 0, continuity: false), "Webcam quality 0,10 tot")
+        ok(MatchMath.leftoverBaptize(cosine: 0.77, continuity: true), "Continuity Transfer-Floor")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

@@ -46,6 +46,8 @@ final class LiveCapture: NSObject {
     private(set) var isContinuity = false
     private(set) var formatChip = ""
     var choice: CameraChoice = .auto
+    private var cameraMutexYielded = false
+    private var mutexBeat: Timer?
 
     static func orientKey(_ uniqueID: String) -> String { "aegis.camOrient.\(uniqueID)" }
 
@@ -108,6 +110,9 @@ final class LiveCapture: NSObject {
         if let s {
             outputQueue.async { s.stopRunning() }
         }
+        mutexBeat?.invalidate()
+        mutexBeat = nil
+        releaseCameraMutex()
     }
 
     private func startCamera() {
@@ -195,6 +200,17 @@ final class LiveCapture: NSObject {
             #endif
         }
         self.session = session
+        if cameraMutexYielded {
+            // Helios hält Continuity — Lock nicht überschreiben.
+        } else {
+            claimCameraMutex()
+            mutexBeat?.invalidate()
+            let beat = Timer(timeInterval: 2, repeats: true) { [weak self] _ in
+                self?.claimCameraMutex()
+            }
+            RunLoop.main.add(beat, forMode: .common)
+            mutexBeat = beat
+        }
         outputQueue.async { session.startRunning() }
         onReady?()
     }
@@ -215,6 +231,19 @@ final class LiveCapture: NSObject {
             mediaType: .video,
             position: .unspecified
         ).devices
+        let yield = MatchMath.cameraMutexYieldsContinuity(
+            holder: readCameraMutex(),
+            owner: MatchMath.cameraMutexOwnerAegis()
+        )
+        cameraMutexYielded = yield
+        if yield {
+            // Helios hält Continuity — Built-in, sonst 8 fps und TCC.
+            // Vor den Early-Returns, sonst Auto/Built-in nie yield.
+            if let front = discovered.first(where: {
+                $0.deviceType == .builtInWideAngleCamera && ($0.position == .front || $0.position == .unspecified)
+            }) { return front }
+            if let builtIn = discovered.first(where: { $0.deviceType == .builtInWideAngleCamera }) { return builtIn }
+        }
         if let front = discovered.first(where: {
             $0.deviceType == .builtInWideAngleCamera && ($0.position == .front || $0.position == .unspecified)
         }) {
@@ -241,6 +270,32 @@ final class LiveCapture: NSObject {
             }) { return front }
             if let builtIn = discovered.first(where: { $0.deviceType == .builtInWideAngleCamera }) { return builtIn }
             return extra ?? discovered.first ?? AVCaptureDevice.default(for: .video)
+        }
+    }
+
+    private func cameraMutexURL() -> URL {
+        FileManager.default.temporaryDirectory.appendingPathComponent(MatchMath.cameraMutexName())
+    }
+
+    private func readCameraMutex() -> String? {
+        guard let text = try? String(contentsOf: cameraMutexURL(), encoding: .utf8) else { return nil }
+        return MatchMath.cameraMutexParse(text, now: Date().timeIntervalSince1970)
+    }
+
+    private func claimCameraMutex() {
+        let line = MatchMath.cameraMutexLine(
+            owner: MatchMath.cameraMutexOwnerAegis(),
+            pid: ProcessInfo.processInfo.processIdentifier,
+            now: Date().timeIntervalSince1970
+        )
+        try? line.write(to: cameraMutexURL(), atomically: true, encoding: .utf8)
+    }
+
+    private func releaseCameraMutex() {
+        let url = cameraMutexURL()
+        guard let text = try? String(contentsOf: url, encoding: .utf8) else { return }
+        if MatchMath.cameraMutexParse(text, now: Date().timeIntervalSince1970, stale: 9_999) == MatchMath.cameraMutexOwnerAegis() {
+            try? FileManager.default.removeItem(at: url)
         }
     }
 
