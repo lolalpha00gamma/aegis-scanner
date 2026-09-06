@@ -1,3 +1,29 @@
+# Helios + Aegis — Analyse 2026-09-06 (2.1.136)
+
+Helios **1.5.126** (Build 145). Aegis **2.1.136 alpha** (Build 161). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.135: leftoverStoredHashMerge, leftoverHoldByHashRescue. leftoverHoldMove droppte Dest. Center-Stage-Twins beide Occupied. leftoverHold/LastHash RAM-only nach App-Restart.
+
+## 2.1.135 → 2.1.136
+
+1. **leftoverHoldMove nur wenn Dest leer.** AssignLive: TickCopy überschreibt, HoldMove droppt from ohne to. Pair/Streak/Commit tot, Hash und Hold desync.
+2. **leftoverHashTwinLeft Gleichstand beide Occupied.** Center-Stage x gleich: Exact tot, Majority tauft. Rank beide 0, beide Bare.
+3. **leftoverHold / leftoverLastHash / leftoverNameLockHeld nicht in gallery.json.** App-Restart: leftoverHoldSurvive trifft neue UUIDs, Remint hat nichts zu kopieren. ByHash-Rescue ohne storedHash.
+4. leftoverOccupiedMerge stored-first: Ghost-Hashes vor Live.
+
+## Was 2.1.136 ändert
+
+1. **`leftoverHoldMove` overwrite** wie TickCopy. DestClash Test.
+2. **Twin-Yaw-Tie.** kleinerer yawAbs Exact + Rank 0, größerer `#101`. Ohne Yaw bleibt Gleichstand Occupied (alte Tests).
+3. **Schema 7.** leftoverLastHash, leftoverHold, leftoverNameLockHeld persist. Until = now+Arm, sonst Survive wischt vor Remint.
+4. **leftoverOccupiedMerge live-first.**
+5. leftoverHashTwinRanked / Occupied in LibraryStore mit liveYaw.
+6. Tests + VERSION = Models = MARKETING 2.1.136 (Build 161).
+
+Helios 1.5.126: lastScreenID Relativ-Seed, Prop-Alloc keep:false. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-06 (2.1.135)
 
 Helios **1.5.125** (Build 144). Aegis **2.1.135 alpha** (Build 160). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

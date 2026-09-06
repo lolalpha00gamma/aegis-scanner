@@ -140,7 +140,23 @@ final class LibraryStore: ObservableObject {
             return (id: key, hash: value, x: ox)
         }
         let others = MatchMath.leftoverOccupiedOthers(live: liveRows, stored: storedRows, except: id)
-        return MatchMath.leftoverHashTwinOccupied(occupied: merged, hash: hash, x: x, others: others)
+        let yawOf: (UUID) -> Double = { fid in
+            abs(self.liveYaw[fid] ?? self.faces.first(where: { $0.id == fid })?.yaw ?? 0)
+        }
+        let otherYaws: [Double] = others.map { row in
+            let liveId = leftoverLiveHashTick.first(where: { $0.value == row.hash && $0.key != id })?.key
+            let storedId = leftoverLastHash.first(where: { $0.value == row.hash && $0.key != id })?.key
+            guard let fid = liveId ?? storedId else { return 0 }
+            return yawOf(fid)
+        }
+        return MatchMath.leftoverHashTwinOccupied(
+            occupied: merged,
+            hash: hash,
+            x: x,
+            others: others,
+            yawAbs: yawOf(id),
+            otherYaws: otherYaws
+        )
     }
     private var leftoverNameLockUntil: [UUID: TimeInterval] = [:]
     private var leftoverNameLockHeld: [UUID: String] = [:]
@@ -173,6 +189,9 @@ final class LibraryStore: ObservableObject {
             packed.leftoverCaptureHist,
             keep: leftoverHoldByHash.keys.flatMap { [$0, MatchMath.leftoverHoldHashSpatial($0)] }
         )
+        leftoverLastHash = MatchMath.leftoverUUIDStringMapDecode(packed.leftoverLastHash)
+        leftoverHold = MatchMath.leftoverStreakSinceDecode(packed.leftoverHold)
+        leftoverNameLockHeld = MatchMath.leftoverUUIDStringMapDecode(packed.leftoverNameLockHeld)
         leftoverHashNeedsRebase = !leftoverHoldByHash.isEmpty || !leftoverHoldTrailByHash.isEmpty
         if let stored = packed.printRevision, stored != MatchMath.printRevision {
             revisionWarning = "Galerie-Print \(stored), App \(MatchMath.printRevision) — Scores können springen. Neu scannen."
@@ -213,6 +232,11 @@ final class LibraryStore: ObservableObject {
         if let gateStored {
             assignLiveGate = MatchMath.leftoverAssignLiveGateNeed(gateStored)
         }
+        leftoverNameLockUntil = MatchMath.leftoverNameLockUntilRestore(
+            held: leftoverNameLockHeld,
+            now: Date().timeIntervalSince1970,
+            arm: nameLockSec
+        )
         liveCapture.choice = cameraChoice
         let digest = GalleryFile.digestStatus()
         if let note = MatchMath.shaVerifyNote(ok: digest.ok, missing: digest.missing) {
@@ -237,7 +261,10 @@ final class LibraryStore: ObservableObject {
             leftoverCaptureHist: MatchMath.leftoverCaptureHistTableEncode(
                 leftoverCaptureHistByHash,
                 keep: Array(leftoverLastHash.values)
-            )
+            ),
+            leftoverLastHash: MatchMath.leftoverUUIDStringMapEncode(leftoverLastHash),
+            leftoverHold: MatchMath.leftoverStreakSinceEncode(leftoverHold),
+            leftoverNameLockHeld: MatchMath.leftoverUUIDStringMapEncode(leftoverNameLockHeld)
         )
         if !liveActive {
             refreshMergeHint()
@@ -292,6 +319,14 @@ final class LibraryStore: ObservableObject {
             packed.leftoverCaptureHist,
             keep: leftoverHoldByHash.keys.flatMap { [$0, MatchMath.leftoverHoldHashSpatial($0)] }
         )
+        leftoverLastHash = MatchMath.leftoverUUIDStringMapDecode(packed.leftoverLastHash)
+        leftoverHold = MatchMath.leftoverStreakSinceDecode(packed.leftoverHold)
+        leftoverNameLockHeld = MatchMath.leftoverUUIDStringMapDecode(packed.leftoverNameLockHeld)
+        leftoverNameLockUntil = MatchMath.leftoverNameLockUntilRestore(
+            held: leftoverNameLockHeld,
+            now: Date().timeIntervalSince1970,
+            arm: nameLockSec
+        )
         leftoverHashNeedsRebase = !leftoverHoldByHash.isEmpty || !leftoverHoldTrailByHash.isEmpty
         liveNameHist = [:]
         liveNameLock = [:]
@@ -306,14 +341,11 @@ final class LibraryStore: ObservableObject {
         leftoverHoldSeenSlow = false
         leftoverHoldFastFor = 0
         leftoverLiveHashTick = [:]
-        leftoverNameLockUntil = [:]
-        leftoverNameLockHeld = [:]
         liveNameVoteAt = [:]
         tapNameLockUntil = [:]
         liveFaceStreak = 0
         leftoverStreak = [:]
         leftoverStreakBox = [:]
-        leftoverHold = [:]
         leftoverPending = [:]
         leftoverPairLast = [:]
         leftoverPairStreak = [:]
@@ -2742,14 +2774,20 @@ final class LibraryStore: ObservableObject {
             }
             for face in adopted {
                 let hash = rawLiveHash[face.id] ?? ""
-                let others: [(hash: String, x: Double)] = rawLiveHash.compactMap { key, value in
+                let rows: [(hash: String, x: Double, yaw: Double)] = rawLiveHash.compactMap { key, value in
                     if key == face.id { return nil }
-                    return (hash: value, x: liveXs[key] ?? 0)
+                    return (
+                        hash: value,
+                        x: liveXs[key] ?? 0,
+                        yaw: abs(liveYaw[key] ?? adopted.first(where: { $0.id == key })?.yaw ?? 0)
+                    )
                 }
                 leftoverLiveHashTick[face.id] = MatchMath.leftoverHashTwinRanked(
                     hash: hash,
                     x: liveXs[face.id] ?? 0,
-                    others: others
+                    others: rows.map { (hash: $0.hash, x: $0.x) },
+                    yawAbs: abs(liveYaw[face.id] ?? face.yaw),
+                    otherYaws: rows.map(\.yaw)
                 )
             }
             for old in leftoverPinned {

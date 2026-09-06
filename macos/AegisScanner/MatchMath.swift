@@ -86,8 +86,8 @@ enum MatchMath {
     /// ¾/Profil: Maße vs. Frontal-Centroid lügen. Print ≥ 80 nicht vetoen.
     static let geoVetoYawSkip = 0.28
     static let geoVetoYawPrint = 80.0
-    /// gallery.json Schema neben printRevision. 6 = Hash-Hold über App-Neustart.
-    static let gallerySchema = 6
+    /// gallery.json Schema neben printRevision. 7 = leftoverHold + LastHash + NameLockHeld.
+    static let gallerySchema = 7
     /// Box-IoU unter dem Wert: Bewegung. Mit Schärfe: kleines Nicken darf den Print.
     static let holdStillIoU = 0.70
     static let holdStillSharp = 0.18
@@ -1192,31 +1192,49 @@ enum MatchMath {
     }
 
     /// leftoverLastHash ist Vor-Tick. Erster Twin-Frame: stored leer, Exact-Steal.
+    /// Live zuerst — Ghost-Hashes sonst Exact auf Tote.
     static func leftoverOccupiedMerge(stored: [String], live: [String]) -> [String] {
         var seen = Set<String>()
         var out: [String] = []
-        for h in stored + live where !h.isEmpty {
+        for h in live + stored where !h.isEmpty {
             if seen.insert(h).inserted { out.append(h) }
         }
         return out
     }
 
-    /// Hamming-0 Twins: strikt links behält Exact, rechts Occupied. Gleichstand: beide tot.
-    static func leftoverHashTwinLeft(x: Double, others: [Double]) -> Bool {
-        others.allSatisfy { x + 1e-9 < $0 }
+    /// Hamming-0 Twins: strikt links behält Exact, rechts Occupied.
+    /// Gleichstand ohne Yaw: beide tot. Mit Yaw: kleinerer yawAbs Exact (Center-Stage).
+    static func leftoverHashTwinLeft(x: Double, others: [Double], yawAbs: Double = 0, otherYaws: [Double] = []) -> Bool {
+        if others.allSatisfy({ x + 1e-9 < $0 }) { return true }
+        if others.contains(where: { $0 + 1e-9 < x }) { return false }
+        guard otherYaws.count == others.count, !otherYaws.isEmpty else { return false }
+        let tied = zip(others, otherYaws).compactMap { ox, oy -> Double? in
+            abs(ox - x) <= 1e-9 ? oy : nil
+        }
+        return !tied.isEmpty && tied.allSatisfy { yawAbs + 1e-9 < $0 }
     }
 
     static func leftoverHashTwinOccupied(
         occupied: [String],
         hash: String,
         x: Double,
-        others: [(hash: String, x: Double)]
+        others: [(hash: String, x: Double)],
+        yawAbs: Double = 0,
+        otherYaws: [Double] = []
     ) -> [String] {
         let bare = leftoverHoldHashBare(hash)
         guard !bare.isEmpty else { return occupied }
         let twins = others.filter { leftoverHoldHashBare($0.hash) == bare }
         guard !twins.isEmpty else { return occupied }
-        if leftoverHashTwinLeft(x: x, others: twins.map(\.x)) {
+        let twinYaws: [Double]
+        if otherYaws.count == others.count {
+            twinYaws = zip(others, otherYaws).compactMap { row, yaw in
+                leftoverHoldHashBare(row.hash) == bare ? yaw : nil
+            }
+        } else {
+            twinYaws = []
+        }
+        if leftoverHashTwinLeft(x: x, others: twins.map(\.x), yawAbs: yawAbs, otherYaws: twinYaws) {
             return occupied.filter { leftoverHoldHashBare($0) != bare }
         }
         return occupied
@@ -1233,8 +1251,11 @@ enum MatchMath {
     /// Twin R braucht einen eigenen Exact-Key. Hamming-0 sonst beide Occupied.
     static let leftoverHashTwinRankBase = 100
 
-    static func leftoverHashTwinRank(x: Double, others: [Double]) -> Int {
-        others.filter { $0 < x - 1e-9 }.count
+    static func leftoverHashTwinRank(x: Double, others: [Double], yawAbs: Double = 0, otherYaws: [Double] = []) -> Int {
+        let left = others.filter { $0 < x - 1e-9 }.count
+        guard otherYaws.count == others.count else { return left }
+        let tied = zip(others, otherYaws).filter { abs($0.0 - x) <= 1e-9 }
+        return left + tied.filter { $0.1 < yawAbs - 1e-9 }.count
     }
 
     static func leftoverHoldHashTwinKey(hash: String, rank: Int) -> String {
@@ -1246,13 +1267,26 @@ enum MatchMath {
     static func leftoverHashTwinRanked(
         hash: String,
         x: Double,
-        others: [(hash: String, x: Double)]
+        others: [(hash: String, x: Double)],
+        yawAbs: Double = 0,
+        otherYaws: [Double] = []
     ) -> String {
         let bare = leftoverHoldHashBare(hash)
         guard !bare.isEmpty else { return hash }
         let twins = others.filter { leftoverHoldHashBare($0.hash) == bare }
         guard !twins.isEmpty else { return hash }
-        return leftoverHoldHashTwinKey(hash: bare, rank: leftoverHashTwinRank(x: x, others: twins.map(\.x)))
+        let twinYaws: [Double]
+        if otherYaws.count == others.count {
+            twinYaws = zip(others, otherYaws).compactMap { row, yaw in
+                leftoverHoldHashBare(row.hash) == bare ? yaw : nil
+            }
+        } else {
+            twinYaws = []
+        }
+        return leftoverHoldHashTwinKey(
+            hash: bare,
+            rank: leftoverHashTwinRank(x: x, others: twins.map(\.x), yawAbs: yawAbs, otherYaws: twinYaws)
+        )
     }
 
     /// leftoverLiveHashTick allein: Twin aus leftoverLastHash unsichtbar, erster Frame steals.
@@ -1674,10 +1708,11 @@ enum MatchMath {
     }
 
     /// PairLast/Streak/Commit/Disagree nach AssignLive. TickCopy ist String-only.
+    /// Dest überschreiben — leeres Ziel droppt sonst den Transfer (Hash/Hold desync).
     static func leftoverHoldMove<Value>(hold: [UUID: Value], from: UUID, to: UUID) -> [UUID: Value] {
         guard from != to, let v = hold[from] else { return hold }
         var out = hold
-        if out[to] == nil { out[to] = v }
+        out[to] = v
         out.removeValue(forKey: from)
         return out
     }
@@ -4761,6 +4796,36 @@ enum MatchMath {
         var out: [UUID: TimeInterval] = [:]
         for (k, v) in raw {
             if let id = UUID(uuidString: k) { out[id] = v }
+        }
+        return out
+    }
+
+    /// leftoverLastHash / leftoverNameLockHeld. App-Restart sonst Rescue ohne storedHash.
+    static func leftoverUUIDStringMapEncode(_ table: [UUID: String]) -> [String: String] {
+        var out: [String: String] = [:]
+        for (k, v) in table where !v.isEmpty {
+            out[k.uuidString] = v
+        }
+        return out
+    }
+
+    static func leftoverUUIDStringMapDecode(_ raw: [String: String]?) -> [UUID: String] {
+        guard let raw else { return [:] }
+        var out: [UUID: String] = [:]
+        for (k, v) in raw {
+            guard let id = UUID(uuidString: k), !v.isEmpty else { continue }
+            out[id] = v
+        }
+        return out
+    }
+
+    /// leftoverNameLockHeld nach Restart: Until = now + Arm, sonst Survive wischt Hold vor Remint.
+    static func leftoverNameLockUntilRestore(held: [UUID: String], now: TimeInterval, arm: TimeInterval) -> [UUID: TimeInterval] {
+        let used = leftoverNameLockSecPref(arm)
+        guard used > 0 else { return [:] }
+        var out: [UUID: TimeInterval] = [:]
+        for id in held.keys {
+            out[id] = now + used
         }
         return out
     }

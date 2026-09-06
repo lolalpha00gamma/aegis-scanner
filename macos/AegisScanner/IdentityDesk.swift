@@ -20,6 +20,9 @@ struct GalleryPayload: Codable {
     var leftoverHoldHash: [String: Double]?
     var leftoverHoldTrailHash: [String: [Double]]?
     var leftoverCaptureHist: [String: [Double]]?
+    var leftoverLastHash: [String: String]?
+    var leftoverHold: [String: Double]?
+    var leftoverNameLockHeld: [String: String]?
 }
 
 enum GalleryFile {
@@ -38,15 +41,15 @@ enum GalleryFile {
         directory.appendingPathComponent("gallery.json.bak")
     }
 
-    static func load() -> (identities: [Identity], faces: [FaceObservation], printRevision: String?, schemaVersion: Int?, leftoverStreakSince: [String: Double]?, leftoverHoldBins: [String: Double]?, leftoverHoldTrailBins: [String: [Double]]?, leftoverHoldHash: [String: Double]?, leftoverHoldTrailHash: [String: [Double]]?, leftoverCaptureHist: [String: [Double]]?) {
-        decode(url) ?? ([], [], nil, nil, nil, nil, nil, nil, nil, nil)
+    static func load() -> (identities: [Identity], faces: [FaceObservation], printRevision: String?, schemaVersion: Int?, leftoverStreakSince: [String: Double]?, leftoverHoldBins: [String: Double]?, leftoverHoldTrailBins: [String: [Double]]?, leftoverHoldHash: [String: Double]?, leftoverHoldTrailHash: [String: [Double]]?, leftoverCaptureHist: [String: [Double]]?, leftoverLastHash: [String: String]?, leftoverHold: [String: Double]?, leftoverNameLockHeld: [String: String]?) {
+        decode(url) ?? ([], [], nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
     }
 
     static var backupExists: Bool {
         FileManager.default.fileExists(atPath: backupURL.path)
     }
 
-    static func loadBackup() -> (identities: [Identity], faces: [FaceObservation], printRevision: String?, schemaVersion: Int?, leftoverStreakSince: [String: Double]?, leftoverHoldBins: [String: Double]?, leftoverHoldTrailBins: [String: [Double]]?, leftoverHoldHash: [String: Double]?, leftoverHoldTrailHash: [String: [Double]]?, leftoverCaptureHist: [String: [Double]]?)? {
+    static func loadBackup() -> (identities: [Identity], faces: [FaceObservation], printRevision: String?, schemaVersion: Int?, leftoverStreakSince: [String: Double]?, leftoverHoldBins: [String: Double]?, leftoverHoldTrailBins: [String: [Double]]?, leftoverHoldHash: [String: Double]?, leftoverHoldTrailHash: [String: [Double]]?, leftoverCaptureHist: [String: [Double]]?, leftoverLastHash: [String: String]?, leftoverHold: [String: Double]?, leftoverNameLockHeld: [String: String]?)? {
         decode(backupURL)
     }
 
@@ -57,13 +60,13 @@ enum GalleryFile {
         return now.timeIntervalSince(date) / 86_400
     }
 
-    private static func decode(_ file: URL) -> (identities: [Identity], faces: [FaceObservation], printRevision: String?, schemaVersion: Int?, leftoverStreakSince: [String: Double]?, leftoverHoldBins: [String: Double]?, leftoverHoldTrailBins: [String: [Double]]?, leftoverHoldHash: [String: Double]?, leftoverHoldTrailHash: [String: [Double]]?, leftoverCaptureHist: [String: [Double]]?)? {
+    private static func decode(_ file: URL) -> (identities: [Identity], faces: [FaceObservation], printRevision: String?, schemaVersion: Int?, leftoverStreakSince: [String: Double]?, leftoverHoldBins: [String: Double]?, leftoverHoldTrailBins: [String: [Double]]?, leftoverHoldHash: [String: Double]?, leftoverHoldTrailHash: [String: [Double]]?, leftoverCaptureHist: [String: [Double]]?, leftoverLastHash: [String: String]?, leftoverHold: [String: Double]?, leftoverNameLockHeld: [String: String]?)? {
         guard let data = try? Data(contentsOf: file) else { return nil }
         if let payload = try? JSONDecoder().decode(GalleryPayload.self, from: data) {
-            return (payload.identities, payload.faces, payload.printRevision, payload.schemaVersion, payload.leftoverStreakSince, payload.leftoverHoldBins, payload.leftoverHoldTrailBins, payload.leftoverHoldHash, payload.leftoverHoldTrailHash, payload.leftoverCaptureHist)
+            return (payload.identities, payload.faces, payload.printRevision, payload.schemaVersion, payload.leftoverStreakSince, payload.leftoverHoldBins, payload.leftoverHoldTrailBins, payload.leftoverHoldHash, payload.leftoverHoldTrailHash, payload.leftoverCaptureHist, payload.leftoverLastHash, payload.leftoverHold, payload.leftoverNameLockHeld)
         }
         if let identities = try? JSONDecoder().decode([Identity].self, from: data) {
-            return (identities, [], nil, nil, nil, nil, nil, nil, nil, nil)
+            return (identities, [], nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
         }
         return nil
     }
@@ -76,7 +79,10 @@ enum GalleryFile {
         leftoverHoldTrailBins: [String: [Double]]? = nil,
         leftoverHoldHash: [String: Double]? = nil,
         leftoverHoldTrailHash: [String: [Double]]? = nil,
-        leftoverCaptureHist: [String: [Double]]? = nil
+        leftoverCaptureHist: [String: [Double]]? = nil,
+        leftoverLastHash: [String: String]? = nil,
+        leftoverHold: [String: Double]? = nil,
+        leftoverNameLockHeld: [String: String]? = nil
     ) {
         let enrolled = Set(identities.flatMap(\.faceIds))
         let payload = GalleryPayload(
@@ -89,7 +95,10 @@ enum GalleryFile {
             leftoverHoldTrailBins: leftoverHoldTrailBins,
             leftoverHoldHash: leftoverHoldHash,
             leftoverHoldTrailHash: leftoverHoldTrailHash,
-            leftoverCaptureHist: leftoverCaptureHist
+            leftoverCaptureHist: leftoverCaptureHist,
+            leftoverLastHash: leftoverLastHash,
+            leftoverHold: leftoverHold,
+            leftoverNameLockHeld: leftoverNameLockHeld
         )
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]

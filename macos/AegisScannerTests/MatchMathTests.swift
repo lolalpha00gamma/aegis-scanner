@@ -396,7 +396,7 @@ enum MatchMathTests {
         ok(!MatchMath.leftoverNamedTrack(hadName: false), "namenlos kein leftover")
         ok(MatchMath.leftoverNeedsPrint(cosine: nil), "ohne Print kein leftover-Pin")
         ok(!MatchMath.leftoverNeedsPrint(cosine: 0.90), "mit Print leftover darf")
-        ok(MatchMath.gallerySchema == 6, "gallery.json Schema 6")
+        ok(MatchMath.gallerySchema == 7, "gallery.json Schema 7")
 
         ok(MatchMath.holdStillSkip(iou: 0.50), "Bewegung 0,50 skippt neuen Print")
         ok(!MatchMath.holdStillSkip(iou: 0.90), "Stillstand 0,90 nimmt Print")
@@ -2743,6 +2743,38 @@ enum MatchMathTests {
             storedHash: tickFill
         )
         ok(tickRemint[byNew] == 0.81, "Merge Tick → Hash-Rescue ohne Last")
+        let destOld = UUID(), destNew = UUID()
+        let destClash = MatchMath.leftoverHoldMove(hold: [destOld: 0.81, destNew: 0.10], from: destOld, to: destNew)
+        ok(destClash[destNew] == 0.81 && destClash[destOld] == nil, "HoldMove überschreibt Dest")
+        ok(MatchMath.leftoverHashTwinLeft(x: 0.50, others: [0.50], yawAbs: 0.05, otherYaws: [0.40]), "Center-Stage kleiner Yaw Exact")
+        ok(!MatchMath.leftoverHashTwinLeft(x: 0.50, others: [0.50], yawAbs: 0.40, otherYaws: [0.05]), "Center-Stage großer Yaw Occupied")
+        ok(MatchMath.leftoverHashTwinRank(x: 0.50, others: [0.50], yawAbs: 0.40, otherYaws: [0.05]) == 1, "Yaw-Tie Rank 1")
+        ok(MatchMath.leftoverHashTwinRank(x: 0.50, others: [0.50], yawAbs: 0.05, otherYaws: [0.40]) == 0, "Yaw-Tie Rank 0")
+        let yawTwinL = MatchMath.leftoverHashTwinOccupied(
+            occupied: ["5.5.4.6"],
+            hash: "5.5.4.6",
+            x: 0.50,
+            others: [(hash: "5.5.4.6", x: 0.50)],
+            yawAbs: 0.05,
+            otherYaws: [0.40]
+        )
+        ok(yawTwinL.isEmpty, "Center-Stage kleiner Yaw Exact frei")
+        let yawRankedR = MatchMath.leftoverHashTwinRanked(
+            hash: "5.5.4.6",
+            x: 0.50,
+            others: [(hash: "5.5.4.6", x: 0.50)],
+            yawAbs: 0.40,
+            otherYaws: [0.05]
+        )
+        ok(yawRankedR == "5.5.4.6#101", "Center-Stage Twin R persist 101")
+        let persistId = UUID()
+        let encodedHash = MatchMath.leftoverUUIDStringMapEncode([persistId: "5.5.4.6"])
+        let decodedHash = MatchMath.leftoverUUIDStringMapDecode(encodedHash)
+        ok(decodedHash[persistId] == "5.5.4.6", "LastHash persist UUID")
+        let until = MatchMath.leftoverNameLockUntilRestore(held: [persistId: "Anna"], now: 10, arm: 1.2)
+        ok(abs((until[persistId] ?? 0) - 11.2) < 0.001, "NameLock Until Restore Arm")
+        let encodedHold = MatchMath.leftoverStreakSinceEncode([persistId: 0.81])
+        ok(abs((MatchMath.leftoverStreakSinceDecode(encodedHold)[persistId] ?? 0) - 0.81) < 0.001, "Hold cosine persist")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)
