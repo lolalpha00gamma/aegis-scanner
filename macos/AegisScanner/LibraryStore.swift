@@ -2608,7 +2608,7 @@ final class LibraryStore: ObservableObject {
                 image: image
             ))
         })
-        let remintStoredHash = leftoverLastHash
+        let remintStoredHash = MatchMath.leftoverStoredHashMerge(last: leftoverLastHash, tick: leftoverLiveHashTick)
         let remintHashKeys = Array(leftoverHoldByHash.keys)
         leftoverHold = MatchMath.leftoverHoldRemint(hold: leftoverHold, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys)
         leftoverHoldTrail = MatchMath.leftoverHoldRemint(hold: leftoverHoldTrail, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys)

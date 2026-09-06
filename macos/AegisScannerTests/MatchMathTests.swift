@@ -2673,6 +2673,76 @@ enum MatchMathTests {
         ok(byHashFar[hashSoloNew] == nil, "ohne Table Far tot")
         ok(MatchMath.leftoverAssignLiveGate(unnamed: 2, unused: 2, need: 2), "Crowd Gate 2")
         ok(!MatchMath.leftoverAssignLiveGate(unnamed: 1, unused: 2, need: 2), "Crowd Gate Solo tot")
+        let mergeKeep = UUID(), mergeFill = UUID()
+        let merged = MatchMath.leftoverStoredHashMerge(
+            last: [mergeKeep: "5.5.4.6", mergeFill: ""],
+            tick: [mergeKeep: "1.1.1.1", mergeFill: "2.2.2.2"]
+        )
+        ok(merged[mergeKeep] == "5.5.4.6", "Merge Last nicht überschreiben")
+        ok(merged[mergeFill] == "2.2.2.2", "Merge Tick füllt Last-Loch")
+        let byOld = UUID(), byNew = UUID(), stealBob = UUID()
+        let byKeys = ["5.5.4.6#0", "5.5.4.6#1"]
+        ok(
+            MatchMath.leftoverHoldByHashRescue(
+                liveHash: "5.5.4.6",
+                stored: [(id: byOld, hash: "")],
+                tableKeys: byKeys
+            ) == byOld,
+            "ByHash Bins zählen als eins, Last leer, 1 Hold"
+        )
+        ok(
+            MatchMath.leftoverHoldByHashRescue(
+                liveHash: "5.5.4.6",
+                stored: [(id: byOld, hash: ""), (id: stealBob, hash: "")],
+                tableKeys: byKeys
+            ) == nil,
+            "ByHash Twin tot"
+        )
+        ok(
+            MatchMath.leftoverHoldByHashRescue(
+                liveHash: "5.5.4.6",
+                stored: [(id: stealBob, hash: "1.1.1.1")],
+                tableKeys: byKeys
+            ) == nil,
+            "ByHash stiehlt nicht den Nachbarn"
+        )
+        ok(
+            MatchMath.leftoverHoldByHashRescue(
+                liveHash: "5.5.4.6",
+                stored: [(id: stealBob, hash: "")],
+                tableKeys: ["5.5.4.6#0", "1.1.1.1#0"]
+            ) == nil,
+            "ByHash Crowd 1-open tot"
+        )
+        ok(
+            MatchMath.leftoverHoldByHashRescue(
+                liveHash: "5.5.4.6",
+                stored: [(id: byOld, hash: "5.5.4.6"), (id: stealBob, hash: "1.1.1.1")],
+                tableKeys: byKeys
+            ) == byOld,
+            "ByHash Unique Hash-Match trotz 2 Holds"
+        )
+        let hashedRemint = MatchMath.leftoverHoldRemint(
+            hold: [byOld: 0.81, stealBob: 0.70],
+            live: [(id: byNew, x: 0.90)],
+            stored: [(id: byOld, x: 0.10), (id: stealBob, x: 0.50)],
+            liveHash: [byNew: "5.5.4.6"],
+            storedHash: [byOld: "5.5.4.6", stealBob: "1.1.1.1"],
+            hashTableKeys: byKeys
+        )
+        ok(hashedRemint[byNew] == 0.81, "Remint ByHash Unique trotz 2 Holds")
+        let tickFill = MatchMath.leftoverStoredHashMerge(
+            last: [:],
+            tick: [byOld: "5.5.4.6"]
+        )
+        let tickRemint = MatchMath.leftoverHoldRemint(
+            hold: [byOld: 0.81],
+            live: [(id: byNew, x: 0.90)],
+            stored: [(id: byOld, x: 0.10)],
+            liveHash: [byNew: "5.5.4.6"],
+            storedHash: tickFill
+        )
+        ok(tickRemint[byNew] == 0.81, "Merge Tick → Hash-Rescue ohne Last")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

@@ -1,4 +1,30 @@
+# Helios + Aegis — Analyse 2026-09-06 (2.1.135)
+
+Helios **1.5.125** (Build 144). Aegis **2.1.135 alpha** (Build 160). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.133: leftoverHoldByHashSolo, AssignLiveGate UI. 2.1.134 Review. Solo stiehlt den Nachbarn, Last∪Tick fehlt.
+
+## 2.1.133 → 2.1.135
+
+1. **leftoverHoldByHashSolo nur `holdIDs.count == 1`.** 2 Holds + unique Hash = tot. 1 Hold + fremder Hash = stiehlt den Nachbarn (REVIEW 2.1.134).
+2. **leftoverHoldByHash Bins `#0`/`#1`.** Spatial gleich, Solo zählt Keys nicht — das saß. Hash-Match bei 2 Holds fehlte.
+3. **remintStoredHash = leftoverLastHash.** Mirror vor Tick-Write: Last leer, Tick hat den Hash, Hash-Rescue tot.
+4. **leftoverHoldByHashSolo ohne storedHash.** Unique Hash-Match trotz Twin-Holds unmöglich.
+
+## Was 2.1.135 ändert
+
+1. **`leftoverStoredHashMerge`.** Tick füllt Last-Löcher, Last nicht überschreiben.
+2. **`leftoverHoldByHashRescue`.** Unique Hash-Match zuerst. Twin tot. 1-open nur wenn alle storedHashes leer. Nachbar mit anderem Hash nicht stehlen. Bins zählen als eins.
+3. leftoverHoldByHashSolo bleibt, ruft Rescue (leere Hashes).
+4. leftoverHoldRemint / RemintBins hashTable-Pass nutzt Rescue + storedHash.
+5. Tests + VERSION = Models = MARKETING 2.1.135 (Build 160).
+
+Helios 1.5.125: destClampMap Latch, Keep 0,03, Naht-Hold Pref. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-06 (2.1.133)
+
 
 Helios **1.5.123** (Build 143). Aegis **2.1.133 alpha** (Build 159). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
 

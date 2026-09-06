@@ -1,4 +1,4 @@
-# Aegis **2.1.133 alpha**
+# Aegis **2.1.135 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -14,7 +14,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
 
+## Neu in 2.1.135 alpha
+
+leftoverHoldByHashSolo nur bei 1 Hold — unique Hash trotz Twin tot, 1 Hold stahl den Nachbarn. leftoverLastHash leer, Tick voll: Hash-Rescue tot.
+
+- **`leftoverStoredHashMerge`.** Tick füllt Last-Löcher.
+- **`leftoverHoldByHashRescue`.** Hash-Match zuerst, Twin tot, Nachbar nicht stehlen.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.135 (Build 160).
+
 ## Neu in 2.1.133 alpha
+
 
 leftoverLastHash leer nach Restart: Hash-Rescue tot. AssignLiveGate Pref ohne UI, Crowd tauft Twin.
 

@@ -1457,11 +1457,46 @@ enum MatchMath {
         holdIDs: [UUID],
         tableKeys: [String]
     ) -> UUID? {
-        guard holdIDs.count == 1 else { return nil }
+        leftoverHoldByHashRescue(
+            liveHash: liveHash,
+            stored: holdIDs.map { ($0, "") },
+            tableKeys: tableKeys
+        )
+    }
+
+    /// Tick füllt Last-Löcher. Last nicht überschreiben.
+    static func leftoverStoredHashMerge(last: [UUID: String], tick: [UUID: String]) -> [UUID: String] {
+        var out = last
+        for (k, v) in tick where !v.isEmpty {
+            if let have = out[k], !have.isEmpty { continue }
+            out[k] = v
+        }
+        return out
+    }
+
+    /// leftoverHoldByHash persistiert. Unique Spatial (Bins `#0`/`#1` zählen als eins).
+    /// Hash-Match zuerst — 1-open stiehlt sonst den Nachbarn. Twin tot.
+    static func leftoverHoldByHashRescue(
+        liveHash: String,
+        stored: [(id: UUID, hash: String)],
+        occupied: Set<UUID> = [],
+        tableKeys: [String]
+    ) -> UUID? {
+        if let hit = leftoverHoldHashRescue(liveHash: liveHash, stored: stored, occupied: occupied) {
+            return hit
+        }
         let spatial = leftoverHoldHashSpatial(liveHash)
         guard !spatial.isEmpty else { return nil }
-        let hit = tableKeys.contains { leftoverHoldHashSpatial($0) == spatial && !$0.isEmpty }
-        return hit ? holdIDs[0] : nil
+        let inTable = tableKeys.contains { leftoverHoldHashSpatial($0) == spatial && !$0.isEmpty }
+        guard inTable else { return nil }
+        let open = stored.filter { !occupied.contains($0.id) }
+        let hashed = open.filter { leftoverHoldHashSpatial($0.hash) == spatial && !$0.hash.isEmpty }
+        if hashed.count == 1 { return hashed[0].id }
+        if hashed.count > 1 { return nil }
+        let known = open.filter { !$0.hash.isEmpty }
+        let people = Set(tableKeys.map { leftoverHoldHashSpatial($0) }.filter { !$0.isEmpty })
+        if known.isEmpty, open.count == 1, people.count == 1 { return open[0].id }
+        return nil
     }
 
     static func leftoverHoldRemint<Value>(
@@ -1518,13 +1553,15 @@ enum MatchMath {
             }
         }
         if !hashTableKeys.isEmpty, !liveHash.isEmpty {
-            let holdIDs = holds.map(\.id).filter { !taken.contains($0) }
+            let storedH: [(id: UUID, hash: String)] = holds.map { s in
+                (s.id, storedHash[s.id] ?? "")
+            }
             for row in live {
                 if hold[row.id] != nil { continue }
                 if out[row.id] != nil { continue }
                 guard let h = liveHash[row.id], !h.isEmpty else { continue }
-                guard let match = leftoverHoldByHashSolo(
-                    liveHash: h, holdIDs: holdIDs, tableKeys: hashTableKeys
+                guard let match = leftoverHoldByHashRescue(
+                    liveHash: h, stored: storedH, occupied: taken, tableKeys: hashTableKeys
                 ) else { continue }
                 if match == row.id { continue }
                 if let v = hold[match] {
@@ -1600,13 +1637,15 @@ enum MatchMath {
             taken.insert(match)
         }
         if !hashTableKeys.isEmpty, !liveHash.isEmpty {
-            let holdIDs = holds.map(\.id).filter { !taken.contains($0) }
+            let storedH: [(id: UUID, hash: String)] = holds.map { s in
+                (s.id, storedHash[s.id] ?? "")
+            }
             for row in live {
                 if present.contains(row.id) { continue }
                 if out.keys.contains(where: { leftoverHoldId(from: $0) == row.id }) { continue }
                 guard let h = liveHash[row.id], !h.isEmpty else { continue }
-                guard let match = leftoverHoldByHashSolo(
-                    liveHash: h, holdIDs: holdIDs, tableKeys: hashTableKeys
+                guard let match = leftoverHoldByHashRescue(
+                    liveHash: h, stored: storedH, occupied: taken, tableKeys: hashTableKeys
                 ) else { continue }
                 if match == row.id { continue }
                 for (key, v) in hold {
