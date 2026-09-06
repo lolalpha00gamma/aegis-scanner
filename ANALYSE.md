@@ -1,3 +1,28 @@
+# Helios + Aegis — Analyse 2026-09-06 (2.1.147)
+
+Helios **1.5.136** (Build 155). Aegis **2.1.147 alpha** (Build 172). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.146: skipKalmanReset Compile, KeepBoxes Miss-Kalman, HashHold remaining. Restore las Live-Remaining. Trail at=now. KeepBoxes vor Survive. Hungarian n=8 Pad 0,40 Recursion.
+
+## Warum Taufe und Restart nach 2.1.146 weiter rissen
+
+1. **restoreFromBackup live Remaining.** leftoverHoldHashRemaining aus gallery.json, nicht `.bak`. Backup-TTL tot.
+2. **HashTrail Decode at=now.** Schema 14 remaining nur Hold. Trail-TTL startet nach Restore neu.
+3. **KeepBoxes vor Survive.** Hold-IDs nach Remint, Filter droppt Survive-Keep.
+4. **HungarianX Pad 0,40 n=8.** Recursion explodiert, Crowd tot.
+
+## Was 2.1.147 ändert
+
+1. **loadBackupPayload remaining.** Restore HashHold + HashTrail aus `.bak`.
+2. **leftoverHashTrail remaining Schema 15.** leftoverHashTrailRemainingEncode. Decode remaining analog Hold.
+3. **leftoverKeepBoxes nach Survive.** leftoverKeepHoldIds Hold∪Bins.
+4. **leftoverAssignHungarianWide.** Pad > 0,20 → FillX.
+5. Tests + VERSION = Models = MARKETING 2.1.147 (Build 172). Schema 15.
+
+Helios 1.5.136: ROI Thaw FullNext, Coast Follow, FullNext Lock. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-06 (2.1.146)
 
 Helios **1.5.135** (Build 154). Aegis **2.1.146 alpha** (Build 171). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

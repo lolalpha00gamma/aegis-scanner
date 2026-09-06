@@ -86,8 +86,8 @@ enum MatchMath {
     /// ¾/Profil: Maße vs. Frontal-Centroid lügen. Print ≥ 80 nicht vetoen.
     static let geoVetoYawSkip = 0.28
     static let geoVetoYawPrint = 80.0
-    /// gallery.json Schema neben printRevision. 14 = HashHold remaining + Occupied stored Rank.
-    static let gallerySchema = 14
+    /// gallery.json Schema neben printRevision. 15 = HashTrail remaining + KeepBoxes nach Survive.
+    static let gallerySchema = 15
     /// Box-IoU unter dem Wert: Bewegung. Mit Schärfe: kleines Nicken darf den Print.
     static let holdStillIoU = 0.70
     static let holdStillSharp = 0.18
@@ -1609,6 +1609,11 @@ enum MatchMath {
     /// n≤8 min-cost. n=6 Crowd FillX greedy ließ 7. Person tot.
     static let leftoverAssignHungarianN = 8
 
+    /// Pad 0,40 bei n=8 explodiert Recursion. FillX greedy.
+    static func leftoverAssignHungarianWide(_ pad: Double) -> Bool {
+        pad > leftoverFillXPad + 0.08
+    }
+
     static func leftoverAssignHungarianX(
         assigned: [Int?],
         liveX: [Double],
@@ -1623,7 +1628,7 @@ enum MatchMath {
         let n = holdX.count
         let m = liveX.count
         if n == 0 || m == 0 { return out }
-        if n > leftoverAssignHungarianN || m > leftoverAssignHungarianN {
+        if leftoverAssignHungarianWide(pad) || n > leftoverAssignHungarianN || m > leftoverAssignHungarianN {
             return leftoverAssignFillX(assigned: assigned, liveX: liveX, holdX: holdX, pad: pad, spread: spread)
         }
         let used = Set(out.prefix(n).compactMap { $0 })
@@ -2400,9 +2405,37 @@ enum MatchMath {
         Dictionary(uniqueKeysWithValues: leftoverHashTrailCapped(table.filter { !$0.value.samples.isEmpty }).map { ($0.key, $0.value.samples) })
     }
 
-    static func leftoverHashTrailDecode(_ raw: [String: [Double]]?, now: TimeInterval) -> [String: (samples: [Double], at: TimeInterval)] {
+    /// Remaining analog HashHold. Decode-at=now startet Trail-TTL nach Restore neu.
+    static func leftoverHashTrailRemainingEncode(
+        _ table: [String: (samples: [Double], at: TimeInterval)],
+        now: TimeInterval,
+        ttl: TimeInterval
+    ) -> [String: Double] {
+        var out: [String: Double] = [:]
+        let used = leftoverHoldTTLPref(ttl)
+        for (k, v) in leftoverHashTrailCapped(table) where !v.samples.isEmpty {
+            out[k] = leftoverJpegRemaining(at: v.at, now: now, ttl: used)
+        }
+        return out
+    }
+
+    static func leftoverHashTrailDecode(
+        _ raw: [String: [Double]]?,
+        now: TimeInterval,
+        remaining: [String: Double]? = nil,
+        ttl: TimeInterval = leftoverAdoptSec
+    ) -> [String: (samples: [Double], at: TimeInterval)] {
         guard let raw else { return [:] }
-        return leftoverHashTrailCapped(Dictionary(uniqueKeysWithValues: raw.filter { !$0.value.isEmpty }.map { ($0.key, (samples: $0.value, at: now)) }))
+        let used = leftoverHoldTTLPref(ttl)
+        return leftoverHashTrailCapped(Dictionary(uniqueKeysWithValues: raw.filter { !$0.value.isEmpty }.map { key, samples in
+            let at: TimeInterval
+            if let left = remaining?[key] {
+                at = leftoverJpegAtFromRemaining(remaining: left, now: now, ttl: used)
+            } else {
+                at = now
+            }
+            return (key, (samples: samples, at: at))
+        }))
     }
 
     /// Nach Restore: TTL darf nicht 1,2 s nach App-Start sterben. Erstes Live-Tick setzt `at`.
@@ -3643,6 +3676,11 @@ enum MatchMath {
         keep.formUnion(hold)
         if missCoast { keep.formUnion(kalman) }
         return keep
+    }
+
+    /// Survive zuerst: Hold-IDs nach Remint, nicht pre-Survive.
+    static func leftoverKeepHoldIds(hold: [UUID], bins: [UUID] = []) -> [UUID] {
+        Array(Set(hold).union(bins))
     }
 
     /// Slot leer: Frontal-only, nie 72/28 mit Profil. ¾-Sonde vs All-Mean war weich.

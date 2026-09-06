@@ -199,7 +199,12 @@ final class LibraryStore: ObservableObject {
             remaining: GalleryFile.loadPayload()?.leftoverHoldHashRemaining,
             ttl: leftoverHoldTTL
         )
-        leftoverHoldTrailByHash = MatchMath.leftoverHashTrailDecode(packed.leftoverHoldTrailHash, now: Date().timeIntervalSince1970)
+        leftoverHoldTrailByHash = MatchMath.leftoverHashTrailDecode(
+            packed.leftoverHoldTrailHash,
+            now: Date().timeIntervalSince1970,
+            remaining: GalleryFile.loadPayload()?.leftoverHoldTrailRemaining,
+            ttl: leftoverHoldTTL
+        )
         leftoverCaptureHistByHash = MatchMath.leftoverCaptureHistTableDecode(
             packed.leftoverCaptureHist,
             keep: leftoverHoldByHash.keys.flatMap { [$0, MatchMath.leftoverHoldHashSpatial($0)] }
@@ -359,6 +364,11 @@ final class LibraryStore: ObservableObject {
                 leftoverHoldByHash,
                 now: Date().timeIntervalSince1970,
                 ttl: leftoverHoldTTL
+            ),
+            leftoverHoldTrailRemaining: MatchMath.leftoverHashTrailRemainingEncode(
+                leftoverHoldTrailByHash,
+                now: Date().timeIntervalSince1970,
+                ttl: leftoverHoldTTL
             )
         )
         if !liveActive {
@@ -411,10 +421,15 @@ final class LibraryStore: ObservableObject {
         leftoverHoldByHash = MatchMath.leftoverHashHoldDecode(
             packed.leftoverHoldHash,
             now: Date().timeIntervalSince1970,
-            remaining: GalleryFile.loadPayload()?.leftoverHoldHashRemaining,
+            remaining: GalleryFile.loadBackupPayload()?.leftoverHoldHashRemaining,
             ttl: leftoverHoldTTL
         )
-        leftoverHoldTrailByHash = MatchMath.leftoverHashTrailDecode(packed.leftoverHoldTrailHash, now: Date().timeIntervalSince1970)
+        leftoverHoldTrailByHash = MatchMath.leftoverHashTrailDecode(
+            packed.leftoverHoldTrailHash,
+            now: Date().timeIntervalSince1970,
+            remaining: GalleryFile.loadBackupPayload()?.leftoverHoldTrailRemaining,
+            ttl: leftoverHoldTTL
+        )
         leftoverCaptureHistByHash = MatchMath.leftoverCaptureHistTableDecode(
             packed.leftoverCaptureHist,
             keep: leftoverHoldByHash.keys.flatMap { [$0, MatchMath.leftoverHoldHashSpatial($0)] }
@@ -2842,11 +2857,24 @@ final class LibraryStore: ObservableObject {
         leftoverPairLast = MatchMath.leftoverUUIDUUIDMapDropDangling(leftoverPairLast, keep: keepIds)
         leftoverPairCommit = MatchMath.leftoverUUIDUUIDMapDropDangling(leftoverPairCommit, keep: keepIds)
         leftoverHoldTrail = leftoverHoldTrail.mapValues { MatchMath.leftoverHoldTrailCap($0) }
+        let holdBefore = leftoverHold.count
+        let lockedIds = MatchMath.leftoverNameLockLive(until: leftoverNameLockUntil, now: now)
+        leftoverNameLockUntil = leftoverNameLockUntil.filter { lockedIds.contains($0.key) }
+        leftoverNameLockHeld = leftoverNameLockHeld.filter { leftoverNameLockUntil[$0.key] != nil }
+        leftoverHold = MatchMath.leftoverHoldSurvive(hold: leftoverHold, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)
+        leftoverHoldBins = MatchMath.leftoverHoldSurviveBins(hold: leftoverHoldBins, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)
+        leftoverHoldTrail = MatchMath.leftoverHoldSurvive(hold: leftoverHoldTrail, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)
+        leftoverHoldTrailBins = MatchMath.leftoverHoldSurviveBinMap(hold: leftoverHoldTrailBins, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)
+        liveSlotHold = MatchMath.leftoverHoldSurvive(hold: liveSlotHold, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)
+        leftoverMissFrames = MatchMath.leftoverHoldSurvive(hold: leftoverMissFrames, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)
         let keepBoxes = MatchMath.leftoverKeepBoxes(
             used: used,
             dropped: dropped,
             ghosts: ghostIds,
-            hold: emptyLatch ? Array(Set(leftoverHold.keys).union(MatchMath.leftoverHoldIds(leftoverHoldBins))) : Array(leftoverHold.keys),
+            hold: MatchMath.leftoverKeepHoldIds(
+                hold: Array(leftoverHold.keys),
+                bins: MatchMath.leftoverHoldIds(leftoverHoldBins)
+            ),
             missCoast: missCoast,
             kalman: Array(boxKalman.keys)
         )
@@ -2866,16 +2894,6 @@ final class LibraryStore: ObservableObject {
         liveLidClosed = liveLidClosed.filter { keepBoxes.contains($0.key) }
         liveBlinkSeen = liveBlinkSeen.filter { keepBoxes.contains($0.key) }
         liveOpenStreak = liveOpenStreak.filter { keepBoxes.contains($0.key) }
-        let holdBefore = leftoverHold.count
-        let lockedIds = MatchMath.leftoverNameLockLive(until: leftoverNameLockUntil, now: now)
-        leftoverNameLockUntil = leftoverNameLockUntil.filter { lockedIds.contains($0.key) }
-        leftoverNameLockHeld = leftoverNameLockHeld.filter { leftoverNameLockUntil[$0.key] != nil }
-        leftoverHold = MatchMath.leftoverHoldSurvive(hold: leftoverHold, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)
-        leftoverHoldBins = MatchMath.leftoverHoldSurviveBins(hold: leftoverHoldBins, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)
-        leftoverHoldTrail = MatchMath.leftoverHoldSurvive(hold: leftoverHoldTrail, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)
-        leftoverHoldTrailBins = MatchMath.leftoverHoldSurviveBinMap(hold: leftoverHoldTrailBins, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)
-        liveSlotHold = MatchMath.leftoverHoldSurvive(hold: liveSlotHold, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)
-        leftoverMissFrames = MatchMath.leftoverHoldSurvive(hold: leftoverMissFrames, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)
         leftoverStreakBox = MatchMath.leftoverStreakBoxLive(
             boxes: leftoverStreakBox,
             live: adopted.map { (id: $0.id, box: $0.box) },

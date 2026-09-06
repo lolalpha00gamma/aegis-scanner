@@ -396,7 +396,7 @@ enum MatchMathTests {
         ok(!MatchMath.leftoverNamedTrack(hadName: false), "namenlos kein leftover")
         ok(MatchMath.leftoverNeedsPrint(cosine: nil), "ohne Print kein leftover-Pin")
         ok(!MatchMath.leftoverNeedsPrint(cosine: 0.90), "mit Print leftover darf")
-        ok(MatchMath.gallerySchema == 14, "gallery.json Schema 14")
+        ok(MatchMath.gallerySchema == 15, "gallery.json Schema 15")
 
         ok(MatchMath.holdStillSkip(iou: 0.50), "Bewegung 0,50 skippt neuen Print")
         ok(!MatchMath.holdStillSkip(iou: 0.90), "Stillstand 0,90 nimmt Print")
@@ -3091,7 +3091,7 @@ enum MatchMathTests {
         near(jpegDec["6.6.4.6"]?.delta ?? 1, 0.03, 0.001, "JPEG persist Spatial")
         near(jpegDec["6.6.4.6"]?.at ?? 0, 9.0, 0.001, "JPEG persist at=now")
         ok(MatchMath.leftoverJpegByHashDecode(nil, now: 1).isEmpty, "JPEG persist nil")
-        ok(MatchMath.gallerySchema == 14, "Schema 14")
+        ok(MatchMath.gallerySchema == 15, "Schema 15")
         ok(MatchMath.leftoverHoldMissAdvance(prev: 0, hit: true) == 0, "Miss Hit reset")
         ok(MatchMath.leftoverHoldMissAdvance(prev: 0, hit: false) == 1, "Miss +1")
         ok(MatchMath.leftoverHoldMissCoast(miss: 1), "Miss Coast Tick 1")
@@ -3212,6 +3212,27 @@ enum MatchMathTests {
         near(hashRemDec["ab#0"]?.at ?? 0, 8.50, 0.001, "Hash remaining restore")
         let hashStale = MatchMath.leftoverHashHoldDecode(["ab#0": 0.80], now: 9.0)
         near(hashStale["ab#0"]?.at ?? 0, 9.0, 0.001, "Hash Schema 13 at=now")
+        ok(MatchMath.leftoverAssignHungarianWide(0.40), "Hungarian wide 0,40")
+        ok(!MatchMath.leftoverAssignHungarianWide(0.12), "Hungarian pad 0,12")
+        let hunWide = MatchMath.leftoverAssignHungarianX(
+            assigned: [nil, nil, nil, nil, nil, nil, nil, nil],
+            liveX: [0.05, 0.18, 0.31, 0.44, 0.57, 0.70, 0.83, 0.96],
+            holdX: [0.00, 0.16, 0.29, 0.42, 0.55, 0.68, 0.81, 0.94],
+            pad: 0.40
+        )
+        ok(hunWide[0] == 0 && hunWide[7] == 7, "HungarianX wide FillX n=8")
+        let keepAfter = MatchMath.leftoverKeepHoldIds(hold: [kid], bins: [])
+        ok(keepAfter.contains(kid), "KeepHold after Survive")
+        let trailRem = MatchMath.leftoverHashTrailRemainingEncode(
+            ["ab#0": (samples: [0.80], at: 1.0)], now: 1.5, ttl: 1.2
+        )
+        near(trailRem["ab#0"] ?? -1, 0.70, 0.001, "Trail remaining 0,70")
+        let trailRemDec = MatchMath.leftoverHashTrailDecode(
+            ["ab#0": [0.80]], now: 9.0, remaining: trailRem, ttl: 1.2
+        )
+        near(trailRemDec["ab#0"]?.at ?? 0, 8.50, 0.001, "Trail remaining restore")
+        let trailStale = MatchMath.leftoverHashTrailDecode(["ab#0": [0.80]], now: 9.0)
+        near(trailStale["ab#0"]?.at ?? 0, 9.0, 0.001, "Trail Schema 14 at=now")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)
