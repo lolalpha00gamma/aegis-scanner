@@ -257,6 +257,8 @@ final class LibraryStore: ObservableObject {
         if let extra = GalleryFile.loadPayload() {
             leftoverPairStreak = MatchMath.leftoverUUIDIntMapDecode(extra.leftoverPairStreak)
             leftoverPairCommit = MatchMath.leftoverUUIDUUIDMapDecode(extra.leftoverPairCommit)
+            leftoverPairCommitMiss = MatchMath.leftoverUUIDIntMapDecode(extra.leftoverPairCommitMiss)
+            leftoverLastIoU = MatchMath.leftoverStreakSinceDecode(extra.leftoverLastIoU)
             leftoverStreak = MatchMath.leftoverUUIDIntMapDecode(extra.leftoverStreak)
             leftoverStreakBox = MatchMath.leftoverStreakBoxDecode(extra.leftoverStreakBox)
             leftoverJpegByHash = MatchMath.leftoverJpegByHashDecode(
@@ -375,7 +377,9 @@ final class LibraryStore: ObservableObject {
                 leftoverHoldTrailByHash,
                 now: Date().timeIntervalSince1970,
                 ttl: leftoverHoldTTL
-            )
+            ),
+            leftoverPairCommitMiss: MatchMath.leftoverUUIDIntMapEncode(leftoverPairCommitMiss),
+            leftoverLastIoU: MatchMath.leftoverStreakSinceEncode(leftoverLastIoU)
         )
         if !liveActive {
             refreshMergeHint()
@@ -487,6 +491,8 @@ final class LibraryStore: ObservableObject {
         if let extra = GalleryFile.loadBackupPayload() {
             leftoverPairStreak = MatchMath.leftoverUUIDIntMapDecode(extra.leftoverPairStreak)
             leftoverPairCommit = MatchMath.leftoverUUIDUUIDMapDecode(extra.leftoverPairCommit)
+            leftoverPairCommitMiss = MatchMath.leftoverUUIDIntMapDecode(extra.leftoverPairCommitMiss)
+            leftoverLastIoU = MatchMath.leftoverStreakSinceDecode(extra.leftoverLastIoU)
             leftoverStreak = MatchMath.leftoverUUIDIntMapDecode(extra.leftoverStreak)
             leftoverStreakBox = MatchMath.leftoverStreakBoxDecode(extra.leftoverStreakBox)
             leftoverJpegByHash = MatchMath.leftoverJpegByHashDecode(
@@ -1560,7 +1566,10 @@ final class LibraryStore: ObservableObject {
         if let chip = MatchMath.leftoverJpegChip(stored: leftoverJpegDelta[faceId], printReady: printReady) {
             bits.append(chip)
         }
-        if let chip = MatchMath.leftoverIoUJumpChip(leftoverLastIoU[faceId]) {
+        if let chip = MatchMath.leftoverIoUJumpChip(
+            leftoverLastIoU[faceId],
+            jump: MatchMath.leftoverHoldKalmanJumpCam(dt: liveDt, pref: kalmanJump)
+        ) {
             bits.append(chip)
         }
         if let chip = MatchMath.leftoverNameLockChip(until: leftoverNameLockUntil[faceId], now: liveLastStamp) {
@@ -2876,7 +2885,10 @@ final class LibraryStore: ObservableObject {
         for face in adopted {
             if let k = boxKalman[face.id] {
                 let kb = FaceBox(x: k.x, y: k.y, width: k.w, height: k.h)
-                if !skipKalmanReset, MatchMath.leftoverHoldKalmanResets(iou: FaceEngine.iou(kb, face.box), jump: kalmanJump) {
+                if !skipKalmanReset, MatchMath.leftoverHoldKalmanResets(
+                    iou: FaceEngine.iou(kb, face.box),
+                    jump: MatchMath.leftoverHoldKalmanJumpCam(dt: liveDt, pref: kalmanJump)
+                ) {
                     boxKalmanDrop(face.id)
                 }
             }
@@ -3420,8 +3432,9 @@ final class LibraryStore: ObservableObject {
                 let blinkBlocked = (liveOpenStreak[old.id] ?? liveOpenStreak[adopted[bestJ].id] ?? 0) < 2
                 let boxIoU = FaceEngine.iou(old.box, adopted[bestJ].box)
                 leftoverLastIoU[adopted[bestJ].id] = boxIoU
+                let jumpCam = MatchMath.leftoverHoldKalmanJumpCam(dt: liveDt, pref: kalmanJump)
                 leftoverNameLockUntil[old.id] = MatchMath.leftoverNameLockArm(
-                    jump: MatchMath.leftoverIoUJumpBlocks(boxIoU),
+                    jump: MatchMath.leftoverIoUJumpBlocks(boxIoU, jump: jumpCam),
                     now: now,
                     prev: leftoverNameLockUntil[old.id] ?? leftoverNameLockUntil[adopted[bestJ].id],
                     sec: nameLockSec
@@ -3503,7 +3516,8 @@ final class LibraryStore: ObservableObject {
                     jpegDelta: jpegDelta,
                     iou: boxIoU,
                     jpegRequired: printReady,
-                    nameLockUntil: nameLock
+                    nameLockUntil: nameLock,
+                    jump: jumpCam
                 )
                 if MatchMath.leftoverHoldsTrack(
                     cosine: pinCos,
@@ -3518,7 +3532,8 @@ final class LibraryStore: ObservableObject {
                     jpegDelta: jpegDelta,
                     iou: boxIoU,
                     jpegRequired: printReady,
-                    nameLockUntil: nameLock
+                    nameLockUntil: nameLock,
+                    jump: jumpCam
                 ) {
                     leftoverPending[adopted[bestJ].id] = MatchMath.leftoverHoldLabel(
                         cosine: pinCos,

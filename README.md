@@ -1,4 +1,4 @@
-# Aegis **2.1.150 alpha**
+# Aegis **2.1.151 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -14,7 +14,17 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
 
+## Neu in 2.1.151 alpha
+
+Rank-Rebase strippt Yaw `#0`. DropDangling nur dest — Twin-weg tauft. PairCommitMiss RAM-only. Jump Pref 0,40 Indoor. leftoverHoldsTrack IoU 0,40.
+
+- **leftoverHashIsTwinRank.** Yaw `#0` hält, Twin `#101` → Spatial. leftoverLastHashRankRebase analog.
+- **leftoverUUIDUUIDMapDropDangling Key|Dest.** PairCommit hält.
+- **leftoverPairCommitMiss + leftoverLastIoU persist.** leftoverHoldKalmanJumpCam Continuity 0,34. leftoverIoUJumpBlocks Hold/Taufe.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.151 (Build 176). Schema 15 bleibt.
+
 ## Neu in 2.1.150 alpha
+
 
 PairCommit dest=self nach Remint — Twin-proposed tot, Majority tauft. Bins `#101` nach Restore tot. Jump Pref ohne Slider.
 

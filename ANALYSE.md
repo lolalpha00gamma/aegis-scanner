@@ -1,3 +1,29 @@
+# Helios + Aegis — Analyse 2026-09-06 (2.1.151)
+
+Helios **1.5.140** (Build 159). Aegis **2.1.151 alpha** (Build 176). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.150: PairCommit Hold, Remint Dest Twin, Bins Rank-Rebase, Jump Slider. leftoverHashRankRebase strippt `#0`. DropDangling nur dest. PairCommitMiss RAM-only. Jump Pref 0,40 auf Continuity 8 fps. leftoverLastHashRankRebase strippt Yaw. leftoverHoldsTrack IoU 0,40.
+
+## Warum Taufe und Restart nach 2.1.150 weiter rissen
+
+1. **leftoverHashRankRebase `#0`.** Spatial-Strip killt leftoverHoldHashKey. Yaw-Bin nach Restore tot, Exact liest Frontal.
+2. **DropDangling nur dest.** leftoverHoldRemint dest Live-UUID die kein Hold-Key ist, Twin-weg: PairCommit tot, Majority tauft.
+3. **leftoverPairCommitMiss RAM-only.** Restart wischt Overlay HOLD, miss=0 Label tot, 3 Ticks still dann Gast.
+4. **Jump Pref ein Wert.** Continuity 8 fps Box 0,32–0,38, Webcam 24 fps 0,50. Pref 0,40 zittert Indoor. leftoverHoldsTrack / NameLock / JUMP-Chip hart 0,40 — Walker fällt.
+5. **leftoverLastHashRankRebase `#0`.** LastHash Spatial-Strip, Exact nach Restore Frontal.
+
+## Was 2.1.151 ändert
+
+1. **leftoverHashIsTwinRank.** leftoverHashRankRebase nur `#101+`. Yaw `#0`/`#1`/`#2` hält. leftoverLastHashRankRebase analog.
+2. **leftoverUUIDUUIDMapDropDangling Key|Dest.** PairCommit hält wenn Key live, Dest Twin-weg.
+3. **leftoverPairCommitMiss + leftoverLastIoU persist.** gallery.json Extra, Restart HOLD.
+4. **leftoverHoldKalmanJumpCam.** Continuity min(pref, 0,34), Webcam pref. leftoverIoUJumpBlocks / Chip / HoldsTrack / TransfersId / NameLock.
+5. Tests + VERSION = Models = MARKETING 2.1.151 (Build 176). Schema 15 bleibt.
+
+Helios 1.5.140: ROI Thaw Prop, Freeze TTL, S1 Laterality, Coast Click. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-06 (2.1.150)
 
 Helios **1.5.139** (Build 158). Aegis **2.1.150 alpha** (Build 175). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

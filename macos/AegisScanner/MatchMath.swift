@@ -889,12 +889,13 @@ enum MatchMath {
         jpegDelta: Double? = nil,
         iou: Double? = nil,
         jpegRequired: Bool = false,
-        nameLockUntil: TimeInterval? = nil
+        nameLockUntil: TimeInterval? = nil,
+        jump: Double = leftoverIoUJump
     ) -> Bool {
         if tapNameLockBlocks(until: tapUntil, now: now) { return false }
         if leftoverNameLockBlocks(until: nameLockUntil, now: now) { return false }
         if leftoverBaptizeStillBlocks(stillFor: stillFor, cosine: cosine, holdPrev: holdPrev) { return false }
-        if leftoverIoUJumpBlocks(iou) { return false }
+        if leftoverIoUJumpBlocks(iou, jump: jump) { return false }
         guard leftoverBaptize(cosine: cosine) else { return false }
         if !leftoverBaptizeQuality(sharpness: sharpness, yawAbs: yawAbs, blink: blink) { return false }
         if !leftoverBaptizeJpegOk(jpegDelta, required: jpegRequired) { return false }
@@ -1154,9 +1155,9 @@ enum MatchMath {
     /// Box-Steal: IoU-Sprung unter 0,40 keine Taufe. Analog Helios grabAbortHold.
     static let leftoverIoUJump = 0.40
 
-    static func leftoverIoUJumpBlocks(_ iou: Double?) -> Bool {
+    static func leftoverIoUJumpBlocks(_ iou: Double?, jump: Double = leftoverIoUJump) -> Bool {
         guard let iou else { return false }
-        return iou + 1e-12 < leftoverIoUJump
+        return iou + 1e-12 < leftoverHoldKalmanJumpPref(jump)
     }
 
     /// JPEG 70 % Cosine-Drop. 1 − cos(raw, jpeg). Poster fällt > 0,06.
@@ -1253,8 +1254,8 @@ enum MatchMath {
         printReady && stored != nil && stored! < 0 ? "JPEG" : nil
     }
 
-    static func leftoverIoUJumpChip(_ iou: Double?) -> String? {
-        leftoverIoUJumpBlocks(iou) ? "JUMP" : nil
+    static func leftoverIoUJumpChip(_ iou: Double?, jump: Double = leftoverIoUJump) -> String? {
+        leftoverIoUJumpBlocks(iou, jump: jump) ? "JUMP" : nil
     }
 
     /// Twin stiehlt den Namen nach Box-JUMP. 1,2 s Lock, Chip sitzt.
@@ -2326,6 +2327,11 @@ enum MatchMath {
     /// Remint kopiert Kalman auf neue UUID. IoU-Sprung = Reset, sonst Box klebt am Ghost.
     static func leftoverHoldKalmanJumpPref(_ pref: Double) -> Double {
         min(0.50, max(0.30, pref))
+    }
+
+    /// Continuity 8 fps Box 0,32–0,38. Webcam 24 fps darf 0,50.
+    static func leftoverHoldKalmanJumpCam(dt: TimeInterval, pref: Double) -> Double {
+        leftoverHoldKalmanJumpPref(dt >= 0.08 ? min(pref, 0.34) : pref)
     }
 
     static func leftoverHoldKalmanResets(iou: Double?, jump: Double = leftoverIoUJump) -> Bool {
@@ -4628,14 +4634,15 @@ enum MatchMath {
         jpegDelta: Double? = nil,
         iou: Double? = nil,
         jpegRequired: Bool = false,
-        nameLockUntil: TimeInterval? = nil
+        nameLockUntil: TimeInterval? = nil,
+        jump: Double = leftoverIoUJump
     ) -> Bool {
-        if leftoverIoUJumpBlocks(iou) { return false }
+        if leftoverIoUJumpBlocks(iou, jump: jump) { return false }
         if leftoverNameLockBlocks(until: nameLockUntil, now: now) { return true }
         return leftoverPrintOk(cosine: cosine, sharpness: sharpness) && !leftoverTransfersId(
             cosine: cosine, holdPrev: holdPrev, trail: trail, tapUntil: tapUntil, now: now, stillFor: stillFor,
             sharpness: sharpness, yawAbs: yawAbs, blink: blink, jpegDelta: jpegDelta, iou: iou,
-            jpegRequired: jpegRequired, nameLockUntil: nameLockUntil
+            jpegRequired: jpegRequired, nameLockUntil: nameLockUntil, jump: jump
         )
     }
 
@@ -5677,10 +5684,11 @@ enum MatchMath {
     }
 
     /// Dest tot nach Vision-Restart. keep = Live ∪ Identitäten.
+    /// Key live, Dest Twin-weg: PairCommit halten, nicht droppen.
     static func leftoverUUIDUUIDMapDropDangling(_ table: [UUID: UUID], keep: Set<UUID>) -> [UUID: UUID] {
         guard !keep.isEmpty else { return table }
         var out: [UUID: UUID] = [:]
-        for (k, v) in table where keep.contains(v) {
+        for (k, v) in table where keep.contains(k) || keep.contains(v) {
             out[k] = v
         }
         return out
@@ -5717,14 +5725,25 @@ enum MatchMath {
     }
 
     /// Rank-Key `#101` nach Restart tot. Spatial gewinnt, Rank ist Live-Frame.
+    /// Yaw-Bin `#0`/`#1`/`#2` bleibt — Spatial-Strip killt leftoverHoldHashKey sonst.
+    static func leftoverHoldHashBin(_ key: String) -> Int? {
+        guard let i = key.lastIndex(of: "#") else { return nil }
+        return Int(key[key.index(after: i)...])
+    }
+
+    static func leftoverHashIsTwinRank(_ key: String) -> Bool {
+        (leftoverHoldHashBin(key) ?? 0) >= leftoverHashTwinRankBase
+    }
+
     static func leftoverHashRankRebase<Value>(_ table: [String: Value]) -> [String: Value] {
         var out: [String: Value] = [:]
         for (k, v) in table {
-            let spatial = leftoverHoldHashSpatial(k)
-            if spatial.isEmpty { continue }
-            if k == spatial { out[spatial] = v }
+            if leftoverHashIsTwinRank(k) { continue }
+            if leftoverHoldHashSpatial(k).isEmpty { continue }
+            out[k] = v
         }
         for (k, v) in table {
+            guard leftoverHashIsTwinRank(k) else { continue }
             let spatial = leftoverHoldHashSpatial(k)
             if spatial.isEmpty { continue }
             if out[spatial] == nil { out[spatial] = v }
@@ -5733,11 +5752,16 @@ enum MatchMath {
     }
 
     /// leftoverLastHash Werte `#101` nach Restore. Occupied sonst Rank+Spatial doppelt.
+    /// Yaw `#0`/`#1`/`#2` hält — Spatial-Strip killt leftoverHoldHashKey sonst.
     static func leftoverLastHashRankRebase(_ table: [UUID: String]) -> [UUID: String] {
         var out: [UUID: String] = [:]
         for (k, v) in table {
-            let s = leftoverHoldHashSpatial(v)
-            if !s.isEmpty { out[k] = s }
+            if leftoverHashIsTwinRank(v) {
+                let s = leftoverHoldHashSpatial(v)
+                if !s.isEmpty { out[k] = s }
+            } else if !leftoverHoldHashSpatial(v).isEmpty {
+                out[k] = v
+            }
         }
         return out
     }
