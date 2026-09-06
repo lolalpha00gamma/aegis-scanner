@@ -288,27 +288,30 @@ enum MatchMath {
         func liveCap(_ i: Int) -> Double? {
             leftoverSessionCapturePrefersFrame(frame: frameCapture, box: capture[i])
         }
+        func holdOf(_ i: Int) -> Double? {
+            leftoverHoldPrevOf(
+                frontal: holdPrev,
+                yawAbs: yawAbs[i],
+                bins: holdBins,
+                id: leftoverId,
+                hash: holdHash,
+                hashTable: holdHashTable,
+                now: holdAt,
+                ttl: holdTTL,
+                facesInFrame: facesInFrame,
+                occupied: holdOccupied
+            )
+        }
         var ok = candidates.filter { leftoverPin(iou: $0.iou, floor: floor) }
         ok = ok.filter {
             !leftoverHoldBlocks(
                 raw: $0.cosine,
-                prev: leftoverHoldPrevOf(
-                    frontal: holdPrev,
-                    yawAbs: yawAbs[$0.index],
-                    bins: holdBins,
-                    id: leftoverId,
-                    hash: holdHash,
-                    hashTable: holdHashTable,
-                    now: holdAt,
-                    ttl: holdTTL,
-                    facesInFrame: facesInFrame,
-                    occupied: holdOccupied
-                )
+                prev: holdOf($0.index)
             )
         }
         ok = ok.filter {
             leftoverPrintOk(
-                cosine: leftoverPickPrint(raw: $0.cosine, smoothed: nil),
+                cosine: leftoverPickPrint(raw: $0.cosine, smoothed: holdOf($0.index)),
                 sharpness: sharpness[$0.index],
                 yawAbs: yawAbs[$0.index],
                 capture: leftoverSessionCaptureBox(
@@ -326,19 +329,8 @@ enum MatchMath {
                 index: $0.index,
                 iou: $0.iou,
                 cosine: leftoverHoldSmooth(
-                    raw: $0.cosine,
-                    prev: leftoverHoldPrevOf(
-                        frontal: holdPrev,
-                        yawAbs: yawAbs[$0.index],
-                        bins: holdBins,
-                        id: leftoverId,
-                        hash: holdHash,
-                        hashTable: holdHashTable,
-                        now: holdAt,
-                        ttl: holdTTL,
-                        facesInFrame: facesInFrame,
-                        occupied: holdOccupied
-                    ),
+                    raw: leftoverPickPrint(raw: $0.cosine, smoothed: holdOf($0.index)),
+                    prev: holdOf($0.index),
                     dt: dt,
                     captureJump: leftoverCaptureJump(prev: session, next: liveCap($0.index))
                 )
@@ -422,7 +414,9 @@ enum MatchMath {
                 )
             )
         }
-        let origRaw = Dictionary(uniqueKeysWithValues: candidates.map { ($0.index, $0.cosine ?? -1.0) })
+        let origRaw = Dictionary(uniqueKeysWithValues: candidates.map {
+            ($0.index, leftoverPickPrint(raw: $0.cosine, smoothed: holdOf($0.index)) ?? -1.0)
+        })
         let floorRaw = pool.map { origRaw[$0.index] ?? ($0.cosine ?? -1) }
         if leftoverAmbiguousBlocks(raw: floorRaw, scored: scored) { return nil }
         if leftoverSoftmaxBlocks(leftoverScoreSoftmax(scored), capture: session) { return nil }
@@ -462,12 +456,19 @@ enum MatchMath {
         return best
     }
 
-    /// Detect-Skip Coast: VNDetect tot, letzter Voll-Print hält leftoverHold.
-    static func leftoverCoastPrintKeeps(skipDetect: Bool) -> Bool { skipDetect }
+    /// Detect-Skip / skipPrints: letzter Voll-Print hält leftoverHold.
+    static func leftoverCoastPrintKeeps(skipDetect: Bool, skipPrints: Bool = false) -> Bool {
+        skipDetect || skipPrints
+    }
 
-    static func leftoverCoastCosine(skipDetect: Bool, live: Double?, stored: Double?) -> Double? {
+    static func leftoverCoastCosine(
+        skipDetect: Bool,
+        skipPrints: Bool = false,
+        live: Double?,
+        stored: Double?
+    ) -> Double? {
         if let live { return live }
-        if skipDetect { return stored }
+        if leftoverCoastPrintKeeps(skipDetect: skipDetect, skipPrints: skipPrints) { return stored }
         return nil
     }
 
@@ -851,12 +852,17 @@ enum MatchMath {
     static func cameraMutexClaimCadence() -> Int { 1 }
     static func cameraMutexClaimEveryFrame() -> Bool { true }
     static func cameraMutexClaimMinDt() -> TimeInterval { 0.08 }
+    /// LOCK_NB 3× tot → 400 ms, sonst Claim hämmert hinter Aegis-Write.
+    static func cameraMutexClaimBackoffFails() -> Int { 3 }
+    static func cameraMutexClaimBackoffDt() -> TimeInterval { 0.40 }
     static func cameraMutexClaimDue(
         last: TimeInterval,
         now: TimeInterval,
-        minDt: TimeInterval = cameraMutexClaimMinDt()
+        minDt: TimeInterval = cameraMutexClaimMinDt(),
+        fails: Int = 0
     ) -> Bool {
-        now - last >= minDt
+        let wait = fails >= cameraMutexClaimBackoffFails() ? max(minDt, cameraMutexClaimBackoffDt()) : minDt
+        return now - last >= wait
     }
     static func cameraMutexFsyncBeforeUnlock() -> Bool { true }
     /// 2.1.163: Caches-only Write. tmp bleibt Read-Legacy für Helios < 1.5.161.
@@ -2922,7 +2928,14 @@ enum MatchMath {
         return out
     }
 
-    /// Identität als ein Objekt. 25 leftover-Maps bleiben bis LibraryStore umzieht.
+    /// Identität als ein Objekt. LibraryStore droppt Maps noch einzeln — Pack trägt StreakBox/Kalman/Pair.
+    struct FaceTrackBox: Equatable {
+        var x: Double = 0
+        var y: Double = 0
+        var w: Double = 0
+        var h: Double = 0
+    }
+
     struct FaceTrack: Equatable {
         var hold: Double = 0
         var pending: String = ""
@@ -2932,20 +2945,40 @@ enum MatchMath {
         var nameHeld: String = ""
         var nameUntil: TimeInterval = 0
         var miss: Int = 0
+        var streakBox: FaceTrackBox? = nil
+        var kalman: FaceTrackBox? = nil
+        var pairLast: UUID? = nil
+        var pairStreak: Int = 0
+    }
+
+    static func leftoverFaceTrackRemintPair(
+        _ tracks: [UUID: FaceTrack],
+        remap: [UUID: UUID]
+    ) -> [UUID: FaceTrack] {
+        guard !remap.isEmpty else { return tracks }
+        var out = tracks
+        for (id, t) in tracks {
+            if let p = t.pairLast, let mapped = remap[p], mapped != p {
+                var next = t
+                next.pairLast = mapped
+                out[id] = next
+            }
+        }
+        return out
     }
 
     static func leftoverFaceTrackRemint(
         _ tracks: [UUID: FaceTrack],
         remap: [UUID: UUID]
     ) -> [UUID: FaceTrack] {
-        leftoverHoldRemintApply(hold: tracks, remap: remap)
+        leftoverFaceTrackRemintPair(leftoverHoldRemintApply(hold: tracks, remap: remap), remap: remap)
     }
 
     static func leftoverFaceTrackRemintDrop(
         _ tracks: [UUID: FaceTrack],
         remap: [UUID: UUID]
     ) -> [UUID: FaceTrack] {
-        leftoverHoldRemintDrop(hold: tracks, remap: remap)
+        leftoverFaceTrackRemintPair(leftoverHoldRemintDrop(hold: tracks, remap: remap), remap: remap)
     }
 
     static func leftoverFaceTrackPack(
@@ -2956,11 +2989,16 @@ enum MatchMath {
         lastIoU: [UUID: Double],
         nameHeld: [UUID: String],
         nameUntil: [UUID: TimeInterval],
-        miss: [UUID: Int]
+        miss: [UUID: Int],
+        streakBox: [UUID: FaceTrackBox] = [:],
+        kalman: [UUID: FaceTrackBox] = [:],
+        pairLast: [UUID: UUID] = [:],
+        pairStreak: [UUID: Int] = [:]
     ) -> [UUID: FaceTrack] {
         let keys = leftoverHoldRemintKeys([
             Set(hold.keys), Set(pending.keys), Set(streak.keys), Set(lastHash.keys),
-            Set(lastIoU.keys), Set(nameHeld.keys), Set(nameUntil.keys), Set(miss.keys)
+            Set(lastIoU.keys), Set(nameHeld.keys), Set(nameUntil.keys), Set(miss.keys),
+            Set(streakBox.keys), Set(kalman.keys), Set(pairLast.keys), Set(pairStreak.keys)
         ])
         var out: [UUID: FaceTrack] = [:]
         out.reserveCapacity(keys.count)
@@ -2973,7 +3011,11 @@ enum MatchMath {
                 lastIoU: lastIoU[id] ?? 0,
                 nameHeld: nameHeld[id] ?? "",
                 nameUntil: nameUntil[id] ?? 0,
-                miss: miss[id] ?? 0
+                miss: miss[id] ?? 0,
+                streakBox: streakBox[id],
+                kalman: kalman[id],
+                pairLast: pairLast[id],
+                pairStreak: pairStreak[id] ?? 0
             )
         }
         return out
@@ -2988,6 +3030,10 @@ enum MatchMath {
         var nameHeld: [UUID: String] = [:]
         var nameUntil: [UUID: TimeInterval] = [:]
         var miss: [UUID: Int] = [:]
+        var streakBox: [UUID: FaceTrackBox] = [:]
+        var kalman: [UUID: FaceTrackBox] = [:]
+        var pairLast: [UUID: UUID] = [:]
+        var pairStreak: [UUID: Int] = [:]
     }
 
     /// Pack-Inverse. Nur Keys aus tracks — Defaults nicht in die 25 Maps schreiben.
@@ -3010,6 +3056,10 @@ enum MatchMath {
             m.nameHeld[id] = t.nameHeld
             m.nameUntil[id] = t.nameUntil
             m.miss[id] = t.miss
+            if let box = t.streakBox { m.streakBox[id] = box }
+            if let kal = t.kalman { m.kalman[id] = kal }
+            if let pair = t.pairLast { m.pairLast[id] = pair }
+            if t.pairStreak != 0 { m.pairStreak[id] = t.pairStreak }
         }
         return m
     }
@@ -5541,8 +5591,8 @@ enum MatchMath {
     /// Twin-Spike ≥ 0,04 ohne Baptize 0,80: leftover nicht taufen.
     static let leftoverHoldSpike = 0.04
 
-    /// Floor auf RAW. Smoothed 0,50 ∧ Hold 0,80 = 0,70 tauft den Impostor.
-    static func leftoverPickPrint(raw: Double?, smoothed: Double?) -> Double? { raw }
+    /// Floor auf RAW. Ohne Live-Print: Hold/Coast, sonst leftoverPrintOk stirbt 7/8 Detect-Skip.
+    static func leftoverPickPrint(raw: Double?, smoothed: Double?) -> Double? { raw ?? smoothed }
 
     /// Nacht-Hold 0,61 → 0,66 ist Erholung, kein Twin-Spike.
     static func leftoverHoldClimb(prev: Double?, floor: Double = leftoverPrintGenuine) -> Bool {

@@ -1,8 +1,19 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.164 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-GROK.md](VORSCHLAEGE-GROK.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.165 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-GROK.md](VORSCHLAEGE-GROK.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 
-Neu in 2.1.164: leftoverPickArgmax Roh, Coast-Print, fsync, Yield-Pref.
+Neu in 2.1.165: skipDetect in applyLiveFaces, skipPrints-Coast, leftoverPickPrint Hold, FaceTrack StreakBox/Kalman/Pair.
+
+## In 2.1.165 wirklich im Code
+
+2.1.164: leftoverCoastCosine existierte, skipDetect war nicht in applyLiveFaces. skipPrints (24 fps) wischte leftoverHold. Models.build 188 vs Binary 189.
+
+1. **`applyLiveFaces(skipDetect:skipPrints:)`.** Coast-Print kompiliert und läuft.
+2. **`leftoverCoastCosine(skipPrints:)`.** printBudgetSkip hält leftoverHold.
+3. **`leftoverPickPrint` raw ?? Hold.** leftoverPrintOk und Gallery-Floor überleben cosine nil.
+4. **FaceTrack StreakBox/Kalman/Pair + pairLast-Value-Remint.**
+5. **`cameraMutexClaimBackoffFails`.** Models.build 190.
+6. Tests + VERSION = Models = MARKETING_VERSION 2.1.165 (Build 190). Schema 15 bleibt.
 
 ## In 2.1.164 wirklich im Code
 

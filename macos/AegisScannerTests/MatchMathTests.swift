@@ -1723,6 +1723,8 @@ enum MatchMathTests {
             "Impostor 0,50 trotz Hold 0,80"
         )
         ok(MatchMath.leftoverPickPrint(raw: 0.50, smoothed: 0.70) == 0.50, "Floor roh")
+        ok(MatchMath.leftoverPickPrint(raw: nil, smoothed: 0.70) == 0.70, "Coast-Print Hold")
+        ok(MatchMath.leftoverPickPrint(raw: nil, smoothed: nil) == nil, "Coast-Print tot")
         ok(MatchMath.leftoverHoldClimb(prev: 0.61), "Nacht-Hold Climb")
         ok(!MatchMath.leftoverHoldClimb(prev: 0.80), "Tag-Hold kein Climb")
         ok(!MatchMath.leftoverHoldBlocks(raw: 0.66, prev: 0.61), "Nacht 0,61→0,66 kein Spike")
@@ -3806,6 +3808,44 @@ enum MatchMathTests {
         let unpacked = MatchMath.leftoverFaceTrackUnpack(faceDrop)
         ok(unpacked.hold[liveId] == 0.72 && unpacked.pending[liveId] == "Ada", "FaceTrack Unpack")
         ok(unpacked.hold[oldId] == nil, "FaceTrack Unpack drop")
+        let box = MatchMath.FaceTrackBox(x: 0.10, y: 0.20, w: 0.30, h: 0.40)
+        let kal = MatchMath.FaceTrackBox(x: 0.11, y: 0.21, w: 0.31, h: 0.41)
+        let packedLive = MatchMath.leftoverFaceTrackPack(
+            hold: [oldId: 0.72],
+            pending: [oldId: "Ada"],
+            streak: [oldId: 3],
+            lastHash: [oldId: "ab12"],
+            lastIoU: [oldId: 0.91],
+            nameHeld: [oldId: "Ada"],
+            nameUntil: [oldId: 9],
+            miss: [:],
+            streakBox: [oldId: box],
+            kalman: [oldId: kal],
+            pairLast: [oldId: liveId],
+            pairStreak: [oldId: 2]
+        )
+        ok(packedLive[oldId]?.streakBox?.x == 0.10, "FaceTrack StreakBox")
+        ok(packedLive[oldId]?.kalman?.y == 0.21, "FaceTrack Kalman")
+        ok(packedLive[oldId]?.pairLast == liveId && packedLive[oldId]?.pairStreak == 2, "FaceTrack Pair")
+        let liveDrop = MatchMath.leftoverFaceTrackRemintDrop(packedLive, remap: [oldId: liveId])
+        let liveMaps = MatchMath.leftoverFaceTrackUnpack(liveDrop)
+        ok(liveMaps.streakBox[liveId]?.w == 0.30 && liveMaps.streakBox[oldId] == nil, "FaceTrack StreakBox Drop")
+        ok(liveMaps.kalman[liveId]?.h == 0.41, "FaceTrack Kalman Drop")
+        ok(liveMaps.pairLast[liveId] == liveId && liveMaps.pairStreak[liveId] == 2, "FaceTrack Pair Drop")
+        let packedSelf = MatchMath.leftoverFaceTrackPack(
+            hold: [oldId: 0.72],
+            pending: [:],
+            streak: [:],
+            lastHash: [:],
+            lastIoU: [:],
+            nameHeld: [:],
+            nameUntil: [:],
+            miss: [:],
+            pairLast: [oldId: oldId]
+        )
+        let selfDrop = MatchMath.leftoverFaceTrackRemintDrop(packedSelf, remap: [oldId: liveId])
+        ok(selfDrop[liveId]?.pairLast == liveId, "FaceTrack PairLast Value Remint")
+        ok(selfDrop[oldId] == nil, "FaceTrack PairLast Source tot")
         ok(MatchMath.galleryBakRotate() == 3, "gallery.bak rotate 3")
         ok(MatchMath.galleryBakName(0) == "gallery.json.bak", "bak 0")
         ok(MatchMath.galleryBakName(2) == "gallery.json.bak.2", "bak 2")
@@ -3851,9 +3891,24 @@ enum MatchMathTests {
         )
         ok(MatchMath.leftoverCoastPrintKeeps(skipDetect: true), "Coast-Print Skip")
         ok(!MatchMath.leftoverCoastPrintKeeps(skipDetect: false), "Coast-Print Voll tot")
+        ok(MatchMath.leftoverCoastPrintKeeps(skipDetect: false, skipPrints: true), "Coast-Print skipPrints")
         ok(MatchMath.leftoverCoastCosine(skipDetect: true, live: nil, stored: 0.70) == 0.70, "Coast nimmt Hold")
         ok(MatchMath.leftoverCoastCosine(skipDetect: true, live: 0.80, stored: 0.70) == 0.80, "Coast live vor Hold")
         ok(MatchMath.leftoverCoastCosine(skipDetect: false, live: nil, stored: 0.70) == nil, "Voll ohne Print tot")
+        ok(MatchMath.leftoverCoastCosine(skipDetect: false, skipPrints: true, live: nil, stored: 0.70) == 0.70, "skipPrints nimmt Hold")
+        ok(
+            MatchMath.leftoverPick(candidates: [(0, 0.80, nil)], holdPrev: 0.70) == 0,
+            "Coast-Hold ohne Live-Print"
+        )
+        ok(
+            MatchMath.leftoverPick(candidates: [(0, 0.80, nil)], holdPrev: nil) == nil,
+            "ohne Print ohne Hold tot"
+        )
+        ok(MatchMath.cameraMutexClaimBackoffFails() == 3, "ClaimBackoff 3")
+        ok(abs(MatchMath.cameraMutexClaimBackoffDt() - 0.40) < 0.01, "ClaimBackoff 400 ms")
+        ok(!MatchMath.cameraMutexClaimDue(last: 0, now: 0.08, fails: 3), "ClaimBackoff vor 400 ms tot")
+        ok(MatchMath.cameraMutexClaimDue(last: 0, now: 0.40, fails: 3), "ClaimBackoff 400 ms fällig")
+        ok(MatchMath.cameraMutexClaimDue(last: 0, now: 0.08, fails: 2), "ClaimBackoff vor 3 frei")
         ok(MatchMath.cameraMutexFsyncBeforeUnlock(), "Mutex fsync")
         ok(MatchMath.cameraMutexClaimDue(last: 0, now: 0.08), "ClaimDue 80 ms")
         ok(!MatchMath.cameraMutexClaimDue(last: 0, now: 0.07), "ClaimDue vor 80 ms tot")

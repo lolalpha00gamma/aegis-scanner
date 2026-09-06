@@ -2214,7 +2214,14 @@ final class LibraryStore: ObservableObject {
                 if MatchMath.liveRoiSkipsForStranger(foundCount: found.count, kalmanCount: kalmanSnap.count) {
                     self.liveRoiSkipOnce = true
                 }
-                self.applyLiveFaces(found, image: image, mediaId: mediaId, stamp: stamp)
+                self.applyLiveFaces(
+                    found,
+                    image: image,
+                    mediaId: mediaId,
+                    stamp: stamp,
+                    skipDetect: skipDetect,
+                    skipPrints: skipPrints
+                )
                 if let pending = self.livePending {
                     self.livePending = nil
                     self.runLiveDetect(pending.image, mediaId: pending.mediaId, stamp: pending.stamp)
@@ -2407,7 +2414,14 @@ final class LibraryStore: ObservableObject {
         boxKalmanV.removeValue(forKey: id)
     }
 
-    private func applyLiveFaces(_ incoming: [FaceObservation], image: CGImage, mediaId: UUID, stamp: TimeInterval) {
+    private func applyLiveFaces(
+        _ incoming: [FaceObservation],
+        image: CGImage,
+        mediaId: UUID,
+        stamp: TimeInterval,
+        skipDetect: Bool = false,
+        skipPrints: Bool = false
+    ) {
         let nowTick = stamp > 0 ? stamp : Date().timeIntervalSince1970
         leftoverHashRebasedTick = false
         if leftoverHashNeedsRebase {
@@ -3301,6 +3315,7 @@ final class LibraryStore: ObservableObject {
                     }()
                     let cosine = MatchMath.leftoverCoastCosine(
                         skipDetect: skipDetect,
+                        skipPrints: skipPrints,
                         live: liveCos,
                         stored: leftoverHold[old.id]
                     )

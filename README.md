@@ -1,4 +1,4 @@
-# Aegis **2.1.164 alpha**
+# Aegis **2.1.165 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,17 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.165 alpha
+
+Warum Detect-Skip leftoverHold trotz leftoverCoastCosine weiter tötete, skipPrints bei 24 fps den Hold wischte, und Models.build hinter dem Binary lag:
+
+- **applyLiveFaces(skipDetect:skipPrints:).** 2.1.164 rief leftoverCoastCosine(skipDetect:) in applyLiveFaces auf, ohne den Parameter — Compile tot, Coast nie im Binary.
+- **leftoverCoastCosine skipPrints.** printBudgetSkip (24 fps, Vision > 18 ms) ist nicht skipDetect. Coast hält leftoverHold auch ohne VNDetect-Skip.
+- **leftoverPickPrint raw ?? Hold.** leftoverPrintOk und Gallery-Floor sterben nicht mehr bei cosine nil. leftoverHoldSmooth bekommt denselben Coast.
+- **FaceTrack StreakBox/Kalman/Pair.** Pack/Unpack/Remint inkl. pairLast-Value. LibraryStore droppt Maps weiter einzeln.
+- **ClaimBackoff 3× LOCK_NB → 400 ms.** Models.build 190 = MARKETING 2.1.165 (war 188 vs Binary 189).
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.165 (Build 190). Schema 15 bleibt.
 
 ## Neu in 2.1.164 alpha
 

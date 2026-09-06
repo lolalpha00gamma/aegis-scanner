@@ -1,3 +1,25 @@
+# Helios + Aegis — Analyse 2026-09-06 (2.1.165)
+
+Helios **1.5.163** (Build 182). Aegis **2.1.165 alpha** (Build 190). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.164: leftoverCoastCosine existierte, skipDetect nicht in applyLiveFaces. skipPrints wischte leftoverHold. Models.build 188 vs Binary 189.
+
+## Warum Taufe nach 2.1.164 weiter riss
+
+1. **skipDetect out of scope.** Coast nie am Pin.
+2. **skipPrints ohne Coast.** 24 fps printBudget, live-Print leer, leftoverHold tot.
+3. **leftoverPickPrint `{ raw }`.** cosine nil → leftoverPrintOk / Gallery-Floor tot.
+
+## Was 2.1.165 ändert
+
+1. **applyLiveFaces(skipDetect:skipPrints:).**
+2. **leftoverCoastCosine skipPrints.** leftoverPickPrint raw ?? Hold.
+3. **FaceTrack StreakBox/Kalman/Pair + pairLast-Value-Remint.**
+4. **ClaimBackoff + Models.build 190.**
+5. Tests + VERSION = Models = MARKETING 2.1.165 (Build 190). Schema 15 bleibt.
+
+`bugfix` mergen: nein.
+
 # Helios + Aegis — Analyse 2026-09-06 (2.1.161)
 
 Helios **1.5.158** (Build 177). Aegis **2.1.161 alpha** (Build 186). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
