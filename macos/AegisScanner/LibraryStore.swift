@@ -51,6 +51,8 @@ final class LibraryStore: ObservableObject {
     @Published var cameraChoice: CameraChoice = .auto
     @Published var liveFormatChip: String = ""
     @Published var mutexChip: String = "—"
+    @Published var yieldAutoReturn = true
+    @Published var yieldGrace: Double = 4
     @Published var freezeAxis: [UUID: String] = [:]
     @Published var swapFlashUntil: TimeInterval = 0
     @Published var headCountFlashUntil: TimeInterval = 0
@@ -260,6 +262,17 @@ final class LibraryStore: ObservableObject {
         {
             cameraChoice = c
         }
+        if UserDefaults.standard.object(forKey: "aegis.yieldAutoReturn") != nil {
+            yieldAutoReturn = MatchMath.cameraMutexYieldAutoReturnPref(
+                UserDefaults.standard.bool(forKey: "aegis.yieldAutoReturn")
+            )
+        }
+        let yg = UserDefaults.standard.double(forKey: "aegis.yieldGrace")
+        if UserDefaults.standard.object(forKey: "aegis.yieldGrace") != nil {
+            yieldGrace = MatchMath.cameraMutexYieldGracePref(yg)
+        }
+        liveCapture.yieldAutoReturn = yieldAutoReturn
+        liveCapture.yieldGrace = yieldGrace
         let ttlStored = UserDefaults.standard.double(forKey: "aegis.holdTTLFloor")
         if ttlStored > 0 {
             holdTTLFloor = MatchMath.leftoverHoldTTLPref(ttlStored)
@@ -1523,6 +1536,18 @@ final class LibraryStore: ObservableObject {
     func setHoldTTLFloor(_ v: Double) {
         holdTTLFloor = MatchMath.leftoverHoldTTLPref(v)
         UserDefaults.standard.set(holdTTLFloor, forKey: "aegis.holdTTLFloor")
+    }
+
+    func setYieldAutoReturn(_ v: Bool) {
+        yieldAutoReturn = MatchMath.cameraMutexYieldAutoReturnPref(v)
+        liveCapture.yieldAutoReturn = yieldAutoReturn
+        UserDefaults.standard.set(yieldAutoReturn, forKey: "aegis.yieldAutoReturn")
+    }
+
+    func setYieldGrace(_ s: Double) {
+        yieldGrace = MatchMath.cameraMutexYieldGracePref(s)
+        liveCapture.yieldGrace = yieldGrace
+        UserDefaults.standard.set(yieldGrace, forKey: "aegis.yieldGrace")
     }
 
     func setNameLockSec(_ v: Double) {
@@ -3270,10 +3295,15 @@ final class LibraryStore: ObservableObject {
                         )
                     )
                     let v = FaceEngine.embedding(of: face)
-                    let cosine: Double? = {
+                    let liveCos: Double? = {
                         if v.count >= 32, ov.count == v.count { return MatchMath.cosine(v, ov) }
                         return nil
                     }()
+                    let cosine = MatchMath.leftoverCoastCosine(
+                        skipDetect: skipDetect,
+                        live: liveCos,
+                        stored: leftoverHold[old.id]
+                    )
                     cands.append((j, o, cosine))
                 }
                 leftoverItems.append((old, cands.compactMap(\.cosine).max(), cands))

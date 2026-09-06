@@ -1,4 +1,4 @@
-# Aegis **2.1.163 alpha**
+# Aegis **2.1.164 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.164 alpha
+
+Warum der Nachbar trotz höherem Roh-Print gewann, Detect-Skip leftoverHold verlor, und Yield-Grace unsichtbar blieb:
+
+- **leftoverPickArgmax auf Roh-Cosine.** leftoverScore (Schärfe/Yaw/Heat) nur Tie-Break bei Spread ≤ 0,08. Nachbar 0,65 trotz Detector 0,99 stiehlt nicht 0,80.
+- **leftoverCoastCosine.** Detect-Skip (Kalman-Coast ohne Print) hält leftoverHold — IoU-only überlebt.
+- **Mutex fsync vor LOCK_UN.** Crash mitten im Write = keine leere Caches-Datei.
+- **Yield Auto-Return + Grace 2–8 s** in der Toolbar. Aus = Aegis bleibt auf Built-in nach Helios.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.164 (Build 189). Schema 15 bleibt.
 
 ## Neu in 2.1.163 alpha
 

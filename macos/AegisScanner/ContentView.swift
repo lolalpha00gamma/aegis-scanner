@@ -117,6 +117,24 @@ struct ContentView: View {
                 .font(.caption2.monospacedDigit())
                 .foregroundStyle(.secondary)
                 .help("24 fps Hold-TTL. Indoor-Latch bleibt 4 s.")
+            Toggle("Auto-Return", isOn: Binding(
+                get: { store.yieldAutoReturn },
+                set: { store.setYieldAutoReturn($0) }
+            ))
+            .help("Nach Yield: Continuity zurück wenn Helios die Kamera frei gibt.")
+            Slider(
+                value: Binding(
+                    get: { store.yieldGrace },
+                    set: { store.setYieldGrace($0) }
+                ),
+                in: 2 ... 8,
+                step: 1
+            )
+            .frame(width: 80)
+            .help("Sekunden nach Helios-Weg, bevor Continuity zurückkommt. 4 s Default.")
+            Text(String(format: "Yield %.0f s", store.yieldGrace))
+                .font(.caption2.monospacedDigit())
+                .foregroundStyle(.secondary)
             Slider(
                 value: Binding(
                     get: { store.nameLockSec },

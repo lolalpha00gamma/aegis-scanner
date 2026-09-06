@@ -423,14 +423,15 @@ enum MatchMath {
             )
         }
         let origRaw = Dictionary(uniqueKeysWithValues: candidates.map { ($0.index, $0.cosine ?? -1.0) })
-        let raw = pool.map { $0.cosine ?? -1 }
         let floorRaw = pool.map { origRaw[$0.index] ?? ($0.cosine ?? -1) }
-        if leftoverAmbiguousBlocks(raw: raw, scored: scored) { return nil }
+        if leftoverAmbiguousBlocks(raw: floorRaw, scored: scored) { return nil }
         if leftoverSoftmaxBlocks(leftoverScoreSoftmax(scored), capture: session) { return nil }
-        if leftoverOpenSetUnsure(scores: scored) { return nil }
+        let arg = leftoverPickArgmax(raw: floorRaw, scored: scored)
+        let rawBest = floorRaw.indices.max(by: { floorRaw[$0] < floorRaw[$1] })
+        if arg == rawBest, leftoverOpenSetUnsure(scores: floorRaw) { return nil }
         let topYaw = floorRaw.enumerated().max(by: { $0.element < $1.element }).flatMap { yawAbs[pool[$0.offset].index] }
         if leftoverOpenSetGalleryFloor(floorRaw, floor: leftoverSessionFloor(yawAbs: topYaw, capture: session)) { return nil }
-        if let i = scored.enumerated().max(by: { $0.element < $1.element })?.offset {
+        if let i = arg {
             let idx = pool[i].index
             if !conflictTickAgrees(
                 boxId: nil,
@@ -443,6 +444,30 @@ enum MatchMath {
             }
             return idx
         }
+        return nil
+    }
+
+    /// Argmax auf Roh-Cosine. leftoverScore nur Tie-Break wenn Spread ≤ 0,08.
+    /// Score-Inflation (Schärfe/Yaw/Heat) darf den Nachbarn mit 0,50 vs 0,70 nicht wählen.
+    static func leftoverPickArgmax(raw: [Double], scored: [Double], tie: Double = 0.08) -> Int? {
+        guard !raw.isEmpty, raw.count == scored.count else { return nil }
+        guard let rawBest = raw.indices.max(by: { raw[$0] < raw[$1] }) else { return nil }
+        let maxRaw = raw[rawBest]
+        var best = rawBest
+        for i in raw.indices {
+            if maxRaw - raw[i] <= tie, scored[i] > scored[best] {
+                best = i
+            }
+        }
+        return best
+    }
+
+    /// Detect-Skip Coast: VNDetect tot, letzter Voll-Print hält leftoverHold.
+    static func leftoverCoastPrintKeeps(skipDetect: Bool) -> Bool { skipDetect }
+
+    static func leftoverCoastCosine(skipDetect: Bool, live: Double?, stored: Double?) -> Double? {
+        if let live { return live }
+        if skipDetect { return stored }
         return nil
     }
 
@@ -823,6 +848,17 @@ enum MatchMath {
     /// Heartbeat auf der Capture-Queue darf nicht hinter LOCK_EX warten.
     static func cameraMutexFlockNonblock() -> Bool { true }
     static func cameraMutexFlockReadShared() -> Bool { true }
+    static func cameraMutexClaimCadence() -> Int { 1 }
+    static func cameraMutexClaimEveryFrame() -> Bool { true }
+    static func cameraMutexClaimMinDt() -> TimeInterval { 0.08 }
+    static func cameraMutexClaimDue(
+        last: TimeInterval,
+        now: TimeInterval,
+        minDt: TimeInterval = cameraMutexClaimMinDt()
+    ) -> Bool {
+        now - last >= minDt
+    }
+    static func cameraMutexFsyncBeforeUnlock() -> Bool { true }
     /// 2.1.163: Caches-only Write. tmp bleibt Read-Legacy für Helios < 1.5.161.
     static func cameraMutexWriteTmp() -> Bool { false }
     /// LOCK_SH|NB fehlgeschlagen: nicht als holder=nil claimen.
@@ -929,6 +965,12 @@ enum MatchMath {
 
     /// Heartbeat bleibt. 4 s nach Helios-Weg = Continuity zurück, nicht für immer Built-in.
     static func cameraMutexYieldGrace() -> TimeInterval { 4 }
+
+    static func cameraMutexYieldGracePref(_ seconds: Double) -> TimeInterval {
+        min(8, max(2, seconds))
+    }
+
+    static func cameraMutexYieldAutoReturnPref(_ on: Bool) -> Bool { on }
 
     static func cameraMutexYieldAutoReturn(
         yielded: Bool,

@@ -3837,6 +3837,29 @@ enum MatchMathTests {
         ok(MatchMath.cameraMutexChip(holder: "helios", yielded: false) == "helios", "Mutex Chip Holder")
         ok(MatchMath.cameraMutexPickText(caches: "", tmp: "aegis 1 1.000", cachesEmpty: true) == nil, "Pick empty Caches tot")
         ok(MatchMath.cameraMutexPickText(caches: "", tmp: "aegis 1 1.000") == "aegis 1 1.000", "Pick Legacy ohne empty-Flag")
+        ok(MatchMath.leftoverPickArgmax(raw: [0.70, 0.50], scored: [0.55, 0.80]) == 0, "Argmax Roh trotz Score-Inflation")
+        ok(MatchMath.leftoverPickArgmax(raw: [0.73, 0.72], scored: [0.60, 0.80]) == 1, "Argmax Tie-Break Schärfe")
+        ok(MatchMath.leftoverPickArgmax(raw: [0.67, 0.66], scored: [0.70, 0.78]) == 1, "Argmax Tie-Break Detector")
+        ok(MatchMath.leftoverPickArgmax(raw: [], scored: []) == nil, "Argmax leer")
+        ok(
+            MatchMath.leftoverPick(
+                candidates: [(0, 0.50, 0.80), (1, 0.50, 0.65)],
+                sharpness: [0: 0.14, 1: 0.50],
+                detScore: [0: 0.20, 1: 0.99]
+            ) == 0,
+            "Nachbar 0,65 trotz Score-Inflation tot"
+        )
+        ok(MatchMath.leftoverCoastPrintKeeps(skipDetect: true), "Coast-Print Skip")
+        ok(!MatchMath.leftoverCoastPrintKeeps(skipDetect: false), "Coast-Print Voll tot")
+        ok(MatchMath.leftoverCoastCosine(skipDetect: true, live: nil, stored: 0.70) == 0.70, "Coast nimmt Hold")
+        ok(MatchMath.leftoverCoastCosine(skipDetect: true, live: 0.80, stored: 0.70) == 0.80, "Coast live vor Hold")
+        ok(MatchMath.leftoverCoastCosine(skipDetect: false, live: nil, stored: 0.70) == nil, "Voll ohne Print tot")
+        ok(MatchMath.cameraMutexFsyncBeforeUnlock(), "Mutex fsync")
+        ok(MatchMath.cameraMutexClaimDue(last: 0, now: 0.08), "ClaimDue 80 ms")
+        ok(!MatchMath.cameraMutexClaimDue(last: 0, now: 0.07), "ClaimDue vor 80 ms tot")
+        ok(abs(MatchMath.cameraMutexYieldGracePref(1) - 2) < 0.01, "Yield Grace Floor 2")
+        ok(abs(MatchMath.cameraMutexYieldGracePref(9) - 8) < 0.01, "Yield Grace Cap 8")
+        ok(!MatchMath.cameraMutexYieldAutoReturnPref(false), "Yield Auto-Return aus")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

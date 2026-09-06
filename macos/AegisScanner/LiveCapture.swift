@@ -52,6 +52,8 @@ final class LiveCapture: NSObject {
     var choice: CameraChoice = .auto
     private var cameraMutexYielded = false
     private var yieldSince: TimeInterval = 0
+    var yieldAutoReturn = true
+    var yieldGrace: TimeInterval = 4
     private var mutexBeat: Timer?
 
     static func orientKey(_ uniqueID: String) -> String { "aegis.camOrient.\(uniqueID)" }
@@ -337,6 +339,9 @@ final class LiveCapture: NSObject {
                     }
                 }
             }
+            if MatchMath.cameraMutexFsyncBeforeUnlock() {
+                _ = fsync(fd)
+            }
             _ = flock(fd, LOCK_UN)
             close(fd)
             return true
@@ -418,12 +423,14 @@ final class LiveCapture: NSObject {
         }
         cameraMutexYielded = yielded
         mutexChip = MatchMath.cameraMutexChip(holder: holder, yielded: yielded)
-        if MatchMath.cameraMutexYieldAutoReturn(
+        if MatchMath.cameraMutexYieldAutoReturnPref(yieldAutoReturn),
+           MatchMath.cameraMutexYieldAutoReturn(
             yielded: yielded,
             holder: holder,
             owner: owner,
             since: yieldSince,
-            now: now
+            now: now,
+            grace: MatchMath.cameraMutexYieldGracePref(yieldGrace)
         ) {
             cameraMutexYielded = false
             yieldSince = 0

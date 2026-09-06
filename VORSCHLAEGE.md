@@ -1,8 +1,18 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.163 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-GROK.md](VORSCHLAEGE-GROK.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.164 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-GROK.md](VORSCHLAEGE-GROK.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 
-Neu in 2.1.163: RemintDrop alle Maps inkl. freezeAxis, Gallery-Floor auf Roh-Cosine, flock NB, CAS, tmp-Write tot, bak rotate 3, Mutex-Chip.
+Neu in 2.1.164: leftoverPickArgmax Roh, Coast-Print, fsync, Yield-Pref.
+
+## In 2.1.164 wirklich im Code
+
+2.1.163: Gallery-Floor roh, RemintDrop, flock NB. leftoverPick wählte trotzdem leftoverScore. Detect-Skip verlor den Print.
+
+1. **`leftoverPickArgmax` auf Roh-Cosine.** Score nur Tie-Break bei Spread ≤ 0,08.
+2. **`leftoverCoastCosine`.** Detect-Skip hält leftoverHold.
+3. **`cameraMutexFsyncBeforeUnlock`.**
+4. **Yield Auto-Return + Grace 2–8 s** in der Toolbar.
+5. Tests + VERSION = Models = MARKETING_VERSION 2.1.164 (Build 189). Schema 15 bleibt.
 
 ## In 2.1.163 wirklich im Code
 
