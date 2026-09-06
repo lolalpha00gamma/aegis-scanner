@@ -244,7 +244,8 @@ final class LibraryStore: ObservableObject {
             leftoverStreakBox = MatchMath.leftoverStreakBoxDecode(extra.leftoverStreakBox)
             leftoverJpegByHash = MatchMath.leftoverJpegByHashDecode(
                 extra.leftoverJpegByHash,
-                now: Date().timeIntervalSince1970
+                now: Date().timeIntervalSince1970,
+                ttl: jpegProbeTTL
             )
             if let gate = extra.leftoverAssignLiveGate {
                 assignLiveGate = MatchMath.leftoverAssignLiveGateNeed(gate)
@@ -333,7 +334,11 @@ final class LibraryStore: ObservableObject {
             leftoverStreak: MatchMath.leftoverUUIDIntMapEncode(leftoverStreak),
             leftoverStreakBox: MatchMath.leftoverStreakBoxEncode(leftoverStreakBox),
             leftoverAssignLiveGate: assignLiveGate,
-            leftoverJpegByHash: MatchMath.leftoverJpegByHashEncode(leftoverJpegByHash),
+            leftoverJpegByHash: MatchMath.leftoverJpegByHashEncode(
+                leftoverJpegByHash,
+                now: Date().timeIntervalSince1970,
+                ttl: jpegProbeTTL
+            ),
             leftoverHoldKalman: MatchMath.leftoverHoldKalmanEncode(boxKalman, vel: boxKalmanV)
         )
         if !liveActive {
@@ -439,7 +444,8 @@ final class LibraryStore: ObservableObject {
             leftoverStreakBox = MatchMath.leftoverStreakBoxDecode(extra.leftoverStreakBox)
             leftoverJpegByHash = MatchMath.leftoverJpegByHashDecode(
                 extra.leftoverJpegByHash,
-                now: Date().timeIntervalSince1970
+                now: Date().timeIntervalSince1970,
+                ttl: jpegProbeTTL
             )
             if let gate = extra.leftoverAssignLiveGate {
                 assignLiveGate = MatchMath.leftoverAssignLiveGateNeed(gate)
@@ -2775,6 +2781,11 @@ final class LibraryStore: ObservableObject {
         leftoverStreak = MatchMath.leftoverHoldRemint(hold: leftoverStreak, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys, pad: fillXPad, padRescue: fillXRescue)
         leftoverStreakBox = MatchMath.leftoverHoldRemint(hold: leftoverStreakBox, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys, pad: fillXPad, padRescue: fillXRescue)
         leftoverStreakSince = MatchMath.leftoverHoldRemint(hold: leftoverStreakSince, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys, pad: fillXPad, padRescue: fillXRescue)
+        leftoverMissCoastTicks = MatchMath.leftoverHoldMissAdvance(
+            prev: leftoverMissCoastTicks,
+            hit: MatchMath.leftoverHoldMissHit(live: liveIds.count, adopted: adopted.count)
+        )
+        let missCoast = MatchMath.leftoverHoldMissCoast(miss: leftoverMissCoastTicks)
         boxKalman = MatchMath.leftoverHoldRemint(hold: boxKalman, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys, pad: fillXPad, padRescue: fillXRescue)
         boxKalmanV = MatchMath.leftoverHoldRemint(hold: boxKalmanV, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash, hashTableKeys: remintHashKeys, pad: fillXPad, padRescue: fillXRescue)
         for face in adopted {
@@ -2785,8 +2796,8 @@ final class LibraryStore: ObservableObject {
                 }
             }
         }
-        boxKalman = MatchMath.leftoverHoldKalmanKeep(kalman: boxKalman, live: adopted.map(\.id))
-        boxKalmanV = MatchMath.leftoverHoldKalmanKeep(kalman: boxKalmanV, live: adopted.map(\.id))
+        boxKalman = MatchMath.leftoverHoldKalmanKeep(kalman: boxKalman, live: adopted.map(\.id), missCoast: missCoast)
+        boxKalmanV = MatchMath.leftoverHoldKalmanKeep(kalman: boxKalmanV, live: adopted.map(\.id), missCoast: missCoast)
         let keepIds = Set(remintLive.map(\.id)).union(Set(identities.map(\.id)))
         leftoverPairLast = MatchMath.leftoverUUIDUUIDMapDropDangling(leftoverPairLast, keep: keepIds)
         leftoverPairCommit = MatchMath.leftoverUUIDUUIDMapDropDangling(leftoverPairCommit, keep: keepIds)
@@ -2817,11 +2828,6 @@ final class LibraryStore: ObservableObject {
         let lockedIds = MatchMath.leftoverNameLockLive(until: leftoverNameLockUntil, now: now)
         leftoverNameLockUntil = leftoverNameLockUntil.filter { lockedIds.contains($0.key) }
         leftoverNameLockHeld = leftoverNameLockHeld.filter { leftoverNameLockUntil[$0.key] != nil }
-        leftoverMissCoastTicks = MatchMath.leftoverHoldMissAdvance(
-            prev: leftoverMissCoastTicks,
-            hit: !liveIds.isEmpty
-        )
-        let missCoast = MatchMath.leftoverHoldMissCoast(miss: leftoverMissCoastTicks)
         leftoverHold = MatchMath.leftoverHoldSurvive(hold: leftoverHold, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)
         leftoverHoldBins = MatchMath.leftoverHoldSurviveBins(hold: leftoverHoldBins, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)
         leftoverHoldTrail = MatchMath.leftoverHoldSurvive(hold: leftoverHoldTrail, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)
@@ -2862,11 +2868,11 @@ final class LibraryStore: ObservableObject {
             if MatchMath.leftoverLastHashWipes(empty: true, overlayKeep: emptyChip, missCoast: missCoast) {
                 leftoverLastHash = [:]
             }
-            if !MatchMath.leftoverEmptyKeepsOverlay(liveEmpty: true) || !emptyChip {
+            if MatchMath.leftoverEmptyWipesOverlay(emptyChip: emptyChip, missCoast: missCoast) {
                 liveHeldIds = []
                 leftoverPending = [:]
             }
-            if !MatchMath.leftoverEmptyKeepsStreak(liveEmpty: true) || !emptyLatch {
+            if MatchMath.leftoverEmptyWipesMaps(emptyLatch: emptyLatch, missCoast: missCoast) {
                 leftoverStreak = [:]
                 leftoverStreakBox = [:]
                 leftoverStreakSince = [:]
@@ -2879,20 +2885,20 @@ final class LibraryStore: ObservableObject {
                 boxKalman = [:]
                 boxKalmanV = [:]
                 liveStillFor = [:]
+                liveExposureUntil = [:]
+                livePosterJitter = [:]
+                livePosterStill = [:]
+                liveLandmarkPrev = [:]
+                liveLidClosed = [:]
+                liveBlinkSeen = [:]
+                liveOpenStreak = [:]
             }
             guestOrder = guestOrder.filter {
                 MatchMath.guestOrderKeeps(id: $0, live: [], lastSeen: guestSeenAt[$0], now: now)
             }
             guestSeenAt = guestSeenAt.filter { guestOrder.contains($0.key) }
-            liveExposureUntil = [:]
-            livePosterJitter = [:]
-            livePosterStill = [:]
-            liveLandmarkPrev = [:]
-            liveLidClosed = [:]
-            liveBlinkSeen = [:]
-            liveOpenStreak = [:]
-            faces.removeAll { $0.mediaId == mediaId }
-            if !MatchMath.leftoverEmptyKeepsOverlay(liveEmpty: true) || !emptyChip {
+            if MatchMath.leftoverEmptyWipesOverlay(emptyChip: emptyChip, missCoast: missCoast) {
+                faces.removeAll { $0.mediaId == mediaId }
                 if let label = MatchMath.headCountFlashLabel(prev: lastLiveHeadCount, next: 0) {
                     lastHeadCountLabel = label
                     headCountFlashUntil = now + MatchMath.headCountFlashHold
@@ -3686,7 +3692,7 @@ final class LibraryStore: ObservableObject {
         }
         if selectedMediaId == mediaId {
             if found.isEmpty {
-                if !MatchMath.leftoverEmptyKeepsOverlay(liveEmpty: true) || !emptyChip {
+                if MatchMath.leftoverEmptyWipesOverlay(emptyChip: emptyChip, missCoast: missCoast) {
                     selectedFaceId = nil
                 }
             } else if let cur = selectedFaceId, adopted.contains(where: { $0.id == cur }) {

@@ -86,8 +86,8 @@ enum MatchMath {
     /// ¾/Profil: Maße vs. Frontal-Centroid lügen. Print ≥ 80 nicht vetoen.
     static let geoVetoYawSkip = 0.28
     static let geoVetoYawPrint = 80.0
-    /// gallery.json Schema neben printRevision. 12 = leftoverHoldKalman persist.
-    static let gallerySchema = 12
+    /// gallery.json Schema neben printRevision. 13 = leftoverJpeg remaining TTL.
+    static let gallerySchema = 13
     /// Box-IoU unter dem Wert: Bewegung. Mit Schärfe: kleines Nicken darf den Print.
     static let holdStillIoU = 0.70
     static let holdStillSharp = 0.18
@@ -722,8 +722,9 @@ enum MatchMath {
         return out
     }
 
-    /// JPEG-Probe RAM-only tot nach Restart. Spatial-Key, at = now.
+    /// JPEG-Probe RAM-only tot nach Restart. Spatial-Key.
     /// Cap analog leftoverHashHoldCapN — Encode sonst ungekürzt.
+    /// Remaining TTL — at=now nach Restore sonst 1,2 s zu frisch.
     static func leftoverJpegByHashCapped(
         _ table: [String: (delta: Double, at: TimeInterval, cosine: Double)],
         cap: Int = leftoverHashHoldCapN
@@ -732,28 +733,48 @@ enum MatchMath {
         return Dictionary(uniqueKeysWithValues: table.sorted { $0.value.at > $1.value.at }.prefix(cap).map { ($0.key, $0.value) })
     }
 
+    static func leftoverJpegRemaining(at: TimeInterval, now: TimeInterval, ttl: TimeInterval) -> TimeInterval {
+        let used = leftoverJpegProbeTTLPref(ttl)
+        return max(0, used - max(0, now - at))
+    }
+
+    static func leftoverJpegAtFromRemaining(remaining: TimeInterval, now: TimeInterval, ttl: TimeInterval) -> TimeInterval {
+        let used = leftoverJpegProbeTTLPref(ttl)
+        let left = min(used, max(0, remaining))
+        return now - (used - left)
+    }
+
     static func leftoverJpegByHashEncode(
-        _ table: [String: (delta: Double, at: TimeInterval, cosine: Double)]
+        _ table: [String: (delta: Double, at: TimeInterval, cosine: Double)],
+        now: TimeInterval = 0,
+        ttl: TimeInterval = 0.80
     ) -> [String: [Double]] {
         var out: [String: [Double]] = [:]
         for (k, v) in leftoverJpegByHashCapped(table) {
             let key = leftoverHoldHashSpatial(k)
             guard !key.isEmpty else { continue }
-            out[key] = [v.delta, v.cosine]
+            out[key] = [v.delta, v.cosine, leftoverJpegRemaining(at: v.at, now: now, ttl: ttl)]
         }
         return out
     }
 
     static func leftoverJpegByHashDecode(
         _ raw: [String: [Double]]?,
-        now: TimeInterval
+        now: TimeInterval,
+        ttl: TimeInterval = 0.80
     ) -> [String: (delta: Double, at: TimeInterval, cosine: Double)] {
         guard let raw else { return [:] }
         var out: [String: (delta: Double, at: TimeInterval, cosine: Double)] = [:]
         for (k, v) in raw {
             let key = leftoverHoldHashSpatial(k)
             guard !key.isEmpty, !v.isEmpty else { continue }
-            out[key] = (delta: v[0], at: now, cosine: v.count >= 2 ? v[1] : 0)
+            let at: TimeInterval
+            if v.count >= 3 {
+                at = leftoverJpegAtFromRemaining(remaining: v[2], now: now, ttl: ttl)
+            } else {
+                at = now
+            }
+            out[key] = (delta: v[0], at: at, cosine: v.count >= 2 ? v[1] : 0)
         }
         return out
     }
@@ -2160,9 +2181,12 @@ enum MatchMath {
         return iou + 1e-12 < jump
     }
 
-    static func leftoverHoldKalmanKeep<Value>(kalman: [UUID: Value], live: [UUID]) -> [UUID: Value] {
+    static func leftoverHoldKalmanKeep<Value>(kalman: [UUID: Value], live: [UUID], missCoast: Bool = false) -> [UUID: Value] {
         let keep = Set(live)
-        if keep.isEmpty { return [:] }
+        if keep.isEmpty {
+            if missCoast { return kalman }
+            return [:]
+        }
         return kalman.filter { keep.contains($0.key) }
     }
 
@@ -4354,11 +4378,25 @@ enum MatchMath {
         hit ? 0 : prev + 1
     }
 
+    /// Detect-Drop: liveIds leer, adopted kann Faces haben. Hit = irgendein Live.
+    static func leftoverHoldMissHit(live: Int, adopted: Int) -> Bool {
+        live > 0 || adopted > 0
+    }
+
     static func leftoverHoldMissCoast(miss: Int, need: Int = 1) -> Bool {
         miss > 0 && miss <= need
     }
 
     static func leftoverPredictOnMissCoast(_ missCoast: Bool) -> Bool { missCoast }
+
+    /// found.isEmpty wischte Streak/Pair/Kalman trotz Miss-Coast Hold.
+    static func leftoverEmptyWipesMaps(emptyLatch: Bool, missCoast: Bool) -> Bool {
+        !emptyLatch && !missCoast
+    }
+
+    static func leftoverEmptyWipesOverlay(emptyChip: Bool, missCoast: Bool) -> Bool {
+        !emptyChip && !missCoast
+    }
 
     static func leftoverHoldSurvive<Value>(
         hold: [UUID: Value],

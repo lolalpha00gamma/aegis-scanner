@@ -1,3 +1,27 @@
+# Helios + Aegis — Analyse 2026-09-06 (2.1.144)
+
+Helios **1.5.133** (Build 152). Aegis **2.1.144 alpha** (Build 169). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.143: Miss-Coast 1 Frame, Occupied Spatial-emit, JPEG Cap, Kalman Schema 12, HungarianX n=5.
+
+## Warum Taufe und Restart nach 2.1.143 weiter rissen
+
+1. **KalmanKeep empty live wischt.** leftoverHoldKalmanKeep `keep.isEmpty → [:]`. Miss-Coast Survive hält Hold, Keep davor tot. Predict ohne Box.
+2. **found.isEmpty wischt Streak/Pair/Kalman/Faces.** leftoverEmptyKeepsStreak ohne missCoast. Overlay-Flash, Twin-Taufe, Box-Sprung.
+3. **JPEG decode at=now.** Remaining fehlte. Restore: Probe 1,2 s zu frisch, Indoor 8 fps reextract-Burst wenn TTL fällt.
+
+## Was 2.1.144 ändert
+
+1. **leftoverHoldKalmanKeep missCoast.** Empty live hält Kalman.
+2. **leftoverHoldMissHit** live ∪ adopted. MissAdvance vor Keep.
+3. **leftoverEmptyWipesMaps / Overlay.** found.isEmpty skippt Streak/Pair/Kalman/Faces 1 Tick.
+4. **leftoverJpegRemaining.** Encode [delta, cosine, left]. Decode at aus remaining. Schema 11 2er-Array at=now.
+5. Tests + VERSION = Models = MARKETING 2.1.144 (Build 169). Schema 13.
+
+Helios 1.5.133: Coast-Vel Return, Joint-Shift, Inject-Skip. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-06 (2.1.143)
 
 Helios **1.5.132** (Build 151). Aegis **2.1.143 alpha** (Build 168). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

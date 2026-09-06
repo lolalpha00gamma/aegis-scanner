@@ -1,3 +1,53 @@
+# Nachtrag 2026-09-06 (2.1.144)
+
+Siehe ANALYSE.md. **2.1.144** Miss-Coast Kalman/Streak/Faces, JPEG remaining Schema 13.
+
+## In 2.1.144 gelandet
+
+1. leftoverHoldKalmanKeep missCoast — empty live hält
+2. leftoverHoldMissHit live ∪ adopted, MissAdvance vor Keep
+3. leftoverEmptyWipesMaps / leftoverEmptyWipesOverlay — found.isEmpty 1 Tick tot
+4. leftoverJpegRemaining / leftoverJpegAtFromRemaining persist Schema 13
+5. VERSION = Models = MARKETING_VERSION 2.1.144 (Build 169)
+
+## Nächste, zusätzlich
+
+- leftoverHold TTL remaining analog NameLockUntil / Seen — leftoverHold ist Cosine, HashHold `at` startet nach Restore neu.
+- leftoverAssign n>5 Jonker-Volgenant, nicht nur HungarianX 5.
+- leftoverLastIoU / leftoverSparkChipHeld persist (Mirror sitzt, gallery.json fehlt).
+- leftoverNameLockHeld ohne Until remaining nach Schema-7-Backup.
+- leftoverPairLast Value-Remint persist: dest tot nach Vision-Restart — DropDangling nach Remint.
+- leftoverHoldBins Rank `#101` nach Restore rebase analog leftoverHoldByHash (Bins sind UUID.bin).
+- leftoverCaptureHistByHash persist analog leftoverHoldTrailHash — Encode sitzt, Keep nur LastHash.
+- Hamming-Gewicht im Hash selbst, nicht nur Spatial-Strip `#`.
+- FaceEngine Detect auf outputQueue. JPEG-Reextract gegen denselben Buffer.
+- Hold-SM: Unseen / Tentative / Held / Named.
+- MatchMath split: Hold, Hash, Baptize, Assign.
+- Helios Frame-Pump, eine TCC. Shared XPC mit Helios 1.5.133.
+- Overlay 60 Hz CAMetalLayer, Detect 8–24 fps.
+- VNTrackObjectRequest statt nur Rectangles.
+- Temperature-skalierte Cosine statt hart 0,80 Baptize.
+- gallery.json.bak Rotate 3, printRevision je Identity.
+- Watch-Folder PhotoKit, Export `.aegis` verschlüsselt.
+- P-Slot Maske/Schal, Brille-Slot als Twin-Veto.
+- Temporal ReID-Graph über Hold-Trail (EMA Cap 4 ist Pflaster).
+- Per-Box CLAHE statt Full-Frame.
+- Continuity Desk-View yaw-floor 0,36.
+- Print-Bank 5 Pose-Slots. DBSCAN vor Merge.
+- RTSP 420f, Reconnect Exponential-Backoff.
+- leftoverHoldTrailByHash EMA analog UUID-Trail.
+- leftoverOccupiedMerge Twin-Yaw: Spatial unique sitzt — leftoverHashTwinLeft yaw-Tie sitzt. Merge emittiert Spatial, Yaw ändert das Set nicht.
+- leftoverHoldKalman IoU-Reset nach Restore ohne Live-Box — 1. Tick meas weit, Reset statt Kriechen. Keep missCoast sitzt.
+- leftoverAssignHungarianX n=6 Cap nur wenn Pad eng, sonst FillX für Crowd 6+.
+- leftoverMissCoastNeed Pref 1–3 analog Helios palmCoastNeed. Hart 1.
+- VNDetectFaceCaptureQuality als Baptize-Gate.
+- leftoverPairCommit Majority 3-Tick persist nach Value-Remint prüfen.
+- leftoverKeepBoxes missCoast: Kalman-Filter nach Keep darf Hold-IDs nicht droppen wenn hold nach Remint leer — Remint `out = hold` sitzt.
+
+Die historische Liste bis 2.1.143: ANALYSE.md. Review: `REVIEW-2.1.134.md`.
+
+Nur main.
+
 # Nachtrag 2026-09-06 (2.1.143)
 
 Siehe ANALYSE.md. **2.1.143** Miss-Coast 1 Frame, Occupied Spatial-emit, JPEG Cap, Kalman Schema 12, HungarianX n=5.
