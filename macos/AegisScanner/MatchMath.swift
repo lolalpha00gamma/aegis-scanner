@@ -1344,6 +1344,11 @@ enum MatchMath {
 
     /// Zwei Live gleiches Spatial: kleinerer yawAbs Exact, Rest `#101`.
     /// Merge ohne Yaw emittiert nur Spatial — Center-Stage x-Tie beide Occupied.
+    /// Twin weg: stored `#101` bleibt Occupied, Exact tot für den einen der bleibt.
+    static func leftoverOccupiedTwinGone(liveOfSpatial: Int, storedRanked: Bool) -> Bool {
+        storedRanked && liveOfSpatial == 1
+    }
+
     static func leftoverOccupiedMergeYaw(
         stored: [String],
         live: [(hash: String, yawAbs: Double)]
@@ -1370,11 +1375,17 @@ enum MatchMath {
             }
         }
         for h in stored where !h.isEmpty {
+            let ranked = leftoverHoldHashSpatial(h) != h
+            let spatial = leftoverHoldHashSpatial(h)
+            let liveN = groups[spatial]?.count ?? 0
+            if leftoverOccupiedTwinGone(liveOfSpatial: liveN, storedRanked: ranked) {
+                continue
+            }
             let emit: String
-            if leftoverHoldHashSpatial(h) != h {
+            if ranked {
                 emit = h
             } else {
-                emit = leftoverHoldHashSpatial(h)
+                emit = spatial
             }
             if emit.isEmpty { continue }
             if seen.insert(emit).inserted { out.append(emit) }
@@ -3681,22 +3692,24 @@ enum MatchMath {
     /// Zweiter leerer Frame: previous schon []. used∪dropped wischt Kalman. Ghosts+Hold halten.
     /// Miss-Coast: Kalman-IDs nach Keep nicht droppen wenn Hold nach Remint leer.
     /// Ghost-only: Kalman ∩ Ghosts auch ohne missCoast — sonst Predict tot.
+    /// Survive Hold allein: Kalman ∩ Hold ohne Ghost. Restore PredictOnly: Kalman ganz.
     static func leftoverKeepBoxes(
         used: Set<UUID>,
         dropped: Set<UUID>,
         ghosts: [UUID] = [],
         hold: [UUID] = [],
         missCoast: Bool = false,
-        kalman: [UUID] = []
+        kalman: [UUID] = [],
+        predictOnly: Bool = false
     ) -> Set<UUID> {
         var keep = used.union(dropped)
         keep.formUnion(ghosts)
         keep.formUnion(hold)
-        if missCoast {
+        if missCoast || predictOnly {
             keep.formUnion(kalman)
         } else {
-            let ghostSet = Set(ghosts)
-            keep.formUnion(kalman.filter { ghostSet.contains($0) })
+            let extra = Set(ghosts).union(hold)
+            keep.formUnion(kalman.filter { extra.contains($0) })
         }
         return keep
     }
@@ -5570,18 +5583,15 @@ enum MatchMath {
     }
 
     static func leftoverUUIDUUIDMapEncode(_ table: [UUID: UUID]) -> [String: String] {
-        var out: [String: String] = [:]
-        for (k, v) in table {
-            out[k.uuidString] = v.uuidString
-        }
-        return out
+        Dictionary(uniqueKeysWithValues: table.map { ($0.key.uuidString, $0.value.uuidString) })
     }
 
+    /// RemintId setzt dest=key. dest≠id droppt PairCommit nach Restart — Taufe Gast n+1.
     static func leftoverUUIDUUIDMapDecode(_ raw: [String: String]?) -> [UUID: UUID] {
         guard let raw else { return [:] }
         var out: [UUID: UUID] = [:]
         for (k, v) in raw {
-            guard let id = UUID(uuidString: k), let dest = UUID(uuidString: v), dest != id else { continue }
+            guard let id = UUID(uuidString: k), let dest = UUID(uuidString: v) else { continue }
             out[id] = dest
         }
         return out

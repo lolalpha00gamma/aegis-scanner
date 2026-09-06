@@ -1,3 +1,57 @@
+# Nachtrag 2026-09-06 (2.1.149)
+
+Siehe ANALYSE.md. **2.1.149** Pair dest==key persist, Occupied Twin-weg Rank, KeepBoxes PredictOnly Kalman.
+
+## In 2.1.149 gelandet
+
+1. leftoverUUIDUUIDMapDecode dest==key — PairCommit nach Remint persist
+2. leftoverOccupiedTwinGone — stored `#101` tot wenn Twin weg
+3. leftoverKeepBoxes predictOnly + Kalman ∩ Hold
+4. VERSION = Models = MARKETING_VERSION 2.1.149 (Build 174)
+
+## Nächste, zusätzlich
+
+- leftoverAssign n>8 Jonker-Volgenant, nicht nur HungarianX 8 + wide FillX.
+- leftoverLastIoU / leftoverSparkChipHeld persist (Mirror sitzt, gallery.json fehlt).
+- leftoverPairLast Value-Remint: Decode dest==key sitzt, DropDangling dest tot wenn Value alte Live-UUID ohne Remint.
+- leftoverHoldBins Rank `#101` nach Restore rebase analog leftoverHoldByHash (Bins sind UUID.bin).
+- leftoverCaptureHistByHash persist analog leftoverHoldTrailHash — Encode sitzt, Keep nur LastHash.
+- leftoverCaptureHist remaining wall-clock analog HashHold Schema 14 — Hist ist 8 Doubles ohne at.
+- Hamming-Gewicht im Hash selbst, nicht nur Spatial-Strip `#`.
+- FaceEngine Detect auf outputQueue. JPEG-Reextract gegen denselben Buffer.
+- Hold-SM: Unseen / Tentative / Held / Named. MatchMath split: Hold, Hash, Baptize, Assign.
+- Helios Frame-Pump, eine TCC. Shared XPC / IOSurface mit Helios 1.5.138.
+- Overlay 60 Hz CAMetalLayer, Detect 8–24 fps.
+- VNTrackObjectRequest statt nur Rectangles.
+- Temperature-skalierte Cosine statt hart 0,80 Baptize.
+- gallery.json.bak Rotate 3, printRevision je Identity.
+- Watch-Folder PhotoKit, Export `.aegis` verschlüsselt.
+- P-Slot Maske/Schal, Brille-Slot als Twin-Veto.
+- Temporal ReID-Graph über Hold-Trail (EMA Cap 4 ist Pflaster).
+- Per-Box CLAHE statt Full-Frame.
+- Continuity Desk-View yaw-floor 0,36.
+- Print-Bank 5 Pose-Slots. DBSCAN vor Merge.
+- RTSP 420f, Reconnect Exponential-Backoff.
+- Live-Centroid EMA Reset nach Vision-Restart.
+- leftoverHoldTrailByHash EMA analog UUID-Trail.
+- VNDetectFaceCaptureQuality als Baptize-Gate — Sharpness AND Quality, nicht OR.
+- Continuity LiDAR depth als Box-Z. Twin-Tie ohne Yaw.
+- leftoverJpegByHash remaining wall-clock — Schema 13 ist Restore-stale, In-Session TTL sitzt RAM.
+- leftoverHoldKalman Jump-Slider UI 0,30–0,50 — Pref sitzt, HUD fehlt.
+- leftoverPairCommit Majority 3-Tick Overlay nach Remint-Miss, nicht nur Decode.
+- Softmax über Galerie statt Argmax-Taufe — Open-Set Energy-Score.
+- Quality-Produkt Blur × Pose × Occlusion als Baptize-Gate, nicht OR.
+- Identity-Graph: dieselbe Person über Tage, Trail-Cosine nicht nur Hold.
+- Time-of-day Prior (wer ist um 8 Uhr hier) als schwacher Track-Cue.
+- Kleidungsfarbe als Weak-Track zwischen Face-Dropouts.
+- Multi-Cam Homographie: leftoverHold Welt-x, nicht Frame-x.
+- Ein FaceTrack-Struct statt leftover-Map-Stapel.
+- Aktive Enrollment-HUD: 3 Posen prompten statt Burst-Ingest.
+
+Die historische Liste bis 2.1.148: ANALYSE.md. Review: `REVIEW-2.1.134.md`.
+
+Nur main.
+
 # Nachtrag 2026-09-06 (2.1.148)
 
 Siehe ANALYSE.md. **2.1.148** PairCommit Keeps nach Remint, Kalman PredictOnly Ghost, KeepBoxes Ghost-Kalman, Jump Pref 0,30–0,50.

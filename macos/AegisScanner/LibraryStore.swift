@@ -2882,7 +2882,8 @@ final class LibraryStore: ObservableObject {
                 bins: MatchMath.leftoverHoldIds(leftoverHoldBins)
             ),
             missCoast: missCoast,
-            kalman: Array(boxKalman.keys)
+            kalman: Array(boxKalman.keys),
+            predictOnly: predictOnly
         )
         boxEuro = boxEuro.filter { keepBoxes.contains($0.key) }
         boxKalman = boxKalman.filter { keepBoxes.contains($0.key) }

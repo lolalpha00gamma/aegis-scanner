@@ -2886,7 +2886,7 @@ enum MatchMathTests {
         let dangA = UUID(), dangB = UUID(), dangC = UUID()
         let dang = MatchMath.leftoverUUIDUUIDMapDropDangling([dangA: dangB, dangC: dangA], keep: [dangB])
         ok(dang[dangA] == dangB && dang[dangC] == nil, "Pair dest tot nach Restart")
-        ok(MatchMath.leftoverUUIDUUIDMapDecode([dangA.uuidString: dangA.uuidString]).isEmpty, "Pair dest==key tot")
+        ok(MatchMath.leftoverUUIDUUIDMapDecode([dangA.uuidString: dangA.uuidString])[dangA] == dangA, "Pair dest==key persist")
         let streakEnc = MatchMath.leftoverUUIDIntMapEncode([persistId: 3])
         ok(MatchMath.leftoverUUIDIntMapDecode(streakEnc)[persistId] == 3, "Streak persist")
         let seenNow: TimeInterval = 1000
@@ -3199,7 +3199,7 @@ enum MatchMathTests {
             stored: ["5.5.4.6#101"],
             live: [(hash: "5.5.4.6", yawAbs: 0.10)]
         )
-        ok(storedRank.contains("5.5.4.6") && storedRank.contains("5.5.4.6#101"), "Occupied stored Rank")
+        ok(storedRank.contains("5.5.4.6") && !storedRank.contains("5.5.4.6#101"), "Occupied Twin-weg Rank tot")
         let keepAt = MatchMath.leftoverHashHoldRebase(["ab#0": (cosine: 0.80, at: 12)], now: 50, keepAt: true)
         ok(keepAt["ab#0"]?.at == 12, "Hash Rebase keepAt")
         let hashRem = MatchMath.leftoverHashHoldRemainingEncode(
@@ -3257,6 +3257,26 @@ enum MatchMathTests {
             used: [], dropped: [], ghosts: [], hold: [], missCoast: false, kalman: [kid]
         )
         ok(!keepGhostMiss.contains(kid), "KeepBoxes ohne Ghost tot")
+        ok(MatchMath.leftoverOccupiedTwinGone(liveOfSpatial: 1, storedRanked: true), "Twin-weg Rank")
+        ok(!MatchMath.leftoverOccupiedTwinGone(liveOfSpatial: 0, storedRanked: true), "Restore Rank hält")
+        ok(!MatchMath.leftoverOccupiedTwinGone(liveOfSpatial: 2, storedRanked: true), "Twin live Rank tot")
+        let keepHoldK = MatchMath.leftoverKeepBoxes(
+            used: [], dropped: [], ghosts: [], hold: [kid], missCoast: false, kalman: [kid]
+        )
+        ok(keepHoldK.contains(kid), "KeepBoxes Hold Kalman")
+        let keepPred = MatchMath.leftoverKeepBoxes(
+            used: [], dropped: [], ghosts: [], hold: [], missCoast: false, kalman: [kid], predictOnly: true
+        )
+        ok(keepPred.contains(kid), "KeepBoxes PredictOnly Kalman")
+        let emptyLiveOcc = MatchMath.leftoverOccupiedMergeYaw(
+            stored: ["5.5.4.6#101"],
+            live: []
+        )
+        ok(emptyLiveOcc.contains("5.5.4.6#101"), "Occupied stored Rank Restore")
+        let pairId = UUID()
+        ok(MatchMath.leftoverUUIDUUIDMapDecode(
+            MatchMath.leftoverUUIDUUIDMapEncode([pairId: pairId])
+        )[pairId] == pairId, "PairCommit dest==key roundtrip")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

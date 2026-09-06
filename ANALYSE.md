@@ -1,3 +1,27 @@
+# Helios + Aegis — Analyse 2026-09-06 (2.1.149)
+
+Helios **1.5.138** (Build 157). Aegis **2.1.149 alpha** (Build 174). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.148: PairCommit Keeps, Kalman PredictOnly Ghost, KeepBoxes Ghost-Kalman, Jump Pref 0,30–0,50. Decode droppt dest==key. Occupied hält stored `#101` wenn Twin weg. KeepBoxes droppt Restore-Kalman ohne Ghost.
+
+## Warum Taufe und Restart nach 2.1.148 weiter rissen
+
+1. **PairCommit dest==key tot.** leftoverHoldRemintId setzt dest=key. leftoverUUIDUUIDMapDecode `dest != id` droppt. Restore: Majority nil, 3 Ticks, Taufe Gast n+1.
+2. **Occupied stored `#101` nach Twin-weg.** leftoverOccupiedMergeYaw hängt Rank an, obwohl Live nur 1 Exact hat. Exact blockt, Twin-Slot tot, nächster Gast.
+3. **KeepBoxes ohne PredictOnly.** leftoverHoldKalmanKeep hält Restore-Kalman, KeepBoxes missCoast=false ghosts=[] droppt. Erster leerer Tick nach Restart: Box-Sprung.
+4. **KeepBoxes Kalman ∩ Ghosts.** Survive Hold allein: Kalman-IDs in Hold, Filter ohne Hold-Schnitt droppt wenn Ghosts leer — Hold-Union saß, Kalman extra nicht.
+
+## Was 2.1.149 ändert
+
+1. **leftoverUUIDUUIDMapDecode dest==key.** PairCommit/PairLast überleben Restart. Majority Keeps.
+2. **leftoverOccupiedTwinGone.** stored Rank tot wenn liveOfSpatial==1. Restore live 0 hält Rank.
+3. **leftoverKeepBoxes predictOnly.** Restore/Miss/Ghost-only Kalman bleibt. Kalman ∩ (Ghosts ∪ Hold).
+4. Tests + VERSION = Models = MARKETING 2.1.149 (Build 174). Schema 15 bleibt.
+
+Helios 1.5.138: Overlay Extrapolate, Lerp 24 fps, ROI Thaw 2 Frozen-Miss, Scale-Ring nur S1. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-06 (2.1.148)
 
 Helios **1.5.137** (Build 156). Aegis **2.1.148 alpha** (Build 173). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

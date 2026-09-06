@@ -1,4 +1,4 @@
-# Aegis **2.1.148 alpha**
+# Aegis **2.1.149 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.149 alpha
+
+PairCommit dest==key nach Restart tot — Taufe. Occupied `#101` bleibt wenn Twin weg. KeepBoxes droppt Restore-Kalman. Overlay-Helios 1.5.138.
+
+- **leftoverUUIDUUIDMapDecode dest==key.** Remint-Persist, Majority hält.
+- **leftoverOccupiedTwinGone.** stored Rank tot wenn Live 1 Exact.
+- **leftoverKeepBoxes PredictOnly + Hold-Kalman.** Restore-Kalman bleibt.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.149 (Build 174). Schema 15 bleibt.
 
 ## Neu in 2.1.148 alpha
 
