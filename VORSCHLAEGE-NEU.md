@@ -1,3 +1,67 @@
+# Nachtrag 2026-09-06 (2.1.132)
+
+Siehe ANALYSE.md. **2.1.132** Pair bleibt nach AssignLive, Value-Remint, AssignLive x-Rescue.
+
+## In 2.1.132 gelandet
+
+1. leftoverClearDropsPair — Transfer hält PairCommit
+2. leftoverHoldRemintId PairLast/Commit Value = Live-UUID
+3. leftoverAssignLive FillX Rescue 0,28
+4. VERSION = Models = MARKETING_VERSION 2.1.132 (Build 158)
+
+## Nächste, zusätzlich
+
+- leftoverFillXRescue Pref 0,16–0,36. Hart 0,28.
+- leftoverAssignLiveGate Pref 1 vs 2 — Crowd default 2, Solo 1. Clamp sitzt, UI fehlt.
+- leftoverFillXPad Pref 0,06–0,20.
+- leftoverHoldRemint dist-Cap Pref analog leftoverFillXPad.
+- leftoverHashHoldFloor bleibt 0,64 (kein Sharpness im Persist).
+- leftoverNameLockHeld persist Schema 7.
+- leftoverJpegProbeReuse TTL Pref 0,25–1,2.
+- FaceEngine jpegProbe detached queue.
+- FaceEngine VNTrackObjectRequest statt nur Rectangles — weniger UUID-Remint.
+- PhotoKit Live Photos Frame 0, nicht Poster.
+- printRevision je Identity.
+- gallery.json.bak rotate 3.
+- VNDetectFaceRectangles revision pin.
+- leftoverHashHold VoiceOver.
+- leftoverJumpName VoiceOver.
+- Schema 5 UUID-Bins nach Schema 6 behalten (kein Wipe).
+- Helios Frame-Pump, eine TCC. Shared XPC mit Helios 1.5.122.
+- Overlay VoiceOver HOLD/Spark/HASH/LOCK/NBR/FAST/INDOOR/TWIN.
+- Per-Box CLAHE statt Full-Frame.
+- Continuity Desk-View yaw-floor 0,36.
+- Gallery print decay: ungenutzte 14-Tage-Prints downweight.
+- Partial-Print P-Slot ohne Augen (Schal/Maske).
+- Burst-AE 5-Frame Pref Continuity-Nacht.
+- Print-Bank 5 Pose-Slots front/left/right/up/down.
+- DBSCAN vor Merge.
+- Watch-Folder PhotoKit.
+- Encrypted gallery export `.aegis`.
+- Iris-Textur-Slot als Twin-Veto.
+- Specular-Highlight auf Stirn als Card-Photo-Veto.
+- Continuity LiDAR-Z als Twin-Trennung.
+- Masken-/Schal-Slot. Brille-Slot.
+- Tests splitted.
+- Merge-Undo Stack 8.
+- IdentityDesk 9-Tuple → GalleryPayload direkt.
+- **Per-Hold TTL in Schema 7.** `at` + `ttl` je Zeile.
+- Temporal ReID-Graph über Hold-Trail.
+- PnP 6DoF, Slot folgt der Nase.
+- leftoverGateChip Cap Pref 4–8.
+- Rank-Keys persist Schema 7.
+- Hamming-1 Rescue nur Solo (faces=1), Twin bleibt Exact-only.
+- leftoverHoldByHash Rescue direkt (Hash-Key, nicht UUID) wenn leftoverLastHash leer nach Restart.
+- Temperature-skalierte Cosine (ArcFace 64) statt hart 0,80 Baptize.
+- Gallery-Cluster vor Enrol: zwei Prints, eine Person, Merge-Vorschlag.
+- Voice-ID Fusion nur Confirm, nie Taufe.
+- Overlay-FPS unabhängig von Detect — CAMetalLayer 60 Hz, Engine 8–24.
+- FaceEngine Detect auf Utility-Queue, Main nur Overlay.
+- leftoverHoldMove vor leftoverClearStreak sitzt 2.1.132 (pair: false).
+- leftoverPairLast nach Swap Value-Remint sitzt 2.1.131 + RemintId 2.1.132.
+
+Nur main.
+
 # Nachtrag 2026-09-06 (2.1.131)
 
 Siehe ANALYSE.md. **2.1.131** Pair HoldMove + Value-Remint, x-Rescue 0,28 ohne Hash.

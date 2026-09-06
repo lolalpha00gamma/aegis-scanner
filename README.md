@@ -1,4 +1,4 @@
-# Aegis **2.1.131 alpha**
+# Aegis **2.1.132 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.132 alpha
+
+AssignLive löschte PairCommit vor dem Transfer. Name sprang nach Restart. AssignLive FillX Pad 0,12 ließ 18 cm Kopf tot.
+
+- **`leftoverClearDropsPair`.** Transfer hält Pair.
+- **`leftoverHoldRemintId`.** PairLast/Commit Value = Live-UUID.
+- **leftoverAssignLive FillX Rescue 0,28.**
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.132 (Build 158).
 
 ## Neu in 2.1.131 alpha
 

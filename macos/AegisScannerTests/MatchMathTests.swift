@@ -2625,6 +2625,20 @@ enum MatchMathTests {
         ok(pairMoved[walkNew] == walkOld && pairMoved[walkOld] == nil, "Pair HoldMove")
         let pairVal = MatchMath.leftoverHoldMoveId(hold: [walkOld: walkOld], from: walkOld, to: walkNew)
         ok(pairVal[walkNew] == walkNew && pairVal[walkOld] == nil, "Pair Value-Remint")
+        ok(!MatchMath.leftoverClearDropsPair(transferred: true), "Transfer hält Pair")
+        ok(MatchMath.leftoverClearDropsPair(transferred: false), "ohne Transfer Pair tot")
+        let pairId = MatchMath.leftoverHoldRemintId(
+            hold: [walkOld: walkOld],
+            live: [(id: walkNew, x: 0.40)],
+            stored: [(id: walkOld, x: 0.22)]
+        )
+        ok(pairId[walkNew] == walkNew, "Pair Value-Remint nach x-Rescue")
+        let rescueLive = MatchMath.leftoverAssignLive(scores: [[nil]], liveX: [0.40], holdX: [0.22])
+        ok(rescueLive[0] == 0, "AssignLive x-Rescue 0,28")
+        ok(
+            MatchMath.leftoverAssignLive(scores: [[nil]], liveX: [0.90], holdX: [0.10])[0] == nil,
+            "AssignLive Far 0,80 tot"
+        )
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

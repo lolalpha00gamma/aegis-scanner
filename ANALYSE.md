@@ -1,3 +1,26 @@
+# Helios + Aegis — Analyse 2026-09-06 (2.1.132)
+
+Helios **1.5.122** (Build 142). Aegis **2.1.132 alpha** (Build 158). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.131: Pair HoldMove + Value-Remint, x-Rescue 0,28. AssignLive ClearStreak vor Mirror. PairLast/Commit Key-only Remint.
+
+## 2.1.131 → 2.1.132
+
+1. **leftoverClearStreak vor leftoverMirrorPending.** AssignLive setzt PairCommit, ClearStreak löscht ihn, Mirror findet Pair auf newId nicht. Majority nach Transfer 0 — Name springt.
+2. **leftoverHoldRemint Pair Value.** Key new, Value old. Overlay keyed live.id, Majority keyed old.id. 1 Frame tot.
+3. **leftoverAssignFillX nur Pad 0,12.** Kopf 18 cm: AssignLive tot, nur Remint-Hold rettete. Overlay ohne Transfer.
+
+## Was 2.1.132 ändert
+
+1. **`leftoverClearDropsPair`.** Transfer: leftoverClearStreak(pair: false). Adopt-Streak tot, Pair bleibt.
+2. **`leftoverHoldRemintId`.** PairLast/Commit Value = Live-UUID nach x-Remint.
+3. **leftoverAssignLive FillX Rescue 0,28.** Dritter Pass, Far 0,90 tot.
+4. Tests + VERSION = Models = MARKETING 2.1.132 (Build 158).
+
+Helios 1.5.122: Prop-S2 Crop, Clamp kein Laptop-first. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-06 (2.1.131)
 
 Helios **1.5.121** (Build 141). Aegis **2.1.131 alpha** (Build 157). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

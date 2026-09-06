@@ -1898,16 +1898,18 @@ final class LibraryStore: ObservableObject {
         )
     }
 
-    private func leftoverClearStreak(_ id: UUID) {
+    private func leftoverClearStreak(_ id: UUID, pair: Bool = true) {
         leftoverStreak.removeValue(forKey: id)
         leftoverStreakBox.removeValue(forKey: id)
         leftoverStreakSince.removeValue(forKey: id)
         leftoverMissFrames.removeValue(forKey: id)
         leftoverWipeUntil.removeValue(forKey: id)
-        leftoverPairLast.removeValue(forKey: id)
-        leftoverPairStreak.removeValue(forKey: id)
-        leftoverPairCommit.removeValue(forKey: id)
-        leftoverDisagree.removeValue(forKey: id)
+        if pair {
+            leftoverPairLast.removeValue(forKey: id)
+            leftoverPairStreak.removeValue(forKey: id)
+            leftoverPairCommit.removeValue(forKey: id)
+            leftoverDisagree.removeValue(forKey: id)
+        }
     }
 
     private func leftoverMirrorPending(from: UUID, to: UUID) {
@@ -2514,7 +2516,7 @@ final class LibraryStore: ObservableObject {
                         leftoverPending[adopted[i].id] = label
                     }
                     guard step.ready else { continue }
-                    leftoverClearStreak(old.id)
+                    leftoverClearStreak(old.id, pair: MatchMath.leftoverClearDropsPair(transferred: true))
                     leftoverPending.removeValue(forKey: adopted[i].id)
                     used.insert(old.id)
                     let newId = adopted[i].id
@@ -2610,9 +2612,9 @@ final class LibraryStore: ObservableObject {
         leftoverWipeUntil = MatchMath.leftoverHoldRemint(hold: leftoverWipeUntil, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
         leftoverHoldBins = MatchMath.leftoverHoldRemintBins(hold: leftoverHoldBins, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
         leftoverHoldTrailBins = MatchMath.leftoverHoldRemintBins(hold: leftoverHoldTrailBins, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
-        leftoverPairLast = MatchMath.leftoverHoldRemint(hold: leftoverPairLast, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
+        leftoverPairLast = MatchMath.leftoverHoldRemintId(hold: leftoverPairLast, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
         leftoverPairStreak = MatchMath.leftoverHoldRemint(hold: leftoverPairStreak, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
-        leftoverPairCommit = MatchMath.leftoverHoldRemint(hold: leftoverPairCommit, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
+        leftoverPairCommit = MatchMath.leftoverHoldRemintId(hold: leftoverPairCommit, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
         leftoverDisagree = MatchMath.leftoverHoldRemint(hold: leftoverDisagree, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
         leftoverStreak = MatchMath.leftoverHoldRemint(hold: leftoverStreak, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)
         leftoverStreakBox = MatchMath.leftoverHoldRemint(hold: leftoverStreakBox, live: remintLive, stored: remintStored, liveHash: remintLiveHash, storedHash: remintStoredHash)

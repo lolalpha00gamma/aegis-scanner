@@ -1419,9 +1419,14 @@ enum MatchMath {
         return leftoverAssignDropAmbiguous(
             scores: scores,
             assigned: leftoverAssignFillX(
-                assigned: assigned,
+                assigned: leftoverAssignFillX(
+                    assigned: assigned,
+                    liveX: liveX,
+                    holdX: holdX
+                ),
                 liveX: liveX,
-                holdX: holdX
+                holdX: holdX,
+                pad: leftoverFillXRescue
             )
         )
     }
@@ -1594,6 +1599,36 @@ enum MatchMath {
         var out = leftoverHoldMove(hold: hold, from: from, to: to)
         for (k, v) in out where v == from {
             out[k] = to
+        }
+        return out
+    }
+
+    /// AssignLive-Transfer: leftoverClearStreak darf PairCommit nicht droppen.
+    static func leftoverClearDropsPair(transferred: Bool) -> Bool {
+        !leftoverStreakKeepsLive(transferred: transferred)
+    }
+
+    /// PairLast/Commit nach x-Remint: Value auf Live-UUID, nicht nur Key.
+    static func leftoverHoldRemintId(
+        hold: [UUID: UUID],
+        live: [(id: UUID, x: Double)],
+        stored: [(id: UUID, x: Double)],
+        occupied: Set<UUID> = [],
+        liveHash: [UUID: String] = [:],
+        storedHash: [UUID: String] = [:]
+    ) -> [UUID: UUID] {
+        var out = leftoverHoldRemint(
+            hold: hold,
+            live: live,
+            stored: stored,
+            occupied: occupied,
+            liveHash: liveHash,
+            storedHash: storedHash
+        )
+        for row in live {
+            if hold[row.id] != nil { continue }
+            guard let v = out[row.id], v != row.id else { continue }
+            out[row.id] = row.id
         }
         return out
     }
