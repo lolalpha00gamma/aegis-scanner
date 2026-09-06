@@ -1,8 +1,18 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.165 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-GROK.md](VORSCHLAEGE-GROK.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.166 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-GROK.md](VORSCHLAEGE-GROK.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 
-Neu in 2.1.165: skipDetect in applyLiveFaces, skipPrints-Coast, leftoverPickPrint Hold, FaceTrack StreakBox/Kalman/Pair.
+Neu in 2.1.166: FaceTrack-Remint verdrahtet, printBudget IoU+Yaw, expected-gen CAS, liveYaw Remint.
+
+## In 2.1.166 wirklich im Code
+
+2.1.165: FaceTrack-Pack saß, Store rief ihn nie. printBudgetSkip nur dt. liveYaw nach Remint tot.
+
+1. **`leftoverFaceTrackRemintDropMaps`.** Hold/Pending/Streak/Hash/IoU/Name/Miss/Pair ein Remint. Unpack ohne Defaults.
+2. **liveYaw/Pitch/Roll reminten.**
+3. **`printBudgetSkip(minIoU:yawAbs:)`.** Skip nur IoU ≥ 0,92 und |yaw| < 8°.
+4. **`cameraMutexCasAllows` / ClaimChip / mutexClaimFails.**
+5. Tests + VERSION = Models = MARKETING_VERSION 2.1.166 (Build 191). Schema 15 bleibt.
 
 ## In 2.1.165 wirklich im Code
 

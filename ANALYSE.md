@@ -1,3 +1,25 @@
+# Helios + Aegis — Analyse 2026-09-06 (2.1.166)
+
+Helios **1.5.164** (Build 183). Aegis **2.1.166 alpha** (Build 191). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.165: FaceTrack-Pack saß, Store rief ihn nie. printBudgetSkip nur dt. liveYaw nach Remint tot.
+
+## Warum Taufe nach 2.1.165 weiter riss
+
+1. **24 Maps einzeln remintet.** liveYaw blieb auf Source-UUID.
+2. **printBudgetSkip ohne IoU/Yaw.** 24 fps skippte Print bei Kopfdrehung.
+3. **expected-gen tot.** Aegis Claim ohne Fail-Zähler.
+
+## Was 2.1.166 ändert
+
+1. **leftoverFaceTrackRemintDropMaps** verdrahtet. Unpack ohne Defaults.
+2. **liveYaw/Pitch/Roll reminten.**
+3. **printBudgetSkip(minIoU:yawAbs:).** Skip nur IoU ≥ 0,92 und |yaw| < 8°.
+4. **cameraMutexCasAllows / ClaimChip / mutexClaimFails.**
+5. Tests + VERSION = Models = MARKETING 2.1.166 (Build 191). Schema 15 bleibt.
+
+`bugfix` mergen: nein.
+
 # Helios + Aegis — Analyse 2026-09-06 (2.1.165)
 
 Helios **1.5.163** (Build 182). Aegis **2.1.165 alpha** (Build 190). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

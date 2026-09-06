@@ -877,13 +877,26 @@ enum MatchMath {
     static func cameraMutexBumpGen(_ existing: String?) -> UInt32 {
         (existing.flatMap { cameraMutexGen($0) } ?? 0) &+ 1
     }
+    /// SH-Read Gen. Fehlt das Feld (alte 3-Zeile) → 0.
+    static func cameraMutexExpectedGen(_ existing: String?) -> UInt32 {
+        existing.flatMap { cameraMutexGen($0) } ?? 0
+    }
+    /// Gen-Mismatch: jemand schrieb zwischen Parse und LOCK_EX.
+    /// Helios hat Continuity-Vorrang und schreibt trotzdem. Aegis bricht ab.
+    static func cameraMutexCasAllows(existing: String?, owner: String, expectedGen: UInt32?) -> Bool {
+        guard let expected = expectedGen else { return true }
+        if cameraMutexExpectedGen(existing) == expected { return true }
+        return owner == cameraMutexOwnerHelios()
+    }
     static func cameraMutexLockedLine(
         existing: String?,
         owner: String,
         pid: Int32,
-        now: TimeInterval
+        now: TimeInterval,
+        expectedGen: UInt32? = nil
     ) -> String? {
         guard cameraMutexWriteAllowed(existing: existing, owner: owner, now: now) else { return nil }
+        guard cameraMutexCasAllows(existing: existing, owner: owner, expectedGen: expectedGen) else { return nil }
         return cameraMutexLine(owner: owner, pid: pid, now: now, gen: cameraMutexBumpGen(existing))
     }
     /// 3 s war kürzer als Continuity-Frame. Heartbeat 2 s, Stale 12.
@@ -995,6 +1008,23 @@ enum MatchMath {
     static func cameraMutexChip(holder: String?, yielded: Bool) -> String {
         if yielded { return "YIELD" }
         return holder ?? "—"
+    }
+
+    /// HUD: Holder plus LOCK_NB-Druck. backoff nach 3 Fails.
+    static func cameraMutexClaimChip(
+        holder: String?,
+        yielded: Bool,
+        fails: Int = 0,
+        lastDt: TimeInterval = 0
+    ) -> String {
+        if yielded { return "YIELD" }
+        let base = holder ?? "—"
+        if fails >= cameraMutexClaimBackoffFails() { return "\(base) · backoff" }
+        if fails > 0 { return "\(base) · \(fails)nb" }
+        if lastDt > 0, lastDt < 10 {
+            return String(format: "%@ · %.0fms", base, lastDt * 1000)
+        }
+        return base
     }
 
     static func cameraMutexPidDead(_ pid: Int32?) -> Bool {
@@ -2928,7 +2958,7 @@ enum MatchMath {
         return out
     }
 
-    /// Identität als ein Objekt. LibraryStore droppt Maps noch einzeln — Pack trägt StreakBox/Kalman/Pair.
+    /// Identität als ein Objekt. LibraryStore remintet Hold/Pending/Streak/Hash/IoU/Name/Miss/Pair über Pack.
     struct FaceTrackBox: Equatable {
         var x: Double = 0
         var y: Double = 0
@@ -3036,7 +3066,7 @@ enum MatchMath {
         var pairStreak: [UUID: Int] = [:]
     }
 
-    /// Pack-Inverse. Nur Keys aus tracks — Defaults nicht in die 25 Maps schreiben.
+    /// Pack-Inverse. Nur gesetzte Felder — Defaults nicht in die 25 Maps schreiben.
     static func leftoverFaceTrackUnpack(_ tracks: [UUID: FaceTrack]) -> FaceTrackMaps {
         var m = FaceTrackMaps()
         m.hold.reserveCapacity(tracks.count)
@@ -3048,20 +3078,65 @@ enum MatchMath {
         m.nameUntil.reserveCapacity(tracks.count)
         m.miss.reserveCapacity(tracks.count)
         for (id, t) in tracks {
-            m.hold[id] = t.hold
-            m.pending[id] = t.pending
-            m.streak[id] = t.streak
-            m.lastHash[id] = t.lastHash
-            m.lastIoU[id] = t.lastIoU
-            m.nameHeld[id] = t.nameHeld
-            m.nameUntil[id] = t.nameUntil
-            m.miss[id] = t.miss
+            if t.hold != 0 { m.hold[id] = t.hold }
+            if !t.pending.isEmpty { m.pending[id] = t.pending }
+            if t.streak != 0 { m.streak[id] = t.streak }
+            if !t.lastHash.isEmpty { m.lastHash[id] = t.lastHash }
+            if t.lastIoU != 0 { m.lastIoU[id] = t.lastIoU }
+            if !t.nameHeld.isEmpty { m.nameHeld[id] = t.nameHeld }
+            if t.nameUntil != 0 { m.nameUntil[id] = t.nameUntil }
+            if t.miss != 0 { m.miss[id] = t.miss }
             if let box = t.streakBox { m.streakBox[id] = box }
             if let kal = t.kalman { m.kalman[id] = kal }
             if let pair = t.pairLast { m.pairLast[id] = pair }
             if t.pairStreak != 0 { m.pairStreak[id] = t.pairStreak }
         }
         return m
+    }
+
+    static func leftoverFaceTrackBox(_ box: FaceBox) -> FaceTrackBox {
+        FaceTrackBox(x: box.x, y: box.y, w: box.width, h: box.height)
+    }
+
+    static func leftoverFaceBox(_ box: FaceTrackBox) -> FaceBox {
+        FaceBox(x: box.x, y: box.y, width: box.w, height: box.h)
+    }
+
+    /// Ein Remint für die Identitäts-Maps. Kalman-Vel bleibt draußen (px/py).
+    static func leftoverFaceTrackRemintDropMaps(
+        hold: [UUID: Double],
+        pending: [UUID: String],
+        streak: [UUID: Int],
+        lastHash: [UUID: String],
+        lastIoU: [UUID: Double],
+        nameHeld: [UUID: String],
+        nameUntil: [UUID: TimeInterval],
+        miss: [UUID: Int],
+        streakBox: [UUID: FaceTrackBox] = [:],
+        kalman: [UUID: FaceTrackBox] = [:],
+        pairLast: [UUID: UUID] = [:],
+        pairStreak: [UUID: Int] = [:],
+        remap: [UUID: UUID]
+    ) -> FaceTrackMaps {
+        leftoverFaceTrackUnpack(
+            leftoverFaceTrackRemintDrop(
+                leftoverFaceTrackPack(
+                    hold: hold,
+                    pending: pending,
+                    streak: streak,
+                    lastHash: lastHash,
+                    lastIoU: lastIoU,
+                    nameHeld: nameHeld,
+                    nameUntil: nameUntil,
+                    miss: miss,
+                    streakBox: streakBox,
+                    kalman: kalman,
+                    pairLast: pairLast,
+                    pairStreak: pairStreak
+                ),
+                remap: remap
+            )
+        )
     }
 
     static func leftoverHoldRemintApplyId(hold: [UUID: UUID], remap: [UUID: UUID]) -> [UUID: UUID] {
@@ -5702,11 +5777,23 @@ enum MatchMath {
     }
 
     /// 24 fps: Print skip wenn Vision > 18 ms. 8 fps nie — leftover braucht den Print.
+    /// skipPrints nur bei stabilem Track: Kalman-IoU ≥ 0,92 *und* |yaw| < 8°.
+    /// Sonst ein Print trotz 19 ms — Twin-Taufe nach Kopf-Drehung.
     static let printBudgetMs = 18.0
+    static let printBudgetIoU: Double = leftoverDetectSkipIoU
+    static let printBudgetYawRad: Double = 8.0 * Double.pi / 180.0
 
-    static func printBudgetSkip(visionMs: Double, dt: TimeInterval) -> Bool {
+    static func printBudgetSkip(
+        visionMs: Double,
+        dt: TimeInterval,
+        minIoU: Double? = nil,
+        yawAbs: Double? = nil
+    ) -> Bool {
         if dt >= 0.08 { return false }
-        return visionMs > printBudgetMs
+        if visionMs <= printBudgetMs { return false }
+        if let iou = minIoU, iou + 1e-9 < printBudgetIoU { return false }
+        if let yaw = yawAbs, abs(yaw) + 1e-9 >= printBudgetYawRad { return false }
+        return true
     }
 
     /// Name-Lock Overlay Countdown der letzten 4 s, sonst wirkt tot nach Verlassen.

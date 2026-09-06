@@ -1,4 +1,4 @@
-# Aegis **2.1.165 alpha**
+# Aegis **2.1.166 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,17 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.166 alpha
+
+Warum FaceTrack-Pack leftover nach Remint weiter Zombies ließ, 24 fps den Print bei Kopfdrehung skippte, und der Mutex-Chip Contention verschluckte:
+
+- **leftoverFaceTrackRemintDropMaps.** Hold/Pending/Streak/Hash/IoU/Name/Miss/StreakBox/Pair ein Remint. Unpack schreibt Defaults nicht in die Maps. Kalman-Vel bleibt eigene Map.
+- **liveYaw/Pitch/Roll reminten.** Sonst printBudget-Yaw und Lookaway nach UUID-Remint tot.
+- **printBudgetSkip(minIoU:yawAbs:).** Skip nur wenn Kalman-IoU ≥ 0,92 *und* |yaw| < 8°. Unstabiler Track druckt trotz 19 ms.
+- **cameraMutexCasAllows / expectedGen.** Aegis bricht bei Gen-Mismatch ab, Helios schreibt (Vorrang).
+- **ClaimChip + mutexClaimFails.** `aegis · 1nb` / `backoff`. SkipClaim busy zählt.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.166 (Build 191). Schema 15 bleibt.
 
 ## Neu in 2.1.165 alpha
 

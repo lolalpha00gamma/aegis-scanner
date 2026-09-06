@@ -3915,6 +3915,56 @@ enum MatchMathTests {
         ok(abs(MatchMath.cameraMutexYieldGracePref(1) - 2) < 0.01, "Yield Grace Floor 2")
         ok(abs(MatchMath.cameraMutexYieldGracePref(9) - 8) < 0.01, "Yield Grace Cap 8")
         ok(!MatchMath.cameraMutexYieldAutoReturnPref(false), "Yield Auto-Return aus")
+        ok(MatchMath.printBudgetSkip(visionMs: 19, dt: 0.016, minIoU: 0.95, yawAbs: 0.05), "Print skip stabil")
+        ok(!MatchMath.printBudgetSkip(visionMs: 19, dt: 0.016, minIoU: 0.50, yawAbs: 0.05), "Print bleibt IoU 0,50")
+        ok(!MatchMath.printBudgetSkip(visionMs: 19, dt: 0.016, minIoU: 0.95, yawAbs: 0.20), "Print bleibt Yaw 11°")
+        ok(abs(MatchMath.printBudgetYawRad - 8.0 * Double.pi / 180) < 1e-9, "Print-Budget 8°")
+        ok(MatchMath.cameraMutexExpectedGen(nil) == 0, "Expected Gen 0")
+        let aegisGen = MatchMath.cameraMutexLine(owner: "aegis", pid: 2, now: 1_000, gen: 4)
+        ok(
+            MatchMath.cameraMutexLockedLine(
+                existing: aegisGen, owner: "aegis", pid: 2, now: 1_001, expectedGen: 4
+            ) != nil,
+            "Aegis CAS Gen match"
+        )
+        ok(
+            MatchMath.cameraMutexLockedLine(
+                existing: aegisGen, owner: "aegis", pid: 2, now: 1_001, expectedGen: 3
+            ) == nil,
+            "Aegis CAS Gen mismatch tot"
+        )
+        ok(
+            MatchMath.cameraMutexLockedLine(
+                existing: aegisGen, owner: "helios", pid: 9, now: 1_001, expectedGen: 3
+            ) != nil,
+            "Helios CAS trotz Gen mismatch"
+        )
+        ok(MatchMath.cameraMutexCasAllows(existing: aegisGen, owner: "aegis", expectedGen: 4), "CAS Aegis match")
+        ok(!MatchMath.cameraMutexCasAllows(existing: aegisGen, owner: "aegis", expectedGen: 3), "CAS Aegis mismatch")
+        ok(MatchMath.cameraMutexCasAllows(existing: aegisGen, owner: "helios", expectedGen: 3), "CAS Helios Vorrang")
+        ok(MatchMath.cameraMutexClaimChip(holder: "helios", yielded: false) == "helios", "Claim Chip Holder")
+        ok(MatchMath.cameraMutexClaimChip(holder: "helios", yielded: true, fails: 3) == "YIELD", "Claim Chip YIELD")
+        ok(MatchMath.cameraMutexClaimChip(holder: "helios", yielded: false, fails: 3) == "helios · backoff", "Claim Chip backoff")
+        ok(MatchMath.cameraMutexClaimChip(holder: "aegis", yielded: false, fails: 1) == "aegis · 1nb", "Claim Chip 1nb")
+        let trackOld = UUID()
+        let trackLive = UUID()
+        let mapsDrop = MatchMath.leftoverFaceTrackRemintDropMaps(
+            hold: [trackOld: 0.72],
+            pending: [trackOld: "Ada"],
+            streak: [trackOld: 3],
+            lastHash: [trackOld: "ab12"],
+            lastIoU: [trackOld: 0.91],
+            nameHeld: [trackOld: "Ada"],
+            nameUntil: [trackOld: 9],
+            miss: [:],
+            pairLast: [trackOld: trackOld],
+            remap: [trackOld: trackLive]
+        )
+        ok(mapsDrop.hold[trackLive] == 0.72 && mapsDrop.hold[trackOld] == nil, "FaceTrack Maps Drop Hold")
+        ok(mapsDrop.pending[trackLive] == "Ada" && mapsDrop.pairLast[trackLive] == trackLive, "FaceTrack Maps Drop Pair")
+        ok(mapsDrop.miss[trackLive] == nil, "FaceTrack Unpack Default tot")
+        let boxConv = MatchMath.leftoverFaceBox(MatchMath.leftoverFaceTrackBox(FaceBox(x: 1, y: 2, width: 3, height: 4)))
+        ok(boxConv.x == 1 && boxConv.height == 4, "FaceTrack Box roundtrip")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

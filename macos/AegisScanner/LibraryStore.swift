@@ -2169,7 +2169,12 @@ final class LibraryStore: ObservableObject {
         liveRoiTick += 1
         liveRoiSkipOnce = false
         Task.detached(priority: .userInitiated) {
-            let skipPrints = skipDetect || MatchMath.printBudgetSkip(visionMs: vis, dt: dt)
+            let skipPrints = skipDetect || MatchMath.printBudgetSkip(
+                visionMs: vis,
+                dt: dt,
+                minIoU: liveIous.min(),
+                yawAbs: kalmanSnap.compactMap { liveYaw[$0.id] }.map { abs($0) }.max()
+            )
             let t0 = CFAbsoluteTimeGetCurrent()
             var roi = skipRoi ? nil : roiTuple.map { FaceBox(x: $0.x, y: $0.y, width: $0.w, height: $0.h) }
             var found: [FaceObservation]
@@ -3024,7 +3029,8 @@ final class LibraryStore: ObservableObject {
             Set(leftoverWipeUntil.keys), Set(leftoverPairLast.keys), Set(leftoverPairStreak.keys),
             Set(leftoverPairCommit.keys), Set(leftoverPairCommitMiss.keys), Set(leftoverDisagree.keys),
             Set(leftoverStreak.keys), Set(leftoverStreakBox.keys), Set(leftoverStreakSince.keys),
-            Set(boxKalman.keys), Set(boxKalmanV.keys), Set(freezeAxis.keys)
+            Set(boxKalman.keys), Set(boxKalmanV.keys), Set(freezeAxis.keys),
+            Set(liveYaw.keys), Set(livePitch.keys), Set(liveRoll.keys)
         ])
         let remintPlan = MatchMath.leftoverHoldRemintMap(
             live: remintLive,
@@ -3036,15 +3042,33 @@ final class LibraryStore: ObservableObject {
             pad: fillXPad,
             padRescue: fillXRescue
         )
-        leftoverHold = MatchMath.leftoverHoldRemintDrop(hold: leftoverHold, remap: remintPlan)
+        let faceMaps = MatchMath.leftoverFaceTrackRemintDropMaps(
+            hold: leftoverHold,
+            pending: leftoverPending,
+            streak: leftoverStreak,
+            lastHash: leftoverLastHash,
+            lastIoU: leftoverLastIoU,
+            nameHeld: leftoverNameLockHeld,
+            nameUntil: leftoverNameLockUntil,
+            miss: leftoverMissFrames,
+            streakBox: leftoverStreakBox.mapValues { MatchMath.leftoverFaceTrackBox($0) },
+            pairLast: leftoverPairLast,
+            pairStreak: leftoverPairStreak,
+            remap: remintPlan
+        )
+        leftoverHold = faceMaps.hold
+        leftoverPending = faceMaps.pending
+        leftoverStreak = faceMaps.streak
+        leftoverLastHash = faceMaps.lastHash
+        leftoverLastIoU = faceMaps.lastIoU
+        leftoverNameLockHeld = faceMaps.nameHeld
+        leftoverNameLockUntil = faceMaps.nameUntil
+        leftoverMissFrames = faceMaps.miss
+        leftoverStreakBox = faceMaps.streakBox.mapValues { MatchMath.leftoverFaceBox($0) }
+        leftoverPairLast = faceMaps.pairLast
+        leftoverPairStreak = faceMaps.pairStreak
         leftoverHoldTrail = MatchMath.leftoverHoldRemintDrop(hold: leftoverHoldTrail, remap: remintPlan)
         liveSlotHold = MatchMath.leftoverHoldRemintDrop(hold: liveSlotHold, remap: remintPlan)
-        leftoverMissFrames = MatchMath.leftoverHoldRemintDrop(hold: leftoverMissFrames, remap: remintPlan)
-        leftoverNameLockUntil = MatchMath.leftoverHoldRemintDrop(hold: leftoverNameLockUntil, remap: remintPlan)
-        leftoverNameLockHeld = MatchMath.leftoverHoldRemintDrop(hold: leftoverNameLockHeld, remap: remintPlan)
-        leftoverPending = MatchMath.leftoverHoldRemintDrop(hold: leftoverPending, remap: remintPlan)
-        leftoverLastHash = MatchMath.leftoverHoldRemintDrop(hold: leftoverLastHash, remap: remintPlan)
-        leftoverLastIoU = MatchMath.leftoverHoldRemintDrop(hold: leftoverLastIoU, remap: remintPlan)
         leftoverSparkChipHeld = MatchMath.leftoverHoldRemintDrop(hold: leftoverSparkChipHeld, remap: remintPlan)
         leftoverJpegDelta = MatchMath.leftoverHoldRemintDrop(hold: leftoverJpegDelta, remap: remintPlan)
         leftoverJpegAt = MatchMath.leftoverHoldRemintDrop(hold: leftoverJpegAt, remap: remintPlan)
@@ -3054,15 +3078,14 @@ final class LibraryStore: ObservableObject {
         leftoverWipeUntil = MatchMath.leftoverHoldRemintDrop(hold: leftoverWipeUntil, remap: remintPlan)
         leftoverHoldBins = MatchMath.leftoverHoldRemintDropBins(hold: leftoverHoldBins, remap: remintPlan)
         leftoverHoldTrailBins = MatchMath.leftoverHoldRemintDropBins(hold: leftoverHoldTrailBins, remap: remintPlan)
-        leftoverPairLast = MatchMath.leftoverHoldRemintDropId(hold: leftoverPairLast, remap: remintPlan)
-        leftoverPairStreak = MatchMath.leftoverHoldRemintDrop(hold: leftoverPairStreak, remap: remintPlan)
         leftoverPairCommit = MatchMath.leftoverHoldRemintDropId(hold: leftoverPairCommit, remap: remintPlan)
         leftoverPairCommitMiss = MatchMath.leftoverHoldRemintDrop(hold: leftoverPairCommitMiss, remap: remintPlan)
         leftoverDisagree = MatchMath.leftoverHoldRemintDrop(hold: leftoverDisagree, remap: remintPlan)
-        leftoverStreak = MatchMath.leftoverHoldRemintDrop(hold: leftoverStreak, remap: remintPlan)
-        leftoverStreakBox = MatchMath.leftoverHoldRemintDrop(hold: leftoverStreakBox, remap: remintPlan)
         leftoverStreakSince = MatchMath.leftoverHoldRemintDrop(hold: leftoverStreakSince, remap: remintPlan)
         freezeAxis = MatchMath.leftoverHoldRemintDrop(hold: freezeAxis, remap: remintPlan)
+        liveYaw = MatchMath.leftoverHoldRemintDrop(hold: liveYaw, remap: remintPlan)
+        livePitch = MatchMath.leftoverHoldRemintDrop(hold: livePitch, remap: remintPlan)
+        liveRoll = MatchMath.leftoverHoldRemintDrop(hold: liveRoll, remap: remintPlan)
         leftoverMissCoastTicks = MatchMath.leftoverHoldMissAdvance(
             prev: leftoverMissCoastTicks,
             hit: MatchMath.leftoverHoldMissHit(live: liveIds.count, adopted: adopted.count)

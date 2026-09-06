@@ -55,6 +55,8 @@ final class LiveCapture: NSObject {
     var yieldAutoReturn = true
     var yieldGrace: TimeInterval = 4
     private var mutexBeat: Timer?
+    private var mutexClaimFails = 0
+    private var lastMutexClaimAt: TimeInterval = 0
 
     static func orientKey(_ uniqueID: String) -> String { "aegis.camOrient.\(uniqueID)" }
 
@@ -305,7 +307,7 @@ final class LiveCapture: NSObject {
     private func cameraMutexURL() -> URL { cameraMutexCachesURL() }
 
     @discardableResult
-    private func writeCameraMutexClaim(owner: String, url: URL) -> Bool {
+    private func writeCameraMutexClaim(owner: String, url: URL, expectedGen: UInt32? = nil) -> Bool {
         let pid = ProcessInfo.processInfo.processIdentifier
         let now = Date().timeIntervalSince1970
         #if canImport(Darwin)
@@ -324,7 +326,7 @@ final class LiveCapture: NSObject {
             }
             let existing = buf.isEmpty ? nil : String(bytes: buf, encoding: .utf8)
             guard let line = MatchMath.cameraMutexLockedLine(
-                existing: existing, owner: owner, pid: pid, now: now
+                existing: existing, owner: owner, pid: pid, now: now, expectedGen: expectedGen
             ) else {
                 _ = flock(fd, LOCK_UN)
                 close(fd)
@@ -349,7 +351,7 @@ final class LiveCapture: NSObject {
         #endif
         let existing = try? String(contentsOf: url, encoding: .utf8)
         guard let line = MatchMath.cameraMutexLockedLine(
-            existing: existing, owner: owner, pid: pid, now: now
+            existing: existing, owner: owner, pid: pid, now: now, expectedGen: expectedGen
         ) else { return false }
         try? line.write(to: url, atomically: true, encoding: .utf8)
         return true
@@ -381,48 +383,63 @@ final class LiveCapture: NSObject {
         return try? String(contentsOf: url, encoding: .utf8)
     }
 
-    private func readCameraMutex() -> (holder: String?, busy: Bool) {
+    private func readCameraMutex() -> (holder: String?, busy: Bool, gen: UInt32?) {
         let cachesURL = cameraMutexCachesURL()
         let cachesPresent = FileManager.default.fileExists(atPath: cachesURL.path)
         var busy = false
         let caches = readCameraMutexLocked(url: cachesURL, busy: &busy)
-        if busy { return (nil, true) }
+        if busy { return (nil, true, nil) }
         var tmpBusy = false
         let tmp = MatchMath.cameraMutexReadOrder().contains("tmp")
             ? readCameraMutexLocked(url: cameraMutexLegacyURL(), busy: &tmpBusy)
             : nil
-        if tmpBusy { return (nil, true) }
+        if tmpBusy { return (nil, true, nil) }
         let empty = cachesPresent && (caches == nil || caches?.isEmpty == true)
         guard let text = MatchMath.cameraMutexPickText(caches: caches, tmp: tmp, cachesEmpty: empty) else {
-            return (nil, false)
+            return (nil, false, nil)
         }
         let pid = MatchMath.cameraMutexPid(text)
         let live = pid.map { p in p > 0 && (kill(p, 0) == 0 || errno == EPERM) }
-        return (MatchMath.cameraMutexParse(text, now: Date().timeIntervalSince1970, pidLive: live), false)
+        return (
+            MatchMath.cameraMutexParse(text, now: Date().timeIntervalSince1970, pidLive: live),
+            false,
+            MatchMath.cameraMutexGen(text)
+        )
     }
 
     private func beatCameraMutex() {
+        let now = Date().timeIntervalSince1970
+        if !MatchMath.cameraMutexClaimDue(last: lastMutexClaimAt, now: now, fails: mutexClaimFails) {
+            return
+        }
+        lastMutexClaimAt = now
         let read = readCameraMutex()
         if MatchMath.cameraMutexSkipClaim(readBusy: read.busy) {
+            mutexClaimFails += 1
+            mutexChip = MatchMath.cameraMutexClaimChip(
+                holder: nil, yielded: cameraMutexYielded, fails: mutexClaimFails
+            )
             return
         }
         let holder = read.holder
         let owner = MatchMath.cameraMutexOwnerAegis()
-        let now = Date().timeIntervalSince1970
         let yielded = MatchMath.cameraMutexYieldsNow(
             holder: holder, owner: owner, wasYielded: cameraMutexYielded
         )
         if yielded && !cameraMutexYielded {
             yieldSince = now
             cameraMutexYielded = true
-            mutexChip = MatchMath.cameraMutexChip(holder: holder, yielded: true)
+            mutexClaimFails = 0
+            mutexChip = MatchMath.cameraMutexClaimChip(holder: holder, yielded: true, fails: 0)
             if MatchMath.cameraMutexYieldReconfigure(yielded: true, isContinuity: isContinuity) {
                 reconfigureAfterYield()
             }
             return
         }
         cameraMutexYielded = yielded
-        mutexChip = MatchMath.cameraMutexChip(holder: holder, yielded: yielded)
+        mutexChip = MatchMath.cameraMutexClaimChip(
+            holder: holder, yielded: yielded, fails: mutexClaimFails
+        )
         if MatchMath.cameraMutexYieldAutoReturnPref(yieldAutoReturn),
            MatchMath.cameraMutexYieldAutoReturn(
             yielded: yielded,
@@ -437,11 +454,11 @@ final class LiveCapture: NSObject {
             if choice != .builtIn {
                 reconfigureAfterYield(keepYielded: false)
             }
-            claimCameraMutex()
+            claimCameraMutex(expectedGen: read.gen)
             return
         }
         if cameraMutexYielded { return }
-        claimCameraMutex()
+        claimCameraMutex(expectedGen: read.gen)
     }
 
     private func reconfigureAfterYield(keepYielded: Bool = true) {
@@ -466,21 +483,39 @@ final class LiveCapture: NSObject {
         }
     }
 
-    private func claimCameraMutex() {
+    private func claimCameraMutex(expectedGen: UInt32? = nil) {
         let owner = MatchMath.cameraMutexOwnerAegis()
         let read = readCameraMutex()
-        if MatchMath.cameraMutexSkipClaim(readBusy: read.busy) { return }
+        if MatchMath.cameraMutexSkipClaim(readBusy: read.busy) {
+            mutexClaimFails += 1
+            mutexChip = MatchMath.cameraMutexClaimChip(
+                holder: nil, yielded: cameraMutexYielded, fails: mutexClaimFails
+            )
+            return
+        }
         let holder = read.holder
         guard MatchMath.cameraMutexClaimWrites(
             holder: holder,
             owner: owner
-        ) else { return }
-        let wrote = writeCameraMutexClaim(owner: owner, url: cameraMutexCachesURL())
+        ) else {
+            mutexChip = MatchMath.cameraMutexClaimChip(
+                holder: holder, yielded: cameraMutexYielded, fails: mutexClaimFails
+            )
+            return
+        }
+        let gen = expectedGen ?? read.gen
+        let wrote = writeCameraMutexClaim(owner: owner, url: cameraMutexCachesURL(), expectedGen: gen)
         if MatchMath.cameraMutexWriteTmp() {
-            _ = writeCameraMutexClaim(owner: owner, url: cameraMutexLegacyURL())
+            _ = writeCameraMutexClaim(owner: owner, url: cameraMutexLegacyURL(), expectedGen: gen)
         }
         if wrote {
-            mutexChip = MatchMath.cameraMutexChip(holder: owner, yielded: false)
+            mutexClaimFails = 0
+            mutexChip = MatchMath.cameraMutexClaimChip(holder: owner, yielded: false, fails: 0)
+        } else {
+            mutexClaimFails += 1
+            mutexChip = MatchMath.cameraMutexClaimChip(
+                holder: holder, yielded: cameraMutexYielded, fails: mutexClaimFails
+            )
         }
     }
 

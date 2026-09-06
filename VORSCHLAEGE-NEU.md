@@ -1,14 +1,14 @@
-# Aegis Nachtrag 2.1.165 — 2026-09-06
+# Aegis Nachtrag 2.1.166 — 2026-09-06
 
-Binary **2.1.165 alpha Build 190**. skipDetect in applyLiveFaces, skipPrints-Coast, FaceTrack extra.
+Binary **2.1.166 alpha Build 191**. FaceTrack-Remint verdrahtet, printBudget IoU+Yaw, expected-gen CAS.
 
-## In 2.1.165 gelandet
+## In 2.1.166 gelandet
 
-1. applyLiveFaces(skipDetect:skipPrints:) — 2.1.164 compile tot
-2. leftoverCoastCosine skipPrints — 24 fps printBudget hält leftoverHold
-3. leftoverPickPrint raw ?? Hold, leftoverPick holdOf
-4. FaceTrack StreakBox/Kalman/Pair + pairLast-Value-Remint
-5. ClaimBackoff + Models.build 190
-6. Tests + VERSION = Models = MARKETING_VERSION 2.1.165 (Build 190)
+1. leftoverFaceTrackRemintDropMaps — Hold/Pending/Streak/Hash/IoU/Name/Miss/Pair ein Remint
+2. liveYaw/Pitch/Roll reminten
+3. printBudgetSkip(minIoU:yawAbs:) — Skip nur IoU ≥ 0,92 und |yaw| < 8°
+4. cameraMutexCasAllows / expectedGen, ClaimChip, mutexClaimFails
+5. Unpack ohne Defaults
+6. Tests + VERSION = Models = MARKETING_VERSION 2.1.166 (Build 191)
 
-Rest: CameraBroker, LibraryStore → ein FaceTrack-Dict, Overlay-Metal. Siehe VORSCHLAEGE-GROK.md.
+Rest: FaceTrack als Store, CameraBroker, Overlay-Metal. Siehe VORSCHLAEGE-GROK.md.
