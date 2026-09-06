@@ -3585,6 +3585,53 @@ enum MatchMathTests {
         ok(MatchMath.leftoverBaptizeQuality(sharpness: 0.10, yawAbs: 0, continuity: true), "Continuity quality 0,10")
         ok(!MatchMath.leftoverBaptizeQuality(sharpness: 0.10, yawAbs: 0, continuity: false), "Webcam quality 0,10 tot")
         ok(MatchMath.leftoverBaptize(cosine: 0.77, continuity: true), "Continuity Transfer-Floor")
+        let hunPrint = MatchMath.leftoverAssignHungarianX(
+            assigned: [nil, nil],
+            liveX: [0.21, 0.23],
+            holdX: [0.20, 0.24],
+            pad: 0.12,
+            scores: [[0.40, 0.90], [0.88, 0.41]]
+        )
+        ok(hunPrint[0] == 1 && hunPrint[1] == 0, "HungarianX Print Twin")
+        let hunXOnly = MatchMath.leftoverAssignHungarianX(
+            assigned: [nil, nil],
+            liveX: [0.09, 0.20],
+            holdX: [0.00, 0.10],
+            pad: 0.12
+        )
+        ok(hunXOnly[0] == 0 && hunXOnly[1] == 1, "HungarianX ohne Print hält X")
+        near(
+            MatchMath.leftoverAssignHungarianXCost(dx: 0.02, pad: 0.12, printCos: 0.40),
+            MatchMath.leftoverAssignCost(
+                iou: MatchMath.leftoverAssignCostIoU(dx: 0.02, pad: 0.12),
+                printCos: 0.40,
+                printW: 0.8
+            ),
+            0.001,
+            "HungarianX Cost PrintW 0,8"
+        )
+        let packed = MatchMath.leftoverSparkChipPack(
+            uuid: [hashLive: (chip: "ANNA 92", hold: 2)],
+            hash: ["6.6.4.6": "ANNA 92"]
+        )
+        let unpacked = MatchMath.leftoverSparkChipUnpack(packed)
+        ok(unpacked.uuid[hashLive]?.chip == "ANNA 92", "Spark Pack UUID")
+        ok(unpacked.hash["6.6.4.6"] == "ANNA 92", "Spark Pack Hash")
+        ok(MatchMath.leftoverSparkChipHashGet(table: unpacked.hash, hash: "6.6.4.6") == "ANNA 92", "Spark Hash Lookup")
+        ok(MatchMath.leftoverSparkChipHashEncode(["\(hashLive)": "x"]).isEmpty, "Spark Hash skip UUID")
+        let hashSkip = MatchMath.leftoverSparkChipHashPut(
+            table: [:], hash: hashLive.uuidString, chip: "NO"
+        )
+        ok(hashSkip.isEmpty, "Spark Hash Put skip UUID")
+        let liveTwin = MatchMath.leftoverAssignLive(
+            scores: [[0.40, 0.90], [0.88, 0.41]],
+            liveX: [0.21, 0.23],
+            holdX: [0.20, 0.24]
+        )
+        ok(liveTwin[0] == 1 && liveTwin[1] == 0, "AssignLive Print Twin")
+        ok(MatchMath.leftoverAssignHungarianXHasPrint([[0.40, 0.90]]), "Print da")
+        ok(!MatchMath.leftoverAssignHungarianXHasPrint([[nil, nil]]), "Print leer tot")
+        ok(!MatchMath.leftoverAssignHungarianXHasPrint(nil), "Print nil tot")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

@@ -273,7 +273,9 @@ final class LibraryStore: ObservableObject {
             leftoverPairCommit = MatchMath.leftoverUUIDUUIDMapDecode(extra.leftoverPairCommit)
             leftoverPairCommitMiss = MatchMath.leftoverUUIDIntMapDecode(extra.leftoverPairCommitMiss)
             leftoverLastIoU = MatchMath.leftoverStreakSinceDecode(extra.leftoverLastIoU)
-            leftoverSparkChipHeld = MatchMath.leftoverSparkChipDecode(extra.leftoverSparkChip)
+            let sparkPack = MatchMath.leftoverSparkChipUnpack(extra.leftoverSparkChip)
+            leftoverSparkChipHeld = sparkPack.uuid
+            leftoverSparkChipByHash = sparkPack.hash
             leftoverStreak = MatchMath.leftoverUUIDIntMapDecode(extra.leftoverStreak)
             leftoverStreakBox = MatchMath.leftoverStreakBoxDecode(extra.leftoverStreakBox)
             leftoverJpegByHash = MatchMath.leftoverJpegByHashDecode(
@@ -401,7 +403,10 @@ final class LibraryStore: ObservableObject {
                 now: Date().timeIntervalSince1970,
                 ttl: leftoverHoldTTL
             ),
-            leftoverSparkChip: MatchMath.leftoverSparkChipEncode(leftoverSparkChipHeld)
+            leftoverSparkChip: MatchMath.leftoverSparkChipPack(
+                uuid: leftoverSparkChipHeld,
+                hash: leftoverSparkChipByHash
+            )
         )
         if !liveActive {
             refreshMergeHint()
@@ -527,7 +532,9 @@ final class LibraryStore: ObservableObject {
             leftoverPairCommit = MatchMath.leftoverUUIDUUIDMapDecode(extra.leftoverPairCommit)
             leftoverPairCommitMiss = MatchMath.leftoverUUIDIntMapDecode(extra.leftoverPairCommitMiss)
             leftoverLastIoU = MatchMath.leftoverStreakSinceDecode(extra.leftoverLastIoU)
-            leftoverSparkChipHeld = MatchMath.leftoverSparkChipDecode(extra.leftoverSparkChip)
+            let sparkPack = MatchMath.leftoverSparkChipUnpack(extra.leftoverSparkChip)
+            leftoverSparkChipHeld = sparkPack.uuid
+            leftoverSparkChipByHash = sparkPack.hash
             leftoverStreak = MatchMath.leftoverUUIDIntMapDecode(extra.leftoverStreak)
             leftoverStreakBox = MatchMath.leftoverStreakBoxDecode(extra.leftoverStreakBox)
             leftoverJpegByHash = MatchMath.leftoverJpegByHashDecode(
@@ -1598,7 +1605,12 @@ final class LibraryStore: ObservableObject {
     }
 
     func leftoverSparkChip(faceId: UUID, yawAbs: Double? = nil) -> String? {
-        leftoverSparkChipHeld[faceId]?.chip ?? leftoverSparkChipNow(faceId: faceId, yawAbs: yawAbs)
+        leftoverSparkChipHeld[faceId]?.chip
+            ?? MatchMath.leftoverSparkChipHashGet(
+                table: leftoverSparkChipByHash,
+                hash: leftoverLastHash[faceId] ?? leftoverLiveHashTick[faceId]
+            )
+            ?? leftoverSparkChipNow(faceId: faceId, yawAbs: yawAbs)
     }
 
     func leftoverGateChip(faceId: UUID) -> String? {
@@ -1720,13 +1732,19 @@ final class LibraryStore: ObservableObject {
                 liveByHash: liveByHash
             )
             if next[dest] == nil { next[dest] = val }
+            leftoverSparkChipByHash = MatchMath.leftoverSparkChipHashPut(
+                table: leftoverSparkChipByHash, hash: lastH, chip: val.chip
+            )
         }
         leftoverSparkChipHeld = next
         for fid in liveFaceIds {
             let yaw = faces.first { $0.id == fid }.map { abs($0.quality.yaw) }
             let nowChip = leftoverSparkChipNow(faceId: fid, yawAbs: yaw)
-            let prev = leftoverSparkChipHeld[fid]
-            let held = MatchMath.leftoverSparkChipHold(prev: prev?.chip, now: nowChip, hold: prev?.hold ?? 0)
+            let hash = leftoverLiveHashTick[fid] ?? leftoverLastHash[fid]
+            let prevChip = leftoverSparkChipHeld[fid]?.chip
+                ?? MatchMath.leftoverSparkChipHashGet(table: leftoverSparkChipByHash, hash: hash)
+            let prevHold = leftoverSparkChipHeld[fid]?.hold ?? 0
+            let held = MatchMath.leftoverSparkChipHold(prev: prevChip, now: nowChip, hold: prevHold)
             if let chip = held.chip {
                 leftoverSparkChipHeld[fid] = (chip: chip, hold: held.hold)
                 if let h = leftoverLastHash[fid] ?? leftoverLiveHashTick[fid] {

@@ -1,3 +1,24 @@
+# Helios + Aegis — Analyse 2026-09-06 (2.1.159)
+
+Helios **1.5.150** (Build 169). Aegis **2.1.159 alpha** (Build 184). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.158: Remint-Plan, Spark Hash RAM, Quality-Produkt. HungarianX Cost = |Δx|. Spark-Hash nicht in gallery.json. Twin mit ähnlichem X ignoriert Print 0,90.
+
+## Warum Taufe nach 2.1.158 weiter riss
+
+1. **HungarianX nur |Δx|.** leftoverAssignCost sitzt, wird nicht benutzt. Twins 0,02 vs 0,04: näherer X gewinnt. Spread-Veto nilt Print-Zuweisung. Steal braucht Gap ≥ 0,15 und Floor 0,80 — 0,72 vs 0,55 fällt.
+2. **Spark Hash RAM-only.** leftoverSparkChipEncode nur UUID. Restart: Chip weg, Overlay Gast 2 Ticks. Overlay-Lookup ohne Hash-Fallback.
+
+## Was 2.1.159 ändert
+
+1. **leftoverAssignHungarianXCost.** IoU + PrintW 0,8 wenn Scores da. Spread-Veto tot sobald Print > 0. leftoverAssignLive reicht Scores in den Remint-Pass.
+2. **leftoverSparkChipPack/Unpack.** Hash→Chip in demselben leftoverSparkChip-Dict (keine UUID-Keys). Restart hält Chip. Overlay-Lookup Hash-Fallback.
+3. Tests + VERSION = Models = MARKETING 2.1.159 (Build 184). Schema 15 bleibt.
+
+Helios 1.5.150: Dest-Warp, Layout-Rearm, Connection-Winkel. Siehe `bpms9cmnxc-debug/Helios`.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-06 (2.1.158)
 
 Helios **1.5.149** (Build 168). Aegis **2.1.158 alpha** (Build 183). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

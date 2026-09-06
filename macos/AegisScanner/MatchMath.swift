@@ -1695,7 +1695,8 @@ enum MatchMath {
         liveX: [Double],
         holdX: [Double],
         pad: Double = leftoverFillXPad,
-        spread: Double = leftoverAmbiguousSpread
+        spread: Double = leftoverAmbiguousSpread,
+        scores: [[Double?]]? = nil
     ) -> [Int?] {
         var out = assigned
         if out.count < holdX.count {
@@ -1730,14 +1731,23 @@ enum MatchMath {
                 if d > pad { continue }
                 var nxt = cur
                 nxt[r] = c
-                rec(i + 1, taken.union([c]), cost + d, nAss + 1, nxt)
+                rec(i + 1, taken.union([c]), cost + leftoverAssignHungarianXStep(
+                    dx: d, pad: pad, row: r, col: c, scores: scores
+                ), nAss + 1, nxt)
             }
         }
         rec(0, [], 0, 0, out)
         guard let chosen = best else {
             return leftoverAssignFillX(assigned: assigned, liveX: liveX, holdX: holdX, pad: pad, spread: spread)
         }
+        if leftoverAssignHungarianXHasPrint(scores) { return chosen }
         return leftoverAssignSpreadVeto(assigned: chosen, liveX: liveX, holdX: holdX, pad: pad, spread: spread)
+    }
+
+    /// Print da: Twin-Spread-Veto tot — sonst 0,90 vs 0,40 fällt auf |Δx|.
+    static func leftoverAssignHungarianXHasPrint(_ scores: [[Double?]]?) -> Bool {
+        guard let scores else { return false }
+        return scores.contains { row in row.contains { ($0 ?? 0) > 0 } }
     }
 
     /// Unassigned-Hold und Twin-Mitte 0,08. Hungarian n=2 (0,00/0,10 vs 0,09/0,20) bleibt.
@@ -1811,7 +1821,13 @@ enum MatchMath {
         pad: Double = leftoverFillXRescue,
         padFill: Double = leftoverFillXPad
     ) -> [Int?] {
-        var assigned = leftoverAssignRemint(liveX: liveX, holdX: holdX, pad: padFill)
+        var assigned = leftoverAssignHungarianX(
+            assigned: Array(repeating: Optional<Int>.none, count: holdX.count),
+            liveX: liveX,
+            holdX: holdX,
+            pad: leftoverFillXPadPref(padFill),
+            scores: scores
+        )
         var used = Set(assigned.compactMap { $0 })
         let printed = leftoverAssignHungarian(scores: scores)
         if assigned.count < printed.count {
@@ -1832,14 +1848,40 @@ enum MatchMath {
                     assigned: assigned,
                     liveX: liveX,
                     holdX: holdX,
-                    pad: leftoverFillXPadPref(padFill)
+                    pad: leftoverFillXPadPref(padFill),
+                    scores: scores
                 ),
                 liveX: liveX,
                 holdX: holdX,
-                pad: leftoverFillXRescuePref(pad)
+                pad: leftoverFillXRescuePref(pad),
+                scores: scores
             )
         )
         return leftoverAssignPrintSteal2opt(assigned: assigned, printed: printed, scores: scores)
+    }
+
+    /// HungarianX PrintW 0,8. 0,3 verliert gegen Twins mit ähnlichem X.
+    static let leftoverAssignHungarianPrintW = 0.8
+
+    static func leftoverAssignHungarianXCost(
+        dx: Double,
+        pad: Double,
+        printCos: Double?,
+        printW: Double = leftoverAssignHungarianPrintW
+    ) -> Double {
+        leftoverAssignCost(iou: leftoverAssignCostIoU(dx: dx, pad: pad), printCos: printCos, printW: printW)
+    }
+
+    static func leftoverAssignHungarianXStep(
+        dx: Double,
+        pad: Double,
+        row: Int,
+        col: Int,
+        scores: [[Double?]]?
+    ) -> Double {
+        guard let scores else { return dx }
+        let printCos: Double? = (row < scores.count && col < scores[row].count) ? scores[row][col] : nil
+        return leftoverAssignHungarianXCost(dx: dx, pad: pad, printCos: printCos)
     }
 
     /// 1−IoU + 0,3·(1−print). X-Remint tauft Geschwister; Print darf stehlen.
@@ -2845,6 +2887,7 @@ enum MatchMath {
 
     static func leftoverSparkChipHashPut(table: [String: String], hash: String?, chip: String?) -> [String: String] {
         guard let hash, !hash.isEmpty, let chip, !chip.isEmpty else { return table }
+        if UUID(uuidString: hash) != nil { return table }
         var out = table
         out[hash] = chip
         if out.count > 64, let first = out.keys.first {
@@ -2856,6 +2899,32 @@ enum MatchMath {
     static func leftoverSparkChipHashGet(table: [String: String], hash: String?) -> String? {
         guard let hash, !hash.isEmpty else { return nil }
         return table[hash]
+    }
+
+    /// Hash→Chip neben UUID. Restart + Remint sonst Gast. UUID-Keys bleiben Decode.
+    static func leftoverSparkChipHashEncode(_ table: [String: String]) -> [String: String] {
+        Dictionary(uniqueKeysWithValues: table.compactMap { k, v in
+            if k.isEmpty || v.isEmpty { return nil }
+            if UUID(uuidString: k) != nil { return nil }
+            return (k, v)
+        })
+    }
+
+    static func leftoverSparkChipPack(
+        uuid: [UUID: (chip: String, hold: Int)],
+        hash: [String: String]
+    ) -> [String: String] {
+        var out = leftoverSparkChipEncode(uuid)
+        for (k, v) in leftoverSparkChipHashEncode(hash) {
+            out[k] = v
+        }
+        return out
+    }
+
+    static func leftoverSparkChipUnpack(
+        _ raw: [String: String]?
+    ) -> (uuid: [UUID: (chip: String, hold: Int)], hash: [String: String]) {
+        (leftoverSparkChipDecode(raw), leftoverSparkChipHashEncode(raw ?? [:]))
     }
 
     /// Remint-Miss: Chip unter alter UUID, Overlay liest Live. Gleiches Hash → Live-UUID.

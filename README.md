@@ -1,4 +1,4 @@
-# Aegis **2.1.158 alpha**
+# Aegis **2.1.159 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,14 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.159 alpha
+
+HungarianX Cost = |Δx| — Twins mit ähnlichem X taufen falsch. Spark-Hash RAM-only, Restart = Gast.
+
+- **leftoverAssignHungarianXCost** IoU + PrintW 0,8. Spread-Veto tot sobald Print da.
+- **leftoverSparkChipPack/Unpack** Hash→Chip persist, Overlay-Lookup Hash-Fallback.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.159 (Build 184). Schema 15 bleibt.
 
 ## Neu in 2.1.158 alpha
 
