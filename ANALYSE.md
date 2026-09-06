@@ -1,4 +1,24 @@
+# Aegis + Helios — Analyse 2026-09-06 (2.1.169)
+
+Aegis **2.1.169 alpha** (Build 194). Helios **1.5.167** (Build 186). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.168: Coast-Vec, Print-Yaw-Δ. leftover matching las leftoverHold[old.id] nach RemintDrop. Mutex WRITE ignorierte tote PIDs.
+
+## Warum leftover nach 2.1.168 weiter riss
+
+1. **RemintDrop vs leftover matching.** Hold/Kalman/Coast auf Live-UUID, leftover matching las Source-UUID → nil.
+2. **Mutex WRITE ohne pidLive.** Read kill't tot. LOCK_EX-Write wartete 12 s.
+
+## Was 2.1.169 ändert
+
+1. **leftoverHoldRemintLookup.** leftover matching liest Hold/Kalman/Coast nach Drop.
+2. **cameraMutexWriteAllowed(pidLive:).** Toter Helios → Lock frei.
+3. Tests + VERSION = Models = MARKETING 2.1.169 (Build 194). Schema 15 bleibt.
+
+`bugfix` mergen: nein.
+
 # Aegis + Helios — Analyse 2026-09-06 (2.1.168)
+
 
 Aegis **2.1.168 alpha** (Build 193). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
 

@@ -325,8 +325,10 @@ final class LiveCapture: NSObject {
                 _ = buf.withUnsafeMutableBytes { Darwin.read(fd, $0.baseAddress, $0.count) }
             }
             let existing = buf.isEmpty ? nil : String(bytes: buf, encoding: .utf8)
+            let holderPid = existing.flatMap { MatchMath.cameraMutexPid($0) }
+            let pidLive: Bool? = holderPid.map { p in p > 0 && (kill(p, 0) == 0 || errno == EPERM) }
             guard let line = MatchMath.cameraMutexLockedLine(
-                existing: existing, owner: owner, pid: pid, now: now, expectedGen: expectedGen
+                existing: existing, owner: owner, pid: pid, now: now, expectedGen: expectedGen, pidLive: pidLive
             ) else {
                 _ = flock(fd, LOCK_UN)
                 close(fd)
@@ -350,8 +352,10 @@ final class LiveCapture: NSObject {
         }
         #endif
         let existing = try? String(contentsOf: url, encoding: .utf8)
+        let holderPid = existing.flatMap { MatchMath.cameraMutexPid($0) }
+        let pidLive: Bool? = holderPid.map { p in p > 0 && (kill(p, 0) == 0 || errno == EPERM) }
         guard let line = MatchMath.cameraMutexLockedLine(
-            existing: existing, owner: owner, pid: pid, now: now, expectedGen: expectedGen
+            existing: existing, owner: owner, pid: pid, now: now, expectedGen: expectedGen, pidLive: pidLive
         ) else { return false }
         try? line.write(to: url, atomically: true, encoding: .utf8)
         return true

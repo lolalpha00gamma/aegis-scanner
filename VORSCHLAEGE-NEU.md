@@ -1,4 +1,17 @@
+# Aegis Nachtrag 2.1.169 — 2026-09-06
+
+Binary **2.1.169 alpha Build 194**. Remint-Lookup nach Drop, Mutex WRITE pidLive.
+
+## In 2.1.169 gelandet
+
+1. leftoverHoldRemintLookup — leftover matching liest Hold/Kalman/Coast auf Live-UUID
+2. cameraMutexWriteAllowed / LockedLine(pidLive:) — tot Helios-PID, Lock frei
+3. Tests + VERSION = Models = MARKETING_VERSION 2.1.169 (Build 194)
+
+Rest: FaceTrack als Store, CameraBroker, Overlay-Metal. Siehe VORSCHLAEGE-GROK.md.
+
 # Aegis Nachtrag 2.1.168 — 2026-09-06
+
 
 Binary **2.1.168 alpha Build 193**. Coast-Print-Vec, Print-Yaw-Δ.
 

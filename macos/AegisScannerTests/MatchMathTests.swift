@@ -4045,6 +4045,45 @@ enum MatchMathTests {
         )
         ok(MatchMath.leftoverCoastPrintMerge(stored: [:], live: [liveOld: vecA], skipPrints: true)[liveOld] == nil, "Coast Merge skip tot")
         ok(MatchMath.leftoverCoastPrintMerge(stored: [:], live: [liveOld: vecA], skipPrints: false)[liveOld]?.count == 32, "Coast Merge nach Print")
+        let totHold = MatchMath.cameraMutexLine(owner: "helios", pid: 1, now: 1_000, gen: 3)
+        ok(
+            MatchMath.cameraMutexWriteAllowed(
+                existing: totHold, owner: "aegis", now: 1_001, pidLive: false
+            ),
+            "Write tot PID frei"
+        )
+        ok(
+            MatchMath.cameraMutexWriteAllowed(
+                existing: totHold, owner: "aegis", now: 1_001, pidLive: true
+            ) == false,
+            "Write live PID tot"
+        )
+        ok(
+            MatchMath.cameraMutexLockedLine(
+                existing: totHold, owner: "aegis", pid: 3, now: 1_001, pidLive: false
+            ) != nil,
+            "LockedLine tot PID frei"
+        )
+        let lookupHold = MatchMath.leftoverHoldRemintDrop(
+            hold: [liveOld: 0.72], remap: [liveOld: liveNew]
+        )
+        ok(
+            MatchMath.leftoverHoldRemintLookup(
+                hold: lookupHold, id: liveOld, remap: [liveOld: liveNew]
+            ) == 0.72,
+            "Lookup Source nach Drop"
+        )
+        ok(MatchMath.leftoverHoldRemintLookup(hold: lookupHold, id: liveNew) == 0.72, "Lookup live")
+        ok(MatchMath.leftoverHoldRemintLookup(hold: lookupHold, id: UUID()) == nil, "Lookup tot")
+        let coastLookup = MatchMath.leftoverHoldRemintDrop(
+            hold: [liveOld: vecA], remap: [liveOld: liveNew]
+        )
+        ok(
+            MatchMath.leftoverHoldRemintLookup(
+                hold: coastLookup, id: liveOld, remap: [liveOld: liveNew]
+            )?.count == 32,
+            "Lookup Coast nach Drop"
+        )
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

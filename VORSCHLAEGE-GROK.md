@@ -1,4 +1,48 @@
+# Nachtrag 2026-09-06 — 1.5.167 / 2.1.169 (kein Merge von `bugfix`)
+
+Helios `bpms9cmnxc-debug/Helios` **1.5.167** (Build 186).
+Aegis `lolalpha00gamma/aegis-scanner` **2.1.169 alpha** (Build 194).
+Nur `main`. Agent-Regel: keine Nebenbranches. `bugfix` gelesen, nicht gemergt.
+
+2.1.168 hat Coast-Vec und Print-Yaw-Δ. 1.5.166 Hist-Veto Live. Zwei Löcher blieben:
+WRITE-Pfad des Mutex ignorierte tote PIDs; leftover matching las leftoverHold/Kalman/Coast auf old.id nach RemintDrop.
+
+## Warum es schlecht wirkte (dieser Pass)
+
+1. **Mutex WRITE ohne pidLive.** cameraMutexParse kill't tote PIDs auf dem Read. Unter LOCK_EX reichte LockedLine pidLive nicht durch — toter Helios-PID hielt den Lock 12 s. Aegis tot nach Crash/Sleep.
+2. **RemintDrop vs leftover matching.** Hold/Kalman/Coast liegen nach Drop auf der Live-UUID. leftover matching las old.id → nil. leftoverHold-Fallback tot, Kalman-IoU tot, Coast-Cache tot.
+3. Von `bugfix` bewusst nicht gemergt: IOHID, AX SetPosition, Per-App-Gain, JSONL.
+
+## In 1.5.167 / 2.1.169 gelandet
+
+- **cameraMutexWriteAllowed / LockedLine(pidLive:).** CameraSession + LiveCapture: kill(2) vor LOCK_EX-Write. Toter Holder → Lock frei.
+- **leftoverHoldRemintLookup.** leftover matching liest Hold/Kalman/Coast über Source→Live.
+- Tests + MARKETING 1.5.167 / 2.1.169 (Build 186 / 194). Schema 15 bleibt.
+
+Pass 10: Mutex WRITE pidLive, leftoverHoldRemintLookup — 1.5.167 / 2.1.169.
+
+## Erweiterungen (neu, oben)
+
+1. **leftover matching Unsure** wenn leftoverCoastPrintSkipCosine nil und leftoverHold nur über Lookup sitzt — Twin ohne Vec nicht auf 0,70 taufen.
+2. **LibraryStore `[UUID: FaceTrack]` als Source of Truth.** Maps bleiben Schatten.
+3. **CameraBroker-XPC** — eine TCC, IOSurface an beide.
+4. **Mutex Heartbeat SIGKILL** des Zombies nach Sleep, nicht nur Lock frei.
+5. **Coast-Print in gallery.json** — Restart sonst Twin neu.
+6. **Shared Fake-Lock-Test** tot-PID Write ohne AVCapture.
+7. **Kalman-Vel in FaceTrack.** Predict nach Remint sonst 0.
+8. **Overlay Metal 90 Hz.** SwiftUI ForEach 21×2 tot.
+9. **IOHID Event-Tap** statt CGEvent (`bugfix`).
+10. **AX SetPosition ein Call/Frame** (`bugfix`).
+11. **Per-App Gain aus AX bundle id** (`bugfix`).
+12. **Gesture-Log JSONL** (`bugfix`).
+13. **App-Group group.helios.aegis** Yield/Mutex/Pad einmal.
+14. **Detect-Skip leftover matching nur IoU** wenn beide Coast-Vec nil.
+15. **Helios palmBind Joint-Group** neben Conf-Tie und Hist-Veto.
+
+Bewusst nicht: Merge `bugfix`, Blind-Patch Schwellen, leftoverSoftmaxBlocks auf Roh.
+
 # Nachtrag 2026-09-06 — 1.5.166 / 2.1.168 (kein Merge von `bugfix`)
+
 
 Helios `bpms9cmnxc-debug/Helios` **1.5.166** (Build 185).
 Aegis `lolalpha00gamma/aegis-scanner` **2.1.168 alpha** (Build 193).

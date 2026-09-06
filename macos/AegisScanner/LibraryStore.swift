@@ -3370,6 +3370,15 @@ final class LibraryStore: ObservableObject {
             for old in leftoverPinned {
                 var cands: [(index: Int, iou: Double, cosine: Double?)] = []
                 let ov = old.printVec.count >= 32 ? old.printVec : FaceEngine.embedding(of: old)
+                let cachedPrint = MatchMath.leftoverHoldRemintLookup(
+                    hold: leftoverCoastPrint, id: old.id, remap: remintPlan
+                ) ?? leftoverCoastPrint[old.id] ?? []
+                let storedHold = MatchMath.leftoverHoldRemintLookup(
+                    hold: leftoverHold, id: old.id, remap: remintPlan
+                )
+                let oldKal = MatchMath.leftoverHoldRemintLookup(
+                    hold: boxKalman, id: old.id, remap: remintPlan
+                )
                 for (j, face) in adopted.enumerated() {
                     guard MatchMath.leftoverAdoptAllowed(
                         adoptedEnrolled: namedTracks.contains(face.id) || enrolled.contains(face.id)
@@ -3377,10 +3386,10 @@ final class LibraryStore: ObservableObject {
                     guard !used.contains(face.id) else { continue }
                     let o = FaceEngine.iou(
                         MatchMath.leftoverStreakBoxWrite(
-                            kalmanX: boxKalman[old.id]?.x,
-                            kalmanY: boxKalman[old.id]?.y,
-                            kalmanW: boxKalman[old.id]?.w,
-                            kalmanH: boxKalman[old.id]?.h,
+                            kalmanX: oldKal?.x,
+                            kalmanY: oldKal?.y,
+                            kalmanW: oldKal?.w,
+                            kalmanH: oldKal?.h,
                             fallback: old.box
                         ),
                         MatchMath.leftoverStreakBoxWrite(
@@ -3396,7 +3405,7 @@ final class LibraryStore: ObservableObject {
                         live: v,
                         liveStored: leftoverCoastPrint[face.id] ?? [],
                         old: ov,
-                        oldStored: leftoverCoastPrint[old.id] ?? []
+                        oldStored: cachedPrint
                     )
                     let cosine: Double?
                     if let liveCos {
@@ -3406,7 +3415,7 @@ final class LibraryStore: ObservableObject {
                             skipDetect: skipDetect,
                             skipPrints: skipPrints,
                             live: nil,
-                            stored: leftoverHold[old.id],
+                            stored: storedHold,
                             livePrintEmpty: face.featurePrint.isEmpty && face.printVec.count < 32
                         )
                     }

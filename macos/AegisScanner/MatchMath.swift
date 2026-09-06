@@ -934,8 +934,14 @@ enum MatchMath {
     /// LOCK_SH|NB fehlgeschlagen: nicht als holder=nil claimen.
     static func cameraMutexSkipClaim(readBusy: Bool) -> Bool { readBusy }
     /// Unter LOCK_EX neu lesen. Aegis schreibt nicht über Helios, der nach dem unlocked Read kam.
-    static func cameraMutexWriteAllowed(existing: String?, owner: String, now: TimeInterval) -> Bool {
-        let holder = existing.flatMap { cameraMutexParse($0, now: now) }
+    /// pidLive false: Holder-PID tot (Crash/Sleep) — Lock frei, nicht 12 s stale.
+    static func cameraMutexWriteAllowed(
+        existing: String?,
+        owner: String,
+        now: TimeInterval,
+        pidLive: Bool? = nil
+    ) -> Bool {
+        let holder = existing.flatMap { cameraMutexParse($0, now: now, pidLive: pidLive) }
         return cameraMutexClaimWrites(holder: holder, owner: owner)
     }
     static func cameraMutexBumpGen(_ existing: String?) -> UInt32 {
@@ -957,9 +963,10 @@ enum MatchMath {
         owner: String,
         pid: Int32,
         now: TimeInterval,
-        expectedGen: UInt32? = nil
+        expectedGen: UInt32? = nil,
+        pidLive: Bool? = nil
     ) -> String? {
-        guard cameraMutexWriteAllowed(existing: existing, owner: owner, now: now) else { return nil }
+        guard cameraMutexWriteAllowed(existing: existing, owner: owner, now: now, pidLive: pidLive) else { return nil }
         guard cameraMutexCasAllows(existing: existing, owner: owner, expectedGen: expectedGen) else { return nil }
         return cameraMutexLine(owner: owner, pid: pid, now: now, gen: cameraMutexBumpGen(existing))
     }
@@ -3020,6 +3027,17 @@ enum MatchMath {
             out.removeValue(forKey: stored)
         }
         return out
+    }
+
+    /// Nach Drop liegt der Wert auf live. leftover matching liest noch die Source-UUID.
+    static func leftoverHoldRemintLookup<Value>(
+        hold: [UUID: Value],
+        id: UUID,
+        remap: [UUID: UUID] = [:]
+    ) -> Value? {
+        if let v = hold[id] { return v }
+        if let live = remap[id], live != id { return hold[live] }
+        return nil
     }
 
     /// Identität als ein Objekt. LibraryStore remintet Hold/Pending/Streak/Hash/IoU/Name/Miss/Pair

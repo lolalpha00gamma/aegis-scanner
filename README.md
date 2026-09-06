@@ -1,4 +1,4 @@
-# Aegis **2.1.168 alpha**
+# Aegis **2.1.169 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -14,7 +14,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
 
+## Neu in 2.1.169 alpha
+
+Warum leftover matching nach UUID-Remint leftoverHold nicht fand, und ein toter Helios-PID Aegis 12 s blockierte:
+
+- **leftoverHoldRemintLookup.** leftover matching liest Hold/Kalman/Coast auf der Live-UUID nach RemintDrop.
+- **cameraMutexWriteAllowed(pidLive:).** kill(2) vor LOCK_EX-Write. Toter Holder → Lock frei.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.169 (Build 194). Schema 15 bleibt.
+
 ## Neu in 2.1.168 alpha
+
 
 Warum 24 fps skipPrints bei langsamer Kopfdrehung leftoverHold stahl, und Coast nur die Zahl kannte:
 

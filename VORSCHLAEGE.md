@@ -1,10 +1,19 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.168 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-GROK.md](VORSCHLAEGE-GROK.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.169 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-GROK.md](VORSCHLAEGE-GROK.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 
-Neu in 2.1.168: Coast-Print-Vec, Print-Yaw-Δ, skipPrints Cache gegen Twin.
+Neu in 2.1.169: leftoverHoldRemintLookup, Mutex WRITE pidLive.
+
+## In 2.1.169 wirklich im Code
+
+2.1.168: Coast-Vec, Print-Yaw-Δ. leftover matching las old.id nach RemintDrop.
+
+1. **leftoverHoldRemintLookup** Hold/Kalman/Coast nach RemintDrop.
+2. **cameraMutexWriteAllowed(pidLive:).**
+3. Tests + VERSION = Models = MARKETING_VERSION 2.1.169 (Build 194). Schema 15 bleibt.
 
 ## In 2.1.168 wirklich im Code
+
 
 2.1.167: livePrintEmpty, Continuity nie skip. Coast Zahl. printBudget |yaw| nicht Δ.
 
