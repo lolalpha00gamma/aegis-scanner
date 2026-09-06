@@ -1,3 +1,24 @@
+# Helios + Aegis — Analyse 2026-09-06 (2.1.141)
+
+Helios **1.5.130** (Build 149). Aegis **2.1.141 alpha** (Build 166). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.140: Schema 10, Kalman Remint, JPEG Hash, HungarianX n=4. CI rot seit 2.1.139: leftoverHoldXMatch `occupied:` vor `pad:` — Swift Default-Args.
+
+## Warum 2.1.140 nicht baute
+
+1. **leftoverHoldXMatch Call-Order.** Signatur `pad:` dann `occupied:`. Remint/RemintBins riefen `occupied:, pad:`. swiftc: argument 'pad' must precede argument 'occupied'. 4 Stellen. Hold-Remint tot, kein DMG seit 2.1.139.
+2. **HungarianX `var used`.** Nie mutiert, Warning. `let`.
+
+## Was 2.1.141 ändert
+
+1. **leftoverHoldXMatch** `pad:, occupied:` an 4 Call-Sites (Remint + RemintBins, firstPad + Rescue).
+2. **leftoverAssignHungarianX** `let used`.
+3. Tests unverändert. VERSION = Models = MARKETING 2.1.141 (Build 166).
+
+Helios 1.5.130: Scale-Jump-Veto, Fill-Cap UUID, Slot-Kalman, DisplayLink Hz. CI Helios: Billing/Spending-Limit, nicht Compile.
+
+`bugfix` mergen: nein. Nur `main`.
+
 # Helios + Aegis — Analyse 2026-09-06 (2.1.140)
 
 Helios **1.5.130** (Build 149). Aegis **2.1.140 alpha** (Build 165). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

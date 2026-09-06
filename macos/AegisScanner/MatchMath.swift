@@ -1480,7 +1480,7 @@ enum MatchMath {
         if n > 4 || m > 4 {
             return leftoverAssignFillX(assigned: assigned, liveX: liveX, holdX: holdX, pad: pad, spread: spread)
         }
-        var used = Set(out.prefix(n).compactMap { $0 })
+        let used = Set(out.prefix(n).compactMap { $0 })
         let rows = (0..<n).filter { out[$0] == nil }
         let cols = (0..<m).filter { !used.contains($0) }
         guard !rows.isEmpty, !cols.isEmpty else { return out }
@@ -1700,7 +1700,7 @@ enum MatchMath {
                 continue
             }
             guard let match = leftoverHoldXMatch(
-                liveX: row.x, holds: holds, occupied: taken, pad: firstPad
+                liveX: row.x, holds: holds, pad: firstPad, occupied: taken
             ) else { continue }
             if match == row.id { continue }
             if let v = hold[match] {
@@ -1744,7 +1744,7 @@ enum MatchMath {
             if hold[row.id] != nil { continue }
             if out[row.id] != nil { continue }
             guard let match = leftoverHoldXMatch(
-                liveX: row.x, holds: holds, occupied: taken, pad: leftoverFillXRescuePref(padRescue)
+                liveX: row.x, holds: holds, pad: leftoverFillXRescuePref(padRescue), occupied: taken
             ) else { continue }
             if match == row.id { continue }
             if let v = hold[match] {
@@ -1801,7 +1801,7 @@ enum MatchMath {
                 continue
             }
             guard let match = leftoverHoldXMatch(
-                liveX: row.x, holds: holds, occupied: taken, pad: firstPad
+                liveX: row.x, holds: holds, pad: firstPad, occupied: taken
             ) else { continue }
             if match == row.id { continue }
             for (key, v) in hold {
@@ -1854,7 +1854,7 @@ enum MatchMath {
             if present.contains(row.id) { continue }
             if out.keys.contains(where: { leftoverHoldId(from: $0) == row.id }) { continue }
             guard let match = leftoverHoldXMatch(
-                liveX: row.x, holds: holds, occupied: taken, pad: leftoverFillXRescuePref(padRescue)
+                liveX: row.x, holds: holds, pad: leftoverFillXRescuePref(padRescue), occupied: taken
             ) else { continue }
             if match == row.id { continue }
             for (key, v) in hold {

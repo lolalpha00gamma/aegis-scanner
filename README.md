@@ -1,4 +1,4 @@
-# Aegis **2.1.140 alpha**
+# Aegis **2.1.141 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,14 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-26** baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.141 alpha
+
+CI rot seit 2.1.139: leftoverHoldXMatch `occupied:` vor `pad:` — swiftc bricht Remint.
+
+- **leftoverHoldXMatch** pad vor occupied, 4 Call-Sites.
+- **leftoverAssignHungarianX** `let used`.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.141 (Build 166).
 
 ## Neu in 2.1.140 alpha
 
