@@ -1,3 +1,17 @@
+# Aegis Nachtrag 2.1.178 — 2026-09-07
+
+Binary **2.1.178 alpha Build 203**. WAL-Restore Load. TERM blockt Write. FaceTrack StoreName.
+
+## In 2.1.178 gelandet
+
+1. leftoverPairCommitWALApply / RestoreDisk — Crash-Restore nach mtime, nicht 2 s RAM
+2. leftoverPairCommitWALShouldClear nach gallery.json Save
+3. cameraMutexTermBlocksWrite + TERM-Chip
+4. leftoverFaceTrackStoreName
+5. Tests + VERSION = Models = MARKETING_VERSION 2.1.178 (Build 203)
+
+Rest: CameraBroker, Overlay-Metal, IOHID, FaceTrack-Store. Siehe VORSCHLAEGE-GROK.md.
+
 # Aegis Nachtrag 2.1.177 — 2026-09-07
 
 Binary **2.1.177 alpha Build 202**. Twin-tieKey. Print-Prune Bank. Pair-WAL. SIGTERM. Helios Freeze-fps.

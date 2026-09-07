@@ -290,6 +290,16 @@ final class LibraryStore: ObservableObject {
         if let extra = GalleryFile.loadPayload() {
             leftoverPairStreak = MatchMath.leftoverUUIDIntMapDecode(extra.leftoverPairStreak)
             leftoverPairCommit = MatchMath.leftoverUUIDUUIDMapDecode(extra.leftoverPairCommit)
+            let walLoad = GalleryFile.loadWAL()
+            if let applied = MatchMath.leftoverPairCommitWALApply(
+                gallery: extra.leftoverPairCommit,
+                wal: walLoad.pairs,
+                galleryMtime: GalleryFile.galleryMtime(),
+                walMtime: walLoad.mtime,
+                now: Date().timeIntervalSince1970
+            ) {
+                leftoverPairCommit = MatchMath.leftoverUUIDUUIDMapDecode(applied)
+            }
             leftoverPairCommitMiss = MatchMath.leftoverUUIDIntMapDecode(extra.leftoverPairCommitMiss)
             leftoverLastIoU = MatchMath.leftoverStreakSinceDecode(extra.leftoverLastIoU)
             let sparkPack = MatchMath.leftoverSparkChipUnpack(extra.leftoverSparkChip)

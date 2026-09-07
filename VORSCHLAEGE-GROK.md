@@ -1,4 +1,93 @@
+# Nachtrag 2026-09-07 — 1.5.176 / 2.1.178 (kein Merge von `bugfix`)
+
+Helios `bpms9cmnxc-debug/Helios` **1.5.176** (Build 195).
+Aegis `lolalpha00gamma/aegis-scanner` **2.1.178 alpha** (Build 203).
+Nur `main`. Agent-Regel: keine Nebenbranches. `bugfix` gelesen, nicht gemergt.
+
+1.5.175 SIGTERM stahl den Lock sofort. WAL Restore 2 s RAM. Fill über Continuity-Lücken.
+
+## Warum es schlecht wirkte (dieser Pass)
+
+1. **SIGTERM dann Steal.** cameraMutexClaimWrites: Helios immer true. Holder live nach TERM → zwei Sessions, Overlay 8 fps, Cursor driftet.
+2. **WAL Restore tot nach Restart.** leftoverPairCommitWALFresh ttl 2 s. Crash, App 5 s später auf → Taufe weg. Load las `.wal` nie. Save ließ WAL liegen.
+3. **displayTick über Lücken.** Continuity drop 400 ms: Fill interpoliert tot, Zeiger fliegt, Overlay lügt.
+4. **FaceTrack StoreGet nur Tests.** Matching bleibt leftover-Maps.
+5. Von `bugfix` (1.5.8 / 2.1.15) bewusst nicht gemergt: IOHID Event-Tap, AX SetPosition/Frame, Per-App-Gain, JSONL.
+
+## In 1.5.176 / 2.1.178 gelandet
+
+- **cameraMutexTermBlocksWrite.** SIGTERM + pidLive → kein LockedLine. SIGKILL stiehlt.
+- **cameraMutexTermChip / Remain.** HUD `TERM 1,4`. ClaimChip term:.
+- **obsFillSkipsGap.** lastHand > 2,4× medianDt oder kein Hand → displayTick tot. Chip `FILL gap`.
+- **leftoverPairCommitWALApply / RestoreDisk / AgeOk 24 h.** Load mtime, WAL neuer als gallery.json mergen.
+- **leftoverPairCommitWALShouldClear** nach Save.
+- **leftoverFaceTrackStoreName.**
+- Tests + MARKETING 1.5.176 / 2.1.178 (Build 195 / 203). Schema 15 bleibt.
+
+Pass 18: TERM-Steal tot, WAL-Restore Load, Fill-Gap — 1.5.176 / 2.1.178.
+
+## Erweiterungen (neu, oben)
+
+1. **CameraBroker-XPC** — eine TCC, IOSurface an beide. Größter einzelner Effizienzgewinn. Ohne den sitzen Helios und Aegis auf zwei Sessions, zwei Vision, zwei TCC.
+2. **FaceTrack `[UUID: FaceTrack]` als einziges leftover-Dict.** StoreName sitzt, Matching bleibt Schatten-Maps. Nächster Aegis-Strukturhebel.
+3. **Overlay Metal 90 Hz.** SwiftUI ForEach 21×2 tot. Fill-Gap macht das Overlay ehrlicher, nicht schneller.
+4. **Eine Homographie je Display-UUID.** destEdgeNearest sitzt, SpaceMap bleibt eine Karte für Laptop+5K.
+5. **POSIX-Semaphore + INTENT → Yield → CONFIRM.** flock überlebt Sleep/Hub schlecht. TERM-Wait ist Pflaster.
+6. **Palm-Print Sticky-ID.** Wrist→Thumb statt Vision L/R. Freeze-fps bleibt Schätzung.
+7. **Overlay-Why Inspector.** Tap auf HUD-Chip zeigt Veto (Hist, Span, Keep, Conf-Dip, Gap).
+8. **Latency-HUD Tick→AX.** End-to-end ms. 8 fps vs 90 Hz messbar.
+9. **App-Group `group.helios.aegis`.** Yield/Mutex/Pad einmal.
+10. **IOHID Event-Tap** statt CGEvent (`bugfix` 1.5.8).
+11. **AX SetPosition ein Call/Frame** (`bugfix`).
+12. **Per-App Gain aus AX bundle id** (`bugfix`).
+13. **Gesture-Log JSONL** (`bugfix`).
+14. **Enrollment-HUD 3-Slot im Overlay.**
+15. **Helios liest Aegis leftover-Boxen** als Palm-Occlusion.
+16. **Watch-IMU Pinch-Confirm.**
+17. **Vision Hand-Mesh** (macOS 26).
+18. **Frame-ID auf IOSurface.**
+19. **Aegis-Yaw als Helios Click-Lock.**
+20. **VNDetectHumanBodyPose** als Prop-Veto.
+21. **Gemeinsames CameraMath-Package.** Mutex-Logik ist 1:1 kopiert.
+22. **Telemetry-Ring 30 s + OSLog.**
+23. **Center Stage force-off nach Sleep.**
+24. **Continuity USB-Hub Watchdog.**
+25. **SpaceMap Auto-Recalib** RMS > 24 px / 2 s.
+26. **Two-mode Pointer:** Desk absolut, 0,8 s Dwell relativ.
+27. **Tests splitten** (GestureTests / MatchMathTests > 200 kB).
+28. **VNTrackObjectRequest** statt Remint.
+29. **Aegis live outputQueue ≠ MainActor.**
+30. **Kalman-Zeiger 2D** constant-velocity. Fill-Gap braucht den, sonst Coast tot.
+31. **Guitar-Schwelle aus Sitzabstand** (IOD / FOV).
+32. **Negativ-Galerie Props.**
+33. **Print-Bank PCA-Whitening.**
+34. **Cursor-Magnetismus** 8 px an AX-Hit.
+35. **Dwell-Klick** optional neben Pinzette.
+36. **Doorbell-Cue.**
+37. **Clamshell: Vision pausieren.**
+38. **Jerk Dead-Man.**
+39. **Lock Schema v2.**
+40. **Vision Pro Sidecar.**
+41. **CI `swiftc` Tests vor DMG.**
+42. **Helios Kill-Switch Datei** neben Mutex.
+43. **Speaker-Diarization.**
+44. **Face-Print ONNX sidecar.**
+45. **Gallery-on-disk mmap.**
+46. **Hover-Preview ohne Click.**
+47. **Curl-Rate Pref** 0,12–0,28.
+48. **S2 Close-Ratio Pref** im Panel.
+49. **Freeze-Ticks Pref** 4–10.
+50. **Fill-Gap Pref** 1,8–3,2× medianDt.
+51. **WAL Age Pref** 1–48 h.
+52. **Shared integration test** Helios+Aegis gegen Fake-Lock-Datei mit TERM-Wait.
+53. **kAXFocusedUIElementChanged** statt FocusTracker-Poll.
+54. **maximumHandCount 2 + Joint-Group** statt Observation-first.
+
+Bewusst nicht: Merge `bugfix`, Blind-Patch Schwellen, CameraBroker in diesem Pass, FaceTrack-Store-Rewrite, Overlay-Metal.
+
+Nächster Code-Schritt: CameraBroker-XPC oder FaceTrack-Store oder Overlay-Metal.
 # Nachtrag 2026-09-07 — 1.5.175 / 2.1.177 (kein Merge von `bugfix`)
+
 
 Helios `bpms9cmnxc-debug/Helios` **1.5.175** (Build 194).
 Aegis `lolalpha00gamma/aegis-scanner` **2.1.177 alpha** (Build 202).

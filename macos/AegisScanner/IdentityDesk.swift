@@ -88,6 +88,24 @@ enum GalleryFile {
         return try? JSONDecoder().decode(GalleryPayload.self, from: data)
     }
 
+    static func loadWAL() -> (pairs: [String: String]?, mtime: TimeInterval?) {
+        guard let data = try? Data(contentsOf: pairWALURL) else { return (nil, nil) }
+        let pairs = MatchMath.leftoverPairCommitWALRestoreDisk(data: data)
+        let mtime = (try? FileManager.default.attributesOfItem(atPath: pairWALURL.path)[.modificationDate] as? Date)?
+            .timeIntervalSince1970
+        return (pairs, mtime)
+    }
+
+    static func galleryMtime() -> TimeInterval? {
+        (try? FileManager.default.attributesOfItem(atPath: url.path)[.modificationDate] as? Date)?
+            .timeIntervalSince1970
+    }
+
+    static func clearWAL() {
+        let fm = FileManager.default
+        try? fm.removeItem(at: pairWALURL)
+    }
+
     static func load() -> (identities: [Identity], faces: [FaceObservation], printRevision: String?, schemaVersion: Int?, leftoverStreakSince: [String: Double]?, leftoverHoldBins: [String: Double]?, leftoverHoldTrailBins: [String: [Double]]?, leftoverHoldHash: [String: Double]?, leftoverHoldTrailHash: [String: [Double]]?, leftoverCaptureHist: [String: [Double]]?, leftoverLastHash: [String: String]?, leftoverHold: [String: Double]?, leftoverNameLockHeld: [String: String]?, leftoverPairLast: [String: String]?, leftoverNameLockUntil: [String: Double]?, leftoverHoldTrail: [String: [Double]]?) {
         decode(url) ?? ([], [], nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
     }
@@ -227,10 +245,16 @@ enum GalleryFile {
             try fh.close()
             _ = try fm.replaceItemAt(url, withItemAt: tmp)
             writeDigest(data)
+            if MatchMath.leftoverPairCommitWALShouldClear(saved: true) {
+                clearWAL()
+            }
         } catch {
             try? data.write(to: url, options: .atomic)
             try? fm.removeItem(at: tmp)
             writeDigest(data)
+            if MatchMath.leftoverPairCommitWALShouldClear(saved: true) {
+                clearWAL()
+            }
         }
     }
 

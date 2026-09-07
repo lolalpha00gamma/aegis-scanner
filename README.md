@@ -1,4 +1,4 @@
-# Aegis **2.1.177 alpha**
+# Aegis **2.1.178 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,17 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.178 alpha
+
+Pair-WAL saß vor gallery.json, Restore aber 2 s RAM-Stamp — Crash + Neustart = Taufe tot. Hung-live SIGTERM stahl den Lock sofort, Helios+Aegis zwei Kameras. Fill über Continuity-Lücken in Helios.
+
+- **leftoverPairCommitWALApply / RestoreDisk.** Load liest `.wal` nach mtime, 24 h, nicht 2 s.
+- **leftoverPairCommitWALShouldClear** nach erfolgreichem gallery.json.
+- **cameraMutexTermBlocksWrite.** SIGTERM + live PID: kein Steal. HUD `TERM 1,4`.
+- **leftoverFaceTrackStoreName.** Get + nameHeld.
+- Helios **1.5.176:** obsFillSkipsGap, TERM-Chip.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.178 (Build 203). Schema 15 bleibt.
 
 ## Neu in 2.1.177 alpha
 

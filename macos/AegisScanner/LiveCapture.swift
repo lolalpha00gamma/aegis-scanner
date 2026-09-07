@@ -40,6 +40,7 @@ final class LiveCapture: NSObject {
     private var failObserver: NSObjectProtocol?
     /// Hung-live: SIGTERM-Zeit je PID. Nächster Claim → SIGKILL nach 2 s.
     private static var mutexTermSentAt: [Int32: TimeInterval] = [:]
+    private var mutexTermChip: String?
     private var snapshotInFlight = false
     var onFrame: ((CGImage, TimeInterval) -> Void)?
     var onError: ((String) -> Void)?
@@ -343,6 +344,21 @@ final class LiveCapture: NSObject {
                 Self.mutexTermSentAt = MatchMath.cameraMutexHeartbeatTermStamp(
                     prev: Self.mutexTermSentAt, pid: killPid, signal: sig, now: now
                 )
+                if MatchMath.cameraMutexTermBlocksWrite(signal: sig, pidLive: pidLive) {
+                    let remain = MatchMath.cameraMutexTermRemain(
+                        termSentAt: Self.mutexTermSentAt[killPid], now: now
+                    )
+                    mutexTermChip = MatchMath.cameraMutexTermChip(signal: sig, remain: remain)
+                    mutexChip = MatchMath.cameraMutexClaimChip(
+                        holder: existing.flatMap { MatchMath.cameraMutexParse($0, now: now, pidLive: pidLive) },
+                        yielded: false,
+                        fails: 0,
+                        term: mutexTermChip
+                    )
+                    _ = flock(fd, LOCK_UN)
+                    close(fd)
+                    return false
+                }
             }
             guard let line = MatchMath.cameraMutexLockedLine(
                 existing: existing, owner: owner, pid: pid, now: now, expectedGen: expectedGen, pidLive: pidLive
@@ -531,11 +547,12 @@ final class LiveCapture: NSObject {
         }
         if wrote {
             mutexClaimFails = 0
+            mutexTermChip = nil
             mutexChip = MatchMath.cameraMutexClaimChip(holder: owner, yielded: false, fails: 0)
         } else {
             mutexClaimFails += 1
             mutexChip = MatchMath.cameraMutexClaimChip(
-                holder: holder, yielded: cameraMutexYielded, fails: mutexClaimFails
+                holder: holder, yielded: cameraMutexYielded, fails: mutexClaimFails, term: mutexTermChip
             )
         }
     }

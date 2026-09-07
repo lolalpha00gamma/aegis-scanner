@@ -1119,10 +1119,12 @@ enum MatchMath {
         holder: String?,
         yielded: Bool,
         fails: Int = 0,
-        lastDt: TimeInterval = 0
+        lastDt: TimeInterval = 0,
+        term: String? = nil
     ) -> String {
         if yielded { return "YIELD" }
         let base = holder ?? "—"
+        if let term, !term.isEmpty { return "\(base) · \(term)" }
         if fails >= cameraMutexClaimBackoffFails() { return "\(base) · backoff" }
         if fails > 0 { return "\(base) · \(fails)nb" }
         if lastDt > 0, lastDt < 10 {
@@ -1189,6 +1191,28 @@ enum MatchMath {
             next.removeValue(forKey: pid)
         }
         return next
+    }
+
+    /// SIGTERM + Holder noch live: Lock nicht stehlen. Nächster Beat SIGKILL.
+    static func cameraMutexTermBlocksWrite(signal: Int32, pidLive: Bool?) -> Bool {
+        signal == cameraMutexSigTerm() && pidLive == true
+    }
+
+    static func cameraMutexTermRemain(
+        termSentAt: TimeInterval?,
+        now: TimeInterval,
+        wait: TimeInterval = 2
+    ) -> TimeInterval? {
+        guard let t = termSentAt else { return nil }
+        return max(0, wait - (now - t))
+    }
+
+    static func cameraMutexTermChip(signal: Int32, remain: TimeInterval?) -> String? {
+        if signal == cameraMutexSigKill() { return "SIGKILL" }
+        if signal == cameraMutexSigTerm(), let r = remain {
+            return String(format: "TERM %.1f", r).replacingOccurrences(of: ".", with: ",")
+        }
+        return nil
     }
 
     /// Overlay: 3-Tick-Mittel wenn voll, sonst EMA.
@@ -7850,12 +7874,57 @@ enum MatchMath {
 
     static func leftoverPairCommitWALRestore(data: Data?, stamped: TimeInterval?, now: TimeInterval) -> [String: String]? {
         guard leftoverPairCommitWALFresh(stamped: stamped, now: now), let data else { return nil }
+        return leftoverPairCommitWALRestoreDisk(data: data)
+    }
+
+    /// Crash-Restore: Datei, nicht RAM-Stamp. 2 s TTL wäre nach Restart tot.
+    static func leftoverPairCommitWALRestoreDisk(data: Data?) -> [String: String]? {
+        guard let data, !data.isEmpty else { return nil }
         return try? JSONDecoder().decode([String: String].self, from: data)
     }
+
+    static func leftoverPairCommitWALAgeMax() -> TimeInterval { 86_400 }
+
+    static func leftoverPairCommitWALAgeOk(
+        age: TimeInterval?,
+        max: TimeInterval = leftoverPairCommitWALAgeMax()
+    ) -> Bool {
+        guard let age, age >= 0 else { return false }
+        return age < max
+    }
+
+    /// WAL neuer als gallery.json → Taufe retten. gallery neuer → Save fertig, WAL tot.
+    static func leftoverPairCommitWALApply(
+        gallery: [String: String]?,
+        wal: [String: String]?,
+        galleryMtime: TimeInterval?,
+        walMtime: TimeInterval?,
+        now: TimeInterval
+    ) -> [String: String]? {
+        let walAge = walMtime.map { now - $0 }
+        let walOk = leftoverPairCommitWALAgeOk(age: walAge) && wal != nil && !(wal?.isEmpty ?? true)
+        if !walOk {
+            return (gallery?.isEmpty == false) ? gallery : nil
+        }
+        let walPairs = wal!
+        if gallery == nil || gallery?.isEmpty == true { return walPairs }
+        if let gm = galleryMtime, let wm = walMtime, wm > gm + 1e-6 {
+            var merged = gallery ?? [:]
+            for (k, v) in walPairs { merged[k] = v }
+            return merged
+        }
+        return gallery
+    }
+
+    static func leftoverPairCommitWALShouldClear(saved: Bool) -> Bool { saved }
 
     static func leftoverFaceTrackStoreGet(tracks: [UUID: FaceTrack], id: UUID, now: TimeInterval) -> FaceTrack? {
         let t = leftoverFaceTrackLookup(tracks: tracks, id: id)
         return leftoverFaceTrackHolds(track: t, now: now) ? t : nil
+    }
+
+    static func leftoverFaceTrackStoreName(tracks: [UUID: FaceTrack], id: UUID, now: TimeInterval) -> String? {
+        leftoverFaceTrackStoreGet(tracks: tracks, id: id, now: now)?.nameHeld
     }
 }
 

@@ -4527,6 +4527,43 @@ enum MatchMathTests {
         )
         ok(trackHold?.nameHeld == "Ada", "FaceTrack Store Get")
         ok(MatchMath.leftoverFaceTrackStoreGet(tracks: packed, id: trackId, now: 1_011) == nil, "FaceTrack Store TTL")
+        ok(MatchMath.leftoverFaceTrackStoreName(tracks: packed, id: trackId, now: 1_005) == "Ada", "FaceTrack Store Name")
+        ok(MatchMath.leftoverFaceTrackStoreName(tracks: packed, id: trackId, now: 1_011) == nil, "Store Name TTL tot")
+        ok(MatchMath.cameraMutexTermBlocksWrite(signal: 15, pidLive: true), "TERM live blockt Write")
+        ok(!MatchMath.cameraMutexTermBlocksWrite(signal: 15, pidLive: false), "TERM tot Write")
+        ok(!MatchMath.cameraMutexTermBlocksWrite(signal: 9, pidLive: true), "KILL Write")
+        ok(MatchMath.cameraMutexTermChip(signal: 15, remain: 1.4) == "TERM 1,4", "Chip TERM 1,4")
+        ok(MatchMath.cameraMutexClaimChip(holder: "aegis", yielded: false, term: "TERM 1,4") == "aegis · TERM 1,4", "Claim TERM")
+        let disk = MatchMath.leftoverPairCommitWALRestoreDisk(data: wal)
+        ok(disk?["a"] == "b", "WAL Restore Disk")
+        ok(
+            MatchMath.leftoverPairCommitWALApply(
+                gallery: nil, wal: ["x": "y"], galleryMtime: 10, walMtime: 12, now: 20
+            )?["x"] == "y",
+            "WAL Apply gallery leer"
+        )
+        ok(
+            MatchMath.leftoverPairCommitWALApply(
+                gallery: ["g": "old"], wal: ["w": "new"], galleryMtime: 10, walMtime: 12, now: 20
+            )?["w"] == "new",
+            "WAL Apply neuer als gallery"
+        )
+        ok(
+            MatchMath.leftoverPairCommitWALApply(
+                gallery: ["g": "ok"], wal: ["w": "stale"], galleryMtime: 20, walMtime: 12, now: 21
+            )?["g"] == "ok",
+            "WAL Apply gallery neuer"
+        )
+        ok(
+            MatchMath.leftoverPairCommitWALApply(
+                gallery: nil, wal: ["x": "y"], galleryMtime: nil, walMtime: 1, now: 90_000
+            ) == nil,
+            "WAL Apply 24 h tot"
+        )
+        ok(MatchMath.leftoverPairCommitWALShouldClear(saved: true), "WAL Clear nach Save")
+        ok(!MatchMath.leftoverPairCommitWALShouldClear(saved: false), "WAL Clear ohne Save tot")
+        ok(MatchMath.leftoverPairCommitWALAgeOk(age: 10), "WAL Age 10 s")
+        ok(!MatchMath.leftoverPairCommitWALAgeOk(age: 90_000), "WAL Age 24 h tot")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)
