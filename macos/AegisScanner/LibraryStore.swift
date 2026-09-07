@@ -1664,7 +1664,8 @@ final class LibraryStore: ObservableObject {
             hist: hist,
             need: need,
             guest: guestName(for: id),
-            streak: leftoverUnsureTicks[id] ?? 0
+            streak: leftoverUnsureTicks[id] ?? 0,
+            sticky: leftoverNameLockHeld[id]
         )
     }
 
@@ -3275,10 +3276,11 @@ final class LibraryStore: ObservableObject {
         let holdBefore = leftoverHold.count
         let lockedIds = MatchMath.leftoverNameLockLive(until: leftoverNameLockUntil, now: now)
         leftoverNameLockUntil = leftoverNameLockUntil.filter { lockedIds.contains($0.key) }
-        leftoverNameLockHeld = MatchMath.leftoverNameLockHeldSurvive(
+        leftoverNameLockHeld = MatchMath.leftoverNameLockHeldCoast(
             held: leftoverNameLockHeld,
-            until: leftoverNameLockUntil,
-            emptyKeeps: false
+            live: liveIds + adopted.map(\.id),
+            locked: lockedIds,
+            ghosts: ghostIds
         )
         leftoverHold = MatchMath.leftoverHoldSurvive(hold: leftoverHold, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)
         leftoverHoldBins = MatchMath.leftoverHoldSurviveBins(hold: leftoverHoldBins, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)

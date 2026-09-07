@@ -4571,6 +4571,48 @@ enum MatchMathTests {
             ) == "?",
             "Overlay ohne Store ?"
         )
+        ok(MatchMath.leftoverOverlayStickyName(held: "Ada", streak: 0) == "Ada", "Sticky Ada")
+        ok(MatchMath.leftoverOverlayStickyName(held: "Ada", streak: 2) == "Ada?", "Sticky Ada?")
+        ok(
+            MatchMath.leftoverOverlayGuestOf(
+                storeName: nil, voted: nil, hist: ["Ada"], need: 3, guest: "Gast 1", streak: 0, sticky: "Ada"
+            ) == "Ada",
+            "Guest Sticky vor Unsure"
+        )
+        ok(
+            MatchMath.leftoverOverlayGuestOf(
+                storeName: nil, voted: nil, hist: ["Ada"], need: 3, guest: "Gast 1", streak: 0
+            ) == "Ada",
+            "Guest Hist keep 1 nach Remint"
+        )
+        ok(
+            MatchMath.leftoverOverlayGuestOf(
+                storeName: nil, voted: nil, hist: ["Ada"], need: 3, guest: "Gast 1", streak: 2
+            ) == "Ada?",
+            "Guest Hist Streak Ada?"
+        )
+        ok(MatchMath.leftoverOverlayGuestStickyOf(sticky: nil, hist: ["Ada"]) == "Ada", "StickyOf Hist")
+        ok(MatchMath.leftoverOverlayGuestStickyOf(sticky: "Ada", hist: ["Twin"]) == "Ada", "StickyOf Held")
+        let coastId = UUID(), deadId = UUID()
+        let coast = MatchMath.leftoverNameLockHeldCoast(
+            held: [coastId: "Ada", deadId: "Bert"],
+            live: [coastId],
+            locked: [],
+            ghosts: []
+        )
+        ok(coast[coastId] == "Ada" && coast[deadId] == nil, "Held Coast nach TTL live")
+        ok(
+            MatchMath.leftoverNameLockHeldCoast(
+                held: [coastId: "Ada"], live: [], locked: [], ghosts: []
+            ).isEmpty,
+            "Held Coast leer tot"
+        )
+        ok(
+            MatchMath.leftoverNameLockHeldCoast(
+                held: [coastId: "Ada"], live: [], locked: [], ghosts: [coastId]
+            )[coastId] == "Ada",
+            "Held Coast Ghost"
+        )
         let holdBinId = UUID()
         let holdBinKey = MatchMath.leftoverHoldKey(id: holdBinId, bin: 1)
         ok(

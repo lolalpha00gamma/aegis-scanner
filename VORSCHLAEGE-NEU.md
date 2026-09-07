@@ -1,3 +1,15 @@
+# Aegis Nachtrag 2.1.180 — 2026-09-07
+
+Binary **2.1.180 alpha Build 205**. Overlay-Sticky nach Remint/TTL. Helios Overlay-Lerp + Fill-Uhr.
+
+## In 2.1.180 gelandet
+
+1. leftoverOverlayGuestOf sticky leftoverNameLockHeld, sonst Hist-Tail
+2. leftoverNameLockHeldCoast live/ghost nach TTL
+3. Tests + VERSION = Models = MARKETING_VERSION 2.1.180 (Build 205)
+
+Rest: CameraBroker, Overlay-Metal, IOHID, FaceTrack-Store. Siehe VORSCHLAEGE-GROK.md.
+
 # Aegis Nachtrag 2.1.179 — 2026-09-07
 
 Binary **2.1.179 alpha Build 204**. Store poseAt. Overlay StoreName. leftoverHasHold poseAt. StoreChip. Helios Fill-Gap Kamera-Rebase.

@@ -1,4 +1,4 @@
-# Aegis **2.1.179 alpha**
+# Aegis **2.1.180 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.180 alpha
+
+StoreName sitzt, leftoverNameLockHeldSurvive wischte Held nach TTL. Remint Hist keep 1 → Overlay „?“ sobald poseAt tot. Helios OverlayLerp false, Fill tot in der Ghost-Coast.
+
+- **leftoverOverlayGuestOf** sticky leftoverNameLockHeld, sonst Hist-Tail. Streak 2 = `Ada?`.
+- **leftoverNameLockHeldCoast** live/ghost nach TTL. Matching bleibt leftoverNameLockKeeps(Until).
+- Helios **1.5.179:** overlayLerpShould 8 fps, lastFillSeen Ghost, displayTick ohne Reanchor.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.180 (Build 205). Schema 15 bleibt.
 
 ## Neu in 2.1.179 alpha
 

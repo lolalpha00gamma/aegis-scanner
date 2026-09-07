@@ -1,3 +1,24 @@
+# Aegis + Helios — Analyse 2026-09-07 (2.1.180)
+
+Aegis **2.1.180 alpha** (Build 205). Helios **1.5.179** (Build 198). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.179: Store poseAt, Overlay StoreName, leftoverHasHold. Held nach TTL tot. Helios OverlayLerp false.
+
+## Warum Match nach 2.1.179 weiter riss
+
+1. **leftoverNameLockHeldSurvive emptyKeeps:false.** TTL → Held weg.
+2. **StoreName braucht poseAt/Until.** poseAt tot + Hist keep 1 = Overlay „?“.
+3. **Helios overlayLerpShould false / Fill lastHandSeen / displayTick Reanchor.**
+
+## Was 2.1.180 ändert
+
+1. leftoverOverlayGuestOf sticky + Hist-Tail. leftoverOverlayStickyName „Ada?“.
+2. leftoverNameLockHeldCoast live/ghost nach TTL.
+3. Helios 1.5.179 Overlay-Lerp, Fill-Uhr Ghost, Reanchor-Split.
+4. Tests + VERSION = Models = MARKETING 2.1.180 (Build 205).
+
+`bugfix` mergen: nein.
+
 # Aegis + Helios — Analyse 2026-09-07 (2.1.176)
 
 Aegis **2.1.176 alpha** (Build 201). Helios **1.5.174** (Build 193). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

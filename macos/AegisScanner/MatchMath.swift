@@ -7587,6 +7587,19 @@ enum MatchMath {
         return held.filter { until[$0.key] != nil }
     }
 
+    /// Overlay-Sticky nach Lock-TTL. Survive wischt Held mit Until — Overlay sonst „?“.
+    /// Matching bleibt leftoverNameLockKeeps (Until). Coast hält Live/Ghost/Locked.
+    static func leftoverNameLockHeldCoast(
+        held: [UUID: String],
+        live: [UUID],
+        locked: [UUID],
+        ghosts: [UUID] = []
+    ) -> [UUID: String] {
+        let keep = Set(live).union(locked).union(ghosts)
+        if keep.isEmpty { return [:] }
+        return held.filter { keep.contains($0.key) && !$0.value.isEmpty }
+    }
+
     static func leftoverUUIDUUIDMapEncode(_ table: [UUID: UUID]) -> [String: String] {
         Dictionary(uniqueKeysWithValues: table.map { ($0.key.uuidString, $0.value.uuidString) })
     }
@@ -7943,16 +7956,36 @@ enum MatchMath {
         return nameHeld
     }
 
+    /// Mehrheit vor Sticky vor Unsure. Streak 2 an Sticky = „Ada?“, nicht „??“.
+    static func leftoverOverlayStickyName(held: String, streak: Int) -> String {
+        guard !held.isEmpty else { return leftoverUnsureChip(voted: nil, hist: [], need: 3, streak: streak) ?? "?" }
+        return streak >= 2 ? "\(held)?" : held
+    }
+
+    /// Lock-Held, sonst letztes Hist-Token (Remint keep 1). Kein Gast-Tick-1.
+    static func leftoverOverlayGuestStickyOf(sticky: String?, hist: [String]) -> String? {
+        if let sticky, !sticky.isEmpty { return sticky }
+        guard let last = hist.last(where: { !$0.isEmpty }), !last.isEmpty else { return nil }
+        return last
+    }
+
     /// Overlay: StoreName vor Hist. Nach Remint Hist leer, Ada sonst Gast.
+    /// Sticky/Hist-Tail nach Store, sonst „?“.
     static func leftoverOverlayGuestOf(
         storeName: String?,
         voted: String?,
         hist: [String],
         need: Int,
         guest: String,
-        streak: Int = 0
+        streak: Int = 0,
+        sticky: String? = nil
     ) -> String {
         if let n = storeName, !n.isEmpty { return n }
+        let tokens = hist.filter { !$0.isEmpty }
+        if let name = leftoverLiveNameHolds(tokens, need: need) { return name }
+        if let held = leftoverOverlayGuestStickyOf(sticky: sticky, hist: tokens) {
+            return leftoverOverlayStickyName(held: held, streak: streak)
+        }
         return leftoverOverlayUnsureFirst(
             voted: voted, hist: hist, need: need, guest: guest, streak: streak
         )

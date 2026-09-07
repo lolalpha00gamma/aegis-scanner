@@ -1,3 +1,85 @@
+# Nachtrag 2026-09-07 — 1.5.179 / 2.1.180 (kein Merge von `bugfix`)
+
+Helios `bpms9cmnxc-debug/Helios` **1.5.179** (Build 198).
+Aegis `lolalpha00gamma/aegis-scanner` **2.1.180 alpha** (Build 205).
+Nur `main`. Agent-Regel: keine Nebenbranches. `bugfix` gelesen, nicht gemergt.
+
+1.5.178 Fill-Gap Rebase/MAD. OverlayLerp false. Fill lastHandSeen ohne Ghost. Reanchor am displayTick. Aegis StoreName sitzt, Held nach TTL tot.
+
+## Warum es schlecht wirkte (dieser Pass)
+
+1. **overlayLerpShould = false.** Continuity 8 fps Skelett-Ruck. overlayLerpT clamp 1 macht Lerp sicher.
+2. **Fill-Gap lastHandSeen.** Ghost zählt nicht für Dead-Man (richtig) und nicht für Fill (falsch). Coast 280 ms, Fill tot.
+3. **pointerReanchor am displayTick.** 90 Hz Fill schreibt Warp. NSEvent > 8 px zieht den Zeiger zurück. Kamera-Tick (1.5.161) bleibt Ground-Truth.
+4. **Aegis leftoverNameLockHeldSurvive emptyKeeps:false.** TTL wischt Held. StoreName braucht poseAt. Remint Hist keep 1, Need 3 → Overlay „?“.
+5. **Zwei Sessions.** Mutex+TERM ist Pflaster. Ohne CameraBroker zwei Vision, zwei TCC.
+6. Von `bugfix` (1.5.8 / 2.1.15) bewusst nicht gemergt: IOHID Event-Tap, AX SetPosition/Frame, Per-App-Gain, JSONL.
+
+## In 1.5.179 / 2.1.180 gelandet
+
+- **overlayLerpShould** 0,045…0,20. AppState lerpPublishedHands 8 fps intra.
+- **lastFillSeen / obsFillSeesHand(ghost:true).** Dead-Man weiter !ghost.
+- **pointerReanchorAppliesFill() false** Fill-Pfad + displayTick. Kamera-Tick reanchort.
+- **leftoverOverlayGuestOf** sticky Held, sonst Hist-Tail. leftoverOverlayStickyName „Ada?“.
+- **leftoverNameLockHeldCoast** live/ghost nach TTL. Matching bleibt leftoverNameLockKeeps(Until).
+- Tests + MARKETING 1.5.179 / 2.1.180 (Build 198 / 205). Schema 15 bleibt.
+
+Pass 21: Overlay-Lerp, Fill-Uhr Ghost, Reanchor-Split, Overlay-Sticky — 1.5.179 / 2.1.180.
+
+## Erweiterungen (neu, oben)
+
+1. **CameraBroker-XPC** — eine TCC, IOSurface an beide. Größter einzelner Effizienzgewinn.
+2. **CMSampleBuffer-PTS als Fill-Uhr.** lastFillSeen ist Wandzeit. Continuity-Hub-Sleep vs PTS-Sprung.
+3. **FaceTrack `[UUID: FaceTrack]` als einziges leftover-Dict.** Matching bleibt Schatten-Maps.
+4. **Overlay Metal 90 Hz.** SwiftUI ForEach 21×2 tot. Lerp 8 fps glättet Knochen, nicht das HUD.
+5. **Eine Homographie je Display-UUID.**
+6. **POSIX-Semaphore + INTENT → Yield → CONFIRM.** flock überlebt Sleep/Hub schlecht.
+7. **Palm-Print Sticky-ID.** Wrist→Thumb statt Vision L/R.
+8. **Overlay-Why Inspector.** Tap auf HUD-Chip zeigt Veto.
+9. **Latency-HUD Tick→AX.**
+10. **App-Group `group.helios.aegis`.**
+11. **IOHID Event-Tap** (`bugfix` 1.5.8).
+12. **AX SetPosition ein Call/Frame** (`bugfix`).
+13. **Per-App Gain aus AX bundle id** (`bugfix`).
+14. **Gesture-Log JSONL** (`bugfix`).
+15. **Enrollment-HUD 3-Slot im Overlay.**
+16. **Helios liest Aegis leftover-Boxen** als Palm-Occlusion.
+17. **Watch-IMU Pinch-Confirm.**
+18. **Vision Hand-Mesh** (macOS 26).
+19. **Aegis-Yaw als Helios Click-Lock.**
+20. **VNDetectHumanBodyPose** als Prop-Veto.
+21. **Gemeinsames CameraMath-Package.**
+22. **Telemetry-Ring 30 s + OSLog.**
+23. **Center Stage force-off nach Sleep.**
+24. **Continuity USB-Hub Watchdog + AVCaptureSession interruption.**
+25. **SpaceMap Auto-Recalib** RMS > 24 px / 2 s.
+26. **Two-mode Pointer:** Desk absolut, 0,8 s Dwell relativ.
+27. **Tests splitten** (GestureTests / MatchMathTests > 200 kB).
+28. **VNTrackObjectRequest** statt Remint.
+29. **Aegis live outputQueue ≠ MainActor.**
+30. **Kalman-Zeiger 2D** constant-velocity.
+31. **Guitar-Schwelle aus Sitzabstand** (IOD / FOV).
+32. **Negativ-Galerie Props.**
+33. **Print-Bank PCA-Whitening.**
+34. **Cursor-Magnetismus** 8 px an AX-Hit.
+35. **Dwell-Klick** optional neben Pinzette.
+36. **Doorbell-Cue.**
+37. **Clamshell: Vision pausieren.**
+38. **Jerk Dead-Man.**
+39. **Lock Schema v2.**
+40. **Vision Pro Sidecar.**
+41. **CI `swiftc` Tests vor DMG.**
+42. **Helios Kill-Switch Datei** neben Mutex.
+43. **pointerReanchor RMS aus fps** — 8 px bei 8 fps, 3 px bei 60.
+44. **overlayLerpDt = rawFrameDt** ohne Floor 0,05.
+45. **Overlay-Name Peak-Hold 3 Frames** über Remint-UUID.
+46. **DisplayLink rebase auf PTS** nach Hub-Sleep.
+47. **Swift Testing** statt DIY `ok()`.
+48. **nv12 IOSurface zero-copy** sobald CameraBroker sitzt.
+
+Bewusst nicht: Merge `bugfix`, Blind-Patch Schwellen, CameraBroker in diesem Pass, FaceTrack-Store-Rewrite, Overlay-Metal.
+
+Nächster Code-Schritt: CameraBroker-XPC oder FaceTrack-Store oder Overlay-Metal.
 # Nachtrag 2026-09-07 — 1.5.178 / 2.1.179 (kein Merge von `bugfix`)
 
 Helios `bpms9cmnxc-debug/Helios` **1.5.178** (Build 197).
