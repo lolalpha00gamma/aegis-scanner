@@ -4870,6 +4870,7 @@ enum MatchMathTests {
         ok(!MatchMath.skipPrint(sharpness: 0.20, yaw: 0), "Frontal Print")
         ok(!MatchMath.skipPrint(sharpness: 0.20), "ohne Yaw scharf")
         ok(!MatchMath.skipPrint(sharpness: 0.20, yaw: 0.35), "¾ Yaw kein Skip")
+        ok(!MatchMath.printQualityBlocksEnroll(yawAbs: 0.10), "Frontal Quality kein Enroll-Block")
         ok(!MatchMath.printQualityBlocksEnroll(yawAbs: 0.35), "¾ Quality kein Enroll-Block")
         ok(MatchMath.printQualityBlocksEnroll(yawAbs: 1.40), "Profil Quality blockt")
         ok(MatchMath.leftoverTrackKind(miss: 0) == .live, "Track live")
@@ -4921,6 +4922,38 @@ enum MatchMathTests {
             ),
             "Yaw-Mix kein tieKey gegen Profil"
         )
+        let adaRow = UUID(uuidString: "AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA")!
+        let detectRow = UUID(uuidString: "BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBBBBB")!
+        ok(
+            MatchMath.leftoverGalleryRowId(identityId: adaRow, detectId: detectRow) == adaRow,
+            "Galerie-Zeile überlebt Detect"
+        )
+        ok(
+            MatchMath.leftoverGalleryRowId(identityId: nil, detectId: detectRow) == detectRow,
+            "Galerie-Zeile ohne Ident = Detect"
+        )
+        ok(
+            MatchMath.enrollCoachStep(haveFrontal: false, haveLeft: false, haveRight: false) == "Blick zur Kamera",
+            "Coach Front"
+        )
+        ok(
+            MatchMath.enrollCoachStep(haveFrontal: true, haveLeft: false, haveRight: false) == "Kopf nach links drehen (¾)",
+            "Coach ¾L"
+        )
+        ok(
+            MatchMath.enrollCoachStep(haveFrontal: true, haveLeft: true, haveRight: false) == "Kopf nach rechts drehen (¾)",
+            "Coach ¾R"
+        )
+        ok(
+            MatchMath.enrollCoachStep(haveFrontal: true, haveLeft: true, haveRight: true, haveBlink: false) == "einmal blinzeln",
+            "Coach Blink"
+        )
+        ok(
+            MatchMath.enrollCoachStep(haveFrontal: true, haveLeft: true, haveRight: true) == nil,
+            "Coach fertig"
+        )
+        ok(!MatchMath.leftoverMissClears(miss: 2, need: 10), "Canonical Miss 2 hält trotz Need 10")
+        ok(MatchMath.leftoverMissClears(miss: 5, need: 10), "Canonical Ghost löscht trotz Need 10")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

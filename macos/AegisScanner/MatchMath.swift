@@ -4984,7 +4984,7 @@ enum MatchMath {
     }
 
     static func printQualityBlocksEnroll(yawAbs: Double) -> Bool {
-        leftoverHoldBin(yawAbs: yawAbs) != 1
+        leftoverHoldBin(yawAbs: yawAbs) >= 2
     }
 
     /// Coast analog Helios-Ghost. leftover miss > 0 ist nicht gleich tot.
@@ -5435,6 +5435,9 @@ enum MatchMath {
         coastAt: TimeInterval? = nil,
         now: TimeInterval = 0
     ) -> Bool {
+        if leftoverFaceTrackIsCanonical() {
+            return !leftoverTrackKindKeeps(leftoverTrackKind(miss: miss, coastAt: coastAt, now: now))
+        }
         guard miss >= need else { return false }
         return !leftoverTrackKindKeeps(leftoverTrackKind(miss: miss, coastAt: coastAt, now: now))
     }
@@ -7955,6 +7958,25 @@ enum MatchMath {
             if yaw < 0 { l = true } else { r = true }
         }
         return (f, l, r)
+    }
+
+    /// Front → ¾L → ¾R → Blink. enrollmentCoach kennt nur F+¾.
+    static func enrollCoachStep(
+        haveFrontal: Bool,
+        haveLeft: Bool,
+        haveRight: Bool,
+        haveBlink: Bool = true
+    ) -> String? {
+        if !haveFrontal { return "Blick zur Kamera" }
+        if !haveLeft { return "Kopf nach links drehen (¾)" }
+        if !haveRight { return "Kopf nach rechts drehen (¾)" }
+        if !haveBlink { return "einmal blinzeln" }
+        return nil
+    }
+
+    /// Galerie-Zeile überlebt Detect-Remint. Overlay-Box bleibt Detect-ID.
+    static func leftoverGalleryRowId(identityId: UUID?, detectId: UUID) -> UUID {
+        identityId ?? detectId
     }
 
     static func leftoverFaceTrackLookup(tracks: [UUID: FaceTrack], id: UUID) -> FaceTrack? {

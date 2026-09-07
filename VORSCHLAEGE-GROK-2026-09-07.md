@@ -1,4 +1,40 @@
+# Nachtrag Grok 2026-09-07 — 2.1.191 gelandet, Rest offen
+
+Quelle: Review + Fix Aegis 2.1.191 (Build 216) auf 2.1.190 (Frontal-Enroll tot, Coach ohne ¾R). Helios 1.5.192.
+Kein Binary-Lauf (Linux-Sandbox). Tests in CI. `bugfix` nicht gemergt.
+
+## Warum es nach 2.1.190 weiter riss
+
+1. printQualityBlocksEnroll `bin != 1` — Bin 0 Frontal blockt Enroll. Tests prüften nur ¾ und Profil.
+2. enrollmentCoach F+¾. ¾R unsichtbar. Blink-Schritt tot.
+3. Galerie-ForEach `face.id` — Remint unmountet Ada.
+
+## In 2.1.191 / 1.5.192 gelandet
+
+- printQualityBlocksEnroll Bin ≥ 2. createIdentity + referenceRejected.
+- enrollCoachStep Front → ¾L → ¾R → Blink.
+- leftoverGalleryRowId. Strip-ForEach.
+- leftoverMissClears canonical ignoriert Need.
+- Helios pointerFillStep + Continuity-Cap + Vel.
+
+## Offen (nicht noch ein Slider)
+
+P0 CameraBroker IOSurface.
+P0 FaceTrack einzige Store-Map.
+P1 Overlay-Metal. LiveCapture nicht @MainActor.
+P2 Blink haveBlink aus leftoverBlinkLiveness.
+P2 VNTrackObjectRequest. Replay 20 s.
+
+## Erweiterung (neu)
+
+1. Overlay-Box bleibt Detect-ID, Strip identityId — zwei Identities.
+2. Pose-Meter ¾L/¾R getrennt, nicht ein ¾.
+3. First-reference Bin 0 hart, ¾ erst nach Frontal (createIdentity sitzt).
+4. CameraBroker statt flock.
+5. FaceTrack.coastAt ≠ Print-TTL.
+
 # Nachtrag Grok 2026-09-07 — 2.1.190 gelandet, Rest offen
+
 
 Quelle: Review + Fix Aegis 2.1.190 (Build 215) auf 2.1.189 (TrackKind tot am Miss-Clear, Tests tot). Helios 1.5.191.
 Kein Binary-Lauf. `bugfix` #3 nicht gemergt.

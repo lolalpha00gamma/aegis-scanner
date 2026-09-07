@@ -427,11 +427,20 @@ struct ContentView: View {
             let onImage = store.faces.filter { $0.mediaId == store.selectedMediaId }.sorted {
                 $0.box.x + $0.box.y * 0.15 < $1.box.x + $1.box.y * 0.15
             }
+            let strip = onImage.enumerated().map { index, face -> (index: Int, face: FaceObservation, row: String) in
+                let hit = store.matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == store.strategy }
+                let owner = store.identities.first { $0.faceIds.contains(face.id) }
+                let ident = owner ?? store.identities.first { $0.id == hit?.identityId }
+                let rid = MatchMath.leftoverGalleryRowId(identityId: ident?.id, detectId: face.id)
+                return (index, face, "\(rid.uuidString)#\(index)")
+            }
             if !onImage.isEmpty {
                 Divider()
                 ScrollView(.horizontal) {
                     HStack(spacing: 8) {
-                        ForEach(Array(onImage.enumerated()), id: \.element.id) { index, face in
+                        ForEach(strip, id: \.row) { row in
+                            let index = row.index
+                            let face = row.face
                             let hit = store.matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == store.strategy }
                             let owner = store.identities.first { $0.faceIds.contains(face.id) }
                             let ident = owner ?? store.identities.first { $0.id == hit?.identityId }

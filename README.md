@@ -1,4 +1,4 @@
-# Aegis **2.1.190 alpha**
+# Aegis **2.1.191 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.191 alpha
+
+2.1.190: TrackKind hält Ada. printQualityBlocksEnroll `bin != 1` blockte Frontal. Coach nur F+¾. Galerie-Zeile Detect-UUID.
+
+- **printQualityBlocksEnroll Bin ≥ 2** — Frontal/¾ enrollen, Profil blockt. createIdentity + erste Referenz.
+- **enrollCoachStep** Front → ¾L → ¾R → Blink.
+- **leftoverGalleryRowId** — Zeile überlebt Detect-Remint.
+- Helios **1.5.192:** Fill-Gap Warp, Continuity-Cap, Vel, peekMutexPts.
+- Tests + VERSION = Models = MARKETING 2.1.191 (Build 216). Schema 15 bleibt.
 
 ## Neu in 2.1.190 alpha
 

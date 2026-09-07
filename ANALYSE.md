@@ -1,4 +1,21 @@
+# Aegis 2.1.191 — Enroll frontal, Coach ¾L/¾R, Gallery-Row
+
+Aegis **2.1.191 alpha** (Build 216). Helios **1.5.192** (Build 211). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.190: leftoverMissClears = !TrackKindKeeps. printQualityBlocksEnroll `bin != 1` blockte Frontal (Bin 0). Coach kannte nur F+¾. Galerie-Zeile Detect-UUID starb beim Remint.
+
+## Was 2.1.191 ändert
+
+1. **printQualityBlocksEnroll Bin ≥ 2.** Frontal und ¾ enrollen. Profil blockt. createIdentity + referenceRejected.
+2. **enrollCoachStep** Front → ¾L → ¾R → Blink. FaceEngine nach enrollmentCoach.
+3. **leftoverGalleryRowId** identityId ?? detectId. Strip-ForEach überlebt Remint.
+4. **leftoverMissClears canonical** ignoriert Need — Ghost löscht, Coast hält.
+5. Tests + VERSION = Models = MARKETING 2.1.191 (Build 216). Schema 15 bleibt.
+
+`bugfix` mergen: nein.
+
 # Aegis 2.1.190 — TrackKind hält, Tests kompilieren, Overlay-Chip
+
 
 Aegis **2.1.190 alpha** (Build 215). Helios **1.5.191** (Build 210). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
 

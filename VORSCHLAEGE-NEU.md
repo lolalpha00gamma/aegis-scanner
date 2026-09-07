@@ -1,3 +1,17 @@
+# Aegis Nachtrag 2.1.191 — 2026-09-07
+
+Binary **2.1.191 alpha Build 216**. Enroll frontal. Coach ¾L/¾R. Gallery-Row. Helios Fill-Warp.
+
+## In 2.1.191 gelandet
+
+1. printQualityBlocksEnroll Bin ≥ 2. Frontal nicht mehr blockiert.
+2. enrollCoachStep Front → ¾L → ¾R → Blink. FaceEngine verdrahtet.
+3. leftoverGalleryRowId identityId ?? detectId. Strip-ForEach.
+4. leftoverMissClears canonical — Need tot wenn FaceTrack die Map ist.
+5. Tests + VERSION = Models = MARKETING 2.1.191 (Build 216). Schema 15 bleibt.
+
+Rest: CameraBroker, FaceTrack einzige Map, Overlay-Metal, CVPixelBuffer, Blink haveBlink. Siehe VORSCHLAEGE-GROK.md.
+
 # Aegis Nachtrag 2.1.190 — 2026-09-07
 
 Binary **2.1.190 alpha Build 215**. TrackKind hält Ada. Tests kompilieren. Overlay-Chip. Helios Kalman-Span.

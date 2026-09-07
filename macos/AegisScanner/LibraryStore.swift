@@ -1347,6 +1347,14 @@ final class LibraryStore: ObservableObject {
             return
         }
         let face = snapshotLiveIfNeeded(raw)
+        if MatchMath.printQualityBlocksEnroll(yawAbs: abs(face.quality.yaw)) {
+            status = String(
+                format: "Profil (Yaw %.0f°) — erste Person frontal anlegen, sonst verdreht der Centroid.",
+                face.quality.yaw * 180 / .pi
+            )
+            dropOrphanSnapshot(face, original: raw)
+            return
+        }
         if let why = FaceEngine.referenceRejected(face, asFirstReference: true, continuity: liveContinuity) {
             status = why
             dropOrphanSnapshot(face, original: raw)

@@ -975,10 +975,14 @@ enum FaceEngine {
             }
         }
         let coach = MatchMath.enrollmentCoach(haveFrontal: haveF, haveThreeQuarter: haveQ, yaw: face.quality.yaw)
-        if coach == nil, let chip = MatchMath.leftoverEnrollSlotChip(haveFrontal: haveF, haveLeft: haveL, haveRight: haveR) {
+        if let coach { return coach }
+        if let step = MatchMath.enrollCoachStep(haveFrontal: haveF, haveLeft: haveL, haveRight: haveR) {
+            return step
+        }
+        if let chip = MatchMath.leftoverEnrollSlotChip(haveFrontal: haveF, haveLeft: haveL, haveRight: haveR) {
             return chip
         }
-        return coach
+        return nil
     }
 
     static func poseCoverageWarning(
@@ -2465,7 +2469,7 @@ enum FaceEngine {
             )
         }
         // Profil als erste Referenz verdreht den L2-Centroid; spätere ¾-Shots sind ok.
-        if asFirstReference, abs(face.quality.yaw) > 0.7 {
+        if asFirstReference, MatchMath.printQualityBlocksEnroll(yawAbs: abs(face.quality.yaw)) {
             return String(
                 format: "Profil (Yaw %.0f°) — erste Referenz muss frontal sein, sonst verdreht der Centroid.",
                 face.quality.yaw * 180 / .pi

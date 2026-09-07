@@ -1,3 +1,9 @@
+# Nachtrag 2026-09-07 — 2.1.191 / 1.5.192 (kein Merge von `bugfix`)
+
+Aegis `lolalpha00gamma/aegis-scanner` **2.1.191 alpha** (Build 216).
+Helios `bpms9cmnxc-debug/Helios` **1.5.192** (Build 211).
+Nur `main`. Enroll frontal, Coach ¾L/¾R, Gallery-Row. Helios Fill-Gap Warp.
+
 # Nachtrag 2026-09-07 — 2.1.190 / 1.5.191 (kein Merge von `bugfix`)
 
 Aegis `lolalpha00gamma/aegis-scanner` **2.1.190 alpha** (Build 215).
