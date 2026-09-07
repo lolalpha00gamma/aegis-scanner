@@ -1,3 +1,61 @@
+# Nachtrag Grok 2026-09-07 — 2.1.193 gelandet, Rest offen
+
+Quelle: Review + Fix Aegis 2.1.193 (Build 218) auf 2.1.192 (Overlay Detect-UUID, Live ohne Blink, emitBusy Drop-new, Pause tot). Helios 1.5.194.
+Kein Binary-Lauf (Linux-Sandbox). Tests in CI. `bugfix` nicht gemergt. Nur `main`.
+
+## Warum es nach 2.1.192 weiter riss
+
+1. Overlay-ForEach `face.id`. Remint neue Detect-UUID → SwiftUI unmountet Ada. leftoverGalleryRowId saß nur im Strip.
+2. createIdentity ignorierte leftoverBlinkSeen. Live ohne Blink = Person aus dem Nichts.
+3. FrameTap emitBusy Drop-new. livePending in LibraryStore nie gefüllt.
+4. cameraMutexWatchdogAction pause. LiveCapture rief nie stopRunning. ClaimWrites false (Helios hält) return ohne Pause — flock-Hammer.
+
+## In 2.1.193 / 1.5.194 gelandet
+
+- leftoverGalleryRowId Overlay + leftoverOverlayUniqueRows.
+- enrollBlocksWithoutBlink. createIdentity live hart.
+- liveEmitPendingWhileBusy. Conversion-Fail wischt Busy nicht.
+- Session-Pause 2 s, Interrupted, Pause hält, Resume Claim zuerst.
+- Helios obsFillClock Wall schlägt Mutex, WARP skip, Pinch Slot, Tip-Floor 0,20.
+
+## Offen (nicht noch ein Slider)
+
+P0 CameraBroker IOSurface.
+P0 FaceTrack einzige Store-Map (20 Dictionaries bleiben).
+P1 Overlay-Metal. LiveCapture Detect nicht @MainActor.
+P2 VNTrackObjectRequest. Replay 20 s. HeliosAegisKit.
+
+## Erweiterung (neu)
+
+1. CameraBroker Shared Memory statt flock/90 Hz.
+2. FaceTrack Debug-Dump eine Map JSON.
+3. Pose-Meter ¾L/¾R getrennt, nicht ein ¾.
+4. Print-Diversity: gleicher Pose-Bin Cosine > 0,98 → Skip.
+5. Name-Lock nur nach Blink + 3 Frames gleicher ID.
+6. Twin-Veto: |Δyaw| < 8° und x-Overlap > 0,45 → ein Exact.
+7. Temperature-skalierte Cosine statt hart 0,80.
+8. Licht-Eimer (frontal / ¾ / Profil) statt einem Cosine.
+9. Match-Log JSONL für Replay.
+10. Drop-in `.mlmodel` FaceEmbedder-Protokoll.
+11. P-Slot Maske/Schal, Brille-Slot als Twin-Veto.
+12. VNTrackObjectRequest neben Rectangles.
+13. RTSP 420f, Reconnect Exponential-Backoff.
+14. Watch-Folder PhotoKit, Export `.aegis` verschlüsselt.
+15. Overlay 60 Hz CAMetalLayer, Detect 8–24 fps.
+16. gallery.json.bak Rotate 3, printRevision je Identity.
+17. Temporal ReID-Graph über Hold-Trail.
+18. Schema 15 bleibt — leftoverCoastAt ist Runtime.
+19. Peak-Hold 3 Frames nach Remint — Box Detect tot, Row identityId sitzt.
+20. Fill freeze 250 ms nach Wake (Helios) — Wall-Sprung > 2 s rebase.
+21. NSEvent.mouseLocation Ground-Truth 4 Hz (Helios).
+22. Swift Testing statt DIY `ok()`.
+
+## Bugfix-Skill
+
+Pass 1: Diagnose — Overlay Detect-UUID, Live ohne Blink, emitBusy Drop-new, Pause nur Write-Fail.
+Pass 2: 2.1.193 / 1.5.194 auf main, Call-Sites verdrahtet.
+Pass 3: CI muss failen dürfen. Overlay Dedup, Blink-Block, Pause Partner, Fill-Uhr Wall.
+
 # Nachtrag Grok 2026-09-07 — 2.1.192 gelandet, Rest offen
 
 Quelle: Review + Fix Aegis 2.1.192 (Build 217) auf 2.1.191 (Print-TTL als coastAt, Blink-Default true). Helios 1.5.193.

@@ -1,3 +1,17 @@
+# Aegis Nachtrag 2.1.193 — 2026-09-07
+
+Binary **2.1.193 alpha Build 218**. Overlay identityId. Live-Blink hart. livePending. Session-Pause. Helios Fill-Uhr Wall.
+
+## In 2.1.193 gelandet
+
+1. leftoverGalleryRowId Overlay — ForEach identityId. leftoverOverlayUniqueRows Ghost fällt.
+2. enrollBlocksWithoutBlink — Live ohne Blink tot. Foto bleibt.
+3. liveEmitPendingWhileBusy — FrameTap drop-oldest, nicht Drop-new.
+4. Session-Pause 2 s + Interrupted. ClaimWrites false (Helios hält) pausiert. Resume Claim zuerst.
+5. Tests + VERSION = Models = MARKETING 2.1.193 (Build 218). Schema 15 bleibt.
+
+Rest: CameraBroker, FaceTrack einzige Map, Overlay-Metal, CVPixelBuffer. Siehe VORSCHLAEGE-GROK.md.
+
 # Aegis Nachtrag 2.1.192 — 2026-09-07
 
 Binary **2.1.192 alpha Build 217**. leftoverCoastAt. Blink-Coach. Helios Fill Ghost tot.

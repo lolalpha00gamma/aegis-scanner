@@ -1,3 +1,5 @@
+# 2.1.193 — siehe VORSCHLAEGE-NEU.md (Overlay identityId, Live-Blink, livePending, Session-Pause).
+
 # 2.1.192 — siehe VORSCHLAEGE-NEU.md (leftoverCoastAt ≠ Print-TTL, Blink-Coach Default false).
 
 # 2.1.191 — siehe VORSCHLAEGE-NEU.md (Enroll frontal, Coach ¾L/¾R, Gallery-Row).

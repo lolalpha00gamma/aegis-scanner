@@ -815,13 +815,28 @@ struct FaceOverlay: View {
             let oy = (geo.size.height - dh) / 2
             let ghostOnly = store.ghostFaces().filter { g in !faces.contains { $0.id == g.id } }
             let drawnFaces = faces + ghostOnly
+            let overlayRows: [(face: FaceObservation, row: String)] = {
+                var seen = Set<String>()
+                var out: [(face: FaceObservation, row: String)] = []
+                for face in drawnFaces {
+                    let hit = store.matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == store.strategy }
+                    let owner = store.identities.first { $0.faceIds.contains(face.id) }
+                    let ident = owner ?? store.identities.first { $0.id == hit?.identityId }
+                    let rid = MatchMath.leftoverGalleryRowId(identityId: ident?.id, detectId: face.id).uuidString
+                    guard MatchMath.leftoverOverlayKeepsRow(seen: seen, row: rid) else { continue }
+                    seen.insert(rid)
+                    out.append((face, rid))
+                }
+                return out
+            }()
             ZStack(alignment: .topLeading) {
                 Image(nsImage: ns)
                     .resizable()
                     .interpolation(.high)
                     .frame(width: dw, height: dh)
                     .offset(x: ox, y: oy)
-                ForEach(Array(drawnFaces.enumerated()), id: \.element.id) { _, face in
+                ForEach(overlayRows, id: \.row) { row in
+                    let face = row.face
                     let hit = store.matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == store.strategy }
                     let printHit = store.matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == .featurePrint }
                     let aegisHit = store.matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == .aegis }

@@ -1349,6 +1349,15 @@ final class LibraryStore: ObservableObject {
             return
         }
         let face = snapshotLiveIfNeeded(raw)
+        let liveFace = liveActive && liveMediaId == face.mediaId
+        if MatchMath.enrollBlocksWithoutBlink(
+            liveFace: liveFace,
+            haveBlink: leftoverBlinkSeen(faceId: face.id)
+        ) {
+            status = "einmal blinzeln — sonst Foto vor der Cam"
+            dropOrphanSnapshot(face, original: raw)
+            return
+        }
         if MatchMath.printQualityBlocksEnroll(yawAbs: abs(face.quality.yaw)) {
             status = String(
                 format: "Profil (Yaw %.0f°) — erste Person frontal anlegen, sonst verdreht der Centroid.",
@@ -1936,7 +1945,12 @@ final class LibraryStore: ObservableObject {
             coastAt: leftoverCoastAt[faceId],
             now: liveLastStamp
         )
-        return MatchMath.leftoverHoldChipAppendKind(base, kind: kind)
+        return MatchMath.leftoverHoldChipAppendKind(
+            base,
+            kind: kind,
+            coastAt: leftoverCoastAt[faceId],
+            now: liveLastStamp
+        )
     }
 
     func leftoverBlinkSeen(faceId: UUID) -> Bool {

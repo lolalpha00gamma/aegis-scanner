@@ -1,4 +1,4 @@
-# Aegis **2.1.192 alpha**
+# Aegis **2.1.193 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,17 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.193 alpha
+
+2.1.192: leftoverCoastAt ≠ Print-TTL, Blink-Coach Default false. Overlay-ForEach Detect-UUID — Remint unmountet Ada. createIdentity ignorierte Blink auf Live. FrameTap emitBusy Drop-new, livePending nie gefüllt. Session-Pause tot.
+
+- **leftoverGalleryRowId Overlay** — ForEach identityId, Ghost derselben ID fällt. Ada bleibt beim Remint.
+- **enrollBlocksWithoutBlink** — Live ohne Blink tot. Foto aus der Mediathek bleibt.
+- **liveEmitPendingWhileBusy** — FrameTap lässt das neueste Frame durch, LibraryStore drop-oldest. Conversion-Fail wischt emitBusy nicht.
+- **Session-Pause 2 s** — Partner hält → stopRunning, nicht flock-Hammer. Interrupted. PAUSE-Chip. Resume erst nach Claim.
+- Helios **1.5.194:** Fill-Uhr Wall, WARP skip, Pinch Slot, Tip-Floor 0,20.
+- Tests + VERSION = Models = MARKETING 2.1.193 (Build 218). Schema 15 bleibt.
 
 ## Neu in 2.1.192 alpha
 

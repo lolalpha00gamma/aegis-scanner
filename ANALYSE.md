@@ -1,3 +1,19 @@
+# Aegis 2.1.193 — Overlay identityId, Live-Blink, Session-Pause
+
+Aegis **2.1.193 alpha** (Build 218). Helios **1.5.194** (Build 213). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.192: leftoverCoastAt, Blink-Coach. Overlay-ForEach `face.id` — Remint unmountet Ada. createIdentity ohne Blink auf Live. FrameTap emitBusy Drop-new. cameraMutexWatchdogAction = pause, LiveCapture rief nie stopRunning. Aegis schreibt nie über Helios — Pause saß nur im Write-Fail, der nie kommt.
+
+## Was 2.1.193 ändert
+
+1. **leftoverGalleryRowId Overlay.** ForEach identityId. leftoverOverlayUniqueRows — Ghost fällt. Ada bleibt.
+2. **enrollBlocksWithoutBlink.** Live ohne leftoverBlinkSeen tot. Foto bleibt.
+3. **liveEmitPendingWhileBusy.** Tap füllt livePending. Conversion-Fail markConsumed nur wenn allow.
+4. **Session-Pause 2 s.** ClaimWrites false (Helios hält) → pause. Interrupted. Pause nicht neu armieren. Resume Claim zuerst.
+5. Tests + VERSION = Models = MARKETING 2.1.193 (Build 218). Schema 15 bleibt.
+
+`bugfix` mergen: nein.
+
 # Aegis 2.1.192 — leftoverCoastAt, Blink-Coach
 
 Aegis **2.1.192 alpha** (Build 217). Helios **1.5.193** (Build 212). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

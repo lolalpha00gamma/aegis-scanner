@@ -38,6 +38,9 @@ final class LiveCapture: NSObject {
     private var timer: Timer?
     private var snapshotURL: URL?
     private var failObserver: NSObjectProtocol?
+    private var interruptObserver: NSObjectProtocol?
+    private var sessionPauseWork: DispatchWorkItem?
+    private var sessionPauseUntil: TimeInterval = 0
     /// Hung-live: SIGTERM-Zeit je PID. Nächster Claim → SIGKILL nach 2 s.
     private static var mutexTermSentAt: [Int32: TimeInterval] = [:]
     private var mutexTermChip: String?
@@ -129,9 +132,16 @@ final class LiveCapture: NSObject {
         isContinuity = false
         facesPresent = false
         cameraUniqueID = ""
+        sessionPauseWork?.cancel()
+        sessionPauseWork = nil
+        sessionPauseUntil = 0
         if let failObserver {
             NotificationCenter.default.removeObserver(failObserver)
             self.failObserver = nil
+        }
+        if let interruptObserver {
+            NotificationCenter.default.removeObserver(interruptObserver)
+            self.interruptObserver = nil
         }
         player?.pause()
         player = nil
@@ -245,7 +255,51 @@ final class LiveCapture: NSObject {
             mutexBeat = beat
         }
         outputQueue.async { session.startRunning() }
+        installSessionWatch(session)
         onReady?()
+    }
+
+    private func installSessionWatch(_ session: AVCaptureSession) {
+        if let interruptObserver {
+            NotificationCenter.default.removeObserver(interruptObserver)
+            self.interruptObserver = nil
+        }
+        interruptObserver = NotificationCenter.default.addObserver(
+            forName: .AVCaptureSessionWasInterrupted,
+            object: session,
+            queue: .main
+        ) { [weak self] _ in
+            let capture = self
+            Task { @MainActor in
+                capture?.pauseSessionForMutex()
+            }
+        }
+    }
+
+    private func pauseSessionForMutex() {
+        if MatchMath.cameraMutexPauseArmed(workPending: sessionPauseWork != nil) { return }
+        let need = MatchMath.cameraMutexSessionPause()
+        sessionPauseWork?.cancel()
+        mutexChip = MatchMath.cameraMutexPauseChip(remain: need)
+        sessionPauseUntil = Date().timeIntervalSince1970 + need
+        if let s = session {
+            outputQueue.async { s.stopRunning() }
+        }
+        let work = DispatchWorkItem { [weak self] in
+            Task { @MainActor in self?.resumeAfterMutexPause() }
+        }
+        sessionPauseWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + need, execute: work)
+    }
+
+    private func resumeAfterMutexPause() {
+        sessionPauseWork = nil
+        sessionPauseUntil = 0
+        claimCameraMutex()
+        if MatchMath.cameraMutexPauseArmed(workPending: sessionPauseWork != nil) { return }
+        if let s = session, !s.isRunning {
+            outputQueue.async { s.startRunning() }
+        }
     }
 
     private var tap: FrameTap?
@@ -562,6 +616,14 @@ final class LiveCapture: NSObject {
             mutexChip = MatchMath.cameraMutexClaimChip(
                 holder: holder, yielded: cameraMutexYielded, fails: mutexClaimFails
             )
+            if MatchMath.cameraMutexWatchdogShouldPause(
+                action: MatchMath.cameraMutexWatchdogAction(killEnabled: mutexKillEnabled),
+                holder: holder,
+                owner: owner,
+                wrote: false
+            ) {
+                pauseSessionForMutex()
+            }
             return
         }
         let gen = expectedGen ?? read.gen
@@ -578,6 +640,14 @@ final class LiveCapture: NSObject {
             mutexChip = MatchMath.cameraMutexClaimChip(
                 holder: holder, yielded: cameraMutexYielded, fails: mutexClaimFails, term: mutexTermChip
             )
+            if MatchMath.cameraMutexWatchdogShouldPause(
+                action: MatchMath.cameraMutexWatchdogAction(killEnabled: mutexKillEnabled),
+                holder: holder,
+                owner: owner,
+                wrote: false
+            ) {
+                pauseSessionForMutex()
+            }
         }
     }
 
@@ -842,12 +912,13 @@ private final class FrameTap: NSObject, AVCaptureVideoDataOutputSampleBufferDele
         let busy = _emitBusy
         let busyFor = _busySince > 0 ? stamp - _busySince : 0
         let allow = MatchMath.liveEmitAllows(busy: busy, busyFor: busyFor)
+        let pending = busy && MatchMath.liveEmitPendingWhileBusy()
         if allow {
             _emitBusy = true
             _busySince = stamp
         }
         lock.unlock()
-        guard allow else { return }
+        guard allow || pending else { return }
         last = stamp
         let override = orientOverride
         guard let pb = CMSampleBufferGetImageBuffer(sampleBuffer),
@@ -858,7 +929,7 @@ private final class FrameTap: NSObject, AVCaptureVideoDataOutputSampleBufferDele
                 height: CVPixelBufferGetHeight(pb)
               ))
         else {
-            markConsumed()
+            if allow { markConsumed() }
             return
         }
         if MatchMath.liveFrameTapEmitsOnCaptureQueue() {

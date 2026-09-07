@@ -1057,6 +1057,9 @@ enum MatchMath {
         !busy || busyFor >= hungAfter
     }
 
+    /// Detect busy: neuestes Frame in livePending, nicht Drop-new am Tap.
+    static func liveEmitPendingWhileBusy() -> Bool { true }
+
     /// Vision-ms hebt das Interval. 15 fps in ein 150-ms-Detect = Stau.
     static func liveMinIntervalFromVision(base: TimeInterval, visionMs: Double) -> TimeInterval {
         let vis = max(0, visionMs) / 1000
@@ -1265,6 +1268,26 @@ enum MatchMath {
     /// SIGKILL ist opt-in. Default aus: Hung-live → Yield/Built-in, nicht den Partner töten.
     static func cameraMutexKillDefault() -> Bool { false }
     static func cameraMutexKillPref(_ on: Bool) -> Bool { on }
+
+    static func cameraMutexSessionPause() -> TimeInterval { 2 }
+    static func cameraMutexWatchdogPausesSession() -> Bool { true }
+    static func cameraMutexWatchdogAction(killEnabled: Bool) -> String {
+        if cameraMutexKillPref(killEnabled) { return "kill" }
+        if cameraMutexWatchdogPausesSession() { return "pause" }
+        return "yield"
+    }
+    static func cameraMutexWatchdogShouldPause(
+        action: String,
+        holder: String?,
+        owner: String,
+        wrote: Bool
+    ) -> Bool {
+        action == "pause" && !wrote && holder != nil && holder != owner
+    }
+    static func cameraMutexPauseChip(remain: TimeInterval) -> String {
+        String(format: "PAUSE %.0fs", max(0, remain))
+    }
+    static func cameraMutexPauseArmed(workPending: Bool) -> Bool { workPending }
 
     static func cameraPairHelios() -> String { "continuity" }
     static func cameraPairAegis() -> String { "builtIn" }
@@ -5030,11 +5053,18 @@ enum MatchMath {
     }
 
     /// Overlay HOLD + TrackKind. live = kein Extra. coast/ghost an den Chip.
-    static func leftoverHoldChipAppendKind(_ chip: String?, kind: TrackKind) -> String? {
-        guard let k = leftoverTrackKindChip(kind) else { return chip }
+    static func leftoverHoldChipAppendKind(_ chip: String?, kind: TrackKind, coastAt: TimeInterval? = nil, now: TimeInterval = 0) -> String? {
+        let extra = leftoverCoastAgeChip(kind: kind, coastAt: coastAt, now: now) ?? leftoverTrackKindChip(kind)
+        guard let k = extra else { return chip }
         guard let chip, !chip.isEmpty else { return k }
-        if chip.contains(k) { return chip }
+        if chip.contains(k) || chip.contains("coast") { return chip }
         return "\(chip) · \(k)"
+    }
+
+    /// Overlay `HOLD · coast 0,3s` — Alter aus leftoverCoastAt, nicht nur Kind.
+    static func leftoverCoastAgeChip(kind: TrackKind, coastAt: TimeInterval?, now: TimeInterval) -> String? {
+        guard kind == .coast, let t = coastAt, t > 0, now >= t else { return nil }
+        return String(format: "coast %.1fs", now - t).replacingOccurrences(of: ".", with: ",")
     }
 
     /// sharpness × (1 − |yaw|/90°). Profil 90° → 0.
@@ -7985,9 +8015,28 @@ enum MatchMath {
         return nil
     }
 
-    /// Galerie-Zeile überlebt Detect-Remint. Overlay-Box bleibt Detect-ID.
+    /// Live-Cam: Coach-Blink ist hart. Foto aus der Mediathek bleibt ohne Blink.
+    static func enrollBlocksWithoutBlink(liveFace: Bool, haveBlink: Bool) -> Bool {
+        liveFace && !haveBlink
+    }
+
+    /// Galerie-Zeile und Overlay überleben Detect-Remint. Ghost derselben ID fällt.
     static func leftoverGalleryRowId(identityId: UUID?, detectId: UUID) -> UUID {
         identityId ?? detectId
+    }
+
+    static func leftoverOverlayKeepsRow(seen: Set<String>, row: String) -> Bool {
+        !row.isEmpty && !seen.contains(row)
+    }
+
+    static func leftoverOverlayUniqueRows(_ rows: [String]) -> [String] {
+        var seen = Set<String>()
+        var out: [String] = []
+        for r in rows where leftoverOverlayKeepsRow(seen: seen, row: r) {
+            seen.insert(r)
+            out.append(r)
+        }
+        return out
     }
 
     static func leftoverFaceTrackLookup(tracks: [UUID: FaceTrack], id: UUID) -> FaceTrack? {
