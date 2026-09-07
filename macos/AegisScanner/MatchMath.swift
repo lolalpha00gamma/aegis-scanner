@@ -3099,6 +3099,64 @@ enum MatchMath {
 
     static func leftoverHoldLookupUnsureNote() -> String { "?" }
 
+    /// leftoverTried nicht auf Unsure. Nächster Tick mit Print darf pinnen.
+    static func leftoverTriedInserts(unsure: Bool) -> Bool { !unsure }
+
+    /// Unsure ist kein Pin. leftoverPinStatus sonst Lüge.
+    static func leftoverPinCounts(unsure: Bool) -> Bool { !unsure }
+
+    static let leftoverUnsureStreakNeed = 3
+
+    static func leftoverUnsureStreakAdvance(prev: Int, unsure: Bool) -> Int {
+        unsure ? prev + 1 : 0
+    }
+
+    static func leftoverUnsureStreakClears(ticks: Int, need: Int = leftoverUnsureStreakNeed) -> Bool {
+        ticks >= need
+    }
+
+    /// RAM-Cache ohne Print 2 s → nil. Twin nach Stillstand sonst leftoverCoastPrint 1,0.
+    static let leftoverCoastPrintTtl: TimeInterval = 2
+
+    static func leftoverCoastPrintFresh(
+        vec: [Double],
+        stamped: TimeInterval?,
+        now: TimeInterval,
+        ttl: TimeInterval = leftoverCoastPrintTtl
+    ) -> [Double] {
+        guard vec.count >= 32, let stamped, now - stamped <= ttl else { return [] }
+        return vec
+    }
+
+    static func leftoverCoastPrintStampMerge(
+        stamped: [UUID: TimeInterval],
+        live: [UUID: [Double]],
+        skipPrints: Bool,
+        now: TimeInterval
+    ) -> [UUID: TimeInterval] {
+        guard !skipPrints else { return stamped }
+        var out = stamped
+        for (id, vec) in live where vec.count >= 32 {
+            out[id] = now
+        }
+        return out
+    }
+
+    /// Remint kopiert 3 Ada-Votes. Twin sonst sofort getauft. keep 1 → Need 3 braucht 2 echte Ticks.
+    static func leftoverNameHistRemintTrim(
+        hist: [UUID: [String]],
+        remap: [UUID: UUID],
+        keep: Int = 1
+    ) -> [UUID: [String]] {
+        guard !remap.isEmpty else { return hist }
+        let moved = Set(remap.filter { $0.key != $0.value }.map(\.value))
+        var out = hist
+        for id in moved {
+            if let h = out[id] { out[id] = Array(h.suffix(max(0, keep))) }
+        }
+        return out
+    }
+
     /// Detect-Skip ohne beide Coast-Vec: nur IoU. Hold-Zahl nicht als Cosine.
     static func leftoverDetectSkipIoUOnly(
         skipCosine: Double?,

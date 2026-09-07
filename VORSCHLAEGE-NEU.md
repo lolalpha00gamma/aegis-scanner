@@ -1,3 +1,17 @@
+# Aegis Nachtrag 2.1.171 — 2026-09-07
+
+Binary **2.1.171 alpha Build 196**. Unsure-Tried tot, Unsure-Streak 3, Coast-TTL 2 s, Name-Hist Remint keep 1.
+
+## In 2.1.171 gelandet
+
+1. leftoverTriedInserts / leftoverPinCounts — Unsure kein Tried, kein Pin
+2. leftoverUnsureStreakAdvance/Clears — 3× `?` → leftoverClearStreak
+3. leftoverCoastPrintFresh / StampMerge — RAM-Cache 2 s tot
+4. leftoverNameHistRemintTrim — nach Remint 1 Vote, Twin nicht sofort Ada
+5. Tests + VERSION = Models = MARKETING_VERSION 2.1.171 (Build 196)
+
+Rest: FaceTrack als Store, CameraBroker, Overlay-Metal. Siehe VORSCHLAEGE-GROK.md.
+
 # Aegis Nachtrag 2.1.170 — 2026-09-07
 
 Binary **2.1.170 alpha Build 195**. Unsure ohne Vec, Detect-Skip IoU, Kalman-Vel, Heartbeat-SIGKILL.

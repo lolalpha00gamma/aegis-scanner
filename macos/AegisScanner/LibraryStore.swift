@@ -179,6 +179,8 @@ final class LibraryStore: ObservableObject {
     private var leftoverCaptureHistAt: [String: TimeInterval] = [:]
     private var leftoverLastIoU: [UUID: Double] = [:]
     private var leftoverCoastPrint: [UUID: [Double]] = [:]
+    private var leftoverCoastPrintAt: [UUID: TimeInterval] = [:]
+    private var leftoverUnsureTicks: [UUID: Int] = [:]
     private var leftoverPrintYaw: [UUID: Double] = [:]
     private var leftoverSparkChipHeld: [UUID: (chip: String, hold: Int)] = [:]
     private var leftoverSparkChipByHash: [String: String] = [:]
@@ -2321,6 +2323,7 @@ final class LibraryStore: ObservableObject {
         leftoverMissFrames.removeValue(forKey: id)
         leftoverWipeUntil.removeValue(forKey: id)
         leftoverCoastPrint.removeValue(forKey: id)
+        leftoverCoastPrintAt.removeValue(forKey: id)
         leftoverPrintYaw.removeValue(forKey: id)
         if pair {
             leftoverPairLast.removeValue(forKey: id)
@@ -3056,7 +3059,8 @@ final class LibraryStore: ObservableObject {
             Set(livePosterStill.keys), Set(liveLandmarkPrev.keys), Set(liveLidClosed.keys),
             Set(liveBlinkSeen.keys), Set(liveOpenStreak.keys), Set(boxEuro.keys),
             Set(boxJumpPending.keys),
-            Set(leftoverCoastPrint.keys), Set(leftoverPrintYaw.keys)
+            Set(leftoverCoastPrint.keys), Set(leftoverCoastPrintAt.keys),
+            Set(leftoverUnsureTicks.keys), Set(leftoverPrintYaw.keys)
         ])
         let remintPlan = MatchMath.leftoverHoldRemintMap(
             live: remintLive,
@@ -3114,6 +3118,8 @@ final class LibraryStore: ObservableObject {
         liveOpenStreak = faceMaps.openStreak
         liveNameVoteAt = faceMaps.voteAt
         leftoverCoastPrint = MatchMath.leftoverHoldRemintDrop(hold: leftoverCoastPrint, remap: remintPlan)
+        leftoverCoastPrintAt = MatchMath.leftoverHoldRemintDrop(hold: leftoverCoastPrintAt, remap: remintPlan)
+        leftoverUnsureTicks = MatchMath.leftoverHoldRemintDrop(hold: leftoverUnsureTicks, remap: remintPlan)
         leftoverPrintYaw = MatchMath.leftoverHoldRemintDrop(hold: leftoverPrintYaw, remap: remintPlan)
         leftoverHoldTrail = MatchMath.leftoverHoldRemintDrop(hold: leftoverHoldTrail, remap: remintPlan)
         liveSlotHold = MatchMath.leftoverHoldRemintDrop(hold: liveSlotHold, remap: remintPlan)
@@ -3134,7 +3140,10 @@ final class LibraryStore: ObservableObject {
         livePrintTrail = MatchMath.leftoverHoldRemintDrop(hold: livePrintTrail, remap: remintPlan)
         livePrintTrailSlot = MatchMath.leftoverHoldRemintDrop(hold: livePrintTrailSlot, remap: remintPlan)
         livePrintDrift = MatchMath.leftoverHoldRemintDrop(hold: livePrintDrift, remap: remintPlan)
-        liveNameHist = MatchMath.leftoverHoldRemintDrop(hold: liveNameHist, remap: remintPlan)
+        liveNameHist = MatchMath.leftoverNameHistRemintTrim(
+            hist: MatchMath.leftoverHoldRemintDrop(hold: liveNameHist, remap: remintPlan),
+            remap: remintPlan
+        )
         liveNameLock = MatchMath.leftoverHoldRemintDrop(hold: liveNameLock, remap: remintPlan)
         liveScoreTicks = MatchMath.leftoverHoldRemintDrop(hold: liveScoreTicks, remap: remintPlan)
         tapNameLockUntil = MatchMath.leftoverHoldRemintDrop(hold: tapNameLockUntil, remap: remintPlan)
@@ -3370,9 +3379,15 @@ final class LibraryStore: ObservableObject {
             for old in leftoverPinned {
                 var cands: [(index: Int, iou: Double, cosine: Double?)] = []
                 let ov = old.printVec.count >= 32 ? old.printVec : FaceEngine.embedding(of: old)
-                let cachedPrint = MatchMath.leftoverHoldRemintLookup(
+                let cachedPrintRaw = MatchMath.leftoverHoldRemintLookup(
                     hold: leftoverCoastPrint, id: old.id, remap: remintPlan
                 ) ?? leftoverCoastPrint[old.id] ?? []
+                let cachedStamp = MatchMath.leftoverHoldRemintLookup(
+                    hold: leftoverCoastPrintAt, id: old.id, remap: remintPlan
+                ) ?? leftoverCoastPrintAt[old.id]
+                let cachedPrint = MatchMath.leftoverCoastPrintFresh(
+                    vec: cachedPrintRaw, stamped: cachedStamp, now: now
+                )
                 let storedHold = MatchMath.leftoverHoldRemintLookup(
                     hold: leftoverHold, id: old.id, remap: remintPlan
                 )
@@ -3406,7 +3421,11 @@ final class LibraryStore: ObservableObject {
                     let v = FaceEngine.embedding(of: face)
                     let liveCos = MatchMath.leftoverCoastPrintSkipCosine(
                         live: v,
-                        liveStored: leftoverCoastPrint[face.id] ?? [],
+                        liveStored: MatchMath.leftoverCoastPrintFresh(
+                            vec: leftoverCoastPrint[face.id] ?? [],
+                            stamped: leftoverCoastPrintAt[face.id],
+                            now: now
+                        ),
                         old: ov,
                         oldStored: cachedPrint
                     )
@@ -3573,8 +3592,30 @@ final class LibraryStore: ObservableObject {
                         if let best = remaining.max(by: { $0.iou < $1.iou }) {
                             leftoverPending[adopted[best.index].id] = MatchMath.leftoverHoldLookupUnsureNote()
                         }
-                        leftoverTried.insert(old.id)
-                        leftoverPins += 1
+                        let ticks = MatchMath.leftoverUnsureStreakAdvance(
+                            prev: MatchMath.leftoverHoldRemintLookup(
+                                hold: leftoverUnsureTicks, id: old.id, remap: remintPlan
+                            ) ?? leftoverUnsureTicks[old.id] ?? 0,
+                            unsure: true
+                        )
+                        leftoverUnsureTicks[old.id] = ticks
+                        if let live = remintPlan[old.id], live != old.id {
+                            leftoverUnsureTicks[live] = ticks
+                        }
+                        if MatchMath.leftoverTriedInserts(unsure: true) {
+                            leftoverTried.insert(old.id)
+                        }
+                        if MatchMath.leftoverPinCounts(unsure: true) {
+                            leftoverPins += 1
+                        }
+                        if MatchMath.leftoverUnsureStreakClears(ticks: ticks) {
+                            leftoverClearStreak(old.id)
+                            if let live = remintPlan[old.id], live != old.id {
+                                leftoverClearStreak(live)
+                            }
+                            leftoverUnsureTicks[old.id] = 0
+                            if let live = remintPlan[old.id] { leftoverUnsureTicks[live] = 0 }
+                        }
                         continue
                     }
                     let twin = aegisHit?.pairCosine
@@ -3614,6 +3655,8 @@ final class LibraryStore: ObservableObject {
                     continue
                 }
                 leftoverTried.insert(old.id)
+                leftoverUnsureTicks[old.id] = 0
+                if let live = remintPlan[old.id] { leftoverUnsureTicks[live] = 0 }
                 leftoverMissFrames[old.id] = MatchMath.leftoverMissAdvance(prev: leftoverMissFrames[old.id] ?? 0, hit: true)
                 let boxHash = leftoverLiveHash(
                     kalmanX: boxKalman[adopted[bestJ].id]?.x,
@@ -4047,14 +4090,23 @@ final class LibraryStore: ObservableObject {
                 live: Dictionary(uniqueKeysWithValues: adopted.map { ($0.id, $0.quality.yaw) }),
                 skipPrints: skipPrints
             )
+            let livePrints = Dictionary(uniqueKeysWithValues: adopted.map {
+                ($0.id, $0.printVec.count >= 32 ? $0.printVec : FaceEngine.embedding(of: $0))
+            })
             leftoverCoastPrint = MatchMath.leftoverCoastPrintMerge(
                 stored: leftoverCoastPrint,
-                live: Dictionary(uniqueKeysWithValues: adopted.map {
-                    ($0.id, $0.printVec.count >= 32 ? $0.printVec : FaceEngine.embedding(of: $0))
-                }),
+                live: livePrints,
                 skipPrints: skipPrints
             )
+            leftoverCoastPrintAt = MatchMath.leftoverCoastPrintStampMerge(
+                stamped: leftoverCoastPrintAt,
+                live: livePrints,
+                skipPrints: skipPrints,
+                now: now
+            )
             leftoverCoastPrint = leftoverCoastPrint.filter { liveIds.contains($0.key) || leftoverIds.contains($0.key) }
+            leftoverCoastPrintAt = leftoverCoastPrintAt.filter { leftoverCoastPrint[$0.key] != nil }
+            leftoverUnsureTicks = leftoverUnsureTicks.filter { liveIds.contains($0.key) || leftoverIds.contains($0.key) }
             leftoverPrintYaw = leftoverPrintYaw.filter { liveIds.contains($0.key) || leftoverIds.contains($0.key) }
             leftoverHold = leftoverHold.filter { liveIds.contains($0.key) || leftoverIds.contains($0.key) }
             leftoverHoldBins = leftoverHoldBins.filter { row in

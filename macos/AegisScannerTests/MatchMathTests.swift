@@ -4174,6 +4174,50 @@ enum MatchMathTests {
         ok(MatchMath.cameraMutexHeartbeatKillAllowed(target: 9, selfPid: 3) == 9, "Kill fremd")
         ok(MatchMath.cameraMutexHeartbeatKillAllowed(target: 3, selfPid: 3) == nil, "Kill self tot")
 
+        ok(!MatchMath.leftoverTriedInserts(unsure: true), "Tried Unsure tot")
+        ok(MatchMath.leftoverTriedInserts(unsure: false), "Tried Pin")
+        ok(!MatchMath.leftoverPinCounts(unsure: true), "Pin Unsure tot")
+        ok(MatchMath.leftoverPinCounts(unsure: false), "Pin zählt")
+        ok(MatchMath.leftoverUnsureStreakAdvance(prev: 0, unsure: true) == 1, "Unsure 1")
+        ok(MatchMath.leftoverUnsureStreakAdvance(prev: 2, unsure: true) == 3, "Unsure 3")
+        ok(MatchMath.leftoverUnsureStreakAdvance(prev: 2, unsure: false) == 0, "Unsure Reset")
+        ok(!MatchMath.leftoverUnsureStreakClears(ticks: 2), "Unsure 2 hält")
+        ok(MatchMath.leftoverUnsureStreakClears(ticks: 3), "Unsure 3 clear")
+        ok(
+            MatchMath.leftoverCoastPrintFresh(vec: vecA, stamped: 1_000, now: 1_001).count == 32,
+            "Coast TTL frisch"
+        )
+        ok(
+            MatchMath.leftoverCoastPrintFresh(vec: vecA, stamped: 1_000, now: 1_003).isEmpty,
+            "Coast TTL 2 s tot"
+        )
+        ok(
+            MatchMath.leftoverCoastPrintFresh(vec: vecA, stamped: nil, now: 1_001).isEmpty,
+            "Coast TTL ohne Stamp tot"
+        )
+        let stamp = MatchMath.leftoverCoastPrintStampMerge(
+            stamped: [:], live: [liveOld: vecA], skipPrints: false, now: 1_000
+        )
+        ok(stamp[liveOld] == 1_000, "Coast Stamp nach Print")
+        ok(
+            MatchMath.leftoverCoastPrintStampMerge(
+                stamped: stamp, live: [liveOld: vecA], skipPrints: true, now: 1_002
+            )[liveOld] == 1_000,
+            "Coast Stamp skip hält"
+        )
+        let histAda = MatchMath.leftoverNameHistRemintTrim(
+            hist: [liveNew: ["Ada", "Ada", "Ada"]],
+            remap: [liveOld: liveNew]
+        )
+        ok(histAda[liveNew] == ["Ada"], "Name-Hist Remint keep 1")
+        ok(
+            MatchMath.leftoverNameHistRemintTrim(
+                hist: [liveNew: ["Ada", "Ada", "Ada"]],
+                remap: [:]
+            )[liveNew] == ["Ada", "Ada", "Ada"],
+            "Name-Hist ohne Remint hält"
+        )
+
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)
             exit(1)

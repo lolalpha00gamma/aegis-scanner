@@ -1,5 +1,21 @@
 # Aegis — Vorschlagsliste
 
+Stand: **2.1.171 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-GROK.md](VORSCHLAEGE-GROK.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+Neu in 2.1.171: leftoverTried Unsure tot, Unsure-Streak 3, Coast-TTL 2 s, Name-Hist Remint keep 1.
+
+## In 2.1.171 wirklich im Code
+
+2.1.170: Unsure/IoU. leftoverTried auf Unsure, Coast-Vec ohne Alter, Name-Hist 3 Votes nach Remint.
+
+1. **leftoverTriedInserts / leftoverPinCounts** Unsure kein Tried, kein Pin.
+2. **leftoverUnsureStreakAdvance/Clears** 3× `?` → leftoverClearStreak.
+3. **leftoverCoastPrintFresh (2 s) + StampMerge.**
+4. **leftoverNameHistRemintTrim keep 1.**
+5. Tests + VERSION = Models = MARKETING_VERSION 2.1.171 (Build 196). Schema 15 bleibt.
+
+# Aegis — Vorschlagsliste
+
 Stand: **2.1.170 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-GROK.md](VORSCHLAEGE-GROK.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 
 Neu in 2.1.170: leftoverHoldLookupUnsure, Detect-Skip IoU, Kalman-Vel, Heartbeat-SIGKILL.

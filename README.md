@@ -1,4 +1,4 @@
-# Aegis **2.1.170 alpha**
+# Aegis **2.1.171 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,12 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.171 alpha
+
+leftoverTried nicht auf Unsure. 3× `?` leftoverClearStreak. Coast-Print TTL 2 s. Name-Hist nach Remint keep 1. Helios 1.5.169 Hist-Prior vor Conf.
+
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.171 (Build 196). Schema 15 bleibt.
 
 ## Neu in 2.1.170 alpha
 
