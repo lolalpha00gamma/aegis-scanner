@@ -1,4 +1,4 @@
-# Aegis **2.1.189 alpha**
+# Aegis **2.1.190 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.190 alpha
+
+2.1.189: leftoverMissClears löschte Ada bei miss=3 (noch Coast). leftoverTrackKindKeeps tot. MatchMathTests `var near` schattete `near()` — CI tot. Overlay ohne TrackKind-Chip.
+
+- **leftoverMissClears = !TrackKindKeeps** — Coast hält, Ghost löscht. coastAt 0,40 s.
+- **Overlay-Chip** `HOLD · coast` / ` · ghost`.
+- **nearVec** — Tests kompilieren wieder.
+- Helios **1.5.191:** Kalman-Span, Fill-Gap Ghost, PinchPhase, CI macos-15.
+- Tests + VERSION = Models = MARKETING 2.1.190 (Build 215). Schema 15 bleibt.
 
 ## Neu in 2.1.189 alpha
 

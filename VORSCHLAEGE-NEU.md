@@ -1,3 +1,16 @@
+# Aegis Nachtrag 2.1.190 — 2026-09-07
+
+Binary **2.1.190 alpha Build 215**. TrackKind hält Ada. Tests kompilieren. Overlay-Chip. Helios Kalman-Span.
+
+## In 2.1.190 gelandet
+
+1. leftoverMissClears = !leftoverTrackKindKeeps. Coast hält, Ghost löscht. coastAt 0,40 s.
+2. leftoverHoldChipAppendKind. Overlay `HOLD · coast`.
+3. MatchMathTests nearVec — `var near` tot.
+4. Tests + VERSION = Models = MARKETING 2.1.190 (Build 215). Schema 15 bleibt.
+
+Rest: CameraBroker, FaceTrack einzige Map, Overlay-Metal, CVPixelBuffer, coastAt ≠ Print-TTL. Siehe VORSCHLAEGE-GROK.md.
+
 # Aegis Nachtrag 2.1.189 — 2026-09-07
 
 Binary **2.1.189 alpha Build 214**. ¾-Enroll. Remint-Drop. TrackKind. Helios Kalman-Klemme.

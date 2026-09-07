@@ -1,3 +1,18 @@
+# Aegis 2.1.190 — TrackKind hält, Tests kompilieren, Overlay-Chip
+
+Aegis **2.1.190 alpha** (Build 215). Helios **1.5.191** (Build 210). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.189: `leftoverMissClears` löschte Ada bei miss=3 (noch `.coast`). `leftoverTrackKindKeeps` tot. MatchMathTests `var near = ones` schattete `near()`. `leftoverTrackKindChip` unverdrahtet.
+
+## Was 2.1.190 ändert
+
+1. **leftoverMissClears = !TrackKindKeeps.** Coast hält, Ghost (miss>4) löscht. `coastAt` 0,40 s hält auch miss=8.
+2. **LibraryStore** `leftoverMissClears(miss:coastAt:now:)`. Overlay `leftoverHoldChip` hängt ` · coast` / ` · ghost`.
+3. **MatchMathTests** `nearVec` — CI kompiliert wieder. `var near` hat jede `near(...)` nach Zeile 4500 zerlegt.
+4. Tests + VERSION = Models = MARKETING 2.1.190 (Build 215). Schema 15 bleibt.
+
+`bugfix` mergen: nein.
+
 # Aegis 2.1.189 — ¾-Enroll, Remint-Drop, TrackKind
 
 Aegis **2.1.189 alpha** (Build 214). Helios **1.5.190** (Build 209). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

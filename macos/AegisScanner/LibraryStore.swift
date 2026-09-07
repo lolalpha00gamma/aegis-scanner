@@ -1907,7 +1907,7 @@ final class LibraryStore: ObservableObject {
     func leftoverHoldChip(faceId: UUID, sharpness: Double? = nil, yawAbs: Double? = nil) -> String? {
         let bin = MatchMath.leftoverHoldBin(yawAbs: yawAbs ?? 0)
         let binTrail = leftoverHoldTrailBins[MatchMath.leftoverHoldKey(id: faceId, bin: bin)] ?? []
-        return MatchMath.leftoverHoldOverlayChipOf(
+        let base = MatchMath.leftoverHoldOverlayChipOf(
             hold: leftoverHoldNow(faceId: faceId, yawAbs: yawAbs),
             trail: leftoverHoldTrail[faceId] ?? [],
             yawAbs: yawAbs,
@@ -1915,6 +1915,12 @@ final class LibraryStore: ObservableObject {
             compact: true,
             binTrail: binTrail
         )
+        let kind = MatchMath.leftoverTrackKind(
+            miss: leftoverMissFrames[faceId] ?? 0,
+            coastAt: leftoverCoastPrintAt[faceId],
+            now: liveLastStamp
+        )
+        return MatchMath.leftoverHoldChipAppendKind(base, kind: kind)
     }
 
     func leftoverAdoptProgress(faceId: UUID) -> String? {
@@ -3828,7 +3834,11 @@ final class LibraryStore: ObservableObject {
                                 leftoverPending[adopted[cand.index].id] = MatchMath.conflictTickNote()
                             }
                         }
-                        if MatchMath.leftoverMissClears(miss: miss) {
+                        if MatchMath.leftoverMissClears(
+                            miss: miss,
+                            coastAt: leftoverCoastPrintAt[old.id],
+                            now: liveLastStamp
+                        ) {
                             leftoverClearStreak(old.id)
                         }
                     }

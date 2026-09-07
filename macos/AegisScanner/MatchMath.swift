@@ -5018,6 +5018,14 @@ enum MatchMath {
         }
     }
 
+    /// Overlay HOLD + TrackKind. live = kein Extra. coast/ghost an den Chip.
+    static func leftoverHoldChipAppendKind(_ chip: String?, kind: TrackKind) -> String? {
+        guard let k = leftoverTrackKindChip(kind) else { return chip }
+        guard let chip, !chip.isEmpty else { return k }
+        if chip.contains(k) { return chip }
+        return "\(chip) · \(k)"
+    }
+
     /// sharpness × (1 − |yaw|/90°). Profil 90° → 0.
     static func printQuality(sharpness: Double, yaw: Double) -> Double {
         let s = max(0, min(1, sharpness))
@@ -5421,8 +5429,14 @@ enum MatchMath {
         hit ? 0 : prev + 1
     }
 
-    static func leftoverMissClears(miss: Int, need: Int = leftoverMissNeed) -> Bool {
-        leftoverTrackKind(miss: miss) != .live && miss >= need
+    static func leftoverMissClears(
+        miss: Int,
+        need: Int = leftoverMissNeed,
+        coastAt: TimeInterval? = nil,
+        now: TimeInterval = 0
+    ) -> Bool {
+        guard miss >= need else { return false }
+        return !leftoverTrackKindKeeps(leftoverTrackKind(miss: miss, coastAt: coastAt, now: now))
     }
 
     /// Leerer Detector-Frame wischt Streak/Kalman nicht. 8 fps Dropout = Gast n+1 sonst.

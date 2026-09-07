@@ -1,3 +1,9 @@
+# Nachtrag 2026-09-07 — 2.1.190 / 1.5.191 (kein Merge von `bugfix`)
+
+Aegis `lolalpha00gamma/aegis-scanner` **2.1.190 alpha** (Build 215).
+Helios `bpms9cmnxc-debug/Helios` **1.5.191** (Build 210).
+Nur `main`. TrackKind hält, Tests kompilieren, Overlay-Chip. Helios Kalman-Span + Fill-Gap Ghost.
+
 # Nachtrag 2026-09-07 — 2.1.189 / 1.5.190 (kein Merge von `bugfix`)
 
 Aegis `lolalpha00gamma/aegis-scanner` **2.1.189 alpha** (Build 214).

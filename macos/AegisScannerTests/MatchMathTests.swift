@@ -1420,7 +1420,9 @@ enum MatchMathTests {
         ok(MatchMath.leftoverMissAdvance(prev: 0, hit: false) == 1, "Miss +1")
         ok(MatchMath.leftoverMissAdvance(prev: 2, hit: true) == 0, "Hit löscht Miss")
         ok(!MatchMath.leftoverMissClears(miss: 2), "2 Miss halten")
-        ok(MatchMath.leftoverMissClears(miss: 3), "3 Miss löschen")
+        ok(!MatchMath.leftoverMissClears(miss: 3), "3 Miss Coast halten")
+        ok(!MatchMath.leftoverMissClears(miss: 4), "4 Miss Coast halten")
+        ok(MatchMath.leftoverMissClears(miss: 5), "5 Miss Ghost löschen")
         ok(abs(MatchMath.leftoverAdoptNeedSec(dt: 0.016) - 0.80) < 0.001, "24 fps Adopt 0,80 s")
         ok(abs(MatchMath.leftoverAdoptNeedSec(dt: 0.067) - 0.80) < 0.001, "15 fps Adopt 0,80 s")
         ok(abs(MatchMath.leftoverAdoptNeedSec(dt: 0.125) - 1.20) < 0.001, "8 fps Adopt 1,2 s")
@@ -4497,11 +4499,11 @@ enum MatchMathTests {
         )
         ok(occRows.count == 1 && occRows[0].key == bId.uuidString, "OtherRows UUID")
         let ones = Array(repeating: 1.0, count: 32)
-        var near = ones
-        near[0] = 0.999
+        var nearVec = ones
+        nearVec[0] = 0.999
         let pruned = MatchMath.leftoverPrintBankPrune([
             (vec: ones, w: 1),
-            (vec: near, w: 1)
+            (vec: nearVec, w: 1)
         ])
         ok(pruned.count == 1, "Print-Bank Prune Burst")
         let wal = MatchMath.leftoverPairCommitWALBytes(pairs: ["a": "b"])
@@ -4875,6 +4877,17 @@ enum MatchMathTests {
         ok(MatchMath.leftoverTrackKind(miss: 8) == .ghost, "Track ghost")
         ok(MatchMath.leftoverTrackKindKeeps(.coast), "Coast Hold")
         ok(!MatchMath.leftoverTrackKindKeeps(.ghost), "Ghost tot")
+        ok(MatchMath.leftoverTrackKindChip(.live) == nil, "Track live kein Chip")
+        ok(MatchMath.leftoverTrackKindChip(.coast) == "coast", "Track coast Chip")
+        ok(MatchMath.leftoverTrackKindChip(.ghost) == "ghost", "Track ghost Chip")
+        ok(
+            MatchMath.leftoverHoldChipAppendKind("HOLD 80", kind: .coast) == "HOLD 80 · coast",
+            "Chip + coast"
+        )
+        ok(MatchMath.leftoverHoldChipAppendKind(nil, kind: .ghost) == "ghost", "Chip ghost only")
+        ok(MatchMath.leftoverHoldChipAppendKind("HOLD 80", kind: .live) == "HOLD 80", "Chip live")
+        ok(!MatchMath.leftoverMissClears(miss: 8, coastAt: 10, now: 10.20), "CoastAt 0,20 s hält")
+        ok(MatchMath.leftoverMissClears(miss: 8, coastAt: 10, now: 10.50), "CoastAt tot Ghost")
         ok(MatchMath.leftoverFaceTrackIsCanonical(), "FaceTrack canonical")
         near(MatchMath.obsFillUsesMutexPts(own: 12.0, mutex: 1_700_000_000, dt: 0.125), 12.0, 1e-9, "Fill andere Epoch own")
         ok(MatchMath.cameraMutexProtocolVersion() == 2, "Mutex v2")

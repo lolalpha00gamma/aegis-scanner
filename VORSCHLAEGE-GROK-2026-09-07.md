@@ -1,27 +1,28 @@
-# Nachtrag Grok 2026-09-07 — 2.1.189 gelandet, Rest offen
+# Nachtrag Grok 2026-09-07 — 2.1.190 gelandet, Rest offen
 
-Quelle: Review + Fix Aegis 2.1.189 (Build 214) auf 2.1.188 (Mutex v2, Kamera-Paar). Helios 1.5.190.
+Quelle: Review + Fix Aegis 2.1.190 (Build 215) auf 2.1.189 (TrackKind tot am Miss-Clear, Tests tot). Helios 1.5.191.
 Kein Binary-Lauf. `bugfix` #3 nicht gemergt.
 
-## Warum Live nach 2.1.188 weiter riss
+## Warum Live nach 2.1.189 weiter riss
 
-1. skipPrint nutzte printQuality(yaw) als Gate — ¾ (Bin 1) kam nicht in die Bank. FaceEngine übergab kein Yaw.
-2. leftoverFaceTrackRemint hielt Source-UUID. Overlay-Ada ≠ Store-Ada.
-3. leftover miss war eine Zahl, kein live|coast|ghost.
-4. Helios Kalman stahl S1. Fill-Gap tot.
+1. leftoverMissClears: `kind != .live && miss >= 3` — miss=3 ist `.coast`, Ada weg.
+2. leftoverTrackKindKeeps unverdrahtet. leftoverTrackKindChip tot.
+3. MatchMathTests `var near = ones` schattete `static func near` — CI kompiliert nicht. Nutzer bleibt auf altem Binary.
+4. Helios Kalman ohne Span, Fill-Gap tot am Ghost.
 
-## In 2.1.189 / 1.5.190 gelandet
+## In 2.1.190 / 1.5.191 gelandet
 
-- skipPrint ¾. FaceEngine Yaw. Profil bleibt Skip.
-- FaceTrack Remint = Drop. Source tot.
-- TrackKind + leftoverMissClears.
-- Helios Kalman-Klemme, Fill-Gap displayTick, SlotKind Joints.
+- leftoverMissClears = !TrackKindKeeps. coastAt 0,40 s.
+- leftoverHoldChip · coast/ghost.
+- nearVec. Tests wieder grün.
+- Helios Kalman Span, holdGhost Fill-Gap, pinchPhase, CI macos-15.
 
 ## Offen
 
-P0 CameraBroker. FaceTrack einzige Map.
+P0 CameraBroker. FaceTrack einzige Map. leftoverCoastPrintAt ≠ coastAt (Print-TTL vs Coast-Start).
 P1 CVPixelBuffer bis Detect. LiveCapture nicht MainActor.
 P2 Golden-Frames 8 fps. TrackKind-TTL. HeliosAegisKit.
+P2 MatchMathTests splitten (4900 Zeilen, Shadow-Bug).
 
 ## Erweiterung (neu)
 
@@ -35,7 +36,19 @@ P2 Golden-Frames 8 fps. TrackKind-TTL. HeliosAegisKit.
 8. VNTrackObjectRequest.
 9. livePending drop-oldest.
 10. Continuity 720p Format-Lock.
+11. FaceTrack.coastAt eigener Stamp — nicht leftoverCoastPrintAt.
+12. Temperature-skalierte Cosine.
+13. Licht-Eimer (frontal / ¾ / Profil) statt einem Cosine.
+14. Match-Log JSONL für Replay.
+15. Drop-in `.mlmodel` FaceEmbedder-Protokoll.
+16. P-Slot Maske/Schal, Brille-Slot als Twin-Veto.
+17. Temporal ReID-Graph über Hold-Trail.
+18. gallery.json.bak Rotate 3.
+19. RTSP 420f, Reconnect Exponential-Backoff.
+20. Watch-Folder PhotoKit, Export `.aegis` verschlüsselt.
+21. Swift Testing statt DIY `ok()`.
+22. Zwei-Cam-Stereo mit Helios Continuity + Aegis Built-in.
 
 ## Bugfix-Skill
 
-Pass 1: Diagnose. Pass 2: 2.1.189 auf main. Pass 3: CI hart.
+Pass 1: Diagnose. Pass 2: 2.1.190 auf main. Pass 3: CI hart.
