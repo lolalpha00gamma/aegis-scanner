@@ -8171,6 +8171,57 @@ enum MatchMath {
         leftoverOverlayPeakIoUFloor(fps: dt > 1e-9 ? 1 / dt : 8, at8: at8, at60: at60)
     }
 
+    /// Nah (große Box) strenger, weit weicher. fps-Floor bleibt Basis.
+    static func leftoverOverlayPeakIoUFloorArea(area: Double, fps: Double, at8: Double = 0.32, at60: Double = 0.50) -> Double {
+        let base = leftoverOverlayPeakIoUFloor(fps: fps, at8: at8, at60: at60)
+        let a = min(1, max(0, (area - 0.015) / 0.20))
+        return min(0.72, base + 0.14 * a)
+    }
+
+    static func leftoverOverlayPeakIoUFloorBoxes(
+        live: [(w: Double, h: Double)],
+        dt: TimeInterval,
+        at8: Double = 0.32,
+        at60: Double = 0.50
+    ) -> Double {
+        let area = live.map { max(0, $0.w) * max(0, $0.h) }.max() ?? 0
+        let fps = dt > 1e-9 ? 1 / dt : 8
+        return leftoverOverlayPeakIoUFloorArea(area: area, fps: fps, at8: at8, at60: at60)
+    }
+
+    /// Sample-PTS auf Wall. FrameTap Date() sonst Fill/matching dt-Lüge.
+    static func ptsWallStamp(
+        pts: TimeInterval,
+        wall: TimeInterval,
+        prevPts: TimeInterval?,
+        prevWall: TimeInterval?
+    ) -> TimeInterval {
+        guard
+            let prevPts, let prevWall,
+            pts.isFinite, pts > 0, prevPts > 0,
+            wall.isFinite, prevWall > 0
+        else { return wall }
+        let d = pts - prevPts
+        if d <= 1e-4 || d > 0.50 { return wall }
+        return prevWall + d
+    }
+
+    /// IoU-Adopt ohne Until: Held Ada, gallery.json Until leer → Restart wischt.
+    static func leftoverNameLockUntilFillHeld(
+        held: [UUID: String],
+        until: [UUID: TimeInterval],
+        now: TimeInterval,
+        arm: TimeInterval
+    ) -> [UUID: TimeInterval] {
+        var u = until
+        let used = leftoverNameLockSecPref(arm)
+        guard used > 0 else { return u }
+        for (id, name) in held where !name.isEmpty && u[id] == nil {
+            u[id] = now + used
+        }
+        return u
+    }
+
     /// Matching-Sticky analog Peak. Remint-Map leer → leftoverNameLockHeld auf tot-UUID, Coast wischt Ada.
     /// Unique IoU ≥ floor zieht Held + Until auf Live. Twin-Tie bleibt. Leerer Name nicht.
     static func leftoverNameLockHeldIoUAdopt(

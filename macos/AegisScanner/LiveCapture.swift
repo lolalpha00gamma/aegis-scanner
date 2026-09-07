@@ -744,6 +744,7 @@ private final class FrameTap: NSObject, AVCaptureVideoDataOutputSampleBufferDele
     private let lock = NSLock()
     private var last: TimeInterval = 0
     private var lastRaw: TimeInterval = 0
+    private var lastRawWall: TimeInterval = 0
     private var fpsSamples: [Double] = []
     private var slowSince: TimeInterval = 0
     private var _minInterval: TimeInterval = 0.20
@@ -780,7 +781,15 @@ private final class FrameTap: NSObject, AVCaptureVideoDataOutputSampleBufferDele
                 if fpsSamples.count > 8 { fpsSamples.removeFirst(fpsSamples.count - 8) }
             }
         }
+        let wall = Date().timeIntervalSince1970
+        let stamp = MatchMath.ptsWallStamp(
+            pts: fpsStamp,
+            wall: wall,
+            prevPts: lastRaw > 0 ? lastRaw : nil,
+            prevWall: lastRawWall > 0 ? lastRawWall : nil
+        )
         lastRaw = fpsStamp
+        lastRawWall = stamp
         let median = fpsSamples.isEmpty ? 0.0 : fpsSamples.sorted()[fpsSamples.count / 2]
         if median > 0, median < 12 {
             if slowSince == 0 { slowSince = fpsStamp }
@@ -791,7 +800,6 @@ private final class FrameTap: NSObject, AVCaptureVideoDataOutputSampleBufferDele
         let therm = MatchMath.liveThermalHolds(medianFps: median, slowFor: slowFor)
         thermal = therm
         let interval = MatchMath.liveMinIntervalThermal(base: minInterval, thermal: therm)
-        let stamp = Date().timeIntervalSince1970
         guard stamp - last >= interval else { return }
         last = stamp
         let override = orientOverride

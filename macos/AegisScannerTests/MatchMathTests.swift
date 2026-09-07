@@ -4815,6 +4815,37 @@ enum MatchMathTests {
         ok(lockLive.held[liveLock] == "Ada", "NameLock IoU-Adopt Live hält")
         ok(MatchMath.leftoverNameLockAdoptChip(did: true, name: "Ada") == "iou Ada", "NameLock Adopt Chip")
         ok(MatchMath.leftoverNameLockAdoptChip(did: false, name: "Ada") == nil, "NameLock Adopt Chip tot")
+        near(MatchMath.leftoverOverlayPeakIoUFloorArea(area: 0.01, fps: 8), 0.32, 0.001, "IoU-Area weit 8 fps")
+        near(MatchMath.leftoverOverlayPeakIoUFloorArea(area: 0.215, fps: 8), 0.46, 0.001, "IoU-Area nah 8 fps")
+        near(MatchMath.leftoverOverlayPeakIoUFloorArea(area: 0.215, fps: 60), 0.64, 0.001, "IoU-Area nah 60 fps")
+        near(MatchMath.leftoverOverlayPeakIoUFloorBoxes(live: [(w: 0.50, h: 0.50)], dt: 0.125), 0.46, 0.02, "IoU-Boxes nah")
+        let pts1 = MatchMath.ptsWallStamp(pts: 1.125, wall: 100.125, prevPts: 1.000, prevWall: 100.000)
+        near(pts1, 100.125, 1e-9, "PTS-Wall +0,125")
+        let ptsJump = MatchMath.ptsWallStamp(pts: 4.0, wall: 101.0, prevPts: 1.000, prevWall: 100.000)
+        near(ptsJump, 101.0, 1e-9, "PTS-Wall Sprung")
+        let fillId = UUID()
+        let filled = MatchMath.leftoverNameLockUntilFillHeld(
+            held: [fillId: "Ada"],
+            until: [:],
+            now: 50,
+            arm: 1.20
+        )
+        near(filled[fillId] ?? 0, 51.20, 0.01, "Until-Fill Ada")
+        let keepId = UUID()
+        let kept = MatchMath.leftoverNameLockUntilFillHeld(
+            held: [keepId: "Ada"],
+            until: [keepId: 90],
+            now: 50,
+            arm: 1.20
+        )
+        near(kept[keepId] ?? 0, 90, 0.01, "Until-Fill hält")
+        let emptyFill = MatchMath.leftoverNameLockUntilFillHeld(
+            held: [fillId: ""],
+            until: [:],
+            now: 50,
+            arm: 1.20
+        )
+        ok(emptyFill[fillId] == nil, "Until-Fill leer tot")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

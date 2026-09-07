@@ -1,3 +1,16 @@
+# Aegis Nachtrag 2.1.185 — 2026-09-07
+
+Binary **2.1.185 alpha Build 210**. IoU-Floor aus Box-Fläche. PTS-Wall FrameTap. Until-Fill nach Coast. Helios Lerp+Ghost+Pinch-Drop.
+
+## In 2.1.185 gelandet
+
+1. leftoverOverlayPeakIoUFloorArea / FloorBoxes — nah strenger, fps-Floor bleibt Basis. Peak und NameLock.
+2. ptsWallStamp — FrameTap nutzt Sample-PTS, nicht Date() für Interval+Emit.
+3. leftoverNameLockUntilFillHeld nach Coast — gallery.json Remaining nach IoU-Adopt, Restart hält Ada.
+4. Tests + VERSION = Models = MARKETING_VERSION 2.1.185 (Build 210). Schema 15 bleibt.
+
+Rest: CameraBroker, Overlay-Metal, IOHID, FaceTrack-Store, outputQueue ≠ MainActor. Siehe VORSCHLAEGE-GROK.md.
+
 # Aegis Nachtrag 2.1.184 — 2026-09-07
 
 Binary **2.1.184 alpha Build 209**. NameLock IoU-Adopt. Peak-IoU-Floor aus fps. Helios Lerp-Adopt.

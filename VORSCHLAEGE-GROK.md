@@ -1,3 +1,60 @@
+# Nachtrag 2026-09-07 — 2.1.185 / 1.5.186 (kein Merge von `bugfix`)
+
+Aegis `lolalpha00gamma/aegis-scanner` **2.1.185 alpha** (Build 210).
+Helios `bpms9cmnxc-debug/Helios` **1.5.186** (Build 205).
+Nur `main`. `bugfix` gelesen, nicht gemergt.
+
+2.1.184 NameLock IoU / Peak-Floor fps. Date()-Stamp. Until leer. Helios Lerp tot.
+
+## Warum es schlecht wirkte (dieser Pass)
+
+1. **IoU-Floor nur fps.** Nah-Twin weich.
+2. **FrameTap Date().** PTS lag ungenutzt.
+3. **Until nach Adopt leer.** Restart wischt Ada.
+4. Helios 8 fps Skelett-Snap, Ghosts tot, Freeze-Pinch.
+
+## In 2.1.185 / 1.5.186 gelandet
+
+- leftoverOverlayPeakIoUFloorArea / FloorBoxes.
+- ptsWallStamp FrameTap.
+- leftoverNameLockUntilFillHeld nach Coast.
+- Helios overlayLerpShould, overlayDrawsGhost, emptyHandsHoldDropsPinch, overlayLerpAdoptFloor, CameraSession PTS.
+- Tests + VERSION = Models = MARKETING 2.1.185 (Build 210). Schema 15 bleibt.
+
+Pass 26: IoU-Area + PTS-Wall + Until-Fill — 2.1.185 / 1.5.186.
+
+## Erweiterungen (neu, oben)
+
+1. **CameraBroker-XPC** — eine TCC, IOSurface an beide.
+2. **Gemeinsame PTS-Epoch-Datei** im Mutex.
+3. **Aegis live outputQueue ≠ MainActor.** FrameTap hop't CGImage weiter auf Main.
+4. **FaceTrack `[UUID: FaceTrack]` als einziges leftover-Dict.**
+5. **Overlay Metal 90 Hz.**
+6. **Vision tracking-ID als Remint-Seed.**
+7. **VNTrackObjectRequest** statt Remint.
+8. **Aegis live CVPixelBuffer statt CGImage-Hop.**
+9. **Print-Bank nur auf leftoverNameLockHeld Live-UUID.**
+10. **Face-Print Quality** sharpness×(1-|yaw|/90).
+11. **IOHID Event-Tap / AX SetPosition / Per-App Gain** (`bugfix`, opt-in).
+12. **Tests splitten** (MatchMathTests > 200 kB).
+13. **Swift Testing** statt DIY `ok()`.
+14. **Gallery-on-disk mmap.**
+15. **Enrollment-HUD 3-Slot.**
+16. **Helios liest leftover-Boxen** als Palm-Occlusion.
+17. **Aegis-Yaw als Helios Click-Lock.**
+18. **Negativ-Galerie Props.**
+19. **Print-Bank PCA-Whitening.**
+20. **Face-Print ONNX sidecar.**
+21. **Speaker-Diarization.**
+22. **App-Group `group.helios.aegis`.**
+23. **Gemeinsames CameraMath-Package.**
+24. **nv12 IOSurface zero-copy.**
+25. **Lock Schema v2.**
+
+Bewusst nicht: Merge `bugfix`, Blind-Patch Schwellen, CameraBroker in diesem Pass, FaceTrack-Store-Rewrite.
+
+Nächster Code-Schritt: CameraBroker-XPC oder outputQueue ≠ MainActor oder gemeinsame PTS-Epoch.
+
 # Nachtrag 2026-09-07 — 1.5.185 / 2.1.184 (kein Merge von `bugfix`)
 
 Aegis `lolalpha00gamma/aegis-scanner` **2.1.184 alpha** (Build 209).

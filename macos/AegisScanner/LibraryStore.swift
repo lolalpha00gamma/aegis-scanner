@@ -3302,7 +3302,10 @@ final class LibraryStore: ObservableObject {
                 (id: $0.key, x: $0.value.x, y: $0.value.y, w: $0.value.w, h: $0.value.h)
             }
         )
-        let adoptFloor = MatchMath.leftoverOverlayPeakIoUFloorDt(liveDt)
+        let adoptFloor = MatchMath.leftoverOverlayPeakIoUFloorBoxes(
+            live: adoptLive.map { (w: $0.w, h: $0.h) },
+            dt: liveDt
+        )
         let namedAdopt = MatchMath.leftoverNameLockHeldIoUAdopt(
             held: leftoverNameLockHeld,
             until: leftoverNameLockUntil,
@@ -3319,6 +3322,12 @@ final class LibraryStore: ObservableObject {
             live: liveIds + adopted.map(\.id),
             locked: lockedIds,
             ghosts: ghostIds
+        )
+        leftoverNameLockUntil = MatchMath.leftoverNameLockUntilFillHeld(
+            held: leftoverNameLockHeld,
+            until: leftoverNameLockUntil,
+            now: now,
+            arm: MatchMath.leftoverNameLockSec
         )
         do {
             let peakBoxes = MatchMath.leftoverOverlayPeakIoUAdopt(

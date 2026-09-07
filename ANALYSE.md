@@ -1,3 +1,26 @@
+# Aegis + Helios — Analyse 2026-09-07 (2.1.185)
+
+Aegis **2.1.185 alpha** (Build 210). Helios **1.5.186** (Build 205). Nur `main`. `bugfix` ist 2.1.15 — familyBump sitzt, nichts mergen.
+
+2.1.184: NameLock IoU-Adopt, Peak-Floor aus fps. Floor ignorierte Box-Fläche. FrameTap Date() trotz berechneter PTS. Until nach Adopt leer.
+
+## Warum Namen und dt nach 2.1.184 weiter rissen
+
+1. **IoU-Floor nur fps.** Nah-Twin 0,32 zu weich, weit 0,50 zu hart.
+2. **FrameTap stamp = Date().** fpsStamp (PTS) nur für Median. Interval/Emit Wall-Jitter.
+3. **Until nach IoU-Adopt leer.** Held Ada, Encode Remaining 0 → Restart wischt.
+4. Helios Lerp tot, Ghosts tot, Freeze-Pinch.
+
+## Was 2.1.185 / 1.5.186 ändert
+
+1. leftoverOverlayPeakIoUFloorArea.
+2. ptsWallStamp FrameTap.
+3. leftoverNameLockUntilFillHeld nach Coast.
+4. Helios overlayLerpShould, Ghosts, Pinch-Drop, Adopt-Floor.
+5. Tests + MARKETING 2.1.185 / 1.5.186 (Build 210 / 205). Schema 15 bleibt.
+
+`bugfix` mergen: nein.
+
 # Aegis + Helios — Analyse 2026-09-07 (2.1.184)
 
 Aegis **2.1.184 alpha** (Build 209). Helios **1.5.185** (Build 204). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
