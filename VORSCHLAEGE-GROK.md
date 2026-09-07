@@ -1,3 +1,15 @@
+# Nachtrag 2026-09-07 — Vorschläge (Diagnose, kein Merge)
+
+Neu, oben. Helios 1.5.174 / Aegis 2.1.176. Nur `main`.
+
+1. **Eine Frame-Uhr.** Observation-Timestamp ist die einzige Uhr. Fill nur intra-frame. Coast = Kalman.
+2. **Palm-Print Sticky-ID.** Wrist→Thumb statt Vision L/R.
+3. **Overlay-Why Inspector.** HUD-Chip zeigt Veto-Grund.
+4. **Per-Display SpaceMap.** Zwei Homographien, ein Pad.
+5. **POSIX-Semaphore + Intent.** Statt `/tmp` flock. INTENT → Yield → CONFIRM.
+6. **Negativ-Galerie Props.** Cosine gegen Gitarre/Kabel vor isHand / vor leftoverHold.
+7. **Latency-HUD Tick→AX.** End-to-end ms, Telemetry-Ring 30 s.
+
 # Nachtrag 2026-09-07 — 1.5.174 / 2.1.176 (kein Merge von `bugfix`)
 
 Helios `bpms9cmnxc-debug/Helios` **1.5.174** (Build 193).
