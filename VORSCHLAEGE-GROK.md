@@ -1,3 +1,63 @@
+# Nachtrag 2026-09-07 — 2.1.186 / 1.5.187 (kein Merge von `bugfix`)
+
+Aegis `lolalpha00gamma/aegis-scanner` **2.1.186 alpha** (Build 211).
+Helios `bpms9cmnxc-debug/Helios` **1.5.187** (Build 206).
+Nur `main`. `bugfix` gelesen, nicht gemergt.
+
+2.1.185 IoU-Area / PTS-Wall / Until-Fill. PTS lokal. FrameTap Main-Hop. Print ohne Yaw.
+
+## Warum es schlecht wirkte (dieser Pass)
+
+1. **PTS-Wall intern.** Mutex ohne gemeinsame Epoch. Zwei Fill-Uhren.
+2. **FrameTap CGImage → Main.** Detect hinter SwiftUI.
+3. **skipPrint nur Schärfe.** Profil-Print verdünnt Bank.
+4. Helios Pinch-Hysterese nicht verdrahtet.
+5. **Zwei Sessions.** Mutex+TERM Pflaster. Ohne CameraBroker zwei Vision, zwei TCC.
+6. Von `bugfix` (1.5.8 / 2.1.15) bewusst nicht gemergt: IOHID Event-Tap, AX SetPosition/Frame, Per-App-Gain, JSONL.
+
+## In 2.1.186 / 1.5.187 gelandet
+
+- Mutex 5. Feld Sample-PTS. obsFillUsesMutexPts Skew 80 ms.
+- liveFrameTapEmitsOnCaptureQueue. LibraryStore Task {@MainActor}.
+- printQuality + skipPrint yaw.
+- Helios pinchClickVsDrag 18/28, pinchReleaseFiresClick, FrameSink PTS.
+- Tests + VERSION = Models = MARKETING 2.1.186 (Build 211). Schema 15 bleibt.
+
+Pass 27: gemeinsame PTS-Epoch, Capture-Queue, Print-Qualität — 2.1.186 / 1.5.187.
+
+## Erweiterungen (neu, oben)
+
+1. **CameraBroker-XPC** — eine TCC, IOSurface an beide.
+2. **FaceTrack `[UUID: FaceTrack]` als einziges leftover-Dict.**
+3. **Overlay Metal 90 Hz.**
+4. **DisplayLink LOCK_SH liest Mutex-PTS** ohne Claim.
+5. **FrameTap CVPixelBuffer/IOSurface** statt CGImage-Kopie.
+6. **PrintQuality als Enroll-Gate** nicht nur skip. ¾-Bin trotz Profil.
+7. **PTS-Sidecar neben dem Lock.** Lock = Ownership, PTS = Uhr.
+8. **Vision tracking-ID als Remint-Seed.**
+9. **VNTrackObjectRequest** statt Remint.
+10. **IOHID Event-Tap / AX SetPosition / Per-App Gain** (`bugfix`, opt-in).
+11. **Tests splitten** (MatchMathTests > 200 kB).
+12. **Swift Testing** statt DIY `ok()`.
+13. **Gallery-on-disk mmap.**
+14. **Enrollment-HUD 3-Slot.**
+15. **Helios liest leftover-Boxen** als Palm-Occlusion.
+16. **Aegis-Yaw als Helios Click-Lock.**
+17. **Negativ-Galerie Props.**
+18. **Print-Bank PCA-Whitening.**
+19. **Face-Print ONNX sidecar.**
+20. **Speaker-Diarization.**
+21. **App-Group `group.helios.aegis`.**
+22. **Gemeinsames CameraMath-Package.**
+23. **nv12 IOSurface zero-copy.**
+24. **Lock Schema v2.**
+25. **CI `swiftc` Tests vor DMG hart.**
+26. **Print-Bank nur auf leftoverNameLockHeld Live-UUID.**
+
+Bewusst nicht: Merge `bugfix`, Blind-Patch Schwellen, CameraBroker in diesem Pass, FaceTrack-Store-Rewrite.
+
+Nächster Code-Schritt: CameraBroker-XPC oder FaceTrack-Store oder Overlay-Metal.
+
 # Nachtrag 2026-09-07 — 2.1.185 / 1.5.186 (kein Merge von `bugfix`)
 
 Aegis `lolalpha00gamma/aegis-scanner` **2.1.185 alpha** (Build 210).

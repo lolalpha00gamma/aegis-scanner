@@ -1,3 +1,26 @@
+# Aegis + Helios — Analyse 2026-09-07 (2.1.186)
+
+Aegis **2.1.186 alpha** (Build 211). Helios **1.5.187** (Build 206). Nur `main`. `bugfix` ist 2.1.15 — familyBump sitzt, nichts mergen.
+
+2.1.185: IoU-Area, PTS-Wall FrameTap, Until-Fill. PTS blieb lokal. FrameTap hop't weiter auf Main. Print ohne Yaw.
+
+## Warum Namen und dt nach 2.1.185 weiter rissen
+
+1. **PTS-Wall nur intern.** Mutex ohne 5. Feld. Helios Fill andere Uhr.
+2. **FrameTap `DispatchQueue.main.async`.** CGImage auf Main vor Detect. Continuity 8 fps Jank.
+3. **skipPrint nur Laplacian.** Profil verdünnt Print-Bank.
+4. Helios Pinch 6/12 vs Live 18/28.
+
+## Was 2.1.186 / 1.5.187 ändert
+
+1. Mutex 5. Feld Sample-PTS. obsFillUsesMutexPts.
+2. liveFrameTapEmitsOnCaptureQueue. LibraryStore Task {@MainActor}.
+3. printQuality + skipPrint yaw.
+4. Helios pinchReleaseFiresClick, Pinch-Const 18/28, FrameSink PTS.
+5. Tests + MARKETING 2.1.186 / 1.5.187 (Build 211 / 206). Schema 15 bleibt.
+
+`bugfix` mergen: nein.
+
 # Aegis + Helios — Analyse 2026-09-07 (2.1.185)
 
 Aegis **2.1.185 alpha** (Build 210). Helios **1.5.186** (Build 205). Nur `main`. `bugfix` ist 2.1.15 — familyBump sitzt, nichts mergen.

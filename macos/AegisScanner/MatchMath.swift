@@ -997,11 +997,12 @@ enum MatchMath {
         pid: Int32,
         now: TimeInterval,
         expectedGen: UInt32? = nil,
-        pidLive: Bool? = nil
+        pidLive: Bool? = nil,
+        pts: TimeInterval? = nil
     ) -> String? {
         guard cameraMutexWriteAllowed(existing: existing, owner: owner, now: now, pidLive: pidLive) else { return nil }
         guard cameraMutexCasAllows(existing: existing, owner: owner, expectedGen: expectedGen) else { return nil }
-        return cameraMutexLine(owner: owner, pid: pid, now: now, gen: cameraMutexBumpGen(existing))
+        return cameraMutexLine(owner: owner, pid: pid, now: now, gen: cameraMutexBumpGen(existing), pts: pts)
     }
     /// 3 s war kürzer als Continuity-Frame. Heartbeat 2 s, Stale 12.
     static func cameraMutexStale() -> TimeInterval { 12 }
@@ -1009,13 +1010,37 @@ enum MatchMath {
     static func cameraMutexHeartbeatSec() -> TimeInterval { 2 }
 
     /// Int(now) = Sekundenraster: Claim 12,9 / Parse 13,0 = 1 s tot. %.3f hält ms.
-    /// gen 0: alte 3-Felder-Zeile (2.1.160).
-    static func cameraMutexLine(owner: String, pid: Int32, now: TimeInterval, gen: UInt32 = 0) -> String {
+    /// gen 0: alte 3-Felder-Zeile (2.1.160). 5. Feld: Sample-PTS (2.1.186).
+    static func cameraMutexLine(owner: String, pid: Int32, now: TimeInterval, gen: UInt32 = 0, pts: TimeInterval? = nil) -> String {
+        if let pts, pts > 0, pts.isFinite {
+            return String(format: "%@ %d %.3f %u %.3f", owner, pid, now, gen, pts)
+        }
         if gen == 0 {
             return String(format: "%@ %d %.3f", owner, pid, now)
         }
         return String(format: "%@ %d %.3f %u", owner, pid, now, gen)
     }
+
+    /// 5. Feld: gemeinsame PTS-Epoch. Fehlt bei 3-/4-Zeile.
+    static func cameraMutexPts(_ text: String) -> TimeInterval? {
+        let parts = text.split(whereSeparator: { $0 == " " || $0 == "\n" }).map(String.init)
+        guard parts.count >= 5, let v = TimeInterval(parts[4]), v.isFinite, v > 0 else { return nil }
+        return v
+    }
+
+    /// Fill-Uhr: Mutex-PTS wenn Skew klein, sonst eigene. Zwei Sessions sonst 2 Uhren.
+    static func obsFillUsesMutexPts(own: TimeInterval, mutex: TimeInterval?, maxSkew: TimeInterval = 0.08) -> TimeInterval {
+        guard let mutex, mutex > 0, own > 0, abs(own - mutex) <= maxSkew else { return own }
+        return mutex
+    }
+
+    static func cameraMutexPtsChip(_ pts: TimeInterval?) -> String? {
+        guard let pts, pts > 0 else { return nil }
+        return String(format: "PTS %.2f", pts.truncatingRemainder(dividingBy: 1000))
+    }
+
+    /// FrameTap bleibt auf der Capture-Queue. CGImage-Hop auf Main = Jank.
+    static func liveFrameTapEmitsOnCaptureQueue() -> Bool { true }
 
     static func cameraMutexPid(_ text: String) -> Int32? {
         let parts = text.split(whereSeparator: { $0 == " " || $0 == "\n" }).map(String.init)
@@ -4905,8 +4930,21 @@ enum MatchMath {
 
     /// Laplacian unter Floor: Print-Request lohnt nicht.
     /// Continuity/Desk-View oft 0,10–0,14 — dort 0,08 statt 0,12.
-    static func skipPrint(sharpness: Double, continuity: Bool = false) -> Bool {
-        sharpness < activeSharpnessFloor(continuity: continuity)
+    /// yaw: Profil drückt Quality = sharpness×(1-|yaw°|/90) unter den Floor.
+    static func skipPrint(sharpness: Double, continuity: Bool = false, yaw: Double? = nil) -> Bool {
+        let floor = activeSharpnessFloor(continuity: continuity)
+        if sharpness < floor { return true }
+        if let yaw {
+            return printQuality(sharpness: sharpness, yaw: yaw) < floor
+        }
+        return false
+    }
+
+    /// sharpness × (1 − |yaw|/90°). Profil 90° → 0.
+    static func printQuality(sharpness: Double, yaw: Double) -> Double {
+        let s = max(0, min(1, sharpness))
+        let deg = abs(yaw) * (180 / Double.pi)
+        return s * max(0, 1 - deg / 90)
     }
 
     /// Ampel über bis zu 8 Frames: schlechteste Capture/Schärfe, größtes |Yaw|.

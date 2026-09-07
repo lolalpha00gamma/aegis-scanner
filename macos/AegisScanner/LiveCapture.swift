@@ -60,6 +60,7 @@ final class LiveCapture: NSObject {
     private var mutexBeat: Timer?
     private var mutexClaimFails = 0
     private var lastMutexClaimAt: TimeInterval = 0
+    private var lastMutexPts: TimeInterval = 0
 
     static func orientKey(_ uniqueID: String) -> String { "aegis.camOrient.\(uniqueID)" }
 
@@ -361,7 +362,8 @@ final class LiveCapture: NSObject {
                 }
             }
             guard let line = MatchMath.cameraMutexLockedLine(
-                existing: existing, owner: owner, pid: pid, now: now, expectedGen: expectedGen, pidLive: pidLive
+                existing: existing, owner: owner, pid: pid, now: now, expectedGen: expectedGen, pidLive: pidLive,
+                pts: tap?.lastStamp
             ) else {
                 _ = flock(fd, LOCK_UN)
                 close(fd)
@@ -388,7 +390,8 @@ final class LiveCapture: NSObject {
         let holderPid = existing.flatMap { MatchMath.cameraMutexPid($0) }
         let pidLive: Bool? = holderPid.map { p in p > 0 && (kill(p, 0) == 0 || errno == EPERM) }
         guard let line = MatchMath.cameraMutexLockedLine(
-            existing: existing, owner: owner, pid: pid, now: now, expectedGen: expectedGen, pidLive: pidLive
+            existing: existing, owner: owner, pid: pid, now: now, expectedGen: expectedGen, pidLive: pidLive,
+            pts: tap?.lastStamp
         ) else { return false }
         try? line.write(to: url, atomically: true, encoding: .utf8)
         return true
@@ -437,6 +440,7 @@ final class LiveCapture: NSObject {
         }
         let pid = MatchMath.cameraMutexPid(text)
         let live = pid.map { p in p > 0 && (kill(p, 0) == 0 || errno == EPERM) }
+        if let pts = MatchMath.cameraMutexPts(text) { lastMutexPts = pts }
         return (
             MatchMath.cameraMutexParse(text, now: Date().timeIntervalSince1970, pidLive: live),
             false,
@@ -764,6 +768,10 @@ private final class FrameTap: NSObject, AVCaptureVideoDataOutputSampleBufferDele
         get { lock.lock(); defer { lock.unlock() }; return _thermal }
         set { lock.lock(); _thermal = newValue; lock.unlock() }
     }
+    private var _lastStamp: TimeInterval = 0
+    var lastStamp: TimeInterval {
+        lock.lock(); defer { lock.unlock() }; return _lastStamp
+    }
     private let emit: (CGImage, TimeInterval) -> Void
     init(emit: @escaping (CGImage, TimeInterval) -> Void) { self.emit = emit }
     func captureOutput(
@@ -790,6 +798,7 @@ private final class FrameTap: NSObject, AVCaptureVideoDataOutputSampleBufferDele
         )
         lastRaw = fpsStamp
         lastRawWall = stamp
+        lock.lock(); _lastStamp = stamp; lock.unlock()
         let median = fpsSamples.isEmpty ? 0.0 : fpsSamples.sorted()[fpsSamples.count / 2]
         if median > 0, median < 12 {
             if slowSince == 0 { slowSince = fpsStamp }
@@ -811,7 +820,11 @@ private final class FrameTap: NSObject, AVCaptureVideoDataOutputSampleBufferDele
                 height: CVPixelBufferGetHeight(pb)
               ))
         else { return }
-        DispatchQueue.main.async { self.emit(image, stamp) }
+        if MatchMath.liveFrameTapEmitsOnCaptureQueue() {
+            emit(image, stamp)
+        } else {
+            DispatchQueue.main.async { self.emit(image, stamp) }
+        }
     }
 }
 

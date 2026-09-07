@@ -4846,6 +4846,19 @@ enum MatchMathTests {
             arm: 1.20
         )
         ok(emptyFill[fillId] == nil, "Until-Fill leer tot")
+        let ptsLine = MatchMath.cameraMutexLine(owner: "aegis", pid: 9, now: 50, gen: 3, pts: 50.125)
+        near(MatchMath.cameraMutexPts(ptsLine) ?? 0, 50.125, 1e-6, "Mutex PTS 5. Feld")
+        ok(MatchMath.cameraMutexPts("aegis 9 50.000 3") == nil, "Mutex PTS 4-Zeile tot")
+        near(MatchMath.obsFillUsesMutexPts(own: 50.10, mutex: 50.12), 50.12, 1e-9, "Fill Mutex-PTS")
+        near(MatchMath.obsFillUsesMutexPts(own: 50.10, mutex: 50.30), 50.10, 1e-9, "Fill Skew own")
+        ok(MatchMath.obsFillUsesMutexPts(own: 50.10, mutex: nil) == 50.10, "Fill ohne Mutex")
+        ok(MatchMath.liveFrameTapEmitsOnCaptureQueue(), "FrameTap Capture-Queue")
+        ok(MatchMath.cameraMutexPtsChip(100.50) == "PTS 100.50", "PTS Chip")
+        near(MatchMath.printQuality(sharpness: 1, yaw: 0), 1, 0.001, "PrintQ frontal")
+        near(MatchMath.printQuality(sharpness: 1, yaw: .pi / 2), 0, 0.001, "PrintQ Profil 0")
+        ok(MatchMath.skipPrint(sharpness: 0.20, yaw: 1.40), "Profil spart Print")
+        ok(!MatchMath.skipPrint(sharpness: 0.20, yaw: 0), "Frontal Print")
+        ok(!MatchMath.skipPrint(sharpness: 0.20), "ohne Yaw scharf")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

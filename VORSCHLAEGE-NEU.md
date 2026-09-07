@@ -1,3 +1,16 @@
+# Aegis Nachtrag 2.1.186 — 2026-09-07
+
+Binary **2.1.186 alpha Build 211**. Mutex-PTS. FrameTap Capture-Queue. Print-Qualität. Helios Pinch-Hysterese.
+
+## In 2.1.186 gelandet
+
+1. cameraMutexLine 5. Feld Sample-PTS. obsFillUsesMutexPts. LiveCapture schreibt lastStamp.
+2. liveFrameTapEmitsOnCaptureQueue — FrameTap ohne Main-Hop. LibraryStore Task {@MainActor}.
+3. printQuality sharpness×(1-|yaw|/90°). skipPrint yaw.
+4. Tests + VERSION = Models = MARKETING_VERSION 2.1.186 (Build 211). Schema 15 bleibt.
+
+Rest: CameraBroker, Overlay-Metal, IOHID, FaceTrack-Store, CVPixelBuffer statt CGImage. Siehe VORSCHLAEGE-GROK.md.
+
 # Aegis Nachtrag 2.1.185 — 2026-09-07
 
 Binary **2.1.185 alpha Build 210**. IoU-Floor aus Box-Fläche. PTS-Wall FrameTap. Until-Fill nach Coast. Helios Lerp+Ghost+Pinch-Drop.

@@ -2203,7 +2203,13 @@ final class LibraryStore: ObservableObject {
             self?.liveActive = false
         }
         liveCapture.onFrame = { [weak self] image, stamp in
-            self?.ingestLiveFrame(image, mediaId: id, stamp: stamp)
+            if MatchMath.liveFrameTapEmitsOnCaptureQueue() {
+                Task { @MainActor in
+                    self?.ingestLiveFrame(image, mediaId: id, stamp: stamp)
+                }
+            } else {
+                self?.ingestLiveFrame(image, mediaId: id, stamp: stamp)
+            }
         }
         liveCapture.choice = cameraChoice
         liveCapture.start(url: url, kind: kind)
@@ -2796,7 +2802,7 @@ final class LibraryStore: ObservableObject {
                             enrolled: enrolledPin
                         )
                         || MatchMath.holdStillSkip(iou: bestIoU, sharpness: face.quality.sharpness)
-                        || MatchMath.skipPrint(sharpness: face.quality.sharpness, continuity: liveCapture.isContinuity)
+                        || MatchMath.skipPrint(sharpness: face.quality.sharpness, continuity: liveCapture.isContinuity, yaw: face.quality.yaw)
                         || MatchMath.motionBlurDrops(
                             aligned: MatchMath.cropAligns(roll: face.quality.roll),
                             sharpness: face.quality.sharpness
@@ -2881,7 +2887,8 @@ final class LibraryStore: ObservableObject {
                 }
                 let blur = MatchMath.skipPrint(
                     sharpness: face.quality.sharpness,
-                    continuity: liveCapture.isContinuity
+                    continuity: liveCapture.isContinuity,
+                    yaw: face.quality.yaw
                 )
                 if jump || blur || face.featurePrint.isEmpty, !old.featurePrint.isEmpty {
                     face.featurePrint = old.featurePrint
