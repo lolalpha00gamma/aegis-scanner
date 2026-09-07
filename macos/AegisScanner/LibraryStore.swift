@@ -48,11 +48,12 @@ final class LibraryStore: ObservableObject {
     @Published var leftoverHold: [UUID: Double] = [:]
     private var leftoverHoldBins: [String: Double] = [:]
     @Published var leftoverPending: [UUID: String] = [:]
-    @Published var cameraChoice: CameraChoice = .auto
+    @Published var cameraChoice: CameraChoice = .builtIn
     @Published var liveFormatChip: String = ""
     @Published var mutexChip: String = "—"
     @Published var yieldAutoReturn = true
     @Published var yieldGrace: Double = 4
+    @Published var mutexKill = false
     @Published var freezeAxis: [UUID: String] = [:]
     @Published var swapFlashUntil: TimeInterval = 0
     @Published var headCountFlashUntil: TimeInterval = 0
@@ -265,10 +266,20 @@ final class LibraryStore: ObservableObject {
                 : revisionWarning
         }
         if let raw = UserDefaults.standard.string(forKey: "aegis.cameraChoice"),
+           UserDefaults.standard.object(forKey: "aegis.cameraPair.v188") != nil,
            let c = CameraChoice(rawValue: raw)
         {
             cameraChoice = c
+        } else {
+            UserDefaults.standard.set(true, forKey: "aegis.cameraPair.v188")
+            let next = MatchMath.cameraPairAegisMigrates(
+                UserDefaults.standard.string(forKey: "aegis.cameraChoice")
+            )
+            cameraChoice = CameraChoice(rawValue: next) ?? .builtIn
+            UserDefaults.standard.set(cameraChoice.rawValue, forKey: "aegis.cameraChoice")
         }
+        mutexKill = MatchMath.cameraMutexKillPref(UserDefaults.standard.bool(forKey: "aegis.mutexKill"))
+        liveCapture.mutexKillEnabled = mutexKill
         if UserDefaults.standard.object(forKey: "aegis.yieldAutoReturn") != nil {
             yieldAutoReturn = MatchMath.cameraMutexYieldAutoReturnPref(
                 UserDefaults.standard.bool(forKey: "aegis.yieldAutoReturn")
@@ -371,6 +382,7 @@ final class LibraryStore: ObservableObject {
             kalmanJump = MatchMath.leftoverHoldKalmanJumpPref(jumpStored)
         }
         liveCapture.choice = cameraChoice
+        liveCapture.mutexKillEnabled = mutexKill
         let digest = GalleryFile.digestStatus()
         if let note = MatchMath.shaVerifyNote(ok: digest.ok, missing: digest.missing) {
             revisionWarning = revisionWarning.isEmpty ? note : revisionWarning + " · " + note
@@ -1587,6 +1599,12 @@ final class LibraryStore: ObservableObject {
         UserDefaults.standard.set(yieldGrace, forKey: "aegis.yieldGrace")
     }
 
+    func setMutexKill(_ on: Bool) {
+        mutexKill = MatchMath.cameraMutexKillPref(on)
+        liveCapture.mutexKillEnabled = mutexKill
+        UserDefaults.standard.set(mutexKill, forKey: "aegis.mutexKill")
+    }
+
     func setNameLockSec(_ v: Double) {
         nameLockSec = MatchMath.leftoverNameLockSecPref(v)
         UserDefaults.standard.set(nameLockSec, forKey: "aegis.nameLockSec")
@@ -2214,6 +2232,7 @@ final class LibraryStore: ObservableObject {
             }
         }
         liveCapture.choice = cameraChoice
+        liveCapture.mutexKillEnabled = mutexKill
         liveCapture.start(url: url, kind: kind)
     }
 

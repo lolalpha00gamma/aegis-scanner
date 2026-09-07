@@ -1,3 +1,44 @@
+# Aegis Nachtrag 2.1.188 — 2026-09-07
+
+Binary **2.1.188 alpha Build 213**. Mutex v2, Kamera-Paar, Twin-tieKey ohne Yaw, Kill aus.
+
+## In 2.1.188 gelandet
+
+1. cameraMutexLine immer 5 Felder + `v2`.
+2. obsFillUsesMutexPts Skew 220 ms.
+3. leftoverHashTwinLeft x-Tie: tieKey auch ohne Yaw.
+4. Default Built-in, Migration Auto → Built-in einmal.
+5. SIGKILL Default aus. Toolbar-Toggle Kill.
+6. Tests + VERSION = Models = MARKETING 2.1.188 (Build 213). Schema 15 bleibt.
+
+## Offen
+
+P0 CameraBroker.
+P0 FaceTrack = einzige Store-Map. leftoverHold/Peak/PairLast/NameLock sind noch 20 Dictionaries.
+P1 CVPixelBuffer bis Detect. LiveCapture nicht @MainActor.
+P2 MatchMath split. Mutex v2 Datei ist da, Kit fehlt.
+P2 Print-Qualität ungleich Skip-Gate (3/4-Enroll).
+P2 Golden-Frames 8 fps + PTS.
+
+## Erweiterung (neu)
+
+1. **FaceTrack remint als eine Map.** leftoverAssignAtomicAll, LibraryStore listet keine 20 Moves mehr.
+2. **Gallery-Row-ID überlebt Detect.** Overlay zeigt Row-Name, nie UUID-Tail.
+3. **Enroll-Coach State Machine:** Front, ¾ L, ¾ R, Blink. Kein Print-Burst 0,98.
+4. **Temperature-skalierte Cosine** statt hart 0,80.
+5. **VNTrackObjectRequest** neben Rectangles.
+6. **RTSP 420f**, Reconnect Exponential-Backoff.
+7. **Watch-Folder PhotoKit**, Export `.aegis` verschlüsselt.
+8. **P-Slot Maske/Schal**, Brille-Slot als Twin-Veto.
+9. **Temporal ReID-Graph** über Hold-Trail.
+10. **Overlay 60 Hz CAMetalLayer**, Detect 8–24 fps.
+11. **gallery.json.bak Rotate 3**, printRevision je Identity.
+12. **Licht-Eimer** (frontal / ¾ / Profil) statt einem Cosine.
+13. **Match-Log JSONL** für Replay.
+14. **Drop-in `.mlmodel`** FaceEmbedder-Protokoll.
+15. **Zwei-Cam-Stereo** mit Helios Continuity + Aegis Built-in (jetzt Default-Paar).
+16. **Shared HeliosAegisKit** für Mutex v2 + PTS + SlotKind/CoastKind.
+
 # Aegis Nachtrag 2.1.187 — 2026-09-07
 
 Binary **2.1.187 alpha Build 212**. FrameTap emitBusy. Vision-Interval. Helios 8-fps Klick/Dwell.

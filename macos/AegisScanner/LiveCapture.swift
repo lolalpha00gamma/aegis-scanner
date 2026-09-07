@@ -52,7 +52,9 @@ final class LiveCapture: NSObject {
     private(set) var isContinuity = false
     private(set) var formatChip = ""
     private(set) var mutexChip = "—"
-    var choice: CameraChoice = .auto
+    var choice: CameraChoice = .builtIn
+    /// Hung-live: SIGTERM/SIGKILL nur wenn Pref an. Default aus.
+    var mutexKillEnabled = false
     private var cameraMutexYielded = false
     private var yieldSince: TimeInterval = 0
     var yieldAutoReturn = true
@@ -348,7 +350,8 @@ final class LiveCapture: NSObject {
             let existing = buf.isEmpty ? nil : String(bytes: buf, encoding: .utf8)
             let holderPid = existing.flatMap { MatchMath.cameraMutexPid($0) }
             let pidLive: Bool? = holderPid.map { p in p > 0 && (kill(p, 0) == 0 || errno == EPERM) }
-            if let victim = MatchMath.cameraMutexHeartbeatKillPid(
+            if MatchMath.cameraMutexKillPref(mutexKillEnabled),
+               let victim = MatchMath.cameraMutexHeartbeatKillPid(
                 pid: holderPid,
                 live: pidLive,
                 now: now,

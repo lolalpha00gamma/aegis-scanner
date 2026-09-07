@@ -1010,15 +1010,18 @@ enum MatchMath {
     static func cameraMutexHeartbeatSec() -> TimeInterval { 2 }
 
     /// Int(now) = Sekundenraster: Claim 12,9 / Parse 13,0 = 1 s tot. %.3f hält ms.
-    /// gen 0: alte 3-Felder-Zeile (2.1.160). 5. Feld: Sample-PTS (2.1.186).
+    /// Protokoll v2: immer 5 Felder + Suffix. 3-/4-Zeile bleibt lesbar (v1).
+    static func cameraMutexProtocolVersion() -> Int { 2 }
+
+    static func cameraMutexProtocol(_ text: String) -> Int {
+        let parts = text.split(whereSeparator: { $0 == " " || $0 == "\n" }).map(String.init)
+        return parts.last == "v2" ? 2 : 1
+    }
+
     static func cameraMutexLine(owner: String, pid: Int32, now: TimeInterval, gen: UInt32 = 0, pts: TimeInterval? = nil) -> String {
-        if let pts, pts > 0, pts.isFinite {
-            return String(format: "%@ %d %.3f %u %.3f", owner, pid, now, gen, pts)
-        }
-        if gen == 0 {
-            return String(format: "%@ %d %.3f", owner, pid, now)
-        }
-        return String(format: "%@ %d %.3f %u", owner, pid, now, gen)
+        let p: TimeInterval
+        if let pts, pts > 0, pts.isFinite { p = pts } else { p = 0 }
+        return String(format: "%@ %d %.3f %u %.3f v2", owner, pid, now, gen, p)
     }
 
     /// 5. Feld: gemeinsame PTS-Epoch. Fehlt bei 3-/4-Zeile.
@@ -1028,8 +1031,8 @@ enum MatchMath {
         return v
     }
 
-    /// Fill-Uhr: Mutex-PTS wenn Skew klein, sonst eigene. Zwei Sessions sonst 2 Uhren.
-    static func obsFillUsesMutexPts(own: TimeInterval, mutex: TimeInterval?, maxSkew: TimeInterval = 0.08) -> TimeInterval {
+    /// Fill-Uhr: Mutex-PTS wenn Skew klein, sonst eigene. 80 ms war kürzer als Continuity 8 fps (125 ms).
+    static func obsFillUsesMutexPts(own: TimeInterval, mutex: TimeInterval?, maxSkew: TimeInterval = 0.22) -> TimeInterval {
         guard let mutex, mutex > 0, own > 0, abs(own - mutex) <= maxSkew else { return own }
         return mutex
     }
@@ -1250,6 +1253,21 @@ enum MatchMath {
             return String(format: "TERM %.1f", r).replacingOccurrences(of: ".", with: ",")
         }
         return nil
+    }
+
+    /// SIGKILL ist opt-in. Default aus: Hung-live → Yield/Built-in, nicht den Partner töten.
+    static func cameraMutexKillDefault() -> Bool { false }
+    static func cameraMutexKillPref(_ on: Bool) -> Bool { on }
+
+    static func cameraPairHelios() -> String { "continuity" }
+    static func cameraPairAegis() -> String { "builtIn" }
+    static func cameraPairHeliosMigrates(_ prev: String?) -> String {
+        if prev == nil || prev == "auto" { return cameraPairHelios() }
+        return prev!
+    }
+    static func cameraPairAegisMigrates(_ prev: String?) -> String {
+        if prev == nil || prev == "auto" { return cameraPairAegis() }
+        return prev!
     }
 
     /// Overlay: 3-Tick-Mittel wenn voll, sonst EMA.
@@ -1884,8 +1902,8 @@ enum MatchMath {
     }
 
     /// Hamming-0 Twins: strikt links behält Exact, rechts Occupied.
-    /// Gleichstand ohne Yaw: beide tot. Mit Yaw: kleinerer yawAbs Exact (Center-Stage).
-    /// Yaw auch gleich: tieKey lexikographisch kleiner Exact — sonst beide Occupied.
+    /// Gleichstand ohne Yaw: tieKey entscheidet — sonst beide tot (Center-Stage erster Frame).
+    /// Mit Yaw: kleinerer yawAbs Exact. Yaw auch gleich: tieKey lexikographisch kleiner Exact.
     static func leftoverHashTwinLeft(
         x: Double,
         others: [Double],
@@ -1896,17 +1914,20 @@ enum MatchMath {
     ) -> Bool {
         if others.allSatisfy({ x + 1e-9 < $0 }) { return true }
         if others.contains(where: { $0 + 1e-9 < x }) { return false }
-        guard otherYaws.count == others.count, !otherYaws.isEmpty else { return false }
-        let tied = zip(others, otherYaws).compactMap { ox, oy -> Double? in
-            abs(ox - x) <= 1e-9 ? oy : nil
+        if otherYaws.count == others.count, !otherYaws.isEmpty {
+            let tied = zip(others, otherYaws).compactMap { ox, oy -> Double? in
+                abs(ox - x) <= 1e-9 ? oy : nil
+            }
+            if !tied.isEmpty && tied.allSatisfy({ yawAbs + 1e-9 < $0 }) { return true }
+            if !tied.isEmpty && tied.contains(where: { $0 + 1e-9 < yawAbs }) { return false }
+            // Dritter mit größerem Yaw darf tieKey der Frontalen nicht vergiften.
+            if !tied.isEmpty && !tied.allSatisfy({ abs(yawAbs - $0) <= 1e-9 }) { return false }
         }
-        if !tied.isEmpty && tied.allSatisfy({ yawAbs + 1e-9 < $0 }) { return true }
-        if !tied.isEmpty && tied.allSatisfy({ abs(yawAbs - $0) <= 1e-9 }),
-           otherTieKeys.count == others.count, !tieKey.isEmpty {
+        if otherTieKeys.count == others.count, !tieKey.isEmpty {
             let keys = zip(others, otherTieKeys).compactMap { ox, k -> String? in
                 abs(ox - x) <= 1e-9 ? k : nil
             }
-            return keys.allSatisfy { tieKey < $0 }
+            if !keys.isEmpty { return keys.allSatisfy { tieKey < $0 } }
         }
         return false
     }

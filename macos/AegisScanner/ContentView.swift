@@ -65,7 +65,12 @@ struct ContentView: View {
             }
             .pickerStyle(.menu)
             .frame(width: 150)
-            .help("Built-in zuerst, sonst Continuity. Analog Helios.")
+            .help("Paar: Aegis = Built-in, Helios = Continuity. Auto auf beiden kämpft um dieselbe Cam.")
+            Toggle("Kill", isOn: Binding(
+                get: { store.mutexKill },
+                set: { store.setMutexKill($0) }
+            ))
+            .help("Aus = Yield. An = hung-live Partner nach 2 s SIGKILL.")
             if !store.liveFormatChip.isEmpty {
                 Text(store.liveFormatChip)
                     .font(.system(.caption, design: .monospaced))

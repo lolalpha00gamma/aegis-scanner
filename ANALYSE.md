@@ -1,3 +1,28 @@
+# Aegis 2.1.188 — Kamera-Paar, Mutex v2, Twin ohne Yaw, kein SIGKILL
+
+Aegis **2.1.188 alpha** (Build 213). Helios **1.5.189** (Build 208). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.187: emitBusy. Mutex blieb v1-Mix. Twin x-Tie ohne Yaw tötete beide Occupied. Auto+Auto = Krieg.
+
+## Warum Live nach 2.1.187 weiter riss
+
+1. **3/4/5-Feld Mutex.** Helios ohne pts schrieb 3 Felder. Aegis las Gen/PTS nicht. Yield sah aus wie tot.
+2. **PTS-Skew 80 ms < 125 ms Continuity.** obsFillUsesMutexPts fast immer own.
+3. **leftoverHashTwinLeft** bei x-Tie ohne Yaw `return false` für beide — Center-Stage erster Frame beide Occupied.
+4. **Default Auto.** Mit Helios Auto um Built-in, dann Continuity + SIGKILL.
+5. FaceTrack-Store und leftover-Maps laufen weiter parallel — nicht dieser Pass.
+
+## Was 2.1.188 / 1.5.189 ändert
+
+1. Mutex **v2** immer 5 Felder + `v2`. v1 lesbar.
+2. PTS-Skew **220 ms**.
+3. Twin x-Tie: tieKey auch ohne Yaw. Ein Exact, nicht zwei tot.
+4. **Kamera-Paar:** Aegis Built-in, Helios Continuity. Einmal-Migration von Auto.
+5. **SIGKILL opt-in.** Toggle „Kill“ in der Toolbar.
+6. Tests + VERSION = Models = MARKETING 2.1.188 (Build 213). Schema 15 bleibt.
+
+`bugfix` mergen: nein.
+
 # Aegis + Helios — Analyse 2026-09-07 (2.1.187)
 
 Aegis **2.1.187 alpha** (Build 212). Helios **1.6.33** (Build 66). Nur `main`. `bugfix` ist 2.1.15 — familyBump sitzt, nichts mergen.

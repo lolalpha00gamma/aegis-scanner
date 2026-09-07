@@ -4850,7 +4850,8 @@ enum MatchMathTests {
         near(MatchMath.cameraMutexPts(ptsLine) ?? 0, 50.125, 1e-6, "Mutex PTS 5. Feld")
         ok(MatchMath.cameraMutexPts("aegis 9 50.000 3") == nil, "Mutex PTS 4-Zeile tot")
         near(MatchMath.obsFillUsesMutexPts(own: 50.10, mutex: 50.12), 50.12, 1e-9, "Fill Mutex-PTS")
-        near(MatchMath.obsFillUsesMutexPts(own: 50.10, mutex: 50.30), 50.10, 1e-9, "Fill Skew own")
+        near(MatchMath.obsFillUsesMutexPts(own: 50.10, mutex: 50.225), 50.225, 1e-9, "Fill Continuity-Frame")
+        near(MatchMath.obsFillUsesMutexPts(own: 50.10, mutex: 50.50), 50.10, 1e-9, "Fill Skew own")
         ok(MatchMath.obsFillUsesMutexPts(own: 50.10, mutex: nil) == 50.10, "Fill ohne Mutex")
         ok(MatchMath.liveFrameTapEmitsOnCaptureQueue(), "FrameTap Capture-Queue")
         ok(MatchMath.liveEmitAllows(busy: false), "Emit frei")
@@ -4866,6 +4867,37 @@ enum MatchMathTests {
         ok(MatchMath.skipPrint(sharpness: 0.20, yaw: 1.40), "Profil spart Print")
         ok(!MatchMath.skipPrint(sharpness: 0.20, yaw: 0), "Frontal Print")
         ok(!MatchMath.skipPrint(sharpness: 0.20), "ohne Yaw scharf")
+        ok(MatchMath.cameraMutexProtocolVersion() == 2, "Mutex v2")
+        ok(MatchMath.cameraMutexProtocol(ptsLine) == 2, "Mutex Write v2")
+        ok(MatchMath.cameraMutexProtocol("aegis 9 50.000") == 1, "Mutex 3-Zeile v1")
+        ok(!MatchMath.cameraMutexKillDefault(), "Kill Default aus")
+        ok(MatchMath.cameraMutexKillPref(true), "Kill Pref an")
+        ok(MatchMath.cameraPairHelios() == "continuity", "Paar Helios Continuity")
+        ok(MatchMath.cameraPairAegis() == "builtIn", "Paar Aegis Built-in")
+        ok(MatchMath.cameraPairAegisMigrates(nil) == "builtIn", "Paar Aegis neu")
+        ok(MatchMath.cameraPairAegisMigrates("auto") == "builtIn", "Paar Aegis Auto")
+        ok(MatchMath.cameraPairAegisMigrates("continuity") == "continuity", "Paar Aegis bleibt")
+        ok(
+            MatchMath.leftoverHashTwinLeft(
+                x: 0.50, others: [0.50], tieKey: "aaa", otherTieKeys: ["bbb"]
+            ),
+            "x-Tie Key ohne Yaw Exact"
+        )
+        ok(
+            !MatchMath.leftoverHashTwinLeft(
+                x: 0.50, others: [0.50], tieKey: "bbb", otherTieKeys: ["aaa"]
+            ),
+            "x-Tie Key ohne Yaw Occupied"
+        )
+        ok(!MatchMath.leftoverHashTwinLeft(x: 0.50, others: [0.50]), "x-Tie ohne Key tot")
+        ok(
+            !MatchMath.leftoverHashTwinLeft(
+                x: 0.50, others: [0.50, 0.50],
+                yawAbs: 0.10, otherYaws: [0.10, 0.40],
+                tieKey: "bbb", otherTieKeys: ["ccc", "aaa"]
+            ),
+            "Yaw-Mix kein tieKey gegen Profil"
+        )
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

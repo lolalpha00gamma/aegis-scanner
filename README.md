@@ -1,4 +1,4 @@
-# Aegis **2.1.187 alpha**
+# Aegis **2.1.188 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,17 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.188 alpha
+
+Mutex v1 mischte 3/4/5 Felder. PTS-Cap 80 ms < Continuity-Frame. Twin x-Tie ohne Yaw tötete beide. Auto+Auto + SIGKILL.
+
+- **Mutex v2** — immer `owner pid stamp gen pts v2`. v1 lesbar.
+- **PTS-Skew 220 ms.** Continuity 8 fps teilt die Uhr.
+- **Twin tieKey ohne Yaw.** Center-Stage erster Frame: ein Exact.
+- **Kamera-Paar:** Built-in. Helios nimmt Continuity. Kill Default aus.
+- Helios **1.5.189:** SlotKind, Pinch-Defaults 18/28, Continuity-Default.
+- Tests + VERSION = Models = MARKETING 2.1.188 (Build 213). Schema 15 bleibt.
 
 ## Neu in 2.1.187 alpha
 

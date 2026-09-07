@@ -1,6 +1,8 @@
+# 2.1.188 — siehe VORSCHLAEGE-NEU.md (Kamera-Paar, Mutex v2, Twin ohne Yaw, Kill aus).
+
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.187 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-GROK.md](VORSCHLAEGE-GROK.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.188 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-GROK.md](VORSCHLAEGE-GROK.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 
 Neu in 2.1.187: FrameTap emitBusy, Vision-Interval, Helios 1.6.33 Klick/Dwell × dt. Aktueller Nachtrag: [VORSCHLAEGE-GROK.md](VORSCHLAEGE-GROK.md).
 
