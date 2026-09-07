@@ -3,10 +3,20 @@ name: Aegis.dmg
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'AGENT.md'
+      - 'CLAUDE.md'
+      - 'agent.md'
   workflow_dispatch:
 
 permissions:
   contents: write
+
+concurrency:
+  group: aegis-dmg-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   package:
@@ -93,7 +103,7 @@ jobs:
             -srcfolder dmgroot \
             -ov \
             -format UDZO \
-            -fs HFS+ \
+            -fs HFS+
             Aegis.dmg
           test -f Aegis.dmg
           test ! -d Aegis.dmg
