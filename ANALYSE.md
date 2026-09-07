@@ -1,4 +1,21 @@
+# Aegis + Helios — Analyse 2026-09-07 (2.1.173)
+
+Aegis **2.1.173 alpha** (Build 198). Helios **1.5.171** (Build 190). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.172: stillFor, Coast-Stamp, Kalman-Predict, Overlay `??`. FaceTrack.px/py nach Remint tot. Coast RAM-only. Lookaway leftoverTried.
+
+## Was 2.1.173 ändert
+
+1. **leftoverFaceTrackPredictHeld.** leftoverPredictHeld Decay+Predict. VelFromKalman / VelMerge.
+2. **coastAt / unsureTicks im FaceTrack.** leftoverCoastPrint + Age in gallery.json.
+3. **leftoverTriedInserts(lookaway:).** WEG kein Tried.
+4. stillFor min, Coast-Stamp, Overlay `??` aus 2.1.172 bleiben.
+5. Tests + VERSION = Models = MARKETING 2.1.173 (Build 198). Schema 15 bleibt.
+
+`bugfix` mergen: nein.
+
 # Aegis + Helios — Analyse 2026-09-07 (2.1.172)
+
 
 Aegis **2.1.172 alpha** (Build 197). Helios **1.5.170** (Build 189). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
 

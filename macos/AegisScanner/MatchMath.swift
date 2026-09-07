@@ -3108,11 +3108,11 @@ enum MatchMath {
 
     static func leftoverHoldLookupUnsureNote() -> String { "?" }
 
-    /// leftoverTried nicht auf Unsure. Nächster Tick mit Print darf pinnen.
-    static func leftoverTriedInserts(unsure: Bool) -> Bool { !unsure }
+    /// leftoverTried nicht auf Unsure/Lookaway. Nächster Tick mit Print darf pinnen.
+    static func leftoverTriedInserts(unsure: Bool, lookaway: Bool = false) -> Bool { !unsure && !lookaway }
 
     /// Unsure ist kein Pin. leftoverPinStatus sonst Lüge.
-    static func leftoverPinCounts(unsure: Bool) -> Bool { !unsure }
+    static func leftoverPinCounts(unsure: Bool, lookaway: Bool = false) -> Bool { !unsure || lookaway }
 
     static let leftoverUnsureStreakNeed = 3
 
@@ -3151,6 +3151,60 @@ enum MatchMath {
             out[id] = now
         }
         return out
+    }
+
+    static func leftoverCoastPrintVecEncode(_ table: [UUID: [Double]]) -> [String: [Double]] {
+        Dictionary(uniqueKeysWithValues: table.compactMap { id, v in
+            v.count >= 32 ? (id.uuidString, v) : nil
+        })
+    }
+
+    static func leftoverCoastPrintVecDecode(_ raw: [String: [Double]]?) -> [UUID: [Double]] {
+        guard let raw else { return [:] }
+        var out: [UUID: [Double]] = [:]
+        for (k, v) in raw {
+            guard let id = UUID(uuidString: k), v.count >= 32 else { continue }
+            out[id] = v
+        }
+        return out
+    }
+
+    /// Remaining Age, nicht Unix. Restart < TTL hält den Vec.
+    static func leftoverCoastPrintAgeEncode(
+        vecs: [UUID: [Double]],
+        stamped: [UUID: TimeInterval],
+        now: TimeInterval,
+        ttl: TimeInterval = leftoverCoastPrintTtl
+    ) -> [String: Double] {
+        var out: [String: Double] = [:]
+        for (id, vec) in vecs where vec.count >= 32 {
+            let age: TimeInterval
+            if let t = stamped[id] {
+                age = max(0, ttl - max(0, now - t))
+            } else {
+                age = 0
+            }
+            if age > 0 { out[id.uuidString] = age }
+        }
+        return out
+    }
+
+    static func leftoverCoastPrintAgeDecode(
+        vecs: [String: [Double]]?,
+        remaining: [String: Double]?,
+        now: TimeInterval,
+        ttl: TimeInterval = leftoverCoastPrintTtl
+    ) -> (print: [UUID: [Double]], at: [UUID: TimeInterval]) {
+        let decoded = leftoverCoastPrintVecDecode(vecs)
+        var printOut: [UUID: [Double]] = [:]
+        var at: [UUID: TimeInterval] = [:]
+        for (id, vec) in decoded {
+            let left = remaining?[id.uuidString] ?? 0
+            guard left > 0 else { continue }
+            printOut[id] = vec
+            at[id] = now - (ttl - min(ttl, left))
+        }
+        return (printOut, at)
     }
 
     /// Remint kopiert 3 Ada-Votes. Twin sonst sofort getauft. keep 1 → Need 3 braucht 2 echte Ticks.
@@ -3247,6 +3301,8 @@ enum MatchMath {
         var py: Double = 0
         var pw: Double = 0
         var ph: Double = 0
+        var coastAt: TimeInterval = 0
+        var unsureTicks: Int = 0
     }
 
     /// Kalman-Vel nach Remint sonst 0. dt 0 / Sleep > 2 s tot.
@@ -3277,6 +3333,52 @@ enum MatchMath {
             w: box.w,
             h: box.h
         )
+    }
+
+    /// leftoverPredictHeld: Decay dann Predict. FaceTrack.px/py nach Remint sonst 0.
+    static func leftoverFaceTrackPredictHeld(
+        box: FaceTrackBox,
+        px: Double,
+        py: Double,
+        dt: Double,
+        miss: Int
+    ) -> (box: FaceTrackBox, px: Double, py: Double) {
+        let v = leftoverHoldKalmanVelDecay(vx: px, vy: py, miss: miss)
+        return (leftoverFaceTrackKalmanPredict(box: box, px: v.vx, py: v.vy, dt: dt), v.vx, v.vy)
+    }
+
+    static func leftoverFaceTrackVelFromKalman(
+        _ vel: [UUID: (vx: Double, vy: Double)]
+    ) -> (px: [UUID: Double], py: [UUID: Double]) {
+        var px: [UUID: Double] = [:]
+        var py: [UUID: Double] = [:]
+        for (id, v) in vel {
+            if v.vx != 0 { px[id] = v.vx }
+            if v.vy != 0 { py[id] = v.vy }
+        }
+        return (px, py)
+    }
+
+    static func leftoverFaceTrackKalmanBox(
+        _ table: [UUID: (x: Double, y: Double, w: Double, h: Double, px: Double, py: Double, pw: Double, ph: Double)]
+    ) -> [UUID: FaceTrackBox] {
+        Dictionary(uniqueKeysWithValues: table.map { id, k in
+            (id, FaceTrackBox(x: k.x, y: k.y, w: k.w, h: k.h))
+        })
+    }
+
+    static func leftoverFaceTrackVelMerge(
+        vel: [UUID: (vx: Double, vy: Double)],
+        px: [UUID: Double],
+        py: [UUID: Double]
+    ) -> [UUID: (vx: Double, vy: Double)] {
+        var out = vel
+        for id in Set(px.keys).union(py.keys) {
+            let vx = px[id] ?? out[id]?.vx ?? 0
+            let vy = py[id] ?? out[id]?.vy ?? 0
+            out[id] = (vx, vy)
+        }
+        return out
     }
 
     static func leftoverFaceTrackRemintPair(
@@ -3335,7 +3437,9 @@ enum MatchMath {
         px: [UUID: Double] = [:],
         py: [UUID: Double] = [:],
         pw: [UUID: Double] = [:],
-        ph: [UUID: Double] = [:]
+        ph: [UUID: Double] = [:],
+        coastAt: [UUID: TimeInterval] = [:],
+        unsureTicks: [UUID: Int] = [:]
     ) -> [UUID: FaceTrack] {
         let keys = leftoverHoldRemintKeys([
             Set(hold.keys), Set(pending.keys), Set(streak.keys), Set(lastHash.keys),
@@ -3343,7 +3447,8 @@ enum MatchMath {
             Set(streakBox.keys), Set(kalman.keys), Set(pairLast.keys), Set(pairStreak.keys),
             Set(yaw.keys), Set(pitch.keys), Set(roll.keys), Set(stillFor.keys),
             Set(scoreEma.keys), Set(poseAt.keys), Set(blinkSeen.keys), Set(lidClosed.keys),
-            Set(openStreak.keys), Set(voteAt.keys), Set(px.keys), Set(py.keys), Set(pw.keys), Set(ph.keys)
+            Set(openStreak.keys), Set(voteAt.keys), Set(px.keys), Set(py.keys), Set(pw.keys), Set(ph.keys),
+            Set(coastAt.keys), Set(unsureTicks.keys)
         ])
         var out: [UUID: FaceTrack] = [:]
         out.reserveCapacity(keys.count)
@@ -3374,7 +3479,9 @@ enum MatchMath {
                 px: px[id] ?? 0,
                 py: py[id] ?? 0,
                 pw: pw[id] ?? 0,
-                ph: ph[id] ?? 0
+                ph: ph[id] ?? 0,
+                coastAt: coastAt[id] ?? 0,
+                unsureTicks: unsureTicks[id] ?? 0
             )
         }
         return out
@@ -3407,6 +3514,8 @@ enum MatchMath {
         var py: [UUID: Double] = [:]
         var pw: [UUID: Double] = [:]
         var ph: [UUID: Double] = [:]
+        var coastAt: [UUID: TimeInterval] = [:]
+        var unsureTicks: [UUID: Int] = [:]
     }
 
     /// Pack-Inverse. Nur gesetzte Felder — Defaults nicht in die Maps schreiben.
@@ -3447,6 +3556,8 @@ enum MatchMath {
             if t.py != 0 { m.py[id] = t.py }
             if t.pw != 0 { m.pw[id] = t.pw }
             if t.ph != 0 { m.ph[id] = t.ph }
+            if t.coastAt != 0 { m.coastAt[id] = t.coastAt }
+            if t.unsureTicks != 0 { m.unsureTicks[id] = t.unsureTicks }
         }
         return m
     }
@@ -3488,6 +3599,8 @@ enum MatchMath {
         py: [UUID: Double] = [:],
         pw: [UUID: Double] = [:],
         ph: [UUID: Double] = [:],
+        coastAt: [UUID: TimeInterval] = [:],
+        unsureTicks: [UUID: Int] = [:],
         remap: [UUID: UUID]
     ) -> FaceTrackMaps {
         leftoverFaceTrackUnpack(
@@ -3518,7 +3631,9 @@ enum MatchMath {
                     px: px,
                     py: py,
                     pw: pw,
-                    ph: ph
+                    ph: ph,
+                    coastAt: coastAt,
+                    unsureTicks: unsureTicks
                 ),
                 remap: remap
             )

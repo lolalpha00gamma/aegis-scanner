@@ -4176,6 +4176,7 @@ enum MatchMathTests {
 
         ok(!MatchMath.leftoverTriedInserts(unsure: true), "Tried Unsure tot")
         ok(MatchMath.leftoverTriedInserts(unsure: false), "Tried Pin")
+        ok(!MatchMath.leftoverTriedInserts(unsure: false, lookaway: true), "Tried Lookaway tot")
         ok(!MatchMath.leftoverPinCounts(unsure: true), "Pin Unsure tot")
         ok(MatchMath.leftoverPinCounts(unsure: false), "Pin zählt")
         ok(MatchMath.leftoverUnsureStreakAdvance(prev: 0, unsure: true) == 1, "Unsure 1")
@@ -4259,6 +4260,60 @@ enum MatchMathTests {
             stored: [liveOld: vecA]
         )
         ok(freshStamp[liveOld] == 1_005, "Coast Stamp neuer Print")
+
+        let held = MatchMath.leftoverFaceTrackPredictHeld(
+            box: liveBox, px: 0.20, py: 0, dt: 0.10, miss: 1
+        )
+        ok(abs(held.box.x - 0.14) < 1e-9 && held.px == 0.20, "PredictHeld Miss 1")
+        let decayed = MatchMath.leftoverFaceTrackPredictHeld(
+            box: liveBox, px: 1, py: 0, dt: 0.10, miss: 2
+        )
+        ok(abs(decayed.px - 0.82) < 1e-9, "PredictHeld Decay")
+        let fromV = MatchMath.leftoverFaceTrackVelFromKalman([liveOld: (vx: 0.20, vy: -0.10)])
+        ok(fromV.px[liveOld] == 0.20 && fromV.py[liveOld] == -0.10, "VelFromKalman")
+        let merged = MatchMath.leftoverFaceTrackVelMerge(
+            vel: [liveOld: (vx: 0, vy: 0)], px: [liveNew: 0.30], py: [liveNew: 0.05]
+        )
+        ok(merged[liveNew]?.vx == 0.30 && merged[liveNew]?.vy == 0.05, "VelMerge Remint")
+        let packCoast = MatchMath.leftoverFaceTrackPack(
+            hold: [liveNew: 0.72],
+            pending: [:],
+            streak: [:],
+            lastHash: [:],
+            lastIoU: [:],
+            nameHeld: [:],
+            nameUntil: [:],
+            miss: [:],
+            px: [liveNew: 0.20],
+            coastAt: [liveNew: 1_000],
+            unsureTicks: [liveNew: 2]
+        )
+        ok(packCoast[liveNew]?.coastAt == 1_000 && packCoast[liveNew]?.unsureTicks == 2, "FaceTrack Coast Pack")
+        let dropCoast = MatchMath.leftoverFaceTrackRemintDrop(packCoast, remap: [liveNew: liveOld])
+        ok(dropCoast[liveOld]?.coastAt == 1_000 && dropCoast[liveNew] == nil, "FaceTrack Coast RemintDrop")
+        let encoded = MatchMath.leftoverCoastPrintVecEncode([liveOld: vecA])
+        ok(encoded[liveOld.uuidString]?.count == 32, "Coast Vec Encode")
+        let aged = MatchMath.leftoverCoastPrintAgeEncode(
+            vecs: [liveOld: vecA], stamped: [liveOld: 1_000], now: 1_000.5
+        )
+        ok(aged[liveOld.uuidString]! > 1.4 && aged[liveOld.uuidString]! <= 2, "Coast Age frisch")
+        let restored = MatchMath.leftoverCoastPrintAgeDecode(
+            vecs: encoded, remaining: aged, now: 2_000
+        )
+        ok(restored.print[liveOld]?.count == 32, "Coast Age Decode Vec")
+        ok(abs((restored.at[liveOld] ?? 0) - (2_000 - (2 - aged[liveOld.uuidString]!))) < 1e-6, "Coast Age Decode At")
+        let stale = MatchMath.leftoverCoastPrintAgeEncode(
+            vecs: [liveOld: vecA], stamped: [liveOld: 1_000], now: 1_003
+        )
+        ok(stale[liveOld.uuidString] == nil, "Coast Age 2 s tot")
+        ok(
+            MatchMath.printBudgetSkip(visionMs: 19, dt: 0.016, minIoU: 0.95, yawAbs: 0.05, stillFor: 0.90),
+            "Print skip still 0,8 s"
+        )
+        ok(
+            !MatchMath.printBudgetSkip(visionMs: 19, dt: 0.016, minIoU: 0.95, yawAbs: 0.05, stillFor: 0.20),
+            "Print bleibt still tot"
+        )
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

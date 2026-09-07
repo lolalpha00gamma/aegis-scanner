@@ -1,4 +1,4 @@
-# Aegis **2.1.172 alpha**
+# Aegis **2.1.173 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,17 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.173 alpha
+
+FaceTrack.px/py nach Remint 0. Coast-Print starb beim Restart. Lookaway leftoverTried sperrte Print-Retry.
+
+- **leftoverFaceTrackPredictHeld.** Decay + leftoverFaceTrackKalmanPredict (Cap 0,12). VelFromKalman / VelMerge.
+- **coastAt / unsureTicks im FaceTrack.** leftoverCoastPrint + Age in gallery.json.
+- **leftoverTriedInserts(lookaway:).** WEG kein Tried.
+- stillFor / Coast-Stamp / Overlay `??` aus 2.1.172 bleiben.
+- Helios **1.5.171:** palmHandScaleMax 0,28 / Close 0,40 / Keep 0,72 nur lastS1.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.173 (Build 198). Schema 15 bleibt.
 
 ## Neu in 2.1.172 alpha
 

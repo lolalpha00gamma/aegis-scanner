@@ -1,4 +1,18 @@
+# Aegis Nachtrag 2.1.173 — 2026-09-07
+
+Binary **2.1.173 alpha Build 198**. FaceTrack-PredictHeld. Coast gallery. Lookaway-Tried tot. stillFor/Stamp/`??` aus 2.1.172 bleiben.
+
+## In 2.1.173 gelandet
+
+1. leftoverFaceTrackPredictHeld + VelMerge
+2. leftoverCoastPrint + Age in gallery.json
+3. leftoverTriedInserts(lookaway:)
+4. Tests + VERSION = Models = MARKETING_VERSION 2.1.173 (Build 198)
+
+Rest: FaceTrack als Store, CameraBroker. Siehe VORSCHLAEGE-GROK.md.
+
 # Aegis Nachtrag 2.1.172 — 2026-09-07
+
 
 Binary **2.1.172 alpha Build 197**. stillFor, Coast-Stamp, Kalman-Predict, Overlay `??`.
 

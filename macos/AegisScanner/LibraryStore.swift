@@ -308,6 +308,13 @@ final class LibraryStore: ObservableObject {
             boxKalman = kal.kalman
             boxKalmanV = kal.vel
             leftoverKalmanRestoredAgo = boxKalman.isEmpty ? 99 : 0
+            let coast = MatchMath.leftoverCoastPrintAgeDecode(
+                vecs: extra.leftoverCoastPrint,
+                remaining: extra.leftoverCoastPrintAge,
+                now: Date().timeIntervalSince1970
+            )
+            leftoverCoastPrint = coast.print
+            leftoverCoastPrintAt = coast.at
         }
         let lockStored = UserDefaults.standard.double(forKey: "aegis.nameLockSec")
         if lockStored > 0 {
@@ -424,6 +431,12 @@ final class LibraryStore: ObservableObject {
             leftoverSparkChip: MatchMath.leftoverSparkChipPack(
                 uuid: leftoverSparkChipHeld,
                 hash: leftoverSparkChipByHash
+            ),
+            leftoverCoastPrint: MatchMath.leftoverCoastPrintVecEncode(leftoverCoastPrint),
+            leftoverCoastPrintAge: MatchMath.leftoverCoastPrintAgeEncode(
+                vecs: leftoverCoastPrint,
+                stamped: leftoverCoastPrintAt,
+                now: Date().timeIntervalSince1970
             )
         )
         if !liveActive {
@@ -567,6 +580,13 @@ final class LibraryStore: ObservableObject {
             boxKalman = kal.kalman
             boxKalmanV = kal.vel
             leftoverKalmanRestoredAgo = boxKalman.isEmpty ? 99 : 0
+            let coast = MatchMath.leftoverCoastPrintAgeDecode(
+                vecs: extra.leftoverCoastPrint,
+                remaining: extra.leftoverCoastPrintAge,
+                now: Date().timeIntervalSince1970
+            )
+            leftoverCoastPrint = coast.print
+            leftoverCoastPrintAt = coast.at
         } else {
             leftoverStreak = [:]
             leftoverPairStreak = [:]
@@ -2404,15 +2424,14 @@ final class LibraryStore: ObservableObject {
         for id in keep where !skip.contains(id) {
             guard let k = boxKalman[id] else { continue }
             let raw = boxKalmanV[id] ?? (vx: 0, vy: 0)
-            let v = MatchMath.leftoverHoldKalmanVelDecay(vx: raw.vx, vy: raw.vy, miss: miss)
-            boxKalmanV[id] = v
-            let pred = MatchMath.leftoverFaceTrackKalmanPredict(
+            let step = MatchMath.leftoverFaceTrackPredictHeld(
                 box: MatchMath.FaceTrackBox(x: k.x, y: k.y, w: k.w, h: k.h),
-                px: v.vx,
-                py: v.vy,
-                dt: liveDt
+                px: raw.vx, py: raw.vy, dt: liveDt, miss: miss
             )
-            let locked = MatchMath.leftoverGhostAspectLock(predX: pred.x, predY: pred.y, lastW: pred.w, lastH: pred.h)
+            boxKalmanV[id] = (vx: step.px, vy: step.py)
+            let locked = MatchMath.leftoverGhostAspectLock(
+                predX: step.box.x, predY: step.box.y, lastW: step.box.w, lastH: step.box.h
+            )
             boxKalman[id] = (locked.x, locked.y, locked.w, locked.h, k.px, k.py, k.pw, k.ph)
             if let i = liveGhosts.firstIndex(where: { $0.face.id == id }) {
                 var g = liveGhosts[i]
@@ -3079,6 +3098,7 @@ final class LibraryStore: ObservableObject {
             pad: fillXPad,
             padRescue: fillXRescue
         )
+        let remintVel = MatchMath.leftoverFaceTrackVelFromKalman(boxKalmanV)
         let faceMaps = MatchMath.leftoverFaceTrackRemintDropMaps(
             hold: leftoverHold,
             pending: leftoverPending,
@@ -3089,6 +3109,7 @@ final class LibraryStore: ObservableObject {
             nameUntil: leftoverNameLockUntil,
             miss: leftoverMissFrames,
             streakBox: leftoverStreakBox.mapValues { MatchMath.leftoverFaceTrackBox($0) },
+            kalman: MatchMath.leftoverFaceTrackKalmanBox(boxKalman),
             pairLast: leftoverPairLast,
             pairStreak: leftoverPairStreak,
             yaw: liveYaw,
@@ -3101,6 +3122,10 @@ final class LibraryStore: ObservableObject {
             lidClosed: liveLidClosed,
             openStreak: liveOpenStreak,
             voteAt: liveNameVoteAt,
+            px: remintVel.px,
+            py: remintVel.py,
+            coastAt: leftoverCoastPrintAt,
+            unsureTicks: leftoverUnsureTicks,
             remap: remintPlan
         )
         leftoverHold = faceMaps.hold
@@ -3125,8 +3150,12 @@ final class LibraryStore: ObservableObject {
         liveOpenStreak = faceMaps.openStreak
         liveNameVoteAt = faceMaps.voteAt
         leftoverCoastPrint = MatchMath.leftoverHoldRemintDrop(hold: leftoverCoastPrint, remap: remintPlan)
-        leftoverCoastPrintAt = MatchMath.leftoverHoldRemintDrop(hold: leftoverCoastPrintAt, remap: remintPlan)
-        leftoverUnsureTicks = MatchMath.leftoverHoldRemintDrop(hold: leftoverUnsureTicks, remap: remintPlan)
+        leftoverCoastPrintAt = faceMaps.coastAt.isEmpty
+            ? MatchMath.leftoverHoldRemintDrop(hold: leftoverCoastPrintAt, remap: remintPlan)
+            : faceMaps.coastAt
+        leftoverUnsureTicks = faceMaps.unsureTicks.isEmpty
+            ? MatchMath.leftoverHoldRemintDrop(hold: leftoverUnsureTicks, remap: remintPlan)
+            : faceMaps.unsureTicks
         leftoverPrintYaw = MatchMath.leftoverHoldRemintDrop(hold: leftoverPrintYaw, remap: remintPlan)
         leftoverHoldTrail = MatchMath.leftoverHoldRemintDrop(hold: leftoverHoldTrail, remap: remintPlan)
         liveSlotHold = MatchMath.leftoverHoldRemintDrop(hold: liveSlotHold, remap: remintPlan)
@@ -3176,7 +3205,11 @@ final class LibraryStore: ObservableObject {
             missCoast: missCoast
         )
         boxKalman = MatchMath.leftoverHoldRemintDrop(hold: boxKalman, remap: remintPlan)
-        boxKalmanV = MatchMath.leftoverHoldRemintDrop(hold: boxKalmanV, remap: remintPlan)
+        boxKalmanV = MatchMath.leftoverFaceTrackVelMerge(
+            vel: MatchMath.leftoverHoldRemintDrop(hold: boxKalmanV, remap: remintPlan),
+            px: faceMaps.px,
+            py: faceMaps.py
+        )
         for face in adopted {
             if let k = boxKalman[face.id] {
                 let kb = FaceBox(x: k.x, y: k.y, width: k.w, height: k.h)
@@ -3502,12 +3535,16 @@ final class LibraryStore: ObservableObject {
                     let weg = MatchMath.leftoverLookawayLabel(until: ghostUntil, now: now)
                     if let pinJ = MatchMath.leftoverLookawayPin(candidates: remaining) {
                         leftoverPending[adopted[pinJ].id] = weg
-                        leftoverTried.insert(old.id)
+                        if MatchMath.leftoverTriedInserts(unsure: false, lookaway: true) {
+                            leftoverTried.insert(old.id)
+                        }
                     } else if let best = remaining.max(by: { $0.iou < $1.iou }),
                               !MatchMath.leftoverLookawayPinsStranger(iou: best.iou)
                     {
                         leftoverPending[adopted[best.index].id] = weg
-                        leftoverTried.insert(old.id)
+                        if MatchMath.leftoverTriedInserts(unsure: false, lookaway: true) {
+                            leftoverTried.insert(old.id)
+                        }
                     }
                     // leftoverHoldSkipLookaway: EMA nicht mit Profil überschreiben. continue hält den Wert.
                     // leftoverHold[id] ist Frontal. ¾-Lookup nicht in die unbinned EMA.
