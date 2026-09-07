@@ -11,7 +11,7 @@ enum FaceEngine {
         return _dropped
     }
 
-    static func detect(in image: CGImage, mediaId: UUID, tiles: Bool = true, orientation: CGImagePropertyOrientation = .up, minSharpness: Double = MatchMath.sharpnessFloor, continuity: Bool = false, cheapGraph: Bool = false, live: Bool = false, skipPrints: Bool = false, roi: FaceBox? = nil) throws -> [FaceObservation] {
+    static func detect(in image: CGImage, mediaId: UUID, tiles: Bool = true, orientation: CGImagePropertyOrientation = .up, minSharpness: Double = MatchMath.sharpnessFloor, continuity: Bool = false, cheapGraph: Bool = false, live: Bool = false, skipPrints: Bool = false, roi: FaceBox? = nil, skipPrintBoxes: [FaceBox] = []) throws -> [FaceObservation] {
         let w = Double(image.width)
         let h = Double(image.height)
         let cropOrigin: (x: Double, y: Double)
@@ -78,7 +78,7 @@ enum FaceEngine {
         }
         let boxed = nms(out, live: live)
         if skipPrints { return boxed }
-        return stampPrints(boxed, from: image, orientation: orientation, continuity: continuity, minSharpness: minSharpness)
+        return stampPrints(boxed, from: image, orientation: orientation, continuity: continuity, minSharpness: minSharpness, skipPrintBoxes: skipPrintBoxes)
     }
 
     private static func detectOnce(
@@ -1648,13 +1648,19 @@ enum FaceEngine {
         }
     }
 
-    private static func stampPrints(_ faces: [FaceObservation], from image: CGImage, orientation: CGImagePropertyOrientation = .up, continuity: Bool = false, minSharpness: Double = MatchMath.sharpnessFloor) -> [FaceObservation] {
-        let anySharp = faces.contains { !MatchMath.skipPrint(sharpness: $0.quality.sharpness, continuity: continuity) && $0.quality.sharpness >= minSharpness }
-        let found = anySharp ? facePrintsInImage(image, orientation: orientation) : []
+    private static func stampPrints(_ faces: [FaceObservation], from image: CGImage, orientation: CGImagePropertyOrientation = .up, continuity: Bool = false, minSharpness: Double = MatchMath.sharpnessFloor, skipPrintBoxes: [FaceBox] = []) -> [FaceObservation] {
+        let needPrint = faces.contains { face in
+            !MatchMath.leftoverPrintSkipHits(face: face.box, skipBoxes: skipPrintBoxes)
+                && !MatchMath.skipPrint(sharpness: face.quality.sharpness, continuity: continuity)
+                && face.quality.sharpness >= minSharpness
+        }
+        let found = needPrint ? facePrintsInImage(image, orientation: orientation) : []
         var used = Set<Int>()
         return faces.map { face in
             var next = face
-            if MatchMath.skipPrint(sharpness: face.quality.sharpness, continuity: continuity) {
+            if MatchMath.leftoverPrintSkipHits(face: face.box, skipBoxes: skipPrintBoxes)
+                || MatchMath.skipPrint(sharpness: face.quality.sharpness, continuity: continuity)
+            {
                 next.featurePrint = Data()
                 next.printVec = []
                 return next

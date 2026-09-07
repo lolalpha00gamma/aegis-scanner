@@ -1,6 +1,10 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.173 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-GROK.md](VORSCHLAEGE-GROK.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.174 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-GROK.md](VORSCHLAEGE-GROK.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+Neu in 2.1.174: Print je Gesicht (Ada still / Twin print), skipPrintBoxes, Yaw-Merge nur mit Print. Helios 1.5.172 Live-Scale.
+
+Neu in 2.1.173: FaceTrack-PredictHeld, Coast gallery, Lookaway-Tried tot.
 
 Neu in 2.1.172: printBudget stillFor, Coast-Stamp identisch tot, Kalman-Predict verdrahtet, Overlay `??`.
 

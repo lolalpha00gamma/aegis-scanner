@@ -1,4 +1,86 @@
+# Nachtrag 2026-09-07 — 1.5.172 / 2.1.174 (kein Merge von `bugfix`)
+
+Helios `bpms9cmnxc-debug/Helios` **1.5.172** (Build 191).
+Aegis `lolalpha00gamma/aegis-scanner` **2.1.174 alpha** (Build 199).
+Nur `main`. Agent-Regel: keine Nebenbranches. `bugfix` gelesen, nicht gemergt.
+
+2.1.173 FaceTrack-PredictHeld. printBudget min/max global. Helios Bind-EMA mischte Gitarre.
+
+## Warum es schlecht wirkte (dieser Pass)
+
+1. **printBudgetSkip min(stillFor) / max(|yaw|).** Twin bewegt → Ada druckt. leftoverHold wandert.
+2. **leftoverPrintYawMerge ohne printedIds.** Ada-Yaw = live, Δ 0.
+3. **FaceEngine skipPrints bool.** Ein Flag für alle. Per-Box fehlte.
+4. **Helios palmBindScaleOf auf alle Blobs.** 0,29→0,21 = isHand, Conf 0,95.
+5. Von `bugfix` (1.5.8 / 2.1.15) bewusst nicht gemergt: IOHID Event-Tap, AX SetPosition/Frame, Per-App-Gain, JSONL.
+
+## In 1.5.172 / 2.1.174 gelandet
+
+- **printBudgetSkipIds / SkipAll / leftoverPrintSkipHits / SkipBoxes.** Ada still, Twin print.
+- **FaceEngine skipPrintBoxes.** stampPrints skippt Ada.
+- **leftoverPrintYawMerge(printedIds:).** Ada-Yaw hält.
+- **palmBindScaleClass + lastS2 Conf/Keep.** Helios Gitarre nicht S1, S2-Dip hält.
+- Tests + MARKETING 1.5.172 / 2.1.174 (Build 191 / 199). Schema 15 bleibt.
+
+Pass 14: Print je Gesicht, Live-Scale Bind, S2 Conf — 1.5.172 / 2.1.174.
+
+## Erweiterungen (neu, oben)
+
+1. **LibraryStore `[UUID: FaceTrack]` als Source of Truth.**
+2. **CameraBroker-XPC.**
+3. **App-Group `group.helios.aegis`.**
+4. **Overlay Metal 90 Hz.**
+5. **IOHID / AX / Per-App-Gain / JSONL** (`bugfix` 1.5.8 / 2.1.15).
+6. **maximumHandCount bleibt 4.** 2 wäre Regression (Vision rankt Gitarre zuerst).
+7. **Print-Skip HUD** `Ada still · Twin print`.
+8. **S2 Coast unabhängig von s1MissTicks.**
+9. **S1∩S2 Pinch-Mute.**
+10. **Approaching-Gate im Gitarrenband** ohne Keep-Radius.
+11. **Enrollment-HUD** 3 Yaw-Slots + Blink.
+12. **Pair-Commit WAL.**
+13. **Helios Kill-Switch Datei.**
+14. **VNDetectHumanBodyPose** Prop-Veto.
+15. **Gemeinsames CameraMath-Package.**
+16. **Telemetry-Ring 30 s + OSLog.**
+17. **Center Stage force-off nach Sleep.**
+18. **Continuity USB-Hub Watchdog.**
+19. **Per-Slot One-Euro aus fps.**
+20. **SpaceMap Auto-Recalib.**
+21. **Two-mode Pointer.**
+22. **Tests splitten.**
+23. **VNTrackObjectRequest** statt Remint.
+24. **Gallery compaction.**
+25. **Aegis live outputQueue ≠ MainActor.**
+26. **Palm-Occlusion S2∩S1.**
+27. **Kalman-Zeiger 2D.**
+28. **Latency-HUD.**
+29. **Shared Fake-Lock-Test.**
+30. **FaceTrack Encode extra.**
+31. **Speaker-Diarization.**
+32. **Face-Print ONNX sidecar.**
+33. **Zwei-Phasen Mutex INTENT → Yield → CONFIRM.**
+34. **Guitar-Schwelle aus Sitzabstand.**
+35. **S1+S2 Chirality-Freeze 800 ms.**
+36. **Negativ-Galerie.**
+37. **Print-Bank PCA-Whitening.**
+38. **Cursor-Magnetismus.**
+39. **Dwell-Klick / Watch-Companion.**
+40. **Doorbell-Cue.**
+41. **Clamshell: Vision pausieren.**
+42. **Jerk Dead-Man.**
+43. **Lock Schema v2.**
+44. **Vision Pro Sidecar.**
+45. **ScaleClass-Chip Test-HUD.**
+46. **skipPrintBoxes an Detect-ROI.**
+47. **Helios S2 Hist-Ring.**
+48. **CI `swiftc` Tests vor DMG.**
+
+Bewusst nicht: Merge `bugfix`, Blind-Patch Schwellen, CameraBroker in diesem Pass, FaceTrack-Store-Rewrite, maximumHandCount 2.
+
+Nächster Code-Schritt: `[UUID: FaceTrack]` als Store oder CameraBroker oder Overlay-Metal. Print-Skip HUD.
+
 # Nachtrag 2026-09-07 — 1.5.170 / 2.1.172 (kein Merge von `bugfix`)
+
 
 Helios `bpms9cmnxc-debug/Helios` **1.5.170** (Build 189).
 Aegis `lolalpha00gamma/aegis-scanner` **2.1.172 alpha** (Build 197).

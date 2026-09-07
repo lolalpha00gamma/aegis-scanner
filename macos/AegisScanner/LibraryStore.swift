@@ -2193,26 +2193,20 @@ final class LibraryStore: ObservableObject {
         )
         liveRoiTick += 1
         liveRoiSkipOnce = false
-        let yawAbsSnap = kalmanSnap.compactMap { liveYaw[$0.id] }.map { abs($0) }.max()
-        let minIoUSnap = liveIous.min()
-        let yawDeltaSnap = MatchMath.leftoverPrintBudgetYawDelta(
-            printed: leftoverPrintYaw,
-            live: Dictionary(uniqueKeysWithValues: kalmanSnap.compactMap { snap -> (UUID, Double)? in
-                guard let yaw = liveYaw[snap.id] else { return nil }
-                return (snap.id, yaw)
-            })
+        let liveIds = kalmanSnap.map(\.id)
+        let skipIds = MatchMath.printBudgetSkipIds(
+            ids: liveIds,
+            lastIoU: leftoverLastIoU,
+            yaw: liveYaw,
+            printedYaw: leftoverPrintYaw,
+            stillFor: liveStillFor,
+            visionMs: vis,
+            dt: dt,
+            continuity: cont
         )
-        let stillSnap = kalmanSnap.compactMap { liveStillFor[$0.id] }.min()
+        let skipPrints = skipDetect || MatchMath.printBudgetSkipAll(skipIds: skipIds, liveIds: liveIds)
+        let skipPrintBoxes = skipPrints ? [] : MatchMath.leftoverPrintSkipBoxes(tracks: kalmanSnap, skipIds: skipIds)
         Task.detached(priority: .userInitiated) {
-            let skipPrints = skipDetect || MatchMath.printBudgetSkip(
-                visionMs: vis,
-                dt: dt,
-                minIoU: minIoUSnap,
-                yawAbs: yawAbsSnap,
-                continuity: cont,
-                yawDelta: yawDeltaSnap,
-                stillFor: stillSnap
-            )
             let t0 = CFAbsoluteTimeGetCurrent()
             var roi = skipRoi ? nil : roiTuple.map { FaceBox(x: $0.x, y: $0.y, width: $0.w, height: $0.h) }
             var found: [FaceObservation]
@@ -2225,21 +2219,22 @@ final class LibraryStore: ObservableObject {
                     )
                 }
             } else {
-                found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true, skipPrints: skipPrints, roi: roi)) ?? []
+                found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true, skipPrints: skipPrints, roi: roi, skipPrintBoxes: skipPrintBoxes)) ?? []
             }
             if !skipDetect, found.isEmpty, roi != nil, MatchMath.liveRoiMissRetries(hadROI: true, empty: true) {
                 if MatchMath.liveRoiMissGoesFull(dt: dt) {
                     roi = nil
-                    found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true, skipPrints: skipPrints, roi: nil)) ?? []
+                    found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true, skipPrints: skipPrints, roi: nil, skipPrintBoxes: skipPrintBoxes)) ?? []
                 } else if let raw = roiTuple {
                     let exp = MatchMath.liveRoiExpand(raw, imageW: Double(image.width), imageH: Double(image.height))
                     found = (try? FaceEngine.detect(
                         in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true,
                         skipPrints: skipPrints,
-                        roi: FaceBox(x: exp.x, y: exp.y, width: exp.w, height: exp.h)
+                        roi: FaceBox(x: exp.x, y: exp.y, width: exp.w, height: exp.h),
+                        skipPrintBoxes: skipPrintBoxes
                     )) ?? []
                     if found.isEmpty {
-                        found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true, skipPrints: skipPrints, roi: nil)) ?? []
+                        found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true, skipPrints: skipPrints, roi: nil, skipPrintBoxes: skipPrintBoxes)) ?? []
                     }
                 }
             }
@@ -4132,7 +4127,8 @@ final class LibraryStore: ObservableObject {
             leftoverPrintYaw = MatchMath.leftoverPrintYawMerge(
                 printed: leftoverPrintYaw,
                 live: Dictionary(uniqueKeysWithValues: adopted.map { ($0.id, $0.quality.yaw) }),
-                skipPrints: skipPrints
+                skipPrints: skipPrints,
+                printedIds: Set(adopted.filter { $0.printVec.count >= 32 }.map(\.id))
             )
             let livePrints = Dictionary(uniqueKeysWithValues: adopted.map {
                 ($0.id, $0.printVec.count >= 32 ? $0.printVec : FaceEngine.embedding(of: $0))

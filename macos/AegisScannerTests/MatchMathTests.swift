@@ -4314,6 +4314,82 @@ enum MatchMathTests {
             !MatchMath.printBudgetSkip(visionMs: 19, dt: 0.016, minIoU: 0.95, yawAbs: 0.05, stillFor: 0.20),
             "Print bleibt still tot"
         )
+        let twin = UUID()
+        let ada = UUID()
+        let skipMix = MatchMath.printBudgetSkipIds(
+            ids: [twin, ada],
+            lastIoU: [twin: 0.50, ada: 0.95],
+            yaw: [twin: 0.20, ada: 0.05],
+            printedYaw: [twin: 0.05, ada: 0.05],
+            stillFor: [twin: 0.10, ada: 0.90],
+            visionMs: 19,
+            dt: 0.016,
+            continuity: false
+        )
+        ok(skipMix.contains(ada) && !skipMix.contains(twin), "Print skip Ada still, Twin bleibt")
+        let skipNew = MatchMath.printBudgetSkipIds(
+            ids: [twin],
+            lastIoU: [:],
+            yaw: [:],
+            printedYaw: [:],
+            stillFor: [:],
+            visionMs: 19,
+            dt: 0.016,
+            continuity: false
+        )
+        ok(skipNew.isEmpty, "Print skip ohne Still tot — Neu-Gesicht druckt")
+        ok(
+            !MatchMath.printBudgetSkipAll(skipIds: skipMix, liveIds: [twin, ada]),
+            "Print skip nicht global bei Mix"
+        )
+        let skipBoth = MatchMath.printBudgetSkipIds(
+            ids: [twin, ada],
+            lastIoU: [twin: 0.95, ada: 0.95],
+            yaw: [twin: 0.05, ada: 0.05],
+            printedYaw: [twin: 0.05, ada: 0.05],
+            stillFor: [twin: 0.90, ada: 0.90],
+            visionMs: 19,
+            dt: 0.016,
+            continuity: false
+        )
+        ok(MatchMath.printBudgetSkipAll(skipIds: skipBoth, liveIds: [twin, ada]), "Print skip beide still")
+        let adaBox = FaceBox(x: 0.10, y: 0.10, width: 0.20, height: 0.20)
+        let twinBox = FaceBox(x: 0.60, y: 0.10, width: 0.20, height: 0.20)
+        ok(
+            MatchMath.leftoverPrintSkipHits(face: adaBox, skipBoxes: [adaBox]),
+            "Skip-Box Ada trifft"
+        )
+        ok(
+            !MatchMath.leftoverPrintSkipHits(face: twinBox, skipBoxes: [adaBox]),
+            "Skip-Box Twin tot"
+        )
+        let skipBoxes = MatchMath.leftoverPrintSkipBoxes(
+            tracks: [(id: ada, x: 0.10, y: 0.10, w: 0.20, h: 0.20), (id: twin, x: 0.60, y: 0.10, w: 0.20, h: 0.20)],
+            skipIds: [ada]
+        )
+        ok(skipBoxes.count == 1 && abs(skipBoxes[0].x - 0.10) < 1e-9, "Skip-Boxes nur Ada")
+        ok(
+            MatchMath.leftoverPrintYawMerge(
+                printed: [ada: 0.05],
+                live: [ada: 0.06, twin: 0.30],
+                skipPrints: false,
+                printedIds: [twin]
+            )[ada] == 0.05,
+            "Yaw Merge Ada ohne Print hält"
+        )
+        ok(
+            abs((MatchMath.leftoverPrintYawMerge(
+                printed: [twin: 0.05],
+                live: [twin: 0.30],
+                skipPrints: false,
+                printedIds: [twin]
+            )[twin] ?? -1) - 0.30) < 1e-9,
+            "Yaw Merge Twin mit Print"
+        )
+        ok(
+            abs((MatchMath.leftoverPrintBudgetYawDeltaOf(printed: [ada: 0.05], live: 0.05, id: ada) ?? -1)) < 1e-9,
+            "Yaw-Δ Ada 0"
+        )
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

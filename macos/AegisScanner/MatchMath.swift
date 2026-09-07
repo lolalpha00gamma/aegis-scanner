@@ -522,11 +522,15 @@ enum MatchMath {
     static func leftoverPrintYawMerge(
         printed: [UUID: Double],
         live: [UUID: Double],
-        skipPrints: Bool
+        skipPrints: Bool,
+        printedIds: Set<UUID>? = nil
     ) -> [UUID: Double] {
         guard !skipPrints else { return printed }
         var out = printed
-        for (id, yaw) in live { out[id] = yaw }
+        for (id, yaw) in live {
+            if let printedIds, !printedIds.contains(id) { continue }
+            out[id] = yaw
+        }
         return out
     }
 
@@ -553,10 +557,14 @@ enum MatchMath {
 
     static func leftoverPrintBudgetYawDelta(printed: [UUID: Double], live: [UUID: Double]) -> Double? {
         let ds = live.compactMap { id, yaw -> Double? in
-            guard let p = printed[id] else { return nil }
-            return abs(yaw - p)
+            leftoverPrintBudgetYawDeltaOf(printed: printed, live: yaw, id: id)
         }
         return ds.max()
+    }
+
+    static func leftoverPrintBudgetYawDeltaOf(printed: [UUID: Double], live: Double?, id: UUID) -> Double? {
+        guard let live, let p = printed[id] else { return nil }
+        return abs(live - p)
     }
 
     /// Zwillinge: Top-2 Print < 0,08 Spread — kein Adopt, Overlay statt still taufen.
@@ -6307,6 +6315,57 @@ enum MatchMath {
         if let delta = yawDelta, abs(delta) + 1e-9 >= printBudgetYawRad { return false }
         if let still = stillFor, still + 1e-9 < holdStillNeed { return false }
         return true
+    }
+
+    /// Twin bewegt, Ada still: min() ließ Ada mitdrucken. Je UUID, nicht global.
+    static func printBudgetSkipIds(
+        ids: [UUID],
+        lastIoU: [UUID: Double],
+        yaw: [UUID: Double],
+        printedYaw: [UUID: Double],
+        stillFor: [UUID: TimeInterval],
+        visionMs: Double,
+        dt: TimeInterval,
+        continuity: Bool
+    ) -> Set<UUID> {
+        var out = Set<UUID>()
+        out.reserveCapacity(ids.count)
+        for id in ids {
+            guard stillFor[id] != nil else { continue }
+            let skip = printBudgetSkip(
+                visionMs: visionMs,
+                dt: dt,
+                minIoU: lastIoU[id],
+                yawAbs: yaw[id].map { abs($0) },
+                continuity: continuity,
+                yawDelta: leftoverPrintBudgetYawDeltaOf(printed: printedYaw, live: yaw[id], id: id),
+                stillFor: stillFor[id]
+            )
+            if skip { out.insert(id) }
+        }
+        return out
+    }
+
+    static func printBudgetSkipAll(skipIds: Set<UUID>, liveIds: [UUID]) -> Bool {
+        !liveIds.isEmpty && liveIds.allSatisfy { skipIds.contains($0) }
+    }
+
+    static func leftoverPrintSkipHits(face: FaceBox, skipBoxes: [FaceBox], iou: Double = printBudgetIoU) -> Bool {
+        skipBoxes.contains {
+            boxIoU(
+                ax: face.x, ay: face.y, aw: face.width, ah: face.height,
+                bx: $0.x, by: $0.y, bw: $0.width, bh: $0.height
+            ) + 1e-9 >= iou
+        }
+    }
+
+    static func leftoverPrintSkipBoxes(
+        tracks: [(id: UUID, x: Double, y: Double, w: Double, h: Double)],
+        skipIds: Set<UUID>
+    ) -> [FaceBox] {
+        tracks.compactMap { t in
+            skipIds.contains(t.id) ? FaceBox(x: t.x, y: t.y, width: t.w, height: t.h) : nil
+        }
     }
 
     /// Name-Lock Overlay Countdown der letzten 4 s, sonst wirkt tot nach Verlassen.

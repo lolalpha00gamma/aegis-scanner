@@ -1,4 +1,4 @@
-# Aegis **2.1.173 alpha**
+# Aegis **2.1.174 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.174 alpha
+
+printBudget min(stillFor)/max(|yaw|) global. Twin bewegt, Ada druckt mit. leftoverPrintYawMerge kopierte Ada-Yaw.
+
+- **printBudgetSkipIds / SkipAll / leftoverPrintSkipHits / SkipBoxes.** Ada still, Twin print.
+- **FaceEngine skipPrintBoxes.** stampPrints skippt Ada. facePrintsInImage nur wenn jemand Print braucht.
+- **leftoverPrintYawMerge(printedIds:).** Ada-Yaw hält bis zum eigenen Print.
+- Helios **1.5.172:** Bind-Scale Live, S2 Conf-Dip + Keep.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.174 (Build 199). Schema 15 bleibt.
 
 ## Neu in 2.1.173 alpha
 

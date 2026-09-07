@@ -1,3 +1,25 @@
+# Aegis + Helios — Analyse 2026-09-07 (2.1.174)
+
+Aegis **2.1.174 alpha** (Build 199). Helios **1.5.172** (Build 191). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.173: FaceTrack-PredictHeld, Coast gallery. printBudget min(stillFor)/max(|yaw|) global. Twin bewegt, Ada druckt.
+
+## Warum Overlay nach 2.1.173 weiter Twin taufte
+
+1. **printBudgetSkip min/max.** Twin stillFor 0,10 / yaw Δ 0,30 → skip=false für alle. Ada still 0,90 druckt, restampt, leftoverHold wandert.
+2. **leftoverPrintYawMerge ohne printedIds.** Ada-Yaw = live, Δ 0, nächster Tick skippt Ada nicht weil Twin global tot.
+3. **FaceEngine skipPrints bool.** Ein Flag, ein facePrintsInImage. Per-Box fehlte.
+4. Helios Bind-EMA mischte Gitarre in lastS1 — S1 Prop, Overlay Gitarre.
+
+## Was 2.1.174 ändert
+
+1. **printBudgetSkipIds / SkipAll / leftoverPrintSkipHits / SkipBoxes.** Ada skip, Twin print.
+2. **FaceEngine skipPrintBoxes.** stampPrints + facePrintsInImage nur wer Print braucht.
+3. **leftoverPrintYawMerge(printedIds:).** Ada-Yaw hält.
+4. Tests + VERSION = Models = MARKETING 2.1.174 (Build 199). Helios 1.5.172 Live-Scale + S2 Conf.
+
+`bugfix` mergen: nein.
+
 # Aegis + Helios — Analyse 2026-09-07 (2.1.173)
 
 Aegis **2.1.173 alpha** (Build 198). Helios **1.5.171** (Build 190). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

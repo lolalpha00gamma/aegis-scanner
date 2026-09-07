@@ -1,3 +1,16 @@
+# Aegis Nachtrag 2.1.174 — 2026-09-07
+
+Binary **2.1.174 alpha Build 199**. Print je Gesicht. Yaw-Merge nur mit Print. Helios Live-Scale.
+
+## In 2.1.174 gelandet
+
+1. printBudgetSkipIds / SkipAll — Twin bewegt, Ada skippt
+2. leftoverPrintSkipHits / SkipBoxes + FaceEngine skipPrintBoxes
+3. leftoverPrintYawMerge(printedIds:) — Ada-Yaw hält
+4. Tests + VERSION = Models = MARKETING_VERSION 2.1.174 (Build 199)
+
+Rest: FaceTrack als Store, CameraBroker. Siehe VORSCHLAEGE-GROK.md.
+
 # Aegis Nachtrag 2.1.173 — 2026-09-07
 
 Binary **2.1.173 alpha Build 198**. FaceTrack-PredictHeld. Coast gallery. Lookaway-Tried tot. stillFor/Stamp/`??` aus 2.1.172 bleiben.
