@@ -1,3 +1,80 @@
+# Nachtrag 2026-09-07 — 1.5.174 / 2.1.176 (kein Merge von `bugfix`)
+
+Helios `bpms9cmnxc-debug/Helios` **1.5.174** (Build 193).
+Aegis `lolalpha00gamma/aegis-scanner` **2.1.176 alpha** (Build 201).
+Nur `main`. Agent-Regel: keine Nebenbranches. `bugfix` gelesen, nicht gemergt.
+
+2.1.175 Skip-HUD. Hung-live PID hielt die Kamera. Coach ¾R unsichtbar. Twin x+yaw beide Occupied. Helios S1-Coast ghostete S2.
+
+## Warum es schlecht wirkte (dieser Pass)
+
+1. **cameraMutexHeartbeatKillPid live == true nie.** Prozess da, Stamp tot → Kamera ewig.
+2. **enrollmentCoach F+¾.** ¾L sitzt, ¾R fehlt, Coach nil.
+3. **leftoverHashTwinLeft x+yaw gleich.** beide Occupied. Center-Stage-Zwillinge tot.
+4. **FaceTrack nur Pack.** leftoverGateChip liest vier Maps.
+5. **Helios S1-Coast ghostet S2.** Zwei-Pinzette Overlay tot.
+
+## In 1.5.174 / 2.1.176 gelandet
+
+- **Hung-live 12 s.** 5 s frisch bleibt.
+- **leftoverEnrollSlotChip F/¾L/¾R.** Coach `enroll ¾R`.
+- **leftoverHashTwinLeft tieKey.**
+- **leftoverFaceTrackLookup / Holds / PrintPruneDup / PairCommitWAL.**
+- Helios S2 Coast-Ghost, Freeze, Span, Pre-Arm, Overlay-Ghost Any.
+- Tests + MARKETING 1.5.174 / 2.1.176 (Build 193 / 201). Schema 15 bleibt.
+
+Pass 16: Hung-live, Enroll-Slots, Twin-Tie, S2 Ghost — 1.5.174 / 2.1.176.
+
+## Erweiterungen (neu, oben)
+
+1. **tieKey in leftoverHashTwinOccupied verdrahten.**
+2. **Print-Prune in LibraryStore.write.**
+3. **Pair-Commit WAL nach gallery.json.**
+4. **FaceTrack als einziges leftover-Dict.**
+5. **Hung-live SIGTERM 2 s vor SIGKILL.**
+6. **Enrollment-HUD 3-Slot im Overlay.**
+7. **CameraBroker-XPC.**
+8. **App-Group `group.helios.aegis`.**
+9. **Overlay Metal 90 Hz.**
+10. **IOHID / AX / Per-App-Gain / JSONL** (`bugfix`).
+11. **Helios liest Aegis leftover-Boxen.**
+12. **Watch-IMU Pinch-Confirm.**
+13. **Vision Hand-Mesh** (macOS 26).
+14. **Frame-ID auf IOSurface.**
+15. **Aegis-Yaw als Helios Click-Lock.**
+16. **VNDetectHumanBodyPose.**
+17. **CameraMath-Package.**
+18. **Telemetry-Ring 30 s.**
+19. **Center Stage force-off nach Sleep.**
+20. **Continuity USB-Hub Watchdog.**
+21. **SpaceMap Auto-Recalib.**
+22. **Two-mode Pointer.**
+23. **Tests splitten.**
+24. **VNTrackObjectRequest.**
+25. **outputQueue ≠ MainActor.**
+26. **Kalman-Zeiger 2D.**
+27. **Latency-HUD.**
+28. **Guitar-Schwelle aus IOD.**
+29. **Negativ-Galerie.**
+30. **PCA-Whitening.**
+31. **Cursor-Magnetismus.**
+32. **Dwell-Klick.**
+33. **Doorbell-Cue.**
+34. **Clamshell Pause.**
+35. **Jerk Dead-Man.**
+36. **Lock Schema v2.**
+37. **Vision Pro Sidecar.**
+38. **CI `swiftc` Tests vor DMG.**
+39. **Zwei-Phasen Mutex.**
+40. **Helios Kill-Switch Datei.**
+41. **Speaker-Diarization.**
+42. **ONNX sidecar.**
+43. **Gallery mmap.**
+44. **Hover-Preview ohne Click.**
+45. **Freeze-Need aus fps.**
+46. **Per-Finger Curl-Rate.**
+47. **S2 Pinch-Ratio Floor.**
+
 # Nachtrag 2026-09-07 — 1.5.173 / 2.1.175 (kein Merge von `bugfix`)
 
 Helios `bpms9cmnxc-debug/Helios` **1.5.173** (Build 192).

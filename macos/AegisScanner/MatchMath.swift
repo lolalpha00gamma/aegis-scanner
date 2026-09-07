@@ -1142,7 +1142,8 @@ enum MatchMath {
         return TimeInterval(parts[2])
     }
 
-    /// Nach Sleep: tot-PID SIGKILL, nicht 12 s stale. Live-PID nie. Self nie.
+    /// Nach Sleep: tot-PID SIGKILL. Hung-live (Prozess da, Stamp tot) nach Stale 12 s.
+    /// Continuity 8 fps schreibt 2 s Heartbeat — 5 s live bleibt. Self nie.
     static func cameraMutexHeartbeatKillPid(
         pid: Int32?,
         live: Bool?,
@@ -1151,8 +1152,12 @@ enum MatchMath {
         heartbeat: TimeInterval = cameraMutexHeartbeatSec()
     ) -> Int32? {
         guard let pid, pid > 0 else { return nil }
-        if live == true { return nil }
         if live == false { return pid }
+        if live == true {
+            guard let stamped else { return nil }
+            if now - stamped >= cameraMutexStale() { return pid }
+            return nil
+        }
         guard let stamped else { return nil }
         if now - stamped >= heartbeat * 3 { return pid }
         return nil
@@ -1796,14 +1801,30 @@ enum MatchMath {
 
     /// Hamming-0 Twins: strikt links behält Exact, rechts Occupied.
     /// Gleichstand ohne Yaw: beide tot. Mit Yaw: kleinerer yawAbs Exact (Center-Stage).
-    static func leftoverHashTwinLeft(x: Double, others: [Double], yawAbs: Double = 0, otherYaws: [Double] = []) -> Bool {
+    /// Yaw auch gleich: tieKey lexikographisch kleiner Exact — sonst beide Occupied.
+    static func leftoverHashTwinLeft(
+        x: Double,
+        others: [Double],
+        yawAbs: Double = 0,
+        otherYaws: [Double] = [],
+        tieKey: String = "",
+        otherTieKeys: [String] = []
+    ) -> Bool {
         if others.allSatisfy({ x + 1e-9 < $0 }) { return true }
         if others.contains(where: { $0 + 1e-9 < x }) { return false }
         guard otherYaws.count == others.count, !otherYaws.isEmpty else { return false }
         let tied = zip(others, otherYaws).compactMap { ox, oy -> Double? in
             abs(ox - x) <= 1e-9 ? oy : nil
         }
-        return !tied.isEmpty && tied.allSatisfy { yawAbs + 1e-9 < $0 }
+        if !tied.isEmpty && tied.allSatisfy({ yawAbs + 1e-9 < $0 }) { return true }
+        if !tied.isEmpty && tied.allSatisfy({ abs(yawAbs - $0) <= 1e-9 }),
+           otherTieKeys.count == others.count, !tieKey.isEmpty {
+            let keys = zip(others, otherTieKeys).compactMap { ox, k -> String? in
+                abs(ox - x) <= 1e-9 ? k : nil
+            }
+            return keys.allSatisfy { tieKey < $0 }
+        }
+        return false
     }
 
     static func leftoverHashTwinOccupied(
@@ -7691,6 +7712,69 @@ enum MatchMath {
         let w = min(1 - x, box.width * (1 + 2 * pad))
         let h = min(1 - y, box.height * (1 + 2 * pad))
         return FaceBox(x: x, y: y, width: w, height: h)
+    }
+
+    /// 3 Yaw-Slots. Coach kannte nur F+¾, ¾R blieb unsichtbar.
+    static func leftoverEnrollSlotChip(haveFrontal: Bool, haveLeft: Bool, haveRight: Bool) -> String? {
+        var miss: [String] = []
+        if !haveFrontal { miss.append("F") }
+        if !haveLeft { miss.append("¾L") }
+        if !haveRight { miss.append("¾R") }
+        return miss.isEmpty ? nil : "enroll " + miss.joined(separator: " ")
+    }
+
+    static func leftoverEnrollSlotHave(
+        yaw: Double,
+        haveFrontal: Bool,
+        haveLeft: Bool,
+        haveRight: Bool
+    ) -> (frontal: Bool, left: Bool, right: Bool) {
+        var f = haveFrontal
+        var l = haveLeft
+        var r = haveRight
+        let a = abs(yaw)
+        if a < 0.28 { f = true }
+        else if a < 0.70 {
+            if yaw < 0 { l = true } else { r = true }
+        }
+        return (f, l, r)
+    }
+
+    static func leftoverFaceTrackLookup(tracks: [UUID: FaceTrack], id: UUID) -> FaceTrack? {
+        tracks[id]
+    }
+
+    static func leftoverFaceTrackHolds(track: FaceTrack?, now: TimeInterval) -> Bool {
+        guard let t = track else { return false }
+        if t.hold <= 0 { return false }
+        if t.nameUntil > 0 && now >= t.nameUntil { return false }
+        return true
+    }
+
+    static func leftoverFaceTrackHoldChip(track: FaceTrack?, now: TimeInterval) -> String? {
+        leftoverFaceTrackHolds(track: track, now: now) ? "hold" : nil
+    }
+
+    /// Burst 0,98. Gallery-on-disk sonst identische Prints.
+    static func leftoverPrintPruneDup(cosine: Double, floor: Double = 0.98) -> Bool {
+        cosine + 1e-12 >= floor
+    }
+
+    static func leftoverPairCommitWALFresh(
+        stamped: TimeInterval?,
+        now: TimeInterval,
+        ttl: TimeInterval = 2
+    ) -> Bool {
+        guard let stamped, ttl > 0 else { return false }
+        return now - stamped >= 0 && now - stamped < ttl
+    }
+
+    static func leftoverPairCommitWALStamp(
+        prev: TimeInterval?,
+        commit: Bool,
+        now: TimeInterval
+    ) -> TimeInterval? {
+        commit ? now : prev
     }
 }
 

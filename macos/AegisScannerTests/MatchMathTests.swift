@@ -4160,8 +4160,12 @@ enum MatchMathTests {
             "Heartbeat tot-PID"
         )
         ok(
-            MatchMath.cameraMutexHeartbeatKillPid(pid: 9, live: true, now: 1_020, stamped: 1_000) == nil,
-            "Heartbeat live nie"
+            MatchMath.cameraMutexHeartbeatKillPid(pid: 9, live: true, now: 1_020, stamped: 1_000) == 9,
+            "Heartbeat hung-live 20 s"
+        )
+        ok(
+            MatchMath.cameraMutexHeartbeatKillPid(pid: 9, live: true, now: 1_005, stamped: 1_000) == nil,
+            "Heartbeat live frisch"
         )
         ok(
             MatchMath.cameraMutexHeartbeatKillPid(pid: 9, live: nil, now: 1_007, stamped: 1_000) == 9,
@@ -4412,6 +4416,56 @@ enum MatchMathTests {
         ok(roiAllSkip.count == 1 && abs(roiAllSkip[0].x - 0.10) < 1e-9, "ROI alle skip = Kalman bleibt")
         let roiBox = MatchMath.liveRoiBox(kalman: roiNeed, imageW: 1280, imageH: 720)
         ok(roiBox != nil, "ROI Twin Crop lebt")
+        ok(
+            MatchMath.leftoverEnrollSlotChip(haveFrontal: true, haveLeft: true, haveRight: false) == "enroll ¾R",
+            "Enroll ¾R fehlt"
+        )
+        ok(
+            MatchMath.leftoverEnrollSlotChip(haveFrontal: true, haveLeft: true, haveRight: true) == nil,
+            "Enroll voll tot"
+        )
+        ok(
+            MatchMath.leftoverEnrollSlotHave(yaw: -0.40, haveFrontal: true, haveLeft: false, haveRight: false).left,
+            "Enroll ¾L aus Yaw"
+        )
+        ok(
+            MatchMath.leftoverEnrollSlotHave(yaw: 0.40, haveFrontal: true, haveLeft: false, haveRight: false).right,
+            "Enroll ¾R aus Yaw"
+        )
+        let trackId = UUID()
+        let packed = MatchMath.leftoverFaceTrackPack(
+            hold: [trackId: 0.80],
+            pending: [:],
+            streak: [:],
+            lastHash: [:],
+            lastIoU: [:],
+            nameHeld: [trackId: "Ada"],
+            nameUntil: [trackId: 1_010],
+            miss: [:]
+        )
+        ok(MatchMath.leftoverFaceTrackLookup(tracks: packed, id: trackId)?.nameHeld == "Ada", "FaceTrack Lookup")
+        ok(MatchMath.leftoverFaceTrackHolds(track: packed[trackId], now: 1_005), "FaceTrack Hold")
+        ok(!MatchMath.leftoverFaceTrackHolds(track: packed[trackId], now: 1_011), "FaceTrack TTL tot")
+        ok(MatchMath.leftoverFaceTrackHoldChip(track: packed[trackId], now: 1_005) == "hold", "FaceTrack Chip")
+        ok(MatchMath.leftoverPrintPruneDup(cosine: 0.99), "Prune 0,99")
+        ok(!MatchMath.leftoverPrintPruneDup(cosine: 0.90), "Prune 0,90 tot")
+        ok(MatchMath.leftoverPairCommitWALFresh(stamped: 1_000, now: 1_001), "WAL frisch")
+        ok(!MatchMath.leftoverPairCommitWALFresh(stamped: 1_000, now: 1_003), "WAL 2 s tot")
+        ok(MatchMath.leftoverPairCommitWALStamp(prev: nil, commit: true, now: 5) == 5, "WAL Stamp")
+        ok(
+            MatchMath.leftoverHashTwinLeft(
+                x: 0.50, others: [0.50], yawAbs: 0.20, otherYaws: [0.20],
+                tieKey: "aaa", otherTieKeys: ["bbb"]
+            ),
+            "Twin Yaw-Tie Key Exact"
+        )
+        ok(
+            !MatchMath.leftoverHashTwinLeft(
+                x: 0.50, others: [0.50], yawAbs: 0.20, otherYaws: [0.20],
+                tieKey: "bbb", otherTieKeys: ["aaa"]
+            ),
+            "Twin Yaw-Tie Key Occupied"
+        )
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

@@ -1,4 +1,4 @@
-# Aegis **2.1.175 alpha**
+# Aegis **2.1.176 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,18 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.176 alpha
+
+Hung-live hielt die Kamera ewig (kill(0) ok, Stamp tot). Coach kannte nur F+¾, ¾R unsichtbar. Twin x+yaw gleich → beide Occupied. Helios S1-Coast machte S2 zum Ghost.
+
+- **cameraMutexHeartbeatKillPid hung-live.** Live-PID + Stamp ≥ 12 s → SIGKILL. 5 s frisch bleibt.
+- **leftoverEnrollSlotChip / SlotHave.** 3 Yaw-Slots F / ¾L / ¾R. Coach `enroll ¾R` wenn ¾L sitzt.
+- **leftoverHashTwinLeft tieKey.** Yaw-Gleichstand lexikographisch Exact, nicht beide tot.
+- **leftoverFaceTrackLookup / Holds / HoldChip.** Ein Track statt vier Maps.
+- **leftoverPrintPruneDup 0,98.** **leftoverPairCommitWALFresh.**
+- Helios **1.5.174:** S2 Coast-Ghost, Chirality-Freeze, Span-Band, Faust Pre-Arm, Overlay-Ghost Any.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.176 (Build 201). Schema 15 bleibt.
 
 ## Neu in 2.1.175 alpha
 

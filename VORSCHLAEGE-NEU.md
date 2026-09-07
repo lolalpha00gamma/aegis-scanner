@@ -1,3 +1,17 @@
+# Aegis Nachtrag 2.1.176 — 2026-09-07
+
+Binary **2.1.176 alpha Build 201**. Hung-live. Enroll ¾L/¾R. Twin-Tie. FaceTrack-Lookup. Helios S2 Ghost.
+
+## In 2.1.176 gelandet
+
+1. cameraMutexHeartbeatKillPid hung-live — Stamp ≥ 12 s trotz live-PID
+2. leftoverEnrollSlotChip / SlotHave — Coach `enroll ¾R`
+3. leftoverHashTwinLeft tieKey — Yaw-Gleichstand nicht beide Occupied
+4. leftoverFaceTrackLookup / Holds, PrintPruneDup, PairCommitWAL
+5. Tests + VERSION = Models = MARKETING_VERSION 2.1.176 (Build 201)
+
+Rest: FaceTrack als Store, CameraBroker. Siehe VORSCHLAEGE-GROK.md.
+
 # Aegis Nachtrag 2.1.175 — 2026-09-07
 
 Binary **2.1.175 alpha Build 200**. Print-Skip HUD. ROI ohne still. Helios S2 Hist+Coast.

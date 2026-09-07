@@ -1,3 +1,27 @@
+# Aegis + Helios — Analyse 2026-09-07 (2.1.176)
+
+Aegis **2.1.176 alpha** (Build 201). Helios **1.5.174** (Build 193). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.175 Skip-HUD. Hung-live, ¾R, Twin-Tie, S2-Ghost.
+
+## Warum Match nach 2.1.175 weiter riss
+
+1. **live-PID nie SIGKILL.** Heartbeat tot, Prozess da, Kamera ewig.
+2. **Coach F+¾.** ¾L sitzt → Coach nil, ¾R fehlt.
+3. **Twin x+yaw gleich.** beide Occupied.
+4. **FaceTrack nur Pack-Helfer.** Maps bleiben Source of Truth.
+5. **Helios S1-Coast ghostet S2.**
+
+## Was 2.1.176 ändert
+
+1. **Hung-live 12 s.** 5 s frisch bleibt.
+2. **leftoverEnrollSlotChip F/¾L/¾R.**
+3. **leftoverHashTwinLeft tieKey.**
+4. **FaceTrackLookup / PrintPrune / PairCommitWAL.**
+5. Tests + VERSION = Models = MARKETING 2.1.176 (Build 201). Schema 15 bleibt.
+
+`bugfix` mergen: nein.
+
 # Aegis + Helios — Analyse 2026-09-07 (2.1.175)
 
 Aegis **2.1.175 alpha** (Build 200). Helios **1.5.173** (Build 192). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

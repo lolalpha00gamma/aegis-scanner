@@ -1,6 +1,8 @@
 # Aegis — Vorschlagsliste
 
-Stand: **2.1.175 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-GROK.md](VORSCHLAEGE-GROK.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+Stand: **2.1.176 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-GROK.md](VORSCHLAEGE-GROK.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+Neu in 2.1.176: Hung-live Mutex 12 s, Enroll F/¾L/¾R, Twin-TieKey, FaceTrack-Lookup, Print-Prune 0,98, Pair-Commit WAL. Helios 1.5.174 S2 Coast-Ghost.
 
 Neu in 2.1.175: Print-Skip HUD (`still`), liveRoiTracks ohne Ada-still, Helios 1.5.173 S2 Hist+Coast.
 
