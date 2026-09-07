@@ -1,3 +1,25 @@
+# Aegis + Helios — Analyse 2026-09-07 (2.1.183)
+
+Aegis **2.1.183 alpha** (Build 208). Helios **1.5.182** (Build 201). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.182: Peak-Assign leftoverMirrorPending. Remint-Map leer ließ Peak auf tot-UUID. Advance wischte Ada. Helios Opacity sprang, HUD S1-only.
+
+## Warum Match nach 2.1.182 weiter riss
+
+1. **leftoverHoldRemintMap leer.** Vision-UUID neu, x/Hash miss. leftoverHoldRemintDrop no-op. leftoverOverlayPeakAdvance `!keep` löscht PeakHeld. Overlay „?“ Tick 1.
+2. **leftoverOverlayPeakRemain nicht in remintKeys.**
+3. **Helios overlayLerpHands isGhost diskret.** S2-Coast Alpha-Sprung. HUD ohne S2-Chip.
+
+## Was 2.1.183 ändert
+
+1. leftoverOverlayPeakIoUAdopt unique IoU ≥ 0,40 vor Advance.
+2. leftoverOverlayPeakStoredBoxes Streak vor Kalman.
+3. leftoverOverlayPeakRemain in remintKeys.
+4. Helios 1.5.182 overlayGhostBlend + overlayGhostSlotChip.
+5. Tests + VERSION = Models = MARKETING 2.1.183 (Build 208). Schema 15 bleibt.
+
+`bugfix` mergen: nein.
+
 # Aegis + Helios — Analyse 2026-09-07 (2.1.182)
 
 Aegis **2.1.182 alpha** (Build 207). Helios **1.5.181** (Build 200). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

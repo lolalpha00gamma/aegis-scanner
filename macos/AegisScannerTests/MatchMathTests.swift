@@ -4732,6 +4732,49 @@ enum MatchMathTests {
         ok(peakMoved[toId] == "Ada" && peakMoved[fromId] == nil, "Peak Assign remint")
         let remainMoved = MatchMath.leftoverAssignAtomic(hold: [fromId: 2], from: fromId, to: toId)
         ok(remainMoved[toId] == 2 && remainMoved[fromId] == nil, "Peak Remain remint")
+        let iouHit = MatchMath.leftoverBoxIoU(
+            ax: 0.10, ay: 0.10, aw: 0.20, ah: 0.20,
+            bx: 0.12, by: 0.12, bw: 0.20, bh: 0.20
+        )
+        ok(iouHit > 0.40, "Box IoU Overlap")
+        ok(
+            MatchMath.leftoverBoxIoU(
+                ax: 0, ay: 0, aw: 0.10, ah: 0.10,
+                bx: 0.90, by: 0.90, bw: 0.10, bh: 0.10
+            ) < 1e-9,
+            "Box IoU tot"
+        )
+        let oldPeak = UUID(), livePeak = UUID(), twinPeak = UUID()
+        let storedPeak = MatchMath.leftoverOverlayPeakStoredBoxes(
+            streak: [(id: oldPeak, x: 0.20, y: 0.20, w: 0.20, h: 0.20)],
+            kalman: [(id: oldPeak, x: 0.21, y: 0.21, w: 0.20, h: 0.20)]
+        )
+        ok(storedPeak.count == 1 && storedPeak[0].id == oldPeak, "Peak Stored Streak vor Kalman")
+        let adopted = MatchMath.leftoverOverlayPeakIoUAdopt(
+            held: [oldPeak: "Ada"],
+            remain: [oldPeak: 3],
+            live: [(id: livePeak, x: 0.21, y: 0.21, w: 0.20, h: 0.20)],
+            stored: storedPeak
+        )
+        ok(adopted.held[livePeak] == "Ada" && adopted.held[oldPeak] == nil, "Peak IoU-Adopt Ada")
+        ok(adopted.remain[livePeak] == 3 && adopted.remain[oldPeak] == nil, "Peak IoU-Adopt Remain")
+        let tied = MatchMath.leftoverOverlayPeakIoUAdopt(
+            held: [oldPeak: "Ada"],
+            remain: [oldPeak: 2],
+            live: [
+                (id: livePeak, x: 0.21, y: 0.21, w: 0.20, h: 0.20),
+                (id: twinPeak, x: 0.22, y: 0.22, w: 0.20, h: 0.20)
+            ],
+            stored: [(id: oldPeak, x: 0.20, y: 0.20, w: 0.20, h: 0.20)]
+        )
+        ok(tied.held[oldPeak] == "Ada" && tied.held[livePeak] == nil, "Peak IoU-Adopt Twin tot")
+        let liveKeep = MatchMath.leftoverOverlayPeakIoUAdopt(
+            held: [livePeak: "Ada"],
+            remain: [livePeak: 2],
+            live: [(id: livePeak, x: 0.20, y: 0.20, w: 0.20, h: 0.20)],
+            stored: [(id: livePeak, x: 0.20, y: 0.20, w: 0.20, h: 0.20)]
+        )
+        ok(liveKeep.held[livePeak] == "Ada", "Peak IoU-Adopt Live hält")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

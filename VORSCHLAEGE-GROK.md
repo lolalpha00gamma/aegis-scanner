@@ -1,3 +1,97 @@
+# Nachtrag 2026-09-07 — 1.5.182 / 2.1.183 (kein Merge von `bugfix`)
+
+Aegis `lolalpha00gamma/aegis-scanner` **2.1.183 alpha** (Build 208).
+Helios `bpms9cmnxc-debug/Helios` **1.5.182** (Build 201).
+Nur `main`. Agent-Regel: keine Nebenbranches. `bugfix` gelesen, nicht gemergt.
+
+1.5.181 Ghost-Knochen / Kalman-P / Peak-Assign. Opacity sprang. HUD S1-only. Remint-Map leer → Peak tot.
+
+## Warum es schlecht wirkte (dieser Pass)
+
+1. **isGhost diskret.** overlayLerpHands `var h = to`. Alpha 1→0,50 Tick 0. Knochen Bezier, Opacity nicht.
+2. **HUD Actor-Slot.** S2-Coast nur Wrist-Label. Status ohne `S2 · ghost`.
+3. **Aegis Remint-Map leer.** leftoverHoldRemintDrop lässt Peak auf tot-UUID. Advance wischt. Overlay „?“ 1–3 Frames.
+4. **PeakRemain nicht in remintKeys.**
+5. **Zwei Sessions.** Mutex+TERM Pflaster. Ohne CameraBroker zwei Vision, zwei TCC.
+6. Von `bugfix` (1.5.8 / 2.1.15) bewusst nicht gemergt: IOHID Event-Tap, AX SetPosition/Frame, Per-App-Gain, JSONL.
+
+## In 1.5.182 / 2.1.183 gelandet
+
+- **overlayGhostBlend / overlayLerpGhostBlend.** TrackedHand.ghostBlend. Canvas Opacity über dt.
+- **overlayGhostSlotChip** HUD `S2 · ghost` / `S1+S2 · ghost`.
+- **leftoverOverlayPeakIoUAdopt** unique IoU ≥ 0,40. leftoverOverlayPeakStoredBoxes Streak vor Kalman.
+- **leftoverOverlayPeakRemain** in remintKeys.
+- Tests + MARKETING 1.5.182 / 2.1.183 (Build 201 / 208). Schema 15 bleibt.
+
+Pass 24: Ghost-Opacity-Lerp, S2 Ghost-Chip, Peak IoU-Adopt — 1.5.182 / 2.1.183.
+
+## Erweiterungen (neu, oben)
+
+1. **CameraBroker-XPC** — eine TCC, IOSurface an beide. Größter einzelner Effizienzgewinn.
+2. **leftoverNameLockHeld IoU-Adopt** analog Peak. Matching-Sticky sitzt sonst auf tot-UUID.
+3. **Peak-IoU-Floor aus fps** — 8 fps 0,32, 60 fps 0,50. Continuity sonst Twin-Tie.
+4. **Vision tracking-ID als Remint-Seed** vor IoU. VNDetectFaceRectangles tracking-ID.
+5. **CMSampleBuffer-PTS als Fill-Uhr.** LiveCapture emit ist `Date()`, fpsStamp tot.
+6. **FaceTrack `[UUID: FaceTrack]` als einziges leftover-Dict.**
+7. **Overlay Metal 90 Hz.** SwiftUI Canvas Ghosts jetzt sichtbar, ForEach 21×2 weiter tot.
+8. **Eine Homographie je Display-UUID.**
+9. **POSIX-Semaphore + INTENT → Yield → CONFIRM.**
+10. **Palm-Print Sticky-ID.** Wrist→Thumb statt Vision L/R.
+11. **Overlay-Why Inspector.** Tap auf HUD-Chip zeigt Veto (Ghost-Blend, Peak-IoU).
+12. **Latency-HUD Tick→AX.**
+13. **App-Group `group.helios.aegis`.**
+14. **IOHID Event-Tap** (`bugfix` 1.5.8) als opt-in Pref, nicht Merge des 1.5.8-Trees.
+15. **AX SetPosition ein Call/Frame** (`bugfix`).
+16. **Per-App Gain aus AX bundle id** (`bugfix`).
+17. **Gesture-Log JSONL** (`bugfix`).
+18. **Enrollment-HUD 3-Slot im Overlay.**
+19. **Helios liest Aegis leftover-Boxen** als Palm-Occlusion.
+20. **Watch-IMU Pinch-Confirm.**
+21. **Vision Hand-Mesh** (macOS 26).
+22. **Aegis-Yaw als Helios Click-Lock.**
+23. **VNDetectHumanBodyPose** als Prop-Veto.
+24. **Gemeinsames CameraMath-Package.**
+25. **Telemetry-Ring 30 s + OSLog.**
+26. **Center Stage force-off nach Sleep.**
+27. **Continuity USB-Hub Watchdog + AVCaptureSession interruption.**
+28. **SpaceMap Auto-Recalib** RMS > 24 px / 2 s.
+29. **Two-mode Pointer:** Desk absolut, 0,8 s Dwell relativ.
+30. **Tests splitten** (GestureTests / MatchMathTests > 200 kB).
+31. **VNTrackObjectRequest** statt Remint.
+32. **Aegis live outputQueue ≠ MainActor.** FrameTap hop't jedes CGImage auf Main.
+33. **Kalman-Zeiger 2D** echter P/Q/R.
+34. **Guitar-Schwelle aus Sitzabstand** (IOD / FOV).
+35. **Negativ-Galerie Props.**
+36. **Print-Bank PCA-Whitening.**
+37. **Cursor-Magnetismus** 8 px an AX-Hit.
+38. **Dwell-Klick** optional neben Pinzette.
+39. **Doorbell-Cue.**
+40. **Clamshell: Vision pausieren.**
+41. **Jerk Dead-Man.**
+42. **Lock Schema v2.**
+43. **Vision Pro Sidecar.**
+44. **CI `swiftc` Tests vor DMG hart** (heute continue-on-error).
+45. **Helios Kill-Switch Datei** neben Mutex.
+46. **leftoverOverlayPeakRemain persistieren.**
+47. **Aegis live CVPixelBuffer statt CGImage-Hop.**
+48. **Swift Testing** statt DIY `ok()`.
+49. **nv12 IOSurface zero-copy** sobald CameraBroker sitzt.
+50. **overlayLerpHands ID-mismatch** analog Peak — S2 Coast-ID vs Live-ID.
+51. **ghostBlend auf OverlayController-Cursor.**
+52. **leftoverStreakBox 1-Tick Lag** — Peak-Stored Kalman-only Fallback schon, Streak-Write nach Matching.
+53. **Shared Peak via Mutex-Datei** Helios HUD liest Ada.
+54. **Bone-velocity clamp Overlay** nach Bezier — Tips überschwingen sonst.
+55. **Speaker-Diarization.**
+56. **Face-Print ONNX sidecar.**
+57. **Gallery-on-disk mmap.**
+58. **Hover-Preview ohne Click.**
+59. **kAXFocusedUIElementChanged** statt FocusTracker-Poll.
+60. **Peak-Adopt HUD-Chip** `iou Ada` analog StoreChip.
+
+Bewusst nicht: Merge `bugfix`, Blind-Patch Schwellen, CameraBroker in diesem Pass, FaceTrack-Store-Rewrite, Overlay-Metal.
+
+Nächster Code-Schritt: leftoverNameLockHeld IoU-Adopt oder CameraBroker-XPC oder Aegis outputQueue ≠ MainActor oder PTS-Wall-Anchor.
+
 # Nachtrag 2026-09-07 — 1.5.181 / 2.1.182 (kein Merge von `bugfix`)
 
 Helios `bpms9cmnxc-debug/Helios` **1.5.181** (Build 200).

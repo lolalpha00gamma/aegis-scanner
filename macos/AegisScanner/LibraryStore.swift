@@ -3137,7 +3137,7 @@ final class LibraryStore: ObservableObject {
             Set(boxJumpPending.keys),
             Set(leftoverCoastPrint.keys), Set(leftoverCoastPrintAt.keys),
             Set(leftoverUnsureTicks.keys), Set(leftoverPrintYaw.keys),
-            Set(leftoverOverlayPeakHeld.keys)
+            Set(leftoverOverlayPeakHeld.keys), Set(leftoverOverlayPeakRemain.keys)
         ])
         let remintPlan = MatchMath.leftoverHoldRemintMap(
             live: remintLive,
@@ -3300,6 +3300,23 @@ final class LibraryStore: ObservableObject {
             ghosts: ghostIds
         )
         do {
+            let peakBoxes = MatchMath.leftoverOverlayPeakIoUAdopt(
+                held: leftoverOverlayPeakHeld,
+                remain: leftoverOverlayPeakRemain,
+                live: adopted.map {
+                    (id: $0.id, x: $0.box.x, y: $0.box.y, w: $0.box.width, h: $0.box.height)
+                },
+                stored: MatchMath.leftoverOverlayPeakStoredBoxes(
+                    streak: leftoverStreakBox.map {
+                        (id: $0.key, x: $0.value.x, y: $0.value.y, w: $0.value.width, h: $0.value.height)
+                    },
+                    kalman: boxKalman.map {
+                        (id: $0.key, x: $0.value.x, y: $0.value.y, w: $0.value.w, h: $0.value.h)
+                    }
+                )
+            )
+            leftoverOverlayPeakHeld = peakBoxes.held
+            leftoverOverlayPeakRemain = peakBoxes.remain
             let peakLive = Array(Set(liveIds + adopted.map(\.id) + ghostIds))
             let guests = Dictionary(uniqueKeysWithValues: peakLive.map { ($0, leftoverOverlayGuestRaw(for: $0)) })
             let advanced = MatchMath.leftoverOverlayPeakAdvance(

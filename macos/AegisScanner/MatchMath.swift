@@ -8091,5 +8091,74 @@ enum MatchMath {
         return (h, r)
     }
 
+    /// Box-IoU 0…1. Peak-Adopt ohne Remint-Map.
+    static func leftoverBoxIoU(
+        ax: Double, ay: Double, aw: Double, ah: Double,
+        bx: Double, by: Double, bw: Double, bh: Double
+    ) -> Double {
+        let ax2 = ax + aw, ay2 = ay + ah
+        let bx2 = bx + bw, by2 = by + bh
+        let ix = max(0, min(ax2, bx2) - max(ax, bx))
+        let iy = max(0, min(ay2, by2) - max(ay, by))
+        let inter = ix * iy
+        let uni = aw * ah + bw * bh - inter
+        if uni <= 1e-12 { return 0 }
+        return inter / uni
+    }
+
+    /// Streak vor Kalman. Peak-Stored ohne Remint-x.
+    static func leftoverOverlayPeakStoredBoxes(
+        streak: [(id: UUID, x: Double, y: Double, w: Double, h: Double)],
+        kalman: [(id: UUID, x: Double, y: Double, w: Double, h: Double)]
+    ) -> [(id: UUID, x: Double, y: Double, w: Double, h: Double)] {
+        var seen = Set<UUID>()
+        var out: [(id: UUID, x: Double, y: Double, w: Double, h: Double)] = []
+        for row in streak + kalman {
+            if seen.contains(row.id) { continue }
+            seen.insert(row.id)
+            out.append(row)
+        }
+        return out
+    }
+
+    /// Remint-Map leer: Peak bleibt auf tot-UUID, Advance wischt, Overlay „?“.
+    /// Unique IoU ≥ floor zieht Peak auf Live. Twin-Tie bleibt.
+    static func leftoverOverlayPeakIoUAdopt(
+        held: [UUID: String],
+        remain: [UUID: Int],
+        live: [(id: UUID, x: Double, y: Double, w: Double, h: Double)],
+        stored: [(id: UUID, x: Double, y: Double, w: Double, h: Double)],
+        floor: Double = 0.40
+    ) -> (held: [UUID: String], remain: [UUID: Int]) {
+        let liveIds = Set(live.map(\.id))
+        var h = held
+        var r = remain
+        var storedById: [UUID: (id: UUID, x: Double, y: Double, w: Double, h: Double)] = [:]
+        for row in stored where storedById[row.id] == nil {
+            storedById[row.id] = row
+        }
+        var occupied = Set(h.keys.filter { liveIds.contains($0) })
+        for (oldId, name) in held {
+            if liveIds.contains(oldId) { continue }
+            if leftoverOverlayPeakIsUnsure(name) { continue }
+            guard let box = storedById[oldId] else { continue }
+            let hits = live.filter { !occupied.contains($0.id) }.compactMap { row -> (UUID, Double)? in
+                let iou = leftoverBoxIoU(
+                    ax: box.x, ay: box.y, aw: box.w, ah: box.h,
+                    bx: row.x, by: row.y, bw: row.w, bh: row.h
+                )
+                return iou >= floor ? (row.id, iou) : nil
+            }
+            guard hits.count == 1 else { continue }
+            let nid = hits[0].0
+            h[nid] = leftoverOverlayPeakBare(name)
+            r[nid] = r[oldId] ?? 3
+            h.removeValue(forKey: oldId)
+            r.removeValue(forKey: oldId)
+            occupied.insert(nid)
+        }
+        return (h, r)
+    }
+
 }
 

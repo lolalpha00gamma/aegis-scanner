@@ -1,4 +1,4 @@
-# Aegis **2.1.182 alpha**
+# Aegis **2.1.183 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.183 alpha
+
+Remint-Map leer: PeakHeld auf tot-UUID, Advance wischt Ada, Overlay „?“ Tick 1. Helios Ghost-Opacity sprang 1→0,50, HUD nur S1.
+
+- **leftoverOverlayPeakIoUAdopt** unique IoU ≥ 0,40 vor Advance. leftoverOverlayPeakStoredBoxes Streak vor Kalman.
+- leftoverOverlayPeakRemain in remintKeys.
+- Helios **1.5.182:** overlayGhostBlend, overlayGhostSlotChip `S2 · ghost`.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.183 (Build 208). Schema 15 bleibt.
 
 ## Neu in 2.1.182 alpha
 

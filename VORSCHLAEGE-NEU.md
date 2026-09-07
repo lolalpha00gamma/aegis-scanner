@@ -1,3 +1,16 @@
+# Aegis Nachtrag 2.1.183 — 2026-09-07
+
+Binary **2.1.183 alpha Build 208**. Peak IoU-Adopt. Helios Ghost-Opacity-Lerp.
+
+## In 2.1.183 gelandet
+
+1. leftoverOverlayPeakIoUAdopt unique IoU ≥ 0,40 — Remint-Map leer zieht Ada auf Live
+2. leftoverOverlayPeakStoredBoxes Streak vor Kalman
+3. leftoverOverlayPeakRemain in remintKeys
+4. Tests + VERSION = Models = MARKETING_VERSION 2.1.183 (Build 208)
+
+Rest: CameraBroker, Overlay-Metal, IOHID, FaceTrack-Store, leftoverNameLockHeld IoU-Adopt, outputQueue ≠ MainActor. Siehe VORSCHLAEGE-GROK.md.
+
 # Aegis Nachtrag 2.1.182 — 2026-09-07
 
 Binary **2.1.182 alpha Build 207**. Peak-Assign in leftoverMirrorPending. Helios Ghost-Knochen.
