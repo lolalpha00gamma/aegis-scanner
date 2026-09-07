@@ -2418,6 +2418,8 @@ final class LibraryStore: ObservableObject {
         leftoverHoldTrail = MatchMath.leftoverAssignAtomic(hold: leftoverHoldTrail, from: from, to: to)
         leftoverNameLockUntil = MatchMath.leftoverAssignAtomic(hold: leftoverNameLockUntil, from: from, to: to)
         leftoverNameLockHeld = MatchMath.leftoverAssignAtomic(hold: leftoverNameLockHeld, from: from, to: to)
+        leftoverOverlayPeakHeld = MatchMath.leftoverAssignAtomic(hold: leftoverOverlayPeakHeld, from: from, to: to)
+        leftoverOverlayPeakRemain = MatchMath.leftoverAssignAtomic(hold: leftoverOverlayPeakRemain, from: from, to: to)
         leftoverHoldBins = MatchMath.leftoverHoldMoveBins(hold: leftoverHoldBins, from: from, to: to)
         leftoverHoldTrailBins = MatchMath.leftoverHoldMoveBins(hold: leftoverHoldTrailBins, from: from, to: to)
         leftoverWipeUntil = MatchMath.leftoverAssignAtomic(hold: leftoverWipeUntil, from: from, to: to)

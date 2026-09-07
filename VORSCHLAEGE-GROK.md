@@ -1,3 +1,86 @@
+# Nachtrag 2026-09-07 — 1.5.181 / 2.1.182 (kein Merge von `bugfix`)
+
+Helios `bpms9cmnxc-debug/Helios` **1.5.181** (Build 200).
+Aegis `lolalpha00gamma/aegis-scanner` **2.1.182 alpha** (Build 207).
+Nur `main`. Agent-Regel: keine Nebenbranches. `bugfix` gelesen, nicht gemergt.
+
+2.1.181 Overlay-Peak. leftoverMirrorPending ohne PeakHeld. Helios Canvas fraß Ghosts.
+
+## Warum es schlecht wirkte (dieser Pass)
+
+1. **leftoverMirrorPending** remintete PeakHeld nicht. Assign-Live → Overlay „?“.
+2. **Helios TrackingOverlay `where !isGhost`.** S2-Coast unsichtbar.
+3. **Kalman-P = 0 auf Fill-Gap.**
+4. **Zwei Sessions.** Mutex+TERM ist Pflaster.
+5. Von `bugfix` bewusst nicht gemergt: IOHID Event-Tap, AX SetPosition/Frame, Per-App-Gain, JSONL.
+
+## In 1.5.181 / 2.1.182 gelandet
+
+- **leftoverAssignAtomic PeakHeld/Remain** in leftoverMirrorPending.
+- Helios **overlayDrawsGhost**, pointerKalmanResetsPOnGap false.
+- Tests + MARKETING 1.5.181 / 2.1.182 (Build 200 / 207). Schema 15 bleibt.
+
+Pass 23: Peak-Assign, Ghost-Knochen, Kalman-P.
+
+## Erweiterungen (neu, oben)
+
+1. **CameraBroker-XPC** — eine TCC, IOSurface an beide.
+2. **FaceTrack `[UUID: FaceTrack]` als einziges leftover-Dict.**
+3. **Aegis live outputQueue ≠ MainActor.** FrameTap hop't jedes CGImage auf Main.
+4. **Overlay Metal 90 Hz.**
+5. **CMSampleBuffer-PTS als Fill-Uhr.**
+6. **Eine Homographie je Display-UUID.**
+7. **POSIX-Semaphore + INTENT → Yield → CONFIRM.**
+8. **Palm-Print Sticky-ID.**
+9. **Overlay-Why Inspector.**
+10. **Latency-HUD Tick→AX.**
+11. **App-Group `group.helios.aegis`.**
+12. **IOHID Event-Tap** (`bugfix` 1.5.8) als opt-in Pref.
+13. **AX SetPosition ein Call/Frame** (`bugfix`).
+14. **Per-App Gain aus AX bundle id** (`bugfix`).
+15. **Gesture-Log JSONL** (`bugfix`).
+16. **Enrollment-HUD 3-Slot im Overlay.**
+17. **Helios liest Aegis leftover-Boxen** als Palm-Occlusion.
+18. **Watch-IMU Pinch-Confirm.**
+19. **Vision Hand-Mesh** (macOS 26).
+20. **Aegis-Yaw als Helios Click-Lock.**
+21. **VNDetectHumanBodyPose** als Prop-Veto.
+22. **Gemeinsames CameraMath-Package.**
+23. **Telemetry-Ring 30 s + OSLog.**
+24. **Center Stage force-off nach Sleep.**
+25. **Continuity USB-Hub Watchdog.**
+26. **SpaceMap Auto-Recalib** RMS > 24 px / 2 s.
+27. **Two-mode Pointer:** Desk absolut, 0,8 s Dwell relativ.
+28. **Tests splitten.**
+29. **VNTrackObjectRequest** statt Remint.
+30. **Kalman-Zeiger 2D** echter P/Q/R.
+31. **Guitar-Schwelle aus Sitzabstand.**
+32. **Negativ-Galerie Props.**
+33. **Print-Bank PCA-Whitening.**
+34. **Cursor-Magnetismus** 8 px an AX-Hit.
+35. **Dwell-Klick** optional.
+36. **Doorbell-Cue.**
+37. **Clamshell: Vision pausieren.**
+38. **Jerk Dead-Man.**
+39. **Lock Schema v2.**
+40. **Vision Pro Sidecar.**
+41. **CI `swiftc` Tests vor DMG hart.**
+42. **Helios Kill-Switch Datei.**
+43. **leftoverOverlayPeakRemain persistieren.**
+44. **Aegis live CVPixelBuffer statt CGImage-Hop.**
+45. **Swift Testing** statt DIY `ok()`.
+46. **nv12 IOSurface zero-copy.**
+47. **Speaker-Diarization.**
+48. **Face-Print ONNX sidecar.**
+49. **Gallery-on-disk mmap.**
+50. **Hover-Preview ohne Click.**
+51. **overlayLerpHands Ghost-Opacity lerp.**
+52. **S2 Ghost-Chip im HUD-Status.**
+
+Bewusst nicht: Merge `bugfix`, Blind-Patch Schwellen, CameraBroker in diesem Pass.
+
+Nächster Code-Schritt: CameraBroker-XPC oder FaceTrack-Store oder Aegis outputQueue ≠ MainActor.
+
 # Nachtrag 2026-09-07 — 1.5.180 / 2.1.181 (kein Merge von `bugfix`)
 
 Helios `bpms9cmnxc-debug/Helios` **1.5.180** (Build 199).

@@ -1,3 +1,14 @@
+# Aegis Nachtrag 2.1.182 — 2026-09-07
+
+Binary **2.1.182 alpha Build 207**. Peak-Assign in leftoverMirrorPending. Helios Ghost-Knochen.
+
+## In 2.1.182 gelandet
+
+1. leftoverAssignAtomic leftoverOverlayPeakHeld/Remain in leftoverMirrorPending
+2. Tests + VERSION = Models = MARKETING_VERSION 2.1.182 (Build 207)
+
+Rest: CameraBroker, Overlay-Metal, IOHID, FaceTrack-Store, outputQueue ≠ MainActor. Siehe VORSCHLAEGE-GROK.md.
+
 # Aegis Nachtrag 2.1.181 — 2026-09-07
 
 Binary **2.1.181 alpha Build 206**. Overlay-Peak 3 Frames nach Remint. Helios Lerp-Hitch + Reanchor-RMS.

@@ -1,3 +1,22 @@
+# Aegis + Helios — Analyse 2026-09-07 (2.1.182)
+
+Aegis **2.1.182 alpha** (Build 207). Helios **1.5.181** (Build 200). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.181: Overlay-Peak 3 Frames. leftoverMirrorPending remintete PeakHeld nicht. Helios Canvas fraß Ghosts. Kalman-P Gap 0.
+
+## Warum Match nach 2.1.181 weiter riss
+
+1. **leftoverMirrorPending** kopierte leftoverNameLockHeld, nicht leftoverOverlayPeakHeld. Assign-Live → Peak auf alter UUID, Overlay „?“ Tick 1.
+2. **Helios TrackingOverlay `where !isGhost`.** S2-Coast unsichtbar. Kalman-P = 0 auf Fill-Gap.
+
+## Was 2.1.182 ändert
+
+1. leftoverAssignAtomic PeakHeld/Remain in leftoverMirrorPending.
+2. Helios 1.5.181 overlayDrawsGhost + pointerKalmanResetsPOnGap false.
+3. Tests + VERSION = Models = MARKETING 2.1.182 (Build 207). Schema 15 bleibt.
+
+`bugfix` mergen: nein.
+
 # Aegis + Helios — Analyse 2026-09-07 (2.1.181)
 
 Aegis **2.1.181 alpha** (Build 206). Helios **1.5.180** (Build 199). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

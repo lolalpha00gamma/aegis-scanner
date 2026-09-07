@@ -4727,6 +4727,11 @@ enum MatchMathTests {
         ok(MatchMath.leftoverOverlayPeakName(guest: "Ada", held: "Bert") == "Ada", "Peak Name live")
         ok(MatchMath.leftoverOverlayPeakName(guest: "?", held: nil) == "?", "Peak Name tot")
         ok(MatchMath.leftoverOverlayPeakName(guest: "??", held: "Ada") == "Ada", "Peak Name ??")
+        let fromId = UUID(), toId = UUID()
+        let peakMoved = MatchMath.leftoverAssignAtomic(hold: [fromId: "Ada"], from: fromId, to: toId)
+        ok(peakMoved[toId] == "Ada" && peakMoved[fromId] == nil, "Peak Assign remint")
+        let remainMoved = MatchMath.leftoverAssignAtomic(hold: [fromId: 2], from: fromId, to: toId)
+        ok(remainMoved[toId] == 2 && remainMoved[fromId] == nil, "Peak Remain remint")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

@@ -1,5 +1,11 @@
 # Aegis — Vorschlagsliste
 
+Stand: **2.1.182 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-GROK.md](VORSCHLAEGE-GROK.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+Neu in 2.1.182: Peak-Assign leftoverMirrorPending. Helios 1.5.181 Ghost-Knochen + Kalman-P. Aktueller Nachtrag: [VORSCHLAEGE-GROK.md](VORSCHLAEGE-GROK.md).
+
+# Aegis — Vorschlagsliste
+
 Stand: **2.1.181 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-GROK.md](VORSCHLAEGE-GROK.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 
 Neu in 2.1.181: Overlay-Peak 3 Frames nach Remint-UUID, PeakName Display-Split. Helios 1.5.180 Lerp-Hitch + Reanchor-RMS. Aktueller Nachtrag: [VORSCHLAEGE-GROK.md](VORSCHLAEGE-GROK.md).
