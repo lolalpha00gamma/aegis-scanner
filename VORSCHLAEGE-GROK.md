@@ -1,3 +1,9 @@
+# Nachtrag 2026-09-07 — 2.1.194 / 1.5.195 (kein Merge von `bugfix`)
+
+Aegis `lolalpha00gamma/aegis-scanner` **2.1.194 alpha** (Build 219).
+Helios `bpms9cmnxc-debug/Helios` **1.5.195** (Build 214).
+Nur `main`. Twin-Overlay Detect. Helios Silence Wall.
+
 # Nachtrag 2026-09-07 — 2.1.192 / 1.5.193 (kein Merge von `bugfix`)
 
 Aegis `lolalpha00gamma/aegis-scanner` **2.1.192 alpha** (Build 217).

@@ -1,3 +1,14 @@
+# Aegis Nachtrag 2.1.194 — 2026-09-07
+
+Binary **2.1.194 alpha Build 219**. Twin-Overlay Detect. Helios Silence Wall + mean ohne Tips.
+
+## In 2.1.194 gelandet
+
+1. leftoverOverlayRowId — Twin teilt nicht mehr die ForEach-ID. Zweite Box fällt nicht.
+2. Tests + VERSION = Models = MARKETING 2.1.194 (Build 219). Schema 15 bleibt.
+
+Rest: CameraBroker, FaceTrack einzige Map, Overlay-Metal. Siehe VORSCHLAEGE-GROK.md.
+
 # Aegis Nachtrag 2.1.193 — 2026-09-07
 
 Binary **2.1.193 alpha Build 218**. Overlay identityId. Live-Blink hart. livePending. Session-Pause. Helios Fill-Uhr Wall.

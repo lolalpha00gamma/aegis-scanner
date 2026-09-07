@@ -4978,6 +4978,16 @@ enum MatchMathTests {
         ok(aged?.contains("coast") == true, "Hold Chip Coast Age")
         ok(MatchMath.leftoverOverlayUniqueRows(["ada", "ada", "bob"]) == ["ada", "bob"], "Overlay Row Dedup")
         ok(!MatchMath.leftoverOverlayKeepsRow(seen: Set(["ada"]), row: "ada"), "Overlay Ada einmal")
+        ok(
+            MatchMath.leftoverOverlayRowId(identityId: adaRow, detectId: detectRow, taken: []) == adaRow.uuidString,
+            "Overlay Ada identityId"
+        )
+        ok(
+            MatchMath.leftoverOverlayRowId(identityId: adaRow, detectId: detectRow, taken: [adaRow.uuidString]) == detectRow.uuidString,
+            "Overlay Twin Detect"
+        )
+        ok(MatchMath.cameraMutexPauseResumes(wanted: true, running: false), "Pause Resume")
+        ok(!MatchMath.cameraMutexPauseResumes(wanted: false, running: false), "Pause stop tot")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

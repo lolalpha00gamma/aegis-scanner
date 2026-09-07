@@ -822,7 +822,11 @@ struct FaceOverlay: View {
                     let hit = store.matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == store.strategy }
                     let owner = store.identities.first { $0.faceIds.contains(face.id) }
                     let ident = owner ?? store.identities.first { $0.id == hit?.identityId }
-                    let rid = MatchMath.leftoverGalleryRowId(identityId: ident?.id, detectId: face.id).uuidString
+                    let rid = MatchMath.leftoverOverlayRowId(
+                        identityId: ident?.id,
+                        detectId: face.id,
+                        taken: seen
+                    )
                     guard MatchMath.leftoverOverlayKeepsRow(seen: seen, row: rid) else { continue }
                     seen.insert(rid)
                     out.append((face, rid))

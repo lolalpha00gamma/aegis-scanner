@@ -1,3 +1,36 @@
+# Nachtrag Grok 2026-09-07 — 2.1.194 gelandet, Rest offen
+
+Quelle: Review + Fix Aegis 2.1.194 (Build 219) auf 2.1.193 (Twin-Drop). Helios 1.5.195.
+Kein Binary-Lauf (Linux-Sandbox). Tests in CI. `bugfix` nicht gemergt. Nur `main`.
+
+## Warum es nach 2.1.193 weiter riss
+
+1. leftoverOverlayKeepsRow `continue` — zweite Ada/Twin unsichtbar.
+2. Helios Silence-Age CACurrent nach Sleep 0.
+
+## In 2.1.194 / 1.5.195 gelandet
+
+- leftoverOverlayRowId Detect-Fallback.
+- Helios frameSilenceAge, mean ohne Tips, Pause-Resume.
+
+## Offen (nicht noch ein Slider)
+
+P0 CameraBroker IOSurface. FaceTrack einzige Store-Map.
+P1 Overlay-Metal. LiveCapture nicht @MainActor.
+
+## Erweiterung (neu)
+
+1. leftoverBlinkSeen identity-weit.
+2. NSWorkspace DidWake → liveRoiSkipOnce.
+3. Overlay Hash der Box wenn Twin+Remint.
+4. FrameTap pending ohne CGImage.
+
+## Bugfix-Skill
+
+Pass 1: Twin-Drop, Silence Sleep.
+Pass 2: 2.1.194 / 1.5.195 auf main.
+Pass 3: Twin Detect-ID. Silence 400 s.
+
 # Nachtrag Grok 2026-09-07 — 2.1.193 gelandet, Rest offen
 
 Quelle: Review + Fix Aegis 2.1.193 (Build 218) auf 2.1.192 (Overlay Detect-UUID, Live ohne Blink, emitBusy Drop-new, Pause tot). Helios 1.5.194.

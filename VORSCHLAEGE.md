@@ -1,3 +1,5 @@
+# 2.1.194 — siehe VORSCHLAEGE-NEU.md (Twin-Overlay Detect, nicht Drop).
+
 # 2.1.193 — siehe VORSCHLAEGE-NEU.md (Overlay identityId, Live-Blink, livePending, Session-Pause).
 
 # 2.1.192 — siehe VORSCHLAEGE-NEU.md (leftoverCoastAt ≠ Print-TTL, Blink-Coach Default false).

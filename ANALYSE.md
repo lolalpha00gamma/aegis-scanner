@@ -1,3 +1,16 @@
+# Aegis 2.1.194 — Twin-Overlay Detect
+
+Aegis **2.1.194 alpha** (Build 219). Helios **1.5.195** (Build 214). Nur `main`. `bugfix` mergen: nein.
+
+2.1.193: leftoverOverlayKeepsRow droppte die zweite Ada. Twin unsichtbar.
+
+## Was 2.1.194 ändert
+
+1. **leftoverOverlayRowId** — Kollision → Detect-ID. Twin-Box bleibt.
+2. Tests + VERSION = Models = MARKETING 2.1.194 (Build 219). Schema 15 bleibt.
+
+`bugfix` mergen: nein.
+
 # Aegis 2.1.193 — Overlay identityId, Live-Blink, Session-Pause
 
 Aegis **2.1.193 alpha** (Build 218). Helios **1.5.194** (Build 213). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

@@ -1289,6 +1289,10 @@ enum MatchMath {
     }
     static func cameraMutexPauseArmed(workPending: Bool) -> Bool { workPending }
 
+    static func cameraMutexPauseResumes(wanted: Bool, running: Bool) -> Bool {
+        wanted && !running
+    }
+
     static func cameraPairHelios() -> String { "continuity" }
     static func cameraPairAegis() -> String { "builtIn" }
     static func cameraPairHeliosMigrates(_ prev: String?) -> String {
@@ -8027,6 +8031,13 @@ enum MatchMath {
 
     static func leftoverOverlayKeepsRow(seen: Set<String>, row: String) -> Bool {
         !row.isEmpty && !seen.contains(row)
+    }
+
+    /// Twin: identityId schon da → Detect-ID, nicht droppen. Ghost derselben ID fällt nur wenn Detect gleich.
+    static func leftoverOverlayRowId(identityId: UUID?, detectId: UUID, taken: Set<String>) -> String {
+        let preferred = leftoverGalleryRowId(identityId: identityId, detectId: detectId).uuidString
+        if leftoverOverlayKeepsRow(seen: taken, row: preferred) { return preferred }
+        return detectId.uuidString
     }
 
     static func leftoverOverlayUniqueRows(_ rows: [String]) -> [String] {
