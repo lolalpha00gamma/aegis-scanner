@@ -1,3 +1,97 @@
+# Nachtrag 2026-09-07 — 1.5.170 / 2.1.172 (kein Merge von `bugfix`)
+
+Helios `bpms9cmnxc-debug/Helios` **1.5.170** (Build 189).
+Aegis `lolalpha00gamma/aegis-scanner` **2.1.172 alpha** (Build 197).
+Nur `main`. Agent-Regel: keine Nebenbranches. `bugfix` gelesen, nicht gemergt.
+
+1.5.169 Hist-Prior. 2.1.171 Unsure-Streak/Coast-TTL. Fünf Löcher blieben: Gitarre Conf ohne Hist, Guitar-Hist lockt S1, printBudget ohne Still, Coast-Stamp restampt Cache, Kalman-Predict unverdrahtet.
+
+## Warum es schlecht wirkte (dieser Pass)
+
+1. **palmBind Conf ohne Compact.** 0,29 und 0,14 sind beide palmScaleIsHand (< 0,72). Tick 0 Ring leer: Conf 0,95 = S1 Prop.
+2. **Hist-Prior bei Guitar-Median.** med 0,29, jump 0 → Prior 1 für beide. Compact erholt S1 nicht. Ring nahm 0,29.
+3. **printBudgetSkip ohne stillFor.** Still 0,10 s + IoU 0,95 skippt Print. Coast-TTL 2 s, Twin im Kalman-Kasten = Ada.
+4. **leftoverCoastPrintStampMerge restampte Cache.** skipPrints→Detect, live = stored, Stamp = now. TTL tot.
+5. **leftoverPredictHeld rief boxKalmanPredict.** leftoverFaceTrackKalmanPredict saß, Store nicht.
+6. **Overlay `?` ohne Streak.** leftoverUnsureTicks ungelesen.
+7. Von `bugfix` (1.5.8 / 2.1.15) bewusst nicht gemergt: IOHID Event-Tap, AX SetPosition/Frame, Per-App-Gain, JSONL.
+
+## In 1.5.170 / 2.1.172 gelandet
+
+- **palmBindCompactPrefers** vor Conf. Compact < 0,28 vor Gitarre-Range, auch ohne Hist.
+- **palmScaleHistPrior Guitar-Hist.** med ≥ 0,28 → Compact 1, Gitarre 0.
+- **palmScaleMedianRecords.** 0,29 nicht in lastS1ScaleRing.
+- **palmSlotConfEma / palmSlotConfHolds.** 1-Frame Dip hält S1.
+- **printBudgetSkip(stillFor:).** < 0,80 s kein Skip. LibraryStore min(liveStillFor).
+- **leftoverCoastPrintSame / StampMerge(stored:).** Identischer Vec kein Restamp.
+- **leftoverPredictHeld → leftoverFaceTrackKalmanPredict.** Cap 0,12.
+- **leftoverUnsureChip(streak:) `??`.** leftoverOverlayGuest liest leftoverUnsureTicks.
+- Tests + MARKETING 1.5.170 / 2.1.172 (Build 189 / 197). Schema 15 bleibt.
+
+Pass 13: Compact vor Conf, Guitar-Hist-Erholung, stillFor, Coast-Stamp, Kalman-Predict, Overlay `??` — 1.5.170 / 2.1.172.
+
+## Erweiterungen (neu, oben)
+
+1. **LibraryStore `[UUID: FaceTrack]` als Source of Truth.** Predict sitzt, Maps bleiben Schatten.
+2. **Coast-Print in gallery.json** mit Age. Restart sonst Twin neu.
+3. **CameraBroker-XPC** — eine TCC, IOSurface an beide. Größter einzelner Effizienzgewinn.
+4. **App-Group `group.helios.aegis`.** Yield/Mutex/Pad einmal. Panel in Helios steuert Aegis.
+5. **Overlay Metal 90 Hz.** SwiftUI ForEach 21×2 tot.
+6. **IOHID Event-Tap** statt CGEvent (`bugfix`).
+7. **AX SetPosition ein Call/Frame** (`bugfix`).
+8. **Per-App Gain aus AX bundle id** (`bugfix`).
+9. **Gesture-Log JSONL** (`bugfix`).
+10. **Enrollment-HUD:** 3 Yaw-Slots + Blink bevor Taufe.
+11. **Pair-Commit WAL** in gallery.json.
+12. **Helios Kill-Switch Datei** neben Mutex — Aegis mutet Baptize solange Faust-Lock.
+13. **VNDetectHumanBodyPose** als Prop-Veto. Compact-Prefer sitzt, Body-Pose ist die harte Spur.
+14. **Gemeinsames CameraMath-Package** (Mutex/Format/Rotation/Yield leben doppelt).
+15. **Lokaler Telemetry-Ring 30 s** + OSLog.
+16. **Center Stage force-off nach Sleep.**
+17. **Continuity USB-Hub Watchdog** nach Sleep.
+18. **Per-Slot One-Euro Cutoff aus fps.**
+19. **SpaceMap Auto-Recalib** RMS > 24 px / 2 s.
+20. **Two-mode Pointer:** Desk absolut, 0,8 s Dwell relativ.
+21. **Tests splitten** (GestureTests / MatchMathTests). Dateien > 200 kB.
+22. **Vision revision + VNTrackObjectRequest** statt eigenes Remint.
+23. **Gallery compaction:** pruneCosine 0,98 Burst raus.
+24. **Aegis live outputQueue ≠ MainActor.**
+25. **Palm-Occlusion S2∩S1.** Hand-over-Face Mute.
+26. **destEdgePad Pref je Display-UUID.**
+27. **Kalman-Zeiger 2D** constant-velocity.
+28. **maximumHandCount 2** hart. Compact-Prefer sitzt, Vision liefert weiter 4.
+29. **Latency-HUD** Tick zu AX-move.
+30. **Prefs je camera uniqueID.**
+31. **leftoverSoftmaxBlocks bleibt auf leftoverScore.**
+32. **Shared integration test** Helios+Aegis gegen Fake-Lock-Datei.
+33. **Mutex Heartbeat hung-live.** Jetzt nur tot-PID.
+34. **FaceTrack Encode in gallery.json extra.**
+35. **Speaker-Diarization** als Aegis-Cue.
+36. **Face-Print ONNX sidecar** optional neben Vision.
+37. **Zwei-Phasen Mutex INTENT → Yield → CONFIRM.**
+38. **printBudget aus FaceTrack.stillFor** sitzt. Per-Face statt min() — Twin bewegt, Ada still: Ada skippt nicht mehr mit.
+39. **palmSlotConfEma je Slot**, nicht nur S1 lastHands. S2 Dip tot.
+40. **CI `swiftc` MatchMathTests + GestureTests vor DMG.**
+41. **Guitar-Schwelle aus Sitzabstand** (IOD / FOV). 0,28 ist Desk-fest.
+42. **S1+S2 Chirality-Freeze 800 ms** nach beiden gesehen — Flip tot.
+43. **leftoverHold-Write nur nach Yaw-Bin-Coverage** (F+¾+P). Frontal-Hold auf Profil tot.
+44. **Negativ-Galerie** (bekannte Nicht-Matches) als Open-Set-Stütze.
+45. **Print-Bank PCA-Whitening** vor Cosine.
+46. **Cursor-Magnetismus** 8 px an AX-Hit.
+47. **Helios Dwell-Klick** optional neben Pinzette.
+48. **Watch-Companion** Haptic-Klick.
+49. **Aegis Spotlight-Importer** für die Foto-Mediathek.
+50. **Doorbell-Cue** — wer gerade ins Bild kam.
+51. **Maus-Jiggle-Suppressor** ohne Hand.
+52. **Clamshell: Vision pausieren** (Akku).
+53. **Jerk Dead-Man** für versehentliches Fling (Hochpass sitzt, Ruck-Gate fehlt).
+54. **Shared Lock Schema v2** generation + intent + palm-rect + face-rect.
+55. **Vision Pro / Spatial Persona Sidecar.**
+
+Bewusst nicht: Merge `bugfix`, Blind-Patch Schwellen, leftoverSoftmaxBlocks auf Roh, SIGKILL live-hung PID, CameraBroker in diesem Pass, FaceTrack-Store-Rewrite.
+
+Nächster Code-Schritt: `[UUID: FaceTrack]` als Store oder CameraBroker oder Overlay-Metal. printBudget per-Face stillFor. palmSlotConf je Slot.
+
 # Nachtrag 2026-09-07 — 1.5.169 / 2.1.171 (kein Merge von `bugfix`)
 
 Helios `bpms9cmnxc-debug/Helios` **1.5.169** (Build 188).

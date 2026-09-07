@@ -4217,6 +4217,48 @@ enum MatchMathTests {
             )[liveNew] == ["Ada", "Ada", "Ada"],
             "Name-Hist ohne Remint hält"
         )
+        ok(
+            !MatchMath.printBudgetSkip(visionMs: 19, dt: 0.016, minIoU: 0.95, yawAbs: 0.05, stillFor: 0.10),
+            "Print bleibt Still 0,10 s"
+        )
+        ok(
+            MatchMath.printBudgetSkip(visionMs: 19, dt: 0.016, minIoU: 0.95, yawAbs: 0.05, stillFor: 0.80),
+            "Print skip Still 0,80 s"
+        )
+        ok(
+            MatchMath.printBudgetSkip(visionMs: 19, dt: 0.016, minIoU: 0.95, yawAbs: 0.05),
+            "Print skip ohne stillFor"
+        )
+        ok(MatchMath.leftoverUnsureChip(voted: "Ada", hist: ["Ada"], need: 3, streak: 1) == "?", "Unsure Chip 1")
+        ok(MatchMath.leftoverUnsureChip(voted: "Ada", hist: ["Ada"], need: 3, streak: 2) == "??", "Unsure Chip 2")
+        ok(
+            MatchMath.leftoverOverlayUnsureFirst(voted: "Ada", hist: ["Ada"], need: 3, guest: "Gast 1", streak: 2) == "??",
+            "Overlay Streak 2"
+        )
+        ok(
+            MatchMath.leftoverCoastPrintSame(vecA, vecA),
+            "Coast Same"
+        )
+        ok(
+            !MatchMath.leftoverCoastPrintSame(vecA, vecB),
+            "Coast Diff"
+        )
+        let restamp = MatchMath.leftoverCoastPrintStampMerge(
+            stamped: [liveOld: 1_000],
+            live: [liveOld: vecA],
+            skipPrints: false,
+            now: 1_005,
+            stored: [liveOld: vecA]
+        )
+        ok(restamp[liveOld] == 1_000, "Coast Stamp identisch tot")
+        let freshStamp = MatchMath.leftoverCoastPrintStampMerge(
+            stamped: [liveOld: 1_000],
+            live: [liveOld: vecB],
+            skipPrints: false,
+            now: 1_005,
+            stored: [liveOld: vecA]
+        )
+        ok(freshStamp[liveOld] == 1_005, "Coast Stamp neuer Print")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

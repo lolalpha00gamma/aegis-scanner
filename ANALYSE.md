@@ -1,3 +1,26 @@
+# Aegis + Helios — Analyse 2026-09-07 (2.1.172)
+
+Aegis **2.1.172 alpha** (Build 197). Helios **1.5.170** (Build 189). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.171: Unsure-Tried tot, Coast-TTL 2 s. leftoverFaceTrackKalmanPredict unverdrahtet. printBudget ohne Still. Coast-Stamp auf identischen Cache-Vec. Overlay `?` ohne Streak.
+
+## Warum leftover nach 2.1.171 weiter riss
+
+1. **printBudgetSkip ohne stillFor.** Still 0,10 s + IoU 0,95 skippt Print. 2 s TTL, Twin im Kalman-Kasten.
+2. **leftoverCoastPrintStampMerge restampte Cache.** skipPrints→Detect, live = stored, Stamp = now. TTL tot.
+3. **leftoverPredictHeld boxKalmanPredict.** leftoverFaceTrackKalmanPredict saß, Store rief ihn nie.
+4. **Overlay `?` ohne Streak.** Tick 1 und Tick 2 gleich. leftoverUnsureTicks ungelesen.
+
+## Was 2.1.172 ändert
+
+1. **printBudgetSkip(stillFor:).** < 0,80 s kein Skip.
+2. **leftoverCoastPrintSame / StampMerge(stored:).** Identischer Vec kein Restamp.
+3. **leftoverPredictHeld → leftoverFaceTrackKalmanPredict.** Cap 0,12.
+4. **leftoverUnsureChip(streak:) `??`.** leftoverOverlayGuest liest leftoverUnsureTicks.
+5. Tests + VERSION = Models = MARKETING 2.1.172 (Build 197). Schema 15 bleibt.
+
+`bugfix` mergen: nein.
+
 # Aegis + Helios — Analyse 2026-09-06 (2.1.169)
 
 Aegis **2.1.169 alpha** (Build 194). Helios **1.5.167** (Build 186). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

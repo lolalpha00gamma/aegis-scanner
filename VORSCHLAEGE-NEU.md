@@ -1,3 +1,17 @@
+# Aegis Nachtrag 2.1.172 — 2026-09-07
+
+Binary **2.1.172 alpha Build 197**. stillFor, Coast-Stamp, Kalman-Predict, Overlay `??`.
+
+## In 2.1.172 gelandet
+
+1. printBudgetSkip(stillFor:) — < 0,80 s kein Skip
+2. leftoverCoastPrintSame / StampMerge(stored:) — identischer Cache kein Restamp
+3. leftoverPredictHeld → leftoverFaceTrackKalmanPredict
+4. leftoverUnsureChip(streak:) `??` — leftoverOverlayGuest liest leftoverUnsureTicks
+5. Tests + VERSION = Models = MARKETING_VERSION 2.1.172 (Build 197)
+
+Rest: FaceTrack als Store, CameraBroker, Overlay-Metal. Siehe VORSCHLAEGE-GROK.md.
+
 # Aegis Nachtrag 2.1.171 — 2026-09-07
 
 Binary **2.1.171 alpha Build 196**. Unsure-Tried tot, Unsure-Streak 3, Coast-TTL 2 s, Name-Hist Remint keep 1.

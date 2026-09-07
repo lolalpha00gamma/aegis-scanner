@@ -544,6 +544,13 @@ enum MatchMath {
         return out
     }
 
+    /// Identischer Cache-Vec: Stamp nicht auf now. skipPrints→Detect sonst TTL tot.
+    static func leftoverCoastPrintSame(_ a: [Double], _ b: [Double], eps: Double = 1e-12) -> Bool {
+        guard a.count >= 32, a.count == b.count else { return false }
+        for i in a.indices where abs(a[i] - b[i]) > eps { return false }
+        return true
+    }
+
     static func leftoverPrintBudgetYawDelta(printed: [UUID: Double], live: [UUID: Double]) -> Double? {
         let ds = live.compactMap { id, yaw -> Double? in
             guard let p = printed[id] else { return nil }
@@ -908,10 +915,12 @@ enum MatchMath {
     }
 
     /// Mehrheit < Need: Overlay „?“ statt Gast-Taufe.
-    static func leftoverUnsureChip(voted: String?, hist: [String], need: Int) -> String? {
+    /// Streak 2: „??“ — Tick 1 vs Tick 2 unterscheidbar.
+    static func leftoverUnsureChip(voted: String?, hist: [String], need: Int, streak: Int = 0) -> String? {
         let tokens = hist.filter { !$0.isEmpty }
         if leftoverLiveNameHolds(tokens, need: need) != nil { return nil }
-        if tokens.isEmpty && voted == nil { return nil }
+        if tokens.isEmpty && voted == nil && streak <= 0 { return nil }
+        if streak >= 2 { return "??" }
         return "?"
     }
 
@@ -3132,11 +3141,13 @@ enum MatchMath {
         stamped: [UUID: TimeInterval],
         live: [UUID: [Double]],
         skipPrints: Bool,
-        now: TimeInterval
+        now: TimeInterval,
+        stored: [UUID: [Double]] = [:]
     ) -> [UUID: TimeInterval] {
         guard !skipPrints else { return stamped }
         var out = stamped
         for (id, vec) in live where vec.count >= 32 {
+            if let old = stored[id], leftoverCoastPrintSame(old, vec) { continue }
             out[id] = now
         }
         return out
@@ -3257,9 +3268,15 @@ enum MatchMath {
         box: FaceTrackBox,
         px: Double,
         py: Double,
-        dt: Double
+        dt: Double,
+        cap: Double = 0.12
     ) -> FaceTrackBox {
-        FaceTrackBox(x: box.x + px * dt, y: box.y + py * dt, w: box.w, h: box.h)
+        FaceTrackBox(
+            x: boxKalmanPredict(x: box.x, v: px, dt: dt, cap: cap),
+            y: boxKalmanPredict(x: box.y, v: py, dt: dt, cap: cap),
+            w: box.w,
+            h: box.h
+        )
     }
 
     static func leftoverFaceTrackRemintPair(
@@ -4223,11 +4240,11 @@ enum MatchMath {
         return top < floor
     }
 
-    /// Overlay: ohne Mehrheit „?“, nie Gast-Name Tick 1.
-    static func leftoverOverlayUnsureFirst(voted: String?, hist: [String], need: Int, guest: String) -> String {
+    /// Overlay: ohne Mehrheit „?“, nie Gast-Name Tick 1. Streak 2 = „??“.
+    static func leftoverOverlayUnsureFirst(voted: String?, hist: [String], need: Int, guest: String, streak: Int = 0) -> String {
         let tokens = hist.filter { !$0.isEmpty }
         if let name = leftoverLiveNameHolds(tokens, need: need) { return name }
-        return leftoverUnsureChip(voted: voted, hist: hist, need: need) ?? "?"
+        return leftoverUnsureChip(voted: voted, hist: hist, need: need, streak: streak) ?? "?"
     }
 
     /// Twin: Anna links bleibt links. Gast-Kiste rechts stiehlt nicht.
@@ -6164,7 +6181,8 @@ enum MatchMath {
         minIoU: Double? = nil,
         yawAbs: Double? = nil,
         continuity: Bool = false,
-        yawDelta: Double? = nil
+        yawDelta: Double? = nil,
+        stillFor: TimeInterval? = nil
     ) -> Bool {
         if continuity { return false }
         if dt >= 0.08 { return false }
@@ -6172,6 +6190,7 @@ enum MatchMath {
         if let iou = minIoU, iou + 1e-9 < printBudgetIoU { return false }
         if let yaw = yawAbs, abs(yaw) + 1e-9 >= printBudgetYawRad { return false }
         if let delta = yawDelta, abs(delta) + 1e-9 >= printBudgetYawRad { return false }
+        if let still = stillFor, still + 1e-9 < holdStillNeed { return false }
         return true
     }
 

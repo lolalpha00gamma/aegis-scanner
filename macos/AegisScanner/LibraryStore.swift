@@ -1623,7 +1623,7 @@ final class LibraryStore: ObservableObject {
         MatchMath.unknownStickyName(index: MatchMath.guestIndex(of: id, order: guestOrder))
     }
 
-    /// Mehrheit < Need: „?“ statt Gast-Taufe Tick 1.
+    /// Mehrheit < Need: „?“ statt Gast-Taufe Tick 1. Streak 2 = „??“.
     func leftoverOverlayGuest(for id: UUID) -> String {
         let hist = liveNameHist[id] ?? []
         let need = 3
@@ -1631,7 +1631,8 @@ final class LibraryStore: ObservableObject {
             voted: MatchMath.nameMajorityAgreeing(hist, window: max(need, hist.count), need: need),
             hist: hist,
             need: need,
-            guest: guestName(for: id)
+            guest: guestName(for: id),
+            streak: leftoverUnsureTicks[id] ?? 0
         )
     }
 
@@ -2181,6 +2182,7 @@ final class LibraryStore: ObservableObject {
                 return (snap.id, yaw)
             })
         )
+        let stillSnap = kalmanSnap.compactMap { liveStillFor[$0.id] }.min()
         Task.detached(priority: .userInitiated) {
             let skipPrints = skipDetect || MatchMath.printBudgetSkip(
                 visionMs: vis,
@@ -2188,7 +2190,8 @@ final class LibraryStore: ObservableObject {
                 minIoU: minIoUSnap,
                 yawAbs: yawAbsSnap,
                 continuity: cont,
-                yawDelta: yawDeltaSnap
+                yawDelta: yawDeltaSnap,
+                stillFor: stillSnap
             )
             let t0 = CFAbsoluteTimeGetCurrent()
             var roi = skipRoi ? nil : roiTuple.map { FaceBox(x: $0.x, y: $0.y, width: $0.w, height: $0.h) }
@@ -2403,9 +2406,13 @@ final class LibraryStore: ObservableObject {
             let raw = boxKalmanV[id] ?? (vx: 0, vy: 0)
             let v = MatchMath.leftoverHoldKalmanVelDecay(vx: raw.vx, vy: raw.vy, miss: miss)
             boxKalmanV[id] = v
-            let nx = MatchMath.boxKalmanPredict(x: k.x, v: v.vx, dt: liveDt)
-            let ny = MatchMath.boxKalmanPredict(x: k.y, v: v.vy, dt: liveDt)
-            let locked = MatchMath.leftoverGhostAspectLock(predX: nx, predY: ny, lastW: k.w, lastH: k.h)
+            let pred = MatchMath.leftoverFaceTrackKalmanPredict(
+                box: MatchMath.FaceTrackBox(x: k.x, y: k.y, w: k.w, h: k.h),
+                px: v.vx,
+                py: v.vy,
+                dt: liveDt
+            )
+            let locked = MatchMath.leftoverGhostAspectLock(predX: pred.x, predY: pred.y, lastW: pred.w, lastH: pred.h)
             boxKalman[id] = (locked.x, locked.y, locked.w, locked.h, k.px, k.py, k.pw, k.ph)
             if let i = liveGhosts.firstIndex(where: { $0.face.id == id }) {
                 var g = liveGhosts[i]
@@ -4093,6 +4100,7 @@ final class LibraryStore: ObservableObject {
             let livePrints = Dictionary(uniqueKeysWithValues: adopted.map {
                 ($0.id, $0.printVec.count >= 32 ? $0.printVec : FaceEngine.embedding(of: $0))
             })
+            let prevCoast = leftoverCoastPrint
             leftoverCoastPrint = MatchMath.leftoverCoastPrintMerge(
                 stored: leftoverCoastPrint,
                 live: livePrints,
@@ -4102,7 +4110,8 @@ final class LibraryStore: ObservableObject {
                 stamped: leftoverCoastPrintAt,
                 live: livePrints,
                 skipPrints: skipPrints,
-                now: now
+                now: now,
+                stored: prevCoast
             )
             leftoverCoastPrint = leftoverCoastPrint.filter { liveIds.contains($0.key) || leftoverIds.contains($0.key) }
             leftoverCoastPrintAt = leftoverCoastPrintAt.filter { leftoverCoastPrint[$0.key] != nil }

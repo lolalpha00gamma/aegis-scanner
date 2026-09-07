@@ -1,4 +1,4 @@
-# Aegis **2.1.171 alpha**
+# Aegis **2.1.172 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,17 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.172 alpha
+
+printBudget ohne Still skippte Print nach 0,10 s. Coast-Stamp restampte den Cache und machte TTL tot. leftoverFaceTrackKalmanPredict saß unverdrahtet. Overlay `?` ohne Streak.
+
+- **printBudgetSkip(stillFor:).** Still < 0,80 s: Print bleibt.
+- **leftoverCoastPrintSame / StampMerge(stored:).** Identischer Vec kein Restamp.
+- **leftoverPredictHeld → leftoverFaceTrackKalmanPredict.** Cap 0,12.
+- **leftoverUnsureChip(streak:) `??`.** leftoverOverlayGuest liest leftoverUnsureTicks.
+- Helios 1.5.170 Compact vor Conf.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.172 (Build 197). Schema 15 bleibt.
 
 ## Neu in 2.1.171 alpha
 

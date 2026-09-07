@@ -1,5 +1,21 @@
 # Aegis — Vorschlagsliste
 
+Stand: **2.1.172 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-GROK.md](VORSCHLAEGE-GROK.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+Neu in 2.1.172: printBudget stillFor, Coast-Stamp identisch tot, Kalman-Predict verdrahtet, Overlay `??`.
+
+## In 2.1.172 wirklich im Code
+
+2.1.171: Coast-TTL. printBudget ohne Still. Stamp restampte Cache. Predict unverdrahtet.
+
+1. **printBudgetSkip(stillFor:).** < 0,80 s kein Skip.
+2. **leftoverCoastPrintSame / StampMerge(stored:).** Identischer Vec kein Restamp.
+3. **leftoverPredictHeld → leftoverFaceTrackKalmanPredict.**
+4. **leftoverUnsureChip(streak:) `??`.** leftoverOverlayGuest liest leftoverUnsureTicks.
+5. Tests + VERSION = Models = MARKETING_VERSION 2.1.172 (Build 197). Schema 15 bleibt.
+
+# Aegis — Vorschlagsliste
+
 Stand: **2.1.171 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-GROK.md](VORSCHLAEGE-GROK.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 
 Neu in 2.1.171: leftoverTried Unsure tot, Unsure-Streak 3, Coast-TTL 2 s, Name-Hist Remint keep 1.
