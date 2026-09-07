@@ -1060,6 +1060,13 @@ enum MatchMath {
     /// Detect busy: neuestes Frame in livePending, nicht Drop-new am Tap.
     static func liveEmitPendingWhileBusy() -> Bool { true }
 
+    /// Pending ohne CGImage solange Detect < 80 ms. Conversion stallt 8 fps extra.
+    static func liveFrameTapSkipsCGImage(busy: Bool, busyFor: TimeInterval, floor: TimeInterval = 0.08) -> Bool {
+        busy && busyFor + 1e-12 < floor
+    }
+
+    static func liveRoiSkipOnWake() -> Bool { true }
+
     /// Vision-ms hebt das Interval. 15 fps in ein 150-ms-Detect = Stau.
     static func liveMinIntervalFromVision(base: TimeInterval, visionMs: Double) -> TimeInterval {
         let vis = max(0, visionMs) / 1000
@@ -8033,11 +8040,42 @@ enum MatchMath {
         !row.isEmpty && !seen.contains(row)
     }
 
-    /// Twin: identityId schon da → Detect-ID, nicht droppen. Ghost derselben ID fällt nur wenn Detect gleich.
-    static func leftoverOverlayRowId(identityId: UUID?, detectId: UUID, taken: Set<String>) -> String {
-        let preferred = leftoverGalleryRowId(identityId: identityId, detectId: detectId).uuidString
-        if leftoverOverlayKeepsRow(seen: taken, row: preferred) { return preferred }
+    /// Twin: identityId schon da → Box-Hash, nicht droppen. Unmatched: Box-Hash vor Detect (Remint).
+    static func leftoverOverlayRowId(identityId: UUID?, detectId: UUID, taken: Set<String>, boxHash: String = "") -> String {
+        if identityId != nil {
+            let preferred = leftoverGalleryRowId(identityId: identityId, detectId: detectId).uuidString
+            if leftoverOverlayKeepsRow(seen: taken, row: preferred) { return preferred }
+        }
+        if leftoverOverlayKeepsRow(seen: taken, row: boxHash) { return boxHash }
         return detectId.uuidString
+    }
+
+    /// Twin+Remint: Box-Hash überlebt Detect-UUID. Quant 0,04 ≈ 4 % Frame.
+    static func leftoverOverlayBoxHash(x: Double, y: Double, w: Double, h: Double, quant: Double = 0.04) -> String {
+        let q = max(1e-4, quant)
+        func bin(_ v: Double) -> Int { Int((v / q).rounded(.towardZero)) }
+        return "b:\(bin(x)),\(bin(y)),\(bin(w)),\(bin(h))"
+    }
+
+    /// Blink überlebt Remint über Detect + Identity. Box-Hash nie — sonst Ada-Blink auf neuen Enroll in derselben Box.
+    static func leftoverBlinkSeenOf(
+        detectId: UUID,
+        identityId: UUID? = nil,
+        boxHash: String = "",
+        detectSeen: [UUID: Bool],
+        identitySeen: [UUID: Bool] = [:],
+        hashSeen: [String: Bool] = [:]
+    ) -> Bool {
+        if detectSeen[detectId] == true { return true }
+        if let identityId, identitySeen[identityId] == true { return true }
+        _ = boxHash
+        _ = hashSeen
+        return false
+    }
+
+    static func leftoverBlinkStampIdentity(detectSeen: Bool, identityId: UUID?) -> UUID? {
+        guard detectSeen, let identityId else { return nil }
+        return identityId
     }
 
     static func leftoverOverlayUniqueRows(_ rows: [String]) -> [String] {

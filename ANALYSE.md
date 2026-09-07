@@ -1,3 +1,19 @@
+# Aegis 2.1.195 — Blink identity, Twin Box-Hash, FrameTap skip
+
+Aegis **2.1.195 alpha** (Build 220). Helios **1.5.196** (Build 215). Nur `main`. `bugfix` mergen: nein.
+
+2.1.194: leftoverOverlayRowId Detect-Fallback. Unmatched Remint unmountet Twin. leftoverBlinkSeen nur Detect-UUID. Box-Hash als Blink wäre Enroll-Leak.
+
+## Was 2.1.195 ändert
+
+1. **leftoverBlinkSeenOf** Detect + Identity. Hash nie für Liveness. leftoverStampBlink Name-Lock. Coach nur owner.
+2. **leftoverOverlayBoxHash** Twin und unmatched ForEach. Detect letzter Fallback.
+3. **liveFrameTapSkipsCGImage** pending ohne Conversion < 80 ms. DidWake liveRoiSkipOnce.
+4. leftoverBlinkByIdentity prune merge/delete.
+5. Tests + VERSION = Models = MARKETING 2.1.195 (Build 220). Schema 15 bleibt.
+
+`bugfix` mergen: nein.
+
 # Aegis 2.1.194 — Twin-Overlay Detect
 
 Aegis **2.1.194 alpha** (Build 219). Helios **1.5.195** (Build 214). Nur `main`. `bugfix` mergen: nein.

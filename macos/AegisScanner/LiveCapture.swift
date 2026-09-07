@@ -920,6 +920,9 @@ private final class FrameTap: NSObject, AVCaptureVideoDataOutputSampleBufferDele
         lock.unlock()
         guard allow || pending else { return }
         last = stamp
+        if pending, !allow, MatchMath.liveFrameTapSkipsCGImage(busy: busy, busyFor: busyFor) {
+            return
+        }
         let override = orientOverride
         guard let pb = CMSampleBufferGetImageBuffer(sampleBuffer),
               let image = cgImage(from: pb, orientation: visionOrientation(

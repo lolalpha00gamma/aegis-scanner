@@ -4986,6 +4986,64 @@ enum MatchMathTests {
             MatchMath.leftoverOverlayRowId(identityId: adaRow, detectId: detectRow, taken: [adaRow.uuidString]) == detectRow.uuidString,
             "Overlay Twin Detect"
         )
+        let boxH = MatchMath.leftoverOverlayBoxHash(x: 0.12, y: 0.20, w: 0.08, h: 0.10)
+        ok(boxH.hasPrefix("b:"), "Box Hash Prefix")
+        ok(
+            MatchMath.leftoverOverlayBoxHash(x: 0.12, y: 0.20, w: 0.08, h: 0.10)
+                == MatchMath.leftoverOverlayBoxHash(x: 0.15, y: 0.23, w: 0.08, h: 0.10),
+            "Box Hash Quant"
+        )
+        ok(
+            MatchMath.leftoverOverlayRowId(
+                identityId: adaRow,
+                detectId: detectRow,
+                taken: [adaRow.uuidString],
+                boxHash: boxH
+            ) == boxH,
+            "Overlay Twin BoxHash"
+        )
+        ok(
+            MatchMath.leftoverOverlayRowId(
+                identityId: nil,
+                detectId: detectRow,
+                taken: [],
+                boxHash: boxH
+            ) == boxH,
+            "Overlay unmatched BoxHash"
+        )
+        ok(
+            MatchMath.leftoverBlinkSeenOf(
+                detectId: detectRow,
+                identityId: adaRow,
+                detectSeen: [:],
+                identitySeen: [adaRow: true]
+            ),
+            "Blink identity-weit"
+        )
+        ok(
+            !MatchMath.leftoverBlinkSeenOf(
+                detectId: detectRow,
+                identityId: adaRow,
+                detectSeen: [:],
+                identitySeen: [:]
+            ),
+            "Blink ohne Stamp tot"
+        )
+        ok(
+            !MatchMath.leftoverBlinkSeenOf(
+                detectId: detectRow,
+                boxHash: boxH,
+                detectSeen: [:],
+                hashSeen: [boxH: true]
+            ),
+            "Blink Hash Enroll-Leak tot"
+        )
+        ok(MatchMath.leftoverBlinkStampIdentity(detectSeen: true, identityId: adaRow) == adaRow, "Blink Stamp Identity")
+        ok(MatchMath.leftoverBlinkStampIdentity(detectSeen: false, identityId: adaRow) == nil, "Blink Stamp tot")
+        ok(MatchMath.liveFrameTapSkipsCGImage(busy: true, busyFor: 0.04), "Pending skip < 80 ms")
+        ok(!MatchMath.liveFrameTapSkipsCGImage(busy: true, busyFor: 0.12), "Pending convert ≥ 80 ms")
+        ok(!MatchMath.liveFrameTapSkipsCGImage(busy: false, busyFor: 0.01), "Idle convert")
+        ok(MatchMath.liveRoiSkipOnWake(), "Wake ROI Skip")
         ok(MatchMath.cameraMutexPauseResumes(wanted: true, running: false), "Pause Resume")
         ok(!MatchMath.cameraMutexPauseResumes(wanted: false, running: false), "Pause stop tot")
 

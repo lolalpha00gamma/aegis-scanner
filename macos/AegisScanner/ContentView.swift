@@ -825,7 +825,13 @@ struct FaceOverlay: View {
                     let rid = MatchMath.leftoverOverlayRowId(
                         identityId: ident?.id,
                         detectId: face.id,
-                        taken: seen
+                        taken: seen,
+                        boxHash: MatchMath.leftoverOverlayBoxHash(
+                            x: face.box.x,
+                            y: face.box.y,
+                            w: face.box.width,
+                            h: face.box.height
+                        )
                     )
                     guard MatchMath.leftoverOverlayKeepsRow(seen: seen, row: rid) else { continue }
                     seen.insert(rid)
@@ -866,7 +872,7 @@ struct FaceOverlay: View {
                         face: face,
                         identity: coachDest,
                         faces: store.faces,
-                        haveBlink: store.leftoverBlinkSeen(faceId: face.id)
+                        haveBlink: store.leftoverBlinkSeen(faceId: face.id, identityId: owner?.id)
                     ) : nil
                     let boxColor: Color = {
                         if store.swapFlashing() { return Color.yellow.opacity(0.95) }

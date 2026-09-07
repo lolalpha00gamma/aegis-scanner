@@ -117,7 +117,9 @@ final class LibraryStore: ObservableObject {
     private var liveLandmarkPrev: [UUID: [Point2]] = [:]
     private var liveLidClosed: [UUID: Bool] = [:]
     private var liveBlinkSeen: [UUID: Bool] = [:]
+    private var leftoverBlinkByIdentity: [UUID: Bool] = [:]
     private var liveOpenStreak: [UUID: Int] = [:]
+    private var workspaceObs: [NSObjectProtocol] = []
     private var leftoverDisagree: [UUID: Int] = [:]
     private var boxKalman: [UUID: (x: Double, y: Double, w: Double, h: Double, px: Double, py: Double, pw: Double, ph: Double)] = [:]
     private var boxKalmanV: [UUID: (vx: Double, vy: Double)] = [:]
@@ -281,6 +283,7 @@ final class LibraryStore: ObservableObject {
         }
         mutexKill = MatchMath.cameraMutexKillPref(UserDefaults.standard.bool(forKey: "aegis.mutexKill"))
         liveCapture.mutexKillEnabled = mutexKill
+        installSleepWatch()
         if UserDefaults.standard.object(forKey: "aegis.yieldAutoReturn") != nil {
             yieldAutoReturn = MatchMath.cameraMutexYieldAutoReturnPref(
                 UserDefaults.standard.bool(forKey: "aegis.yieldAutoReturn")
@@ -495,6 +498,10 @@ final class LibraryStore: ObservableObject {
         identities[ki].rejectedVecs.append(contentsOf: identities[di].rejectedVecs)
         let name = identities[ki].name
         identities.remove(at: di)
+        if leftoverBlinkByIdentity[drop] == true {
+            leftoverBlinkByIdentity[keep] = true
+        }
+        leftoverBlinkByIdentity.removeValue(forKey: drop)
         persist()
         rematch()
         status = "\(name) zusammengeführt"
@@ -711,7 +718,7 @@ final class LibraryStore: ObservableObject {
             identities: identities,
             faces: faces,
             addingTo: dest,
-            haveBlink: leftoverBlinkSeen(faceId: face.id)
+            haveBlink: leftoverBlinkSeen(faceId: face.id, identityId: dest?.id)
         )
     }
 
@@ -1387,7 +1394,11 @@ final class LibraryStore: ObservableObject {
             haveBlink: leftoverBlinkSeen(faceId: face.id)
         )
         let note = preview.isEmpty ? "" : " · \(preview)"
-        identities.append(Identity(id: UUID(), name: name, faceIds: [face.id]))
+        let newId = UUID()
+        identities.append(Identity(id: newId, name: name, faceIds: [face.id]))
+        if leftoverBlinkSeen(faceId: face.id) || leftoverBlinkSeen(faceId: raw.id) {
+            leftoverBlinkByIdentity[newId] = true
+        }
         stampEnrolled(face.id)
         tapNameLockUntil[face.id] = MatchMath.tapNameLockUntil(now: Date().timeIntervalSince1970)
         tapNameLockUntil[raw.id] = MatchMath.tapNameLockUntil(now: Date().timeIntervalSince1970)
@@ -1490,10 +1501,13 @@ final class LibraryStore: ObservableObject {
             identities: identities,
             faces: faces,
             addingTo: identities[idx],
-            haveBlink: leftoverBlinkSeen(faceId: face.id)
+            haveBlink: leftoverBlinkSeen(faceId: face.id, identityId: identities[idx].id)
         )
         if !identities[idx].faceIds.contains(face.id) {
             identities[idx].faceIds.append(face.id)
+        }
+        if leftoverBlinkSeen(faceId: face.id) {
+            leftoverBlinkByIdentity[identities[idx].id] = true
         }
         stampEnrolled(face.id)
         tapNameLockUntil[face.id] = MatchMath.tapNameLockUntil(now: Date().timeIntervalSince1970)
@@ -1953,8 +1967,44 @@ final class LibraryStore: ObservableObject {
         )
     }
 
-    func leftoverBlinkSeen(faceId: UUID) -> Bool {
-        liveBlinkSeen[faceId] == true
+    func leftoverIdentityId(of faceId: UUID) -> UUID? {
+        identities.first(where: { $0.faceIds.contains(faceId) })?.id
+    }
+
+    func leftoverBlinkSeen(faceId: UUID, identityId: UUID? = nil) -> Bool {
+        MatchMath.leftoverBlinkSeenOf(
+            detectId: faceId,
+            identityId: identityId ?? leftoverIdentityId(of: faceId),
+            detectSeen: liveBlinkSeen,
+            identitySeen: leftoverBlinkByIdentity
+        )
+    }
+
+    func leftoverStampBlink(faceId: UUID, box: FaceBox? = nil) {
+        liveBlinkSeen[faceId] = true
+        if let ident = leftoverIdentityId(of: faceId) ?? liveNameLock[faceId] {
+            leftoverBlinkByIdentity[ident] = true
+        }
+        _ = box
+    }
+
+    private func installSleepWatch() {
+        guard workspaceObs.isEmpty else { return }
+        let nc = NSWorkspace.shared.notificationCenter
+        for name in [NSWorkspace.didWakeNotification, NSWorkspace.screensDidWakeNotification] {
+            let obs = nc.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                Task { @MainActor in
+                    self?.noteDidWake()
+                }
+            }
+            workspaceObs.append(obs)
+        }
+    }
+
+    func noteDidWake() {
+        guard MatchMath.liveRoiSkipOnWake() else { return }
+        liveRoiSkipOnce = true
+        livePending = nil
     }
 
     func leftoverAdoptProgress(faceId: UUID) -> String? {
@@ -2058,6 +2108,7 @@ final class LibraryStore: ObservableObject {
 
     func removeIdentity(_ id: UUID) {
         identities.removeAll { $0.id == id }
+        leftoverBlinkByIdentity.removeValue(forKey: id)
         persist()
         rematch()
     }
@@ -2825,7 +2876,7 @@ final class LibraryStore: ObservableObject {
                         prevClosed: liveLidClosed[old.id] ?? false,
                         nowClosed: closedNow
                     ) {
-                        liveBlinkSeen[old.id] = true
+                        leftoverStampBlink(faceId: old.id, box: face.box)
                     }
                     liveLidClosed[old.id] = closedNow
                     if MatchMath.captureJumps(prev: old.quality.capture, next: face.quality.capture) {

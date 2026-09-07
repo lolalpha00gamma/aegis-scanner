@@ -1,3 +1,18 @@
+# Aegis Nachtrag 2.1.195 — 2026-09-07
+
+Binary **2.1.195 alpha Build 220**. Blink identity-weit. Twin Box-Hash. FrameTap ohne CGImage. Helios Sleep-Fill.
+
+## In 2.1.195 gelandet
+
+1. leftoverBlinkSeenOf — Detect + Identity. Box-Hash nie (Ada-Blink leakt nicht auf neuen Enroll).
+2. leftoverOverlayBoxHash — Twin und unmatched ForEach überlebt Detect-Remint. Detect nur letzter Fallback.
+3. liveFrameTapSkipsCGImage — pending ohne Conversion solange Detect < 80 ms.
+4. DidWake liveRoiSkipOnce.
+5. Coach identityId nur owner, nicht near-match. leftoverBlinkByIdentity prune bei merge/delete.
+6. Tests + VERSION = Models = MARKETING 2.1.195 (Build 220). Schema 15 bleibt.
+
+Rest: CameraBroker, FaceTrack einzige Map, Overlay-Metal. Siehe VORSCHLAEGE-GROK.md.
+
 # Aegis Nachtrag 2.1.194 — 2026-09-07
 
 Binary **2.1.194 alpha Build 219**. Twin-Overlay Detect. Helios Silence Wall + mean ohne Tips.

@@ -1,3 +1,65 @@
+# Nachtrag Grok 2026-09-07 — 2.1.195 gelandet, Rest offen
+
+Quelle: Review + Fix Aegis 2.1.195 (Build 220) auf 2.1.194 (Blink Detect-UUID, Twin Overlay Detect). Helios 1.5.196.
+Kein Binary-Lauf (Linux-Sandbox). Tests in CI. `bugfix` nicht gemergt. Nur `main`.
+
+## Warum es nach 2.1.194 weiter riss
+
+1. leftoverBlinkSeen nur liveBlinkSeen[detectId]. Remint = Coach „einmal blinzeln“ trotz Ada-Blink.
+2. leftoverOverlayRowId Twin-Fallback Detect-UUID. Unmatched Remint unmountet die zweite Box.
+3. FrameTap pending konvertierte CGImage obwohl Detect < 80 ms noch läuft — 8 fps extra CPU.
+4. DidWake ohne liveRoiSkipOnce. Interior-ROI nach Sleep tot.
+5. Box-Hash als Blink-Key hätte Ada-Blink auf neuen Enroll in derselben Box geleakt.
+
+## In 2.1.195 / 1.5.196 gelandet
+
+- leftoverBlinkSeenOf Detect + Identity. Hash nie für Liveness. leftoverStampBlink Name-Lock.
+- leftoverOverlayBoxHash Twin- und unmatched-ForEach. Detect nur letzter Fallback.
+- liveFrameTapSkipsCGImage busy < 80 ms. DidWake liveRoiSkipOnce.
+- Coach identityId nur owner. leftoverBlinkByIdentity prune merge/delete.
+- Helios Sleep-Fill, 300 ms Mute, PINCH an der Hand.
+
+## Offen (nicht noch ein Slider)
+
+P0 CameraBroker IOSurface. FaceTrack einzige Store-Map.
+P1 Overlay-Metal. LiveCapture nicht @MainActor.
+P2 VNTrackObjectRequest. Replay 20 s. HeliosAegisKit.
+
+## Erweiterung (neu)
+
+1. CameraBroker Shared Memory statt flock/90 Hz.
+2. FaceTrack Debug-Dump eine Map JSON.
+3. Pose-Meter ¾L/¾R getrennt, nicht ein ¾.
+4. Print-Diversity: gleicher Pose-Bin Cosine > 0,98 → Skip.
+5. Name-Lock nur nach Blink + 3 Frames gleicher ID.
+6. Twin-Veto: |Δyaw| < 8° und x-Overlap > 0,45 → ein Exact.
+7. Temperature-skalierte Cosine statt hart 0,80.
+8. Licht-Eimer (frontal / ¾ / Profil) statt einem Cosine.
+9. Match-Log JSONL für Replay.
+10. Drop-in `.mlmodel` FaceEmbedder-Protokoll.
+11. P-Slot Maske/Schal, Brille-Slot als Twin-Veto.
+12. VNTrackObjectRequest neben Rectangles.
+13. RTSP 420f, Reconnect Exponential-Backoff.
+14. Watch-Folder PhotoKit, Export `.aegis` verschlüsselt.
+15. Overlay 60 Hz CAMetalLayer, Detect 8–24 fps.
+16. gallery.json.bak Rotate 3, printRevision je Identity.
+17. Temporal ReID-Graph über Hold-Trail.
+18. Schema 15 bleibt — leftoverBlinkByIdentity ist Runtime.
+19. CVPixelBuffer bis Detect, kein CGImage-Hop.
+20. Swift Testing statt DIY `ok()`.
+21. Faceprint EMA 3 Frames vor Gallery-Commit.
+22. Overlay Peak-Hold 3 Frames nach Remint (identity row bleibt).
+23. Detect-Queue 1 in-flight + 1 pending, drop-oldest mit PTS.
+24. CameraBroker IOSurface — ein Capture, zwei Subscriber (Helios+Aegis).
+25. liveNameLock nur owner, nie near-match (Coach 2.1.195 schon so).
+26. leftoverBlinkByIdentity nicht persistieren — Schema 15 bleibt.
+
+## Bugfix-Skill
+
+Pass 1: Blink Detect-UUID, Twin Detect-ForEach, FrameTap CGImage, Wake ROI.
+Pass 2: 2.1.195 / 1.5.196 auf main.
+Pass 3: CI muss failen dürfen. Blink identity, Box-Hash Twin, Skip < 80 ms.
+
 # Nachtrag Grok 2026-09-07 — 2.1.194 gelandet, Rest offen
 
 Quelle: Review + Fix Aegis 2.1.194 (Build 219) auf 2.1.193 (Twin-Drop). Helios 1.5.195.
