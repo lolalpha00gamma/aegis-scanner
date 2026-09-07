@@ -2075,6 +2075,8 @@ final class LibraryStore: ObservableObject {
 
     func stopLive() {
         livePending = nil
+        liveBusy = false
+        liveCapture.markFrameConsumed()
         liveRoiTick = 0
         liveRoiSkipOnce = false
         maskHoldSince.removeAll()
@@ -2300,12 +2302,14 @@ final class LibraryStore: ObservableObject {
             await MainActor.run { [weak self] in
                 guard let self else { return }
                 self.lastLiveVisMs = visMs
+                self.liveCapture.setVisionBudget(ms: visMs)
                 self.liveFormatChip = self.liveCapture.formatChip
                 self.mutexChip = self.liveCapture.mutexChip
                 self.leftoverPrintSkipIds = skipIds
                 if !self.liveActive || self.liveMediaId != mediaId {
                     self.liveBusy = false
                     self.livePending = nil
+                    self.liveCapture.markFrameConsumed()
                     return
                 }
                 if MatchMath.liveRoiSkipsForStranger(foundCount: found.count, kalmanCount: kalmanSnap.count) {
@@ -2324,6 +2328,7 @@ final class LibraryStore: ObservableObject {
                     self.runLiveDetect(pending.image, mediaId: pending.mediaId, stamp: pending.stamp)
                 } else {
                     self.liveBusy = false
+                    self.liveCapture.markFrameConsumed()
                 }
             }
         }

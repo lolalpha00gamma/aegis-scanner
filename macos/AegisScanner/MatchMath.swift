@@ -1042,6 +1042,18 @@ enum MatchMath {
     /// FrameTap bleibt auf der Capture-Queue. CGImage-Hop auf Main = Jank.
     static func liveFrameTapEmitsOnCaptureQueue() -> Bool { true }
 
+    /// Solange Detect läuft, kein neues CGImage — sonst Task-Stau auf Main.
+    static func liveEmitAllows(busy: Bool, busyFor: TimeInterval = 0, hungAfter: TimeInterval = 1.0) -> Bool {
+        !busy || busyFor >= hungAfter
+    }
+
+    /// Vision-ms hebt das Interval. 15 fps in ein 150-ms-Detect = Stau.
+    static func liveMinIntervalFromVision(base: TimeInterval, visionMs: Double) -> TimeInterval {
+        let vis = max(0, visionMs) / 1000
+        if vis <= 0 { return base }
+        return max(base, vis * 0.90)
+    }
+
     static func cameraMutexPid(_ text: String) -> Int32? {
         let parts = text.split(whereSeparator: { $0 == " " || $0 == "\n" }).map(String.init)
         guard parts.count >= 2 else { return nil }

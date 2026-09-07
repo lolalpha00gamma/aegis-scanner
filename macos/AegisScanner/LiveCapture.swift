@@ -61,6 +61,8 @@ final class LiveCapture: NSObject {
     private var mutexClaimFails = 0
     private var lastMutexClaimAt: TimeInterval = 0
     private var lastMutexPts: TimeInterval = 0
+    private var lastFaceStreak = 0
+    private var lastVisMs: Double = 0
 
     static func orientKey(_ uniqueID: String) -> String { "aegis.camOrient.\(uniqueID)" }
 
@@ -75,13 +77,28 @@ final class LiveCapture: NSObject {
     func setFacesPresent(_ on: Bool, streak: Int = 0) {
         let changed = on != facesPresent
         facesPresent = on
-        tap?.minInterval = MatchMath.liveMinInterval(continuity: isContinuity, faces: on, streak: streak)
+        lastFaceStreak = streak
+        applyMinInterval()
         if changed, isContinuity {
             applyCenterStage(force: true)
         }
         if changed, timer != nil {
             startTimer()
         }
+    }
+
+    func setVisionBudget(ms: Double) {
+        lastVisMs = ms
+        applyMinInterval()
+    }
+
+    func markFrameConsumed() {
+        tap?.markConsumed()
+    }
+
+    private func applyMinInterval() {
+        let base = MatchMath.liveMinInterval(continuity: isContinuity, faces: facesPresent, streak: lastFaceStreak)
+        tap?.minInterval = MatchMath.liveMinIntervalFromVision(base: base, visionMs: lastVisMs)
     }
 
     func start(url: URL, kind: LiveKind) {
@@ -177,7 +194,7 @@ final class LiveCapture: NSObject {
         delegate.orientOverride = orientOverride
         self.tap = delegate
         out.setSampleBufferDelegate(delegate, queue: outputQueue)
-        tap?.minInterval = MatchMath.liveMinInterval(continuity: isContinuity, faces: facesPresent, streak: 0)
+        applyMinInterval()
         if session.canAddOutput(out) { session.addOutput(out) }
         applyCenterStage(force: true)
         applyBestFormat(device)
@@ -772,8 +789,16 @@ private final class FrameTap: NSObject, AVCaptureVideoDataOutputSampleBufferDele
     var lastStamp: TimeInterval {
         lock.lock(); defer { lock.unlock() }; return _lastStamp
     }
+    private var _emitBusy = false
+    private var _busySince: TimeInterval = 0
     private let emit: (CGImage, TimeInterval) -> Void
     init(emit: @escaping (CGImage, TimeInterval) -> Void) { self.emit = emit }
+    func markConsumed() {
+        lock.lock()
+        _emitBusy = false
+        _busySince = 0
+        lock.unlock()
+    }
     func captureOutput(
         _ output: AVCaptureOutput,
         didOutput sampleBuffer: CMSampleBuffer,
@@ -810,6 +835,16 @@ private final class FrameTap: NSObject, AVCaptureVideoDataOutputSampleBufferDele
         thermal = therm
         let interval = MatchMath.liveMinIntervalThermal(base: minInterval, thermal: therm)
         guard stamp - last >= interval else { return }
+        lock.lock()
+        let busy = _emitBusy
+        let busyFor = _busySince > 0 ? stamp - _busySince : 0
+        let allow = MatchMath.liveEmitAllows(busy: busy, busyFor: busyFor)
+        if allow {
+            _emitBusy = true
+            _busySince = stamp
+        }
+        lock.unlock()
+        guard allow else { return }
         last = stamp
         let override = orientOverride
         guard let pb = CMSampleBufferGetImageBuffer(sampleBuffer),
@@ -819,7 +854,10 @@ private final class FrameTap: NSObject, AVCaptureVideoDataOutputSampleBufferDele
                 width: CVPixelBufferGetWidth(pb),
                 height: CVPixelBufferGetHeight(pb)
               ))
-        else { return }
+        else {
+            markConsumed()
+            return
+        }
         if MatchMath.liveFrameTapEmitsOnCaptureQueue() {
             emit(image, stamp)
         } else {

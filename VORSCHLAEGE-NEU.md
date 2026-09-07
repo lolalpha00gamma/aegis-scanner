@@ -1,3 +1,15 @@
+# Aegis Nachtrag 2.1.187 — 2026-09-07
+
+Binary **2.1.187 alpha Build 212**. FrameTap emitBusy. Vision-Interval. Helios 8-fps Klick/Dwell.
+
+## In 2.1.187 gelandet
+
+1. liveEmitAllows + FrameTap emitBusy. markFrameConsumed nach Detect. Hung 1 s.
+2. liveMinIntervalFromVision — visMs hebt Interval.
+3. Tests + VERSION = Models = MARKETING_VERSION 2.1.187 (Build 212). Schema 15 bleibt.
+
+Rest: CameraBroker, Overlay-Metal, IOHID, FaceTrack-Store, CVPixelBuffer statt CGImage. Siehe VORSCHLAEGE-GROK.md.
+
 # Aegis Nachtrag 2.1.186 — 2026-09-07
 
 Binary **2.1.186 alpha Build 211**. Mutex-PTS. FrameTap Capture-Queue. Print-Qualität. Helios Pinch-Hysterese.

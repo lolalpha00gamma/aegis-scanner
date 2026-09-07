@@ -1,3 +1,60 @@
+# Nachtrag 2026-09-07 — 2.1.187 / 1.6.33 (kein Merge von `bugfix`)
+
+Aegis `lolalpha00gamma/aegis-scanner` **2.1.187 alpha** (Build 212).
+Helios `lolalpha00gamma/Helios` **1.6.33** (Build 66).
+Nur `main`. `bugfix` gelesen, nicht gemergt.
+
+2.1.186 Capture-Queue ohne Backpressure. Helios 1.6.32 Continuity-Uhr für HMM/Temporal/Release — Klick/Zwei-Pinzetten/Tastatur blieben 50–120 ms.
+
+## Warum es schlecht wirkte (dieser Pass)
+
+1. **FrameTap emitBusy fehlte.** Jedes CGImage → Task auf Main. Detect 80–200 ms, 8–15 fps = Stau.
+2. **liveMinInterval ignorierte visMs.** Lock 15 fps in ein langsames Vision.
+3. Helios **pinchClickMinHold 50 ms** — ein Continuity-Frame ist immer Klick.
+4. **twoPinchConfirm / keyboardDwell 120 ms** = ein 8-fps-Tick.
+5. **Zwei Sessions.** Mutex+TERM Pflaster. Ohne CameraBroker zwei Vision, zwei TCC.
+6. Von `bugfix` (1.5.8 / 2.1.15) bewusst nicht gemergt: IOHID Event-Tap, AX SetPosition/Frame, Per-App-Gain, JSONL.
+
+## In 2.1.187 / 1.6.33 gelandet
+
+- liveEmitAllows + emitBusy vor CGImage. markFrameConsumed nach Detect. Hung 1 s.
+- liveMinIntervalFromVision.
+- Helios pinchClickMinNeed / twoPinchConfirmNeed / keyboardDwellNeed(dt).
+- Tests + VERSION = Models = MARKETING 2.1.187 (Build 212). Schema 15 bleibt.
+
+Pass 28: FrameTap-Backpressure, Vision-Interval, restliche 8-fps-Uhren — 2.1.187 / 1.6.33.
+
+## Erweiterungen (neu, oben)
+
+1. **VNSequenceRequestHandler auf Capture-Queue** — nur Boxen hop'en auf Main, kein CGImage.
+2. **CameraBroker-XPC** — eine TCC, IOSurface an beide.
+3. **FaceTrack `[UUID: FaceTrack]` als einziges leftover-Dict.**
+4. **Overlay Metal 90 Hz** unabhängig von 8 fps Kamera.
+5. **FrameTap CVPixelBuffer/IOSurface** statt CGImage-Kopie.
+6. **PrintQuality als Enroll-Gate** nicht nur skip. ¾-Bin trotz Profil.
+7. **DisplayLink LOCK_SH liest Mutex-PTS** ohne Claim.
+8. **PTS-Sidecar neben dem Lock.** Lock = Ownership, PTS = Uhr.
+9. **Vision tracking-ID als Remint-Seed.**
+10. **VNTrackObjectRequest** statt Remint.
+11. **IOHID Event-Tap / AX SetPosition / Per-App Gain** (`bugfix`, opt-in).
+12. **JSONL Session-Replay** (`bugfix`) für Gesten-Regression.
+13. **Tests splitten** (MatchMathTests > 200 kB).
+14. **Swift Testing** statt DIY `ok()`.
+15. **Gallery-on-disk mmap.**
+16. **Enrollment-HUD 3-Slot.**
+17. **Helios liest leftover-Boxen** als Palm-Occlusion.
+18. **Aegis-Yaw als Helios Click-Lock.**
+19. **Negativ-Galerie Props.**
+20. **Print-Bank PCA-Whitening.**
+21. **Face-Print ONNX sidecar.**
+22. **Speaker-Diarization.**
+23. **App-Group `group.helios.aegis`.**
+24. **Detect auf capture-Queue**, Main nur Overlay.
+25. **Helios chromeDwell × dt** analog keyboardDwellNeed.
+26. **Pinch 3D** aus Vision depth/yaw, nicht nur 2D Closedness.
+27. **Aegis livePending drop-oldest** statt FIFO wenn Busy nach Hung.
+28. **Continuity 720p Format-Lock** schon da — Desk-View 4K downsample vor Vision.
+
 # Nachtrag 2026-09-07 — 2.1.186 / 1.5.187 (kein Merge von `bugfix`)
 
 Aegis `lolalpha00gamma/aegis-scanner` **2.1.186 alpha** (Build 211).

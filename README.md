@@ -1,4 +1,4 @@
-# Aegis **2.1.186 alpha**
+# Aegis **2.1.187 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.187 alpha
+
+2.1.186 hop't FrameTap auf der Capture-Queue, aber jedes CGImage spawnt weiter `Task { @MainActor }`. Detect 80–200 ms, Continuity 8–15 fps → Task-Stau, Jank, Namen hinterher.
+
+- **liveEmitAllows** — FrameTap `emitBusy` vor CGImage. markFrameConsumed erst nach Detect. Hung 1 s.
+- **liveMinIntervalFromVision** — visMs hebt das Interval (150 ms Detect → kein 15 fps).
+- Helios **1.6.33:** Pinch-Klick, Zwei-Pinzetten, Tastatur-Dwell × dt.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.187 (Build 212). Schema 15 bleibt.
 
 ## Neu in 2.1.186 alpha
 

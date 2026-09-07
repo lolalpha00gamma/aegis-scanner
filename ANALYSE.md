@@ -1,3 +1,25 @@
+# Aegis + Helios — Analyse 2026-09-07 (2.1.187)
+
+Aegis **2.1.187 alpha** (Build 212). Helios **1.6.33** (Build 66). Nur `main`. `bugfix` ist 2.1.15 — familyBump sitzt, nichts mergen.
+
+2.1.186: Mutex-PTS, FrameTap Capture-Queue, printQuality. Emit blieb feuerfrei — LibraryStore Task-Hop ungebunden.
+
+## Warum Live nach 2.1.186 weiter riss
+
+1. **emit() nur Queue-Wechsel.** `Task { @MainActor ingestLiveFrame }` je Frame. liveBusy coalesced erst nach dem Hop. CGImage schon kopiert.
+2. **15 fps Lock vs 150 ms Vision.** Interval 66 ms < Detect. Continuity 8 fps immer noch zwei Frames in der Schlange.
+3. Helios Klick-Min 50 ms, Zwei-Pinzetten-Confirm 120 ms, Tastatur 120 ms = ein Continuity-Frame.
+
+## Was 2.1.187 / 1.6.33 ändert
+
+1. FrameTap emitBusy bis markFrameConsumed. Kein CGImage während Detect.
+2. liveMinIntervalFromVision. visMs hebt Hunt/Lock.
+3. Hung 1 s — Detect tot lässt die Kamera nicht stehen.
+4. Helios pinchClickMinNeed / twoPinchConfirmNeed / keyboardDwellNeed(dt).
+5. Tests + MARKETING 2.1.187 / 1.6.33 (Build 212 / 66). Schema 15 bleibt.
+
+`bugfix` mergen: nein.
+
 # Aegis + Helios — Analyse 2026-09-07 (2.1.186)
 
 Aegis **2.1.186 alpha** (Build 211). Helios **1.5.187** (Build 206). Nur `main`. `bugfix` ist 2.1.15 — familyBump sitzt, nichts mergen.
