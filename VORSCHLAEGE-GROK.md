@@ -1,3 +1,9 @@
+# Nachtrag 2026-09-07 — 2.1.196 / 1.6.34 (kein Merge von `bugfix`)
+
+Aegis `lolalpha00gamma/aegis-scanner` **2.1.196 alpha** (Build 221).
+Helios `lolalpha00gamma/Helios` **1.6.34** (Build 67).
+Nur `main`. leftover Taufe 0,80, Twin-Yaw-Cull, Print-Diversity. Helios Ampel/3D-Pinch/Freeze.
+
 # Nachtrag 2026-09-07 — 2.1.194 / 1.5.195 (kein Merge von `bugfix`)
 
 Aegis `lolalpha00gamma/aegis-scanner` **2.1.194 alpha** (Build 219).

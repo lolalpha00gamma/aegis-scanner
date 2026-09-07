@@ -1,3 +1,18 @@
+# Aegis 2.1.196 — leftover Taufe, Twin-Yaw, Print-Diversity
+
+Aegis **2.1.196 alpha** (Build 221). Helios **1.6.34** (Build 67). Nur `main`. `bugfix` mergen: nein.
+
+2.1.195: Blink identity, Twin Box-Hash. leftoverAssignLive nahm leftoverPrintOk 0,64. Twin-Detect zwei Exact. Print-Burst 0,98. leftoverPrintYaw signed.
+
+## Was 2.1.196 ändert
+
+1. **leftoverAssignPrintOk** Taufe 0,80/0,76 + Qualität. Overlay-Hold 0,64 bleibt leftoverPrintOk.
+2. **leftoverAssignTwinYawCull** |Δyaw| < 8° × x-Overlap > 0,45, schwächere Spalte tot.
+3. **leftoverPrintDiversitySkip** gleicher Bin ≥ 0,98. **leftoverPrintSameBin** |yaw|.
+4. Tests + VERSION = Models = MARKETING 2.1.196 (Build 221). Schema 15 bleibt.
+
+`bugfix` mergen: nein.
+
 # Aegis 2.1.195 — Blink identity, Twin Box-Hash, FrameTap skip
 
 Aegis **2.1.195 alpha** (Build 220). Helios **1.5.196** (Build 215). Nur `main`. `bugfix` mergen: nein.

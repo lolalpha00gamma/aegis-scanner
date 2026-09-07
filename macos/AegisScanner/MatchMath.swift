@@ -684,6 +684,49 @@ enum MatchMath {
         return (printCosine ?? -1) < printNeed
     }
 
+    static let leftoverTwinYawRad = 8.0 * Double.pi / 180.0
+    static let leftoverTwinOverlapX = 0.45
+
+    static func leftoverBoxOverlapX(a: (x: Double, w: Double), b: (x: Double, w: Double)) -> Double {
+        let a0 = a.x, a1 = a.x + max(0, a.w)
+        let b0 = b.x, b1 = b.x + max(0, b.w)
+        let inter = max(0, min(a1, b1) - max(a0, b0))
+        let uni = max(a1, b1) - min(a0, b0)
+        guard uni > 1e-9 else { return 0 }
+        return inter / uni
+    }
+
+    /// |Δyaw| < 8° und x-Overlap > 0,45 → doppelte Detect, ein Exact.
+    static func leftoverTwinYawVeto(yawA: Double?, yawB: Double?, overlapX: Double) -> Bool {
+        guard let ya = yawA, let yb = yawB else { return false }
+        if abs(ya - yb) + 1e-12 >= leftoverTwinYawRad { return false }
+        return overlapX + 1e-12 >= leftoverTwinOverlapX
+    }
+
+    /// Zwei Detects, gleiche Pose, Overlap → eine Spalte. Der schwächere Print fällt.
+    static func leftoverAssignTwinYawCull(
+        scores: [[Double?]],
+        boxes: [(x: Double, w: Double)],
+        yaws: [Double]
+    ) -> [[Double?]] {
+        var out = scores
+        guard !boxes.isEmpty, boxes.count == yaws.count else { return scores }
+        let cols = boxes.count
+        for i in 0..<cols {
+            for j in (i + 1)..<cols {
+                let ov = leftoverBoxOverlapX(a: boxes[i], b: boxes[j])
+                guard leftoverTwinYawVeto(yawA: yaws[i], yawB: yaws[j], overlapX: ov) else { continue }
+                let mi = out.map { $0.indices.contains(i) ? ($0[i] ?? -1) : -1 }.max() ?? -1
+                let mj = out.map { $0.indices.contains(j) ? ($0[j] ?? -1) : -1 }.max() ?? -1
+                let drop = mi >= mj ? j : i
+                for r in 0..<out.count where drop < out[r].count {
+                    out[r][drop] = nil
+                }
+            }
+        }
+        return out
+    }
+
     /// Leftover-Tracks: höchster Print zuerst, nicht die ältere UUID.
     static func leftoverRank(_ items: [(id: UUID, cosine: Double?)]) -> [UUID] {
         items.sorted { a, b in
@@ -1404,6 +1447,17 @@ enum MatchMath {
     ) -> Bool {
         leftoverBaptizeBoth(raw: raw, smooth: smooth, sharpness: sharpness, yawAbs: yawAbs, blink: blink, continuity: continuity)
             && leftoverBaptizeJpegOk(jpegDelta, required: jpegRequired)
+    }
+
+    /// UUID-Taufe. leftoverPrintOk 0,64 hält Overlay, tauft nicht.
+    static func leftoverAssignPrintOk(
+        cosine: Double?,
+        sharpness: Double? = nil,
+        yawAbs: Double? = nil,
+        continuity: Bool = false
+    ) -> Bool {
+        leftoverBaptize(cosine: cosine, continuity: continuity)
+            && leftoverBaptizeQuality(sharpness: sharpness, yawAbs: yawAbs, continuity: continuity)
     }
 
     /// Twin 0,80 nach Hold 0,64: Spike, kein Steal. 0,80 nach 0,80 bleibt Taufe.
@@ -8109,6 +8163,17 @@ enum MatchMath {
     /// Burst 0,98. Gallery-on-disk sonst identische Prints.
     static func leftoverPrintPruneDup(cosine: Double, floor: Double = 0.98) -> Bool {
         cosine + 1e-12 >= floor
+    }
+
+    /// Gleicher Pose-Bin Cosine > 0,98 → Burst, kein zweiter Print.
+    static func leftoverPrintDiversitySkip(cosine: Double?, sameBin: Bool, floor: Double = 0.98) -> Bool {
+        guard sameBin, let c = cosine else { return false }
+        return leftoverPrintPruneDup(cosine: c, floor: floor)
+    }
+
+    /// leftoverPrintYaw ist signed. Bin immer über |yaw|, sonst −0,50 Profil = frontal.
+    static func leftoverPrintSameBin(yawA: Double, yawB: Double) -> Bool {
+        leftoverHoldBin(yawAbs: abs(yawA)) == leftoverHoldBin(yawAbs: abs(yawB))
     }
 
     /// Burst 0,98 nicht in die Bank. gallery.json sonst identische Prints.

@@ -2919,6 +2919,16 @@ final class LibraryStore: ObservableObject {
                         )
                         || MatchMath.holdStillSkip(iou: bestIoU, sharpness: face.quality.sharpness)
                         || MatchMath.skipPrint(sharpness: face.quality.sharpness, continuity: liveCapture.isContinuity, yaw: face.quality.yaw)
+                        || MatchMath.leftoverPrintDiversitySkip(
+                            cosine: MatchMath.leftoverCoastPrintCosine(
+                                live: face.printVec.count >= 32 ? face.printVec : FaceEngine.embedding(of: face),
+                                stored: leftoverCoastPrint[old.id] ?? []
+                            ),
+                            sameBin: MatchMath.leftoverPrintSameBin(
+                                yawA: face.quality.yaw,
+                                yawB: leftoverPrintYaw[old.id] ?? face.quality.yaw
+                            )
+                        )
                         || MatchMath.motionBlurDrops(
                             aligned: MatchMath.cropAligns(roll: face.quality.roll),
                             sharpness: face.quality.sharpness
@@ -3127,13 +3137,23 @@ final class LibraryStore: ObservableObject {
                         let v = face.printVec.count >= 32 ? face.printVec : FaceEngine.embedding(of: face)
                         if v.count >= 32, ov.count == v.count {
                             let c = MatchMath.cosine(v, ov)
-                            row.append(MatchMath.leftoverPrintOk(cosine: c, sharpness: face.quality.sharpness) ? c : nil)
+                            row.append(MatchMath.leftoverAssignPrintOk(
+                                cosine: c,
+                                sharpness: face.quality.sharpness,
+                                yawAbs: abs(face.quality.yaw),
+                                continuity: liveCapture.isContinuity
+                            ) ? c : nil)
                         } else {
                             row.append(nil)
                         }
                     }
                     scores.append(row)
                 }
+                scores = MatchMath.leftoverAssignTwinYawCull(
+                    scores: scores,
+                    boxes: unnamedLeft.map { (adopted[$0].box.x, adopted[$0].box.width) },
+                    yaws: unnamedLeft.map { adopted[$0].quality.yaw }
+                )
                 let assigned = MatchMath.leftoverAssignLive(
                     scores: scores,
                     liveX: unnamedLeft.map { adopted[$0].box.x },

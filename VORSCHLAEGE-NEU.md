@@ -1,3 +1,16 @@
+# Aegis Nachtrag 2.1.196 — 2026-09-07
+
+Binary **2.1.196 alpha Build 221**. leftover Taufe 0,80. Twin-Yaw-Cull. Print-Diversity. Helios Ampel/3D-Pinch.
+
+## In 2.1.196 gelandet
+
+1. leftoverAssignPrintOk — leftoverAssignLive tauft mit Baptize 0,80/0,76 + Qualität. leftoverPrintOk 0,64 bleibt Overlay-Hold.
+2. leftoverAssignTwinYawCull — |Δyaw| < 8° × x-Overlap > 0,45, schwächere Detect-Spalte tot.
+3. leftoverPrintDiversitySkip + leftoverPrintSameBin — gleicher Bin Cosine ≥ 0,98 Skip. |yaw|, sonst −Profil = frontal.
+4. Tests + VERSION = Models = MARKETING 2.1.196 (Build 221). Schema 15 bleibt.
+
+Rest: CameraBroker, FaceTrack einzige Map, Overlay-Metal. Siehe VORSCHLAEGE-GROK.md.
+
 # Aegis Nachtrag 2.1.195 — 2026-09-07
 
 Binary **2.1.195 alpha Build 220**. Blink identity-weit. Twin Box-Hash. FrameTap ohne CGImage. Helios Sleep-Fill.

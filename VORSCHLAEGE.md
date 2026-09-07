@@ -1,3 +1,7 @@
+# 2.1.196 — siehe VORSCHLAEGE-NEU.md (leftover Taufe 0,80, Twin-Yaw-Cull, Print-Diversity).
+
+# 2.1.195 — siehe VORSCHLAEGE-NEU.md (Blink identity-weit, Twin Box-Hash).
+
 # 2.1.194 — siehe VORSCHLAEGE-NEU.md (Twin-Overlay Detect, nicht Drop).
 
 # 2.1.193 — siehe VORSCHLAEGE-NEU.md (Overlay identityId, Live-Blink, livePending, Session-Pause).

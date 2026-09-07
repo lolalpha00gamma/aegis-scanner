@@ -5046,6 +5046,63 @@ enum MatchMathTests {
         ok(MatchMath.liveRoiSkipOnWake(), "Wake ROI Skip")
         ok(MatchMath.cameraMutexPauseResumes(wanted: true, running: false), "Pause Resume")
         ok(!MatchMath.cameraMutexPauseResumes(wanted: false, running: false), "Pause stop tot")
+        ok(MatchMath.leftoverAssignPrintOk(cosine: 0.81), "0,81 leftover Assign tauft")
+        ok(!MatchMath.leftoverAssignPrintOk(cosine: 0.64), "0,64 leftover Assign hält, tauft nicht")
+        ok(!MatchMath.leftoverAssignPrintOk(cosine: nil), "nil leftover Assign tot")
+        ok(
+            !MatchMath.leftoverAssignPrintOk(cosine: 0.81, sharpness: 0.08),
+            "Blur leftover Assign tot"
+        )
+        ok(
+            MatchMath.leftoverAssignPrintOk(cosine: 0.81, sharpness: 0.40, yawAbs: 0.10),
+            "scharf frontal leftover Assign"
+        )
+        ok(
+            !MatchMath.leftoverAssignPrintOk(cosine: 0.81, sharpness: 0.40, yawAbs: 0.50),
+            "Profil leftover Assign tot"
+        )
+        ok(MatchMath.leftoverAssignPrintOk(cosine: 0.77, continuity: true), "Continuity 0,77 Assign")
+        ok(!MatchMath.leftoverAssignPrintOk(cosine: 0.77, continuity: false), "Webcam 0,77 Assign tot")
+        ok(MatchMath.leftoverPrintOk(cosine: 0.64) && !MatchMath.leftoverAssignPrintOk(cosine: 0.64), "Hold ≠ Taufe")
+        let twinOv = MatchMath.leftoverBoxOverlapX(a: (0.10, 0.20), b: (0.15, 0.20))
+        ok(twinOv + 1e-12 >= 0.45, "Twin Overlap ~0,60")
+        ok(MatchMath.leftoverBoxOverlapX(a: (0.10, 0.10), b: (0.80, 0.10)) < 0.01, "Twin Overlap tot")
+        ok(
+            MatchMath.leftoverTwinYawVeto(yawA: 0, yawB: 0.05, overlapX: 0.80),
+            "Twin |Δyaw| < 8° Overlap"
+        )
+        ok(
+            !MatchMath.leftoverTwinYawVeto(yawA: 0, yawB: 0.30, overlapX: 0.80),
+            "Twin 17° kein Veto"
+        )
+        ok(
+            !MatchMath.leftoverTwinYawVeto(yawA: 0, yawB: 0, overlapX: 0.20),
+            "Twin Overlap 0,20 tot"
+        )
+        ok(
+            !MatchMath.leftoverTwinYawVeto(yawA: nil, yawB: 0, overlapX: 0.80),
+            "Twin ohne Yaw tot"
+        )
+        let culled = MatchMath.leftoverAssignTwinYawCull(
+            scores: [[0.85, 0.82], [nil, 0.70]],
+            boxes: [(0.10, 0.20), (0.15, 0.20)],
+            yaws: [0, 0.05]
+        )
+        ok(culled[0][0] != nil && culled[0][1] == nil, "Twin Cull schwächere Spalte")
+        ok(culled[1][1] == nil, "Twin Cull Reihe 1")
+        let kept = MatchMath.leftoverAssignTwinYawCull(
+            scores: [[0.85, 0.82]],
+            boxes: [(0.10, 0.10), (0.80, 0.10)],
+            yaws: [0, 0]
+        )
+        ok(kept[0][0] != nil && kept[0][1] != nil, "Twin Cull ohne Overlap hält")
+        ok(MatchMath.leftoverPrintDiversitySkip(cosine: 0.99, sameBin: true), "Diversity 0,99 Skip")
+        ok(!MatchMath.leftoverPrintDiversitySkip(cosine: 0.90, sameBin: true), "Diversity 0,90 tot")
+        ok(!MatchMath.leftoverPrintDiversitySkip(cosine: 0.99, sameBin: false), "Diversity anderer Bin tot")
+        ok(!MatchMath.leftoverPrintDiversitySkip(cosine: nil, sameBin: true), "Diversity nil tot")
+        ok(MatchMath.leftoverPrintSameBin(yawA: 0.10, yawB: -0.10), "SameBin ±frontal")
+        ok(!MatchMath.leftoverPrintSameBin(yawA: 0.10, yawB: 0.50), "SameBin frontal≠Profil")
+        ok(MatchMath.leftoverPrintSameBin(yawA: -0.50, yawB: 0.50), "SameBin |yaw| Profil")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

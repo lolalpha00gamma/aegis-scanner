@@ -1,4 +1,4 @@
-# Aegis **2.1.195 alpha**
+# Aegis **2.1.196 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.196 alpha
+
+2.1.195: Blink identity, Twin Box-Hash. leftoverAssignLive nahm leftoverPrintOk 0,64 — Overlay-Hold tauft UUIDs. Twin-Detect zwei Boxen gleiche Pose. Print-Burst 0,98 gleicher Bin.
+
+- **leftoverAssignPrintOk** — Taufe 0,80/0,76 + Qualität, nicht leftoverPrintOk 0,64.
+- **leftoverAssignTwinYawCull** — |Δyaw| < 8° und x-Overlap > 0,45 → eine Spalte.
+- **leftoverPrintDiversitySkip** — gleicher Pose-Bin Cosine ≥ 0,98 kein zweiter Print. leftoverPrintSameBin über |yaw|.
+- Helios **1.6.34:** Ampel × dt, 3D-Pinch, Freeze-HUD, fps-Spark.
+- Tests + VERSION = Models = MARKETING 2.1.196 (Build 221). Schema 15 bleibt.
 
 ## Neu in 2.1.195 alpha
 
