@@ -1,3 +1,19 @@
+# Aegis Nachtrag 2.1.179 — 2026-09-07
+
+Binary **2.1.179 alpha Build 204**. Store poseAt. Overlay StoreName. leftoverHasHold poseAt. StoreChip. Helios Fill-Gap Kamera-Rebase.
+
+## In 2.1.179 gelandet
+
+1. leftoverFaceTrackHolds poseAt — Latch 4 s, Jump-Lock nicht TTL
+2. leftoverFaceTrackStoreNameOf — Hold+Name ohne Dict-Pack
+3. leftoverOverlayGuestOf — StoreName vor Hist
+4. leftoverHoldMaxOf / leftoverHasHoldOf — ¾-Bins, poseAt Latch
+5. leftoverStoreChip `store Ada` nach LOCK tot
+6. LibraryStore leftoverOverlayGuest + leftoverHasHold verdrahtet
+7. Tests + VERSION = Models = MARKETING_VERSION 2.1.179 (Build 204)
+
+Rest: CameraBroker, FaceTrack-Dict, Overlay-Metal. Siehe VORSCHLAEGE-GROK.md.
+
 # Aegis Nachtrag 2.1.178 — 2026-09-07
 
 Binary **2.1.178 alpha Build 203**. WAL-Restore Load. TERM blockt Write. FaceTrack StoreName.

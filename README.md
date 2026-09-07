@@ -1,4 +1,4 @@
-# Aegis **2.1.178 alpha**
+# Aegis **2.1.179 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,18 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.179 alpha
+
+StoreGet nahm leftoverNameLockUntil (Jump 1,2 s) als TTL — Overlay „?“ nach Remint obwohl Hold 0,80 Ada. leftoverHasHold ignorierte poseAt. StoreName las nur Frontal, ¾-Bins tot. Helios Fill-Gap Rebase auf cursorSmooth (Fill-Offset), Zeiger flog.
+
+- **leftoverFaceTrackHolds poseAt.** Latch 4 s wenn poseAt sitzt. nameUntil nur ohne poseAt (Tests).
+- **leftoverFaceTrackStoreNameOf / leftoverOverlayGuestOf.** Overlay StoreName vor Hist.
+- **leftoverHoldMaxOf / leftoverHasHoldOf.** ¾-Bins + poseAt Latch. leftoverHasHold tot nach 4 s.
+- **leftoverStoreChip `store Ada`.** Gate nach LOCK.
+- LibraryStore leftoverOverlayGuest + leftoverHasHold verdrahtet.
+- Helios **1.5.178:** Fill-Gap Kamera-Rebase, MAD-Cap, lastDisplayTick 0. **1.5.177:** HUD `FILL gap`, Fill-Lücke Pref 1,8–3,2×.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.179 (Build 204). Schema 15 bleibt.
 
 ## Neu in 2.1.178 alpha
 

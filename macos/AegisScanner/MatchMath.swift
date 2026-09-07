@@ -7818,9 +7818,12 @@ enum MatchMath {
         tracks[id]
     }
 
-    static func leftoverFaceTrackHolds(track: FaceTrack?, now: TimeInterval) -> Bool {
+    static func leftoverFaceTrackHolds(track: FaceTrack?, now: TimeInterval, ttl: TimeInterval = leftoverLatch) -> Bool {
         guard let t = track else { return false }
         if t.hold <= 0 { return false }
+        if t.poseAt > 0 {
+            return now >= t.poseAt && now - t.poseAt < ttl
+        }
         if t.nameUntil > 0 && now >= t.nameUntil { return false }
         return true
     }
@@ -7925,6 +7928,67 @@ enum MatchMath {
 
     static func leftoverFaceTrackStoreName(tracks: [UUID: FaceTrack], id: UUID, now: TimeInterval) -> String? {
         leftoverFaceTrackStoreGet(tracks: tracks, id: id, now: now)?.nameHeld
+    }
+
+    /// Jump-Lock nameUntil ist 1,2 s. Store hält über poseAt (Latch 4 s).
+    static func leftoverFaceTrackStoreNameOf(
+        hold: Double,
+        nameHeld: String,
+        nameUntil: TimeInterval,
+        now: TimeInterval,
+        poseAt: TimeInterval = 0
+    ) -> String? {
+        let t = FaceTrack(hold: hold, nameHeld: nameHeld, nameUntil: nameUntil, poseAt: poseAt)
+        guard leftoverFaceTrackHolds(track: t, now: now), !nameHeld.isEmpty else { return nil }
+        return nameHeld
+    }
+
+    /// Overlay: StoreName vor Hist. Nach Remint Hist leer, Ada sonst Gast.
+    static func leftoverOverlayGuestOf(
+        storeName: String?,
+        voted: String?,
+        hist: [String],
+        need: Int,
+        guest: String,
+        streak: Int = 0
+    ) -> String {
+        if let n = storeName, !n.isEmpty { return n }
+        return leftoverOverlayUnsureFirst(
+            voted: voted, hist: hist, need: need, guest: guest, streak: streak
+        )
+    }
+
+    /// leftoverHold[id] ist Frontal. ¾ nur in Bins — StoreName sonst hold 0.
+    static func leftoverHoldMaxOf(frontal: Double?, bins: [String: Double], id: UUID) -> Double {
+        var m = frontal ?? 0
+        for b in 0...2 {
+            if let v = leftoverHoldBinRead(bins: bins, id: id, bin: b) {
+                m = max(m, v)
+            }
+        }
+        return m
+    }
+
+    /// leftoverHasHold ohne poseAt: Ghost nach Latch noch Hold.
+    static func leftoverHasHoldOf(
+        hold: Double?,
+        bins: [String: Double],
+        id: UUID,
+        poseAt: TimeInterval,
+        now: TimeInterval,
+        nameUntil: TimeInterval = 0
+    ) -> Bool {
+        let h = leftoverHoldMaxOf(frontal: hold, bins: bins, id: id)
+        if h <= 0 { return false }
+        return leftoverFaceTrackHolds(
+            track: FaceTrack(hold: h, nameHeld: "-", nameUntil: nameUntil, poseAt: poseAt),
+            now: now
+        )
+    }
+
+    static func leftoverStoreChip(name: String?) -> String? {
+        guard let n = name, !n.isEmpty else { return nil }
+        return "store \(n)"
     }
 }
 

@@ -1,3 +1,187 @@
+# Nachtrag 2026-09-07 — 1.5.178 / 2.1.179 (kein Merge von `bugfix`)
+
+Helios `bpms9cmnxc-debug/Helios` **1.5.178** (Build 197).
+Aegis `lolalpha00gamma/aegis-scanner` **2.1.179 alpha** (Build 204).
+Nur `main`. Agent-Regel: keine Nebenbranches. `bugfix` gelesen, nicht gemergt.
+
+1.5.177 Rebase setzte lastMapped2 = cursorSmooth (Fill-Offset). Aegis leftoverHasHold ignorierte poseAt. Overlay StoreName las nur Frontal-Hold, ¾-Bins tot. HUD ohne `store Ada`.
+
+## Warum es schlecht wirkte (dieser Pass)
+
+1. **Rebase auf Fill, nicht Kamera.** Nach Continuity-Lücke lastMapped = Palme, cursorSmooth = alter Fill. lastMapped2 = Fill → displayLinkVelocity (Kamera−Fill)/dt = Flug.
+2. **lastDisplayTick nicht rebased.** Erster Fill nach Lücke mit Rest-dt trotz Cap 1,5×.
+3. **Fill-Cap ignoriert MAD.** Continuity-Jitter volle px-Budget, Overshoot.
+4. **leftoverHasHold ohne poseAt.** leftoverHold-Dict tot nicht. Overlay leftoverNameFromHold nach Latch 4 s noch Ada.
+5. **StoreName nur Frontal.** leftoverHold[id] ¾ = nil, Bins 0,77 Ada, Overlay trotzdem „?“.
+6. **Kein Store-Chip.** Jump-Lock LOCK 1,2 s, danach still. Ada im Overlay ohne Why.
+7. Von `bugfix` (1.5.8 / 2.1.15) bewusst nicht gemergt: IOHID Event-Tap, AX SetPosition/Frame, Per-App-Gain, JSONL.
+
+## In 1.5.178 / 2.1.179 gelandet
+
+- **obsFillGapRebasePoint.** lastMapped2 = lastMapped ?? cursorSmooth. lastDisplayTick = 0.
+- **pointerKalmanCapMul.** MAD 0,018 → Cap × 0,45.
+- **leftoverHoldMaxOf / leftoverHasHoldOf.** Bins+Frontal, poseAt Latch 4 s.
+- **leftoverStoreChip `store Ada`.** Gate nach LOCK tot.
+- **leftoverOverlayGuest** HoldMax, nicht nur Frontal.
+- Tests + MARKETING 1.5.178 / 2.1.179 (Build 197 / 204). Schema 15 bleibt.
+
+Pass 20: Fill-Gap Kamera-Rebase + MAD-Cap, leftoverHasHold poseAt, StoreChip — 1.5.178 / 2.1.179.
+
+## Erweiterungen (neu, oben)
+
+1. **CameraBroker-XPC** — eine TCC, IOSurface an beide. Größter einzelner Effizienzgewinn. Ohne den sitzen Helios und Aegis auf zwei Sessions.
+2. **FaceTrack `[UUID: FaceTrack]` als einziges leftover-Dict.** StoreName sitzt im Overlay. Matching bleibt Schatten-Maps. Nächster Aegis-Strukturhebel.
+3. **palmKalman + pointerKalman eine Uhr.** palmKalman 0–1 Kamera, pointerKalman Quartz. Observation-Timestamp speist beide. P nicht auf Fill-Gap 0 setzen.
+4. **Overlay Metal 90 Hz.** SwiftUI ForEach 21×2 tot. Fill-Gap macht das Overlay ehrlicher, nicht schneller.
+5. **Eine Homographie je Display-UUID.** destEdgeNearest sitzt, SpaceMap bleibt eine Karte für Laptop+5K.
+6. **POSIX-Semaphore + INTENT → Yield → CONFIRM.** flock überlebt Sleep/Hub schlecht.
+7. **Palm-Print Sticky-ID.** Wrist→Thumb statt Vision L/R.
+8. **Overlay-Why Inspector.** Tap auf HUD-Chip zeigt Veto (Hist, Span, Keep, Conf-Dip, Gap, StoreName).
+9. **Latency-HUD Tick→AX.** End-to-end ms. 8 fps vs 90 Hz messbar.
+10. **App-Group `group.helios.aegis`.** Yield/Mutex/Pad einmal.
+11. **IOHID Event-Tap** statt CGEvent (`bugfix` 1.5.8).
+12. **AX SetPosition ein Call/Frame** (`bugfix`).
+13. **Per-App Gain aus AX bundle id** (`bugfix`).
+14. **Gesture-Log JSONL** (`bugfix`).
+15. **Enrollment-HUD 3-Slot im Overlay.**
+16. **Helios liest Aegis leftover-Boxen** als Palm-Occlusion.
+17. **Watch-IMU Pinch-Confirm.**
+18. **Vision Hand-Mesh** (macOS 26).
+19. **Frame-ID auf IOSurface.**
+20. **Aegis-Yaw als Helios Click-Lock.**
+21. **VNDetectHumanBodyPose** als Prop-Veto.
+22. **Gemeinsames CameraMath-Package.** Mutex-Logik ist 1:1 kopiert.
+23. **Telemetry-Ring 30 s + OSLog.**
+24. **Center Stage force-off nach Sleep.**
+25. **Continuity USB-Hub Watchdog.**
+26. **SpaceMap Auto-Recalib** RMS > 24 px / 2 s.
+27. **Two-mode Pointer:** Desk absolut, 0,8 s Dwell relativ.
+28. **Tests splitten** (GestureTests / MatchMathTests > 200 kB).
+29. **VNTrackObjectRequest** statt Remint.
+30. **Aegis live outputQueue ≠ MainActor.**
+31. **Guitar-Schwelle aus Sitzabstand** (IOD / FOV).
+32. **Negativ-Galerie Props.**
+33. **Print-Bank PCA-Whitening.**
+34. **Cursor-Magnetismus** 8 px an AX-Hit.
+35. **Dwell-Klick** optional neben Pinzette.
+36. **Doorbell-Cue.**
+37. **Clamshell: Vision pausieren.**
+38. **Jerk Dead-Man.**
+39. **Lock Schema v2.**
+40. **Vision Pro Sidecar.**
+41. **CI `swiftc` Tests vor DMG.**
+42. **Helios Kill-Switch Datei** neben Mutex.
+43. **Speaker-Diarization.**
+44. **Face-Print ONNX sidecar.**
+45. **Gallery-on-disk mmap.**
+46. **Hover-Preview ohne Click.**
+47. **pointerKalman echter P/Q/R.** CapMul skaliert nur. Process-Noise dunkel höher, State über Fill.
+48. **Fill-Gap Audio-Cue** 8 fps Drop.
+49. **Per-Display Fill-Gap Mul** USB 2,0 / Wi-Fi 3,2.
+50. **lastHandSeen aus Kamera-PTS**, nicht CACurrentMediaTime. Hub-Pause sonst Gap-false.
+51. **leftoverJumpName + StoreName ein Overlay-Pfad.** Jump 1,2 s dann store, nicht zwei Reader.
+52. **Shared integration test** Helios+Aegis gegen Fake-Lock-Datei mit Fill-Gap.
+53. **kAXFocusedUIElementChanged** statt FocusTracker-Poll.
+54. **maximumHandCount 2 + Joint-Group** statt Observation-first.
+55. **palmKalman P nicht auf Fill-Gap resetten.** Kamera-Uhr ≠ Display-Uhr.
+56. **Overlay Chip-Budget `store` vor Spark.** Cap 6 droppt sonst Ada.
+57. **FaceTrack Pack als Live-Store** — leftoverHold/Bins/NameLock eine Unpack-Quelle.
+58. **Continuity-Drop HUD** `CAM 400` neben FILL gap.
+
+Bewusst nicht: Merge `bugfix`, Blind-Patch Schwellen, CameraBroker in diesem Pass, FaceTrack-Store-Rewrite, Overlay-Metal.
+
+Nächster Code-Schritt: CameraBroker-XPC oder FaceTrack-Store als einziges Dict oder Overlay-Metal.
+
+# Nachtrag 2026-09-07 — 1.5.177 / 2.1.179 (kein Merge von `bugfix`)
+
+Helios `bpms9cmnxc-debug/Helios` **1.5.177** (Build 196).
+Aegis `lolalpha00gamma/aegis-scanner` **2.1.179 alpha** (Build 204).
+Nur `main`. Agent-Regel: keine Nebenbranches. `bugfix` gelesen, nicht gemergt.
+
+1.5.176 Fill-Gap return ließ lastMapped2/Vel 400 ms stehen — nächster Tick flog. HUD ohne FILL gap, Predict-Chip blieb. Aegis StoreGet nahm nameUntil (Jump-Lock 1,2 s) als TTL — Overlay Gast nach Remint obwohl Hold 0,80 Ada.
+
+## Warum es schlecht wirkte (dieser Pass)
+
+1. **Fill-Gap ohne Rebase.** obsFillSkipsGap return. lastMapped2 + palmVelScreen aus der Lücke. displayLinkVelocity 400 ms Delta = Flug über die Naht.
+2. **FILL gap Chip tot.** Helper + Test saßen, HUD/displayTick riefen nicht. Predict-Chip log nach Lücke.
+3. **Fill Euler, nicht CV.** displayLinkCursorOf vel×dt. Nach Rebase brauchte der Fill denselben Kalman-Schritt wie die Tests.
+4. **Store TTL = Jump-Lock.** leftoverFaceTrackHolds `now >= nameUntil`. leftoverNameLockUntil ist 1,2 s JUMP, nicht Latch 4 s. poseAt lag im Struct, Holds las ihn nicht.
+5. **Overlay ignorierte StoreName.** leftoverOverlayGuest nur Hist. Nach Remint Hist leer → „?“, Ada im Hold.
+6. Von `bugfix` (1.5.8 / 2.1.15) bewusst nicht gemergt: IOHID Event-Tap, AX SetPosition/Frame, Per-App-Gain, JSONL.
+
+## In 1.5.177 / 2.1.179 gelandet
+
+- **obsFillGapRebase / pointerKalmanResets.** Lücke latched, nächster Fill lastMapped2 = cursorSmooth, Vel 0.
+- **obsFillGapChip** im HUD. Predict-Chip tot über der Lücke.
+- **obsFillGapMulPref 1,8–3,2.** Slider Fill-Lücke. Default 2,4.
+- **pointerKalmanVel / Predict.** CV dt<2 s, Cap X/Y. displayTick Fill = Predict.
+- **leftoverFaceTrackHolds poseAt.** Latch 4 s wenn poseAt sitzt. nameUntil nur ohne poseAt (Tests).
+- **leftoverFaceTrackStoreNameOf / leftoverOverlayGuestOf.** LibraryStore Overlay StoreName vor Hist.
+- Tests + MARKETING 1.5.177 / 2.1.179 (Build 196 / 204). Schema 15 bleibt.
+
+Pass 19: Fill-Gap Rebase + Kalman-CV, Store poseAt, Overlay StoreName — 1.5.177 / 2.1.179.
+
+## Erweiterungen (neu, oben)
+
+1. **CameraBroker-XPC** — eine TCC, IOSurface an beide. Größter einzelner Effizienzgewinn. Ohne den sitzen Helios und Aegis auf zwei Sessions.
+2. **FaceTrack `[UUID: FaceTrack]` als einziges leftover-Dict.** StoreName sitzt im Overlay. Matching bleibt Schatten-Maps. Nächster Aegis-Strukturhebel.
+3. **palmKalman + pointerKalman eine Uhr.** palmKalman 0–1 Kamera, pointerKalman Quartz. Observation-Timestamp speist beide.
+4. **Overlay Metal 90 Hz.** SwiftUI ForEach 21×2 tot. Fill-Gap macht das Overlay ehrlicher, nicht schneller.
+5. **Eine Homographie je Display-UUID.** destEdgeNearest sitzt, SpaceMap bleibt eine Karte für Laptop+5K.
+6. **POSIX-Semaphore + INTENT → Yield → CONFIRM.** flock überlebt Sleep/Hub schlecht.
+7. **Palm-Print Sticky-ID.** Wrist→Thumb statt Vision L/R.
+8. **Overlay-Why Inspector.** Tap auf HUD-Chip zeigt Veto (Hist, Span, Keep, Conf-Dip, Gap, StoreName).
+9. **Latency-HUD Tick→AX.** End-to-end ms. 8 fps vs 90 Hz messbar.
+10. **App-Group `group.helios.aegis`.** Yield/Mutex/Pad einmal.
+11. **IOHID Event-Tap** statt CGEvent (`bugfix` 1.5.8).
+12. **AX SetPosition ein Call/Frame** (`bugfix`).
+13. **Per-App Gain aus AX bundle id** (`bugfix`).
+14. **Gesture-Log JSONL** (`bugfix`).
+15. **Enrollment-HUD 3-Slot im Overlay.**
+16. **Helios liest Aegis leftover-Boxen** als Palm-Occlusion.
+17. **Watch-IMU Pinch-Confirm.**
+18. **Vision Hand-Mesh** (macOS 26).
+19. **Frame-ID auf IOSurface.**
+20. **Aegis-Yaw als Helios Click-Lock.**
+21. **VNDetectHumanBodyPose** als Prop-Veto.
+22. **Gemeinsames CameraMath-Package.** Mutex-Logik ist 1:1 kopiert.
+23. **Telemetry-Ring 30 s + OSLog.**
+24. **Center Stage force-off nach Sleep.**
+25. **Continuity USB-Hub Watchdog.**
+26. **SpaceMap Auto-Recalib** RMS > 24 px / 2 s.
+27. **Two-mode Pointer:** Desk absolut, 0,8 s Dwell relativ.
+28. **Tests splitten** (GestureTests / MatchMathTests > 200 kB).
+29. **VNTrackObjectRequest** statt Remint.
+30. **Aegis live outputQueue ≠ MainActor.**
+31. **Guitar-Schwelle aus Sitzabstand** (IOD / FOV).
+32. **Negativ-Galerie Props.**
+33. **Print-Bank PCA-Whitening.**
+34. **Cursor-Magnetismus** 8 px an AX-Hit.
+35. **Dwell-Klick** optional neben Pinzette.
+36. **Doorbell-Cue.**
+37. **Clamshell: Vision pausieren.**
+38. **Jerk Dead-Man.**
+39. **Lock Schema v2.**
+40. **Vision Pro Sidecar.**
+41. **CI `swiftc` Tests vor DMG.**
+42. **Helios Kill-Switch Datei** neben Mutex.
+43. **Speaker-Diarization.**
+44. **Face-Print ONNX sidecar.**
+45. **Gallery-on-disk mmap.**
+46. **Hover-Preview ohne Click.**
+47. **pointerKalman Q aus palm MAD.** Process-Noise dunkel höher.
+48. **Fill-Gap Audio-Cue** 8 fps Drop.
+49. **Per-Display Fill-Gap Mul** USB 2,0 / Wi-Fi 3,2.
+50. **StoreName Chip** `store Ada` neben Hist `?`.
+51. **leftoverHasHold über poseAt-TTL.**
+52. **Shared integration test** Helios+Aegis gegen Fake-Lock-Datei mit Fill-Gap.
+53. **kAXFocusedUIElementChanged** statt FocusTracker-Poll.
+54. **maximumHandCount 2 + Joint-Group** statt Observation-first.
+
+Bewusst nicht: Merge `bugfix`, Blind-Patch Schwellen, CameraBroker in diesem Pass, FaceTrack-Store-Rewrite, Overlay-Metal.
+
+Nächster Code-Schritt: CameraBroker-XPC oder FaceTrack-Store als einziges Dict oder Overlay-Metal.
+
 # Nachtrag 2026-09-07 — 1.5.176 / 2.1.178 (kein Merge von `bugfix`)
 
 Helios `bpms9cmnxc-debug/Helios` **1.5.176** (Build 195).

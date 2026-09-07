@@ -4529,6 +4529,90 @@ enum MatchMathTests {
         ok(MatchMath.leftoverFaceTrackStoreGet(tracks: packed, id: trackId, now: 1_011) == nil, "FaceTrack Store TTL")
         ok(MatchMath.leftoverFaceTrackStoreName(tracks: packed, id: trackId, now: 1_005) == "Ada", "FaceTrack Store Name")
         ok(MatchMath.leftoverFaceTrackStoreName(tracks: packed, id: trackId, now: 1_011) == nil, "Store Name TTL tot")
+        ok(
+            MatchMath.leftoverFaceTrackHolds(
+                track: MatchMath.FaceTrack(
+                    hold: 0.80, nameHeld: "Ada", nameUntil: 1_001, poseAt: 1_000
+                ),
+                now: 1_002
+            ),
+            "Store poseAt hält nach Jump-Lock"
+        )
+        ok(
+            !MatchMath.leftoverFaceTrackHolds(
+                track: MatchMath.FaceTrack(
+                    hold: 0.80, nameHeld: "Ada", nameUntil: 9_999, poseAt: 1_000
+                ),
+                now: 1_005
+            ),
+            "Store poseAt TTL 4 s"
+        )
+        ok(
+            MatchMath.leftoverFaceTrackStoreNameOf(
+                hold: 0.80, nameHeld: "Ada", nameUntil: 1_001, now: 1_002, poseAt: 1_000
+            ) == "Ada",
+            "StoreNameOf poseAt"
+        )
+        ok(
+            MatchMath.leftoverFaceTrackStoreNameOf(
+                hold: 0.80, nameHeld: "Ada", nameUntil: 0, now: 1_000
+            ) == "Ada",
+            "StoreNameOf ohne Until"
+        )
+        ok(
+            MatchMath.leftoverOverlayGuestOf(
+                storeName: "Ada", voted: nil, hist: [], need: 3, guest: "Gast 1"
+            ) == "Ada",
+            "Overlay StoreName vor Gast"
+        )
+        ok(
+            MatchMath.leftoverOverlayGuestOf(
+                storeName: nil, voted: nil, hist: [], need: 3, guest: "Gast 1"
+            ) == "?",
+            "Overlay ohne Store ?"
+        )
+        let holdBinId = UUID()
+        let holdBinKey = MatchMath.leftoverHoldKey(id: holdBinId, bin: 1)
+        ok(
+            abs(MatchMath.leftoverHoldMaxOf(frontal: 0.80, bins: [:], id: holdBinId) - 0.80) < 1e-9,
+            "HoldMax Frontal"
+        )
+        ok(
+            abs(MatchMath.leftoverHoldMaxOf(frontal: nil, bins: [holdBinKey: 0.77], id: holdBinId) - 0.77) < 1e-9,
+            "HoldMax ¾ Bin"
+        )
+        ok(
+            MatchMath.leftoverHasHoldOf(
+                hold: 0.80, bins: [:], id: holdBinId, poseAt: 1_000, now: 1_002
+            ),
+            "HasHold poseAt"
+        )
+        ok(
+            !MatchMath.leftoverHasHoldOf(
+                hold: 0.80, bins: [:], id: holdBinId, poseAt: 1_000, now: 1_005
+            ),
+            "HasHold TTL tot"
+        )
+        ok(
+            MatchMath.leftoverHasHoldOf(
+                hold: nil, bins: [holdBinKey: 0.77], id: holdBinId, poseAt: 1_000, now: 1_002
+            ),
+            "HasHold Bins"
+        )
+        ok(
+            !MatchMath.leftoverHasHoldOf(
+                hold: nil, bins: [:], id: holdBinId, poseAt: 1_000, now: 1_002
+            ),
+            "HasHold leer"
+        )
+        ok(MatchMath.leftoverStoreChip(name: "Ada") == "store Ada", "Store Chip")
+        ok(MatchMath.leftoverStoreChip(name: nil) == nil, "Store Chip tot")
+        ok(
+            MatchMath.leftoverFaceTrackStoreNameOf(
+                hold: 0.77, nameHeld: "Ada", nameUntil: 1_001, now: 1_002, poseAt: 1_000
+            ) == "Ada",
+            "StoreName ¾"
+        )
         ok(MatchMath.cameraMutexTermBlocksWrite(signal: 15, pidLive: true), "TERM live blockt Write")
         ok(!MatchMath.cameraMutexTermBlocksWrite(signal: 15, pidLive: false), "TERM tot Write")
         ok(!MatchMath.cameraMutexTermBlocksWrite(signal: 9, pidLive: true), "KILL Write")

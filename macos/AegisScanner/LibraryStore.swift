@@ -1658,12 +1658,27 @@ final class LibraryStore: ObservableObject {
     func leftoverOverlayGuest(for id: UUID) -> String {
         let hist = liveNameHist[id] ?? []
         let need = 3
-        return MatchMath.leftoverOverlayUnsureFirst(
+        return MatchMath.leftoverOverlayGuestOf(
+            storeName: leftoverStoreName(for: id),
             voted: MatchMath.nameMajorityAgreeing(hist, window: max(need, hist.count), need: need),
             hist: hist,
             need: need,
             guest: guestName(for: id),
             streak: leftoverUnsureTicks[id] ?? 0
+        )
+    }
+
+    func leftoverStoreName(for id: UUID) -> String? {
+        MatchMath.leftoverFaceTrackStoreNameOf(
+            hold: MatchMath.leftoverHoldMaxOf(
+                frontal: leftoverHold[id],
+                bins: leftoverHoldBins,
+                id: id
+            ),
+            nameHeld: leftoverNameLockHeld[id] ?? "",
+            nameUntil: leftoverNameLockUntil[id] ?? 0,
+            now: liveLastStamp,
+            poseAt: livePoseAt[id] ?? 0
         )
     }
 
@@ -1694,6 +1709,8 @@ final class LibraryStore: ObservableObject {
             bits.append(chip)
         }
         if let chip = MatchMath.leftoverNameLockChip(until: leftoverNameLockUntil[faceId], now: liveLastStamp) {
+            bits.append(chip)
+        } else if let chip = MatchMath.leftoverStoreChip(name: leftoverStoreName(for: faceId)) {
             bits.append(chip)
         }
         if let chip = MatchMath.leftoverHoldFastChip(seenSlow: leftoverHoldSeenSlow, dt: liveDt) {
@@ -1848,7 +1865,14 @@ final class LibraryStore: ObservableObject {
     }
 
     func leftoverHasHold(faceId: UUID) -> Bool {
-        leftoverHold[faceId] != nil || MatchMath.leftoverHoldIds(leftoverHoldBins).contains(faceId)
+        MatchMath.leftoverHasHoldOf(
+            hold: leftoverHold[faceId],
+            bins: leftoverHoldBins,
+            id: faceId,
+            poseAt: livePoseAt[faceId] ?? 0,
+            now: liveLastStamp,
+            nameUntil: leftoverNameLockUntil[faceId] ?? 0
+        )
     }
 
     func leftoverHoldChip(faceId: UUID, sharpness: Double? = nil, yawAbs: Double? = nil) -> String? {
