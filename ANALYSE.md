@@ -1,3 +1,25 @@
+# Aegis + Helios — Analyse 2026-09-07 (2.1.175)
+
+Aegis **2.1.175 alpha** (Build 200). Helios **1.5.173** (Build 192). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.174: Print je Gesicht. skipPrintBoxes. ROI blieb Ada+Twin. Overlay ohne `still`. Helios S1-Hist auf S2.
+
+## Warum Overlay nach 2.1.174 weiter Ada druckte / Twin verpasste
+
+1. **liveRoiBox über alle Kalman.** Ada still 80 px im Crop. Twin-Print sitzt im gleichen Budget.
+2. **leftoverGateChip ohne Skip.** Ada druckt unsichtbar, Twin `?` — kein `still`.
+3. **Helios lastS1ScaleRing auf S2.** Hist-Veto Scale 1. Zweite Hand tot, Pinch tot.
+
+## Was 2.1.175 ändert
+
+1. **leftoverPrintSkipChip / SkipSummary.** Face `still`, Mix `Ada still · Twin print`.
+2. **liveRoiTracks.** Crop nur Print-Bedarf. Alle-skip = Kalman bleibt (Detect für Track).
+3. leftoverGateChip liest leftoverPrintSkipIds.
+4. Helios 1.5.173 S2 Hist+Coast, Keep-Gitarre tot, Approaching, Dense-Band, Pinch-Mute.
+5. Tests + VERSION = Models = MARKETING 2.1.175 (Build 200). Schema 15 bleibt.
+
+`bugfix` mergen: nein.
+
 # Aegis + Helios — Analyse 2026-09-07 (2.1.174)
 
 Aegis **2.1.174 alpha** (Build 199). Helios **1.5.172** (Build 191). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

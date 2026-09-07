@@ -3753,6 +3753,7 @@ enum MatchMath {
         let u = chip.uppercased()
         if u.hasPrefix("JUMP") || u.hasPrefix("LOCK") || u.hasPrefix("TWIN") || u.hasPrefix("NBR") || u.hasPrefix("HOLD") { return 0 }
         if u.hasPrefix("HASH") || u.hasPrefix("JPEG") { return 1 }
+        if u.hasPrefix("STILL") || u.hasPrefix("PRINT") { return 1 }
         return 2
     }
 
@@ -6366,6 +6367,31 @@ enum MatchMath {
         tracks.compactMap { t in
             skipIds.contains(t.id) ? FaceBox(x: t.x, y: t.y, width: t.w, height: t.h) : nil
         }
+    }
+
+    /// Ada still: Overlay `still`. Twin print bleibt stumm — Skip ist die Nachricht.
+    static func leftoverPrintSkipChip(skipped: Bool) -> String? {
+        skipped ? "still" : nil
+    }
+
+    /// Global: `Ada still · Twin print`.
+    static func leftoverPrintSkipSummary(still: [String], printing: [String]) -> String? {
+        var bits: [String] = []
+        let s = still.filter { !$0.isEmpty }
+        let p = printing.filter { !$0.isEmpty }
+        if !s.isEmpty { bits.append(s.joined(separator: "/") + " still") }
+        if !p.isEmpty { bits.append(p.joined(separator: "/") + " print") }
+        return bits.isEmpty ? nil : bits.joined(separator: " · ")
+    }
+
+    /// Crop nur um Gesichter die Print brauchen. Ada still im Crop fraß Twin-Budget.
+    static func liveRoiTracks(
+        tracks: [(id: UUID, x: Double, y: Double, w: Double, h: Double)],
+        skipIds: Set<UUID>
+    ) -> [(x: Double, y: Double, w: Double, h: Double)] {
+        let need = tracks.filter { !skipIds.contains($0.id) }
+        let use = need.isEmpty ? tracks : need
+        return use.map { (x: $0.x, y: $0.y, w: $0.w, h: $0.h) }
     }
 
     /// Name-Lock Overlay Countdown der letzten 4 s, sonst wirkt tot nach Verlassen.

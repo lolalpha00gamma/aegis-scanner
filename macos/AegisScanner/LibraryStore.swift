@@ -182,6 +182,7 @@ final class LibraryStore: ObservableObject {
     private var leftoverCoastPrintAt: [UUID: TimeInterval] = [:]
     private var leftoverUnsureTicks: [UUID: Int] = [:]
     private var leftoverPrintYaw: [UUID: Double] = [:]
+    private var leftoverPrintSkipIds: Set<UUID> = []
     private var leftoverSparkChipHeld: [UUID: (chip: String, hold: Int)] = [:]
     private var leftoverSparkChipByHash: [String: String] = [:]
     private var leftoverJpegDelta: [UUID: Double] = [:]
@@ -1717,6 +1718,9 @@ final class LibraryStore: ObservableObject {
         if let chip = MatchMath.leftoverHoldNeighborChip(facesInFrame: faces.count, dist: neighborDist) {
             bits.append(chip)
         }
+        if leftoverPrintSkipIds.contains(faceId), let chip = MatchMath.leftoverPrintSkipChip(skipped: true) {
+            bits.append(chip)
+        }
         let capped = MatchMath.overlayChipCap(bits)
         return capped.isEmpty ? nil : capped.joined(separator: " · ")
     }
@@ -2079,6 +2083,7 @@ final class LibraryStore: ObservableObject {
         leftoverSparkChipByHash = [:]
         leftoverJpegDelta = [:]
         leftoverLastIoU = [:]
+        leftoverPrintSkipIds = []
         leftoverJpegAt = [:]
         leftoverJpegHash = [:]
         leftoverJpegCos = [:]
@@ -2173,9 +2178,20 @@ final class LibraryStore: ObservableObject {
         let kalmanSnap: [(id: UUID, x: Double, y: Double, w: Double, h: Double)] = boxKalman.map { (id, v) in
             (id: id, x: v.x, y: v.y, w: v.w, h: v.h)
         }
-        let kalmanBoxes = kalmanSnap.map { (x: $0.x, y: $0.y, w: $0.w, h: $0.h) }
+        let liveIds = kalmanSnap.map(\.id)
+        let skipIds = MatchMath.printBudgetSkipIds(
+            ids: liveIds,
+            lastIoU: leftoverLastIoU,
+            yaw: liveYaw,
+            printedYaw: leftoverPrintYaw,
+            stillFor: liveStillFor,
+            visionMs: vis,
+            dt: dt,
+            continuity: cont
+        )
+        let roiKalman = MatchMath.liveRoiTracks(tracks: kalmanSnap, skipIds: skipIds)
         let roiTuple = MatchMath.liveRoiBox(
-            kalman: kalmanBoxes,
+            kalman: roiKalman,
             imageW: Double(image.width),
             imageH: Double(image.height)
         )
@@ -2193,17 +2209,6 @@ final class LibraryStore: ObservableObject {
         )
         liveRoiTick += 1
         liveRoiSkipOnce = false
-        let liveIds = kalmanSnap.map(\.id)
-        let skipIds = MatchMath.printBudgetSkipIds(
-            ids: liveIds,
-            lastIoU: leftoverLastIoU,
-            yaw: liveYaw,
-            printedYaw: leftoverPrintYaw,
-            stillFor: liveStillFor,
-            visionMs: vis,
-            dt: dt,
-            continuity: cont
-        )
         let skipPrints = skipDetect || MatchMath.printBudgetSkipAll(skipIds: skipIds, liveIds: liveIds)
         let skipPrintBoxes = skipPrints ? [] : MatchMath.leftoverPrintSkipBoxes(tracks: kalmanSnap, skipIds: skipIds)
         Task.detached(priority: .userInitiated) {
@@ -2244,6 +2249,7 @@ final class LibraryStore: ObservableObject {
                 self.lastLiveVisMs = visMs
                 self.liveFormatChip = self.liveCapture.formatChip
                 self.mutexChip = self.liveCapture.mutexChip
+                self.leftoverPrintSkipIds = skipIds
                 if !self.liveActive || self.liveMediaId != mediaId {
                     self.liveBusy = false
                     self.livePending = nil

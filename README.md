@@ -1,4 +1,4 @@
-# Aegis **2.1.174 alpha**
+# Aegis **2.1.175 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.175 alpha
+
+skipPrintBoxes saßen, ROI umfasste Ada trotzdem. Overlay ohne `still`. Helios S1-Hist veto'te S2.
+
+- **leftoverPrintSkipChip / SkipSummary.** Ada `still`, Mix `Ada still · Twin print`.
+- **liveRoiTracks.** Crop nur um Print-Bedarf. Ada still nicht im Detect-Budget.
+- Helios **1.5.173:** S2 Hist+Coast, Keep-Gitarre tot, Approaching, Dense-Band, Pinch-Mute.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.175 (Build 200). Schema 15 bleibt.
 
 ## Neu in 2.1.174 alpha
 

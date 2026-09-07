@@ -1,4 +1,18 @@
+# Aegis Nachtrag 2.1.175 — 2026-09-07
+
+Binary **2.1.175 alpha Build 200**. Print-Skip HUD. ROI ohne still. Helios S2 Hist+Coast.
+
+## In 2.1.175 gelandet
+
+1. leftoverPrintSkipChip / SkipSummary — Ada still, Twin print
+2. liveRoiTracks — Crop nur Print-Bedarf
+3. leftoverGateChip + leftoverPrintSkipIds
+4. Tests + VERSION = Models = MARKETING_VERSION 2.1.175 (Build 200)
+
+Rest: FaceTrack als Store, CameraBroker. Siehe VORSCHLAEGE-GROK.md.
+
 # Aegis Nachtrag 2.1.174 — 2026-09-07
+
 
 Binary **2.1.174 alpha Build 199**. Print je Gesicht. Yaw-Merge nur mit Print. Helios Live-Scale.
 

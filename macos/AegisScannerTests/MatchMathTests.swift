@@ -4390,6 +4390,28 @@ enum MatchMathTests {
             abs((MatchMath.leftoverPrintBudgetYawDeltaOf(printed: [ada: 0.05], live: 0.05, id: ada) ?? -1)) < 1e-9,
             "Yaw-Δ Ada 0"
         )
+        ok(MatchMath.leftoverPrintSkipChip(skipped: true) == "still", "Skip Chip still")
+        ok(MatchMath.leftoverPrintSkipChip(skipped: false) == nil, "Skip Chip tot")
+        ok(
+            MatchMath.leftoverPrintSkipSummary(still: ["Ada"], printing: ["Twin"]) == "Ada still · Twin print",
+            "Skip Summary Mix"
+        )
+        ok(
+            MatchMath.leftoverPrintSkipSummary(still: ["Ada"], printing: []) == "Ada still",
+            "Skip Summary nur still"
+        )
+        let roiNeed = MatchMath.liveRoiTracks(
+            tracks: [(id: ada, x: 0.10, y: 0.10, w: 0.20, h: 0.20), (id: twin, x: 0.60, y: 0.10, w: 0.20, h: 0.20)],
+            skipIds: [ada]
+        )
+        ok(roiNeed.count == 1 && abs(roiNeed[0].x - 0.60) < 1e-9, "ROI nur Twin — Ada still raus")
+        let roiAllSkip = MatchMath.liveRoiTracks(
+            tracks: [(id: ada, x: 0.10, y: 0.10, w: 0.20, h: 0.20)],
+            skipIds: [ada]
+        )
+        ok(roiAllSkip.count == 1 && abs(roiAllSkip[0].x - 0.10) < 1e-9, "ROI alle skip = Kalman bleibt")
+        let roiBox = MatchMath.liveRoiBox(kalman: roiNeed, imageW: 1280, imageH: 720)
+        ok(roiBox != nil, "ROI Twin Crop lebt")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)
