@@ -1,3 +1,19 @@
+# Aegis 2.1.192 — leftoverCoastAt, Blink-Coach
+
+Aegis **2.1.192 alpha** (Build 217). Helios **1.5.193** (Build 212). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.191: Enroll frontal, Coach ¾L/¾R, Gallery-Row. leftoverCoastPrintAt (Print-TTL 2 s, jeder Print frisch) als FaceTrack.coastAt — miss=8 blieb `.coast`. enrollCoachStep haveBlink Default true — Blink-Schritt tot. FaceEngine übergab kein haveBlink.
+
+## Was 2.1.192 ändert
+
+1. **leftoverCoastAtStamp.** Miss 1 = now, Hit = nil, Miss hält Start. TrackKind/MissClears lesen leftoverCoastAt.
+2. **Remint FaceTrack-Drop.** leftoverCoastAt = faceMaps.coastAt. isEmpty-Fallback würde Drop rückgängig machen.
+3. **enrollCoachStep haveBlink Default false.** leftoverBlinkSeen aus liveBlinkSeen. Strip + Preview verdrahtet.
+4. **Models.swift vollständig.** FaceObservation/Identity/StrategyHit wieder da — 2.1.192-Bump hatte die Datei auf 116 Zeilen gekürzt.
+5. Tests + VERSION = Models = MARKETING 2.1.192 (Build 217). Schema 15 bleibt.
+
+`bugfix` mergen: nein.
+
 # Aegis 2.1.191 — Enroll frontal, Coach ¾L/¾R, Gallery-Row
 
 Aegis **2.1.191 alpha** (Build 216). Helios **1.5.192** (Build 211). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

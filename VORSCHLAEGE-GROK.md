@@ -1,4 +1,11 @@
+# Nachtrag 2026-09-07 — 2.1.192 / 1.5.193 (kein Merge von `bugfix`)
+
+Aegis `lolalpha00gamma/aegis-scanner` **2.1.192 alpha** (Build 217).
+Helios `bpms9cmnxc-debug/Helios` **1.5.193** (Build 212).
+Nur `main`. leftoverCoastAt, Blink-Coach. Helios Fill Ghost tot + WarpWriter.
+
 # Nachtrag 2026-09-07 — 2.1.191 / 1.5.192 (kein Merge von `bugfix`)
+
 
 Aegis `lolalpha00gamma/aegis-scanner` **2.1.191 alpha** (Build 216).
 Helios `bpms9cmnxc-debug/Helios` **1.5.192** (Build 211).

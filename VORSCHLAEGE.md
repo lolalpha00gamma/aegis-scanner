@@ -1,3 +1,5 @@
+# 2.1.192 — siehe VORSCHLAEGE-NEU.md (leftoverCoastAt ≠ Print-TTL, Blink-Coach Default false).
+
 # 2.1.191 — siehe VORSCHLAEGE-NEU.md (Enroll frontal, Coach ¾L/¾R, Gallery-Row).
 
 # 2.1.190 — siehe VORSCHLAEGE-NEU.md (TrackKind hält, Tests kompilieren, Overlay-Chip).

@@ -4949,9 +4949,18 @@ enum MatchMathTests {
             "Coach Blink"
         )
         ok(
-            MatchMath.enrollCoachStep(haveFrontal: true, haveLeft: true, haveRight: true) == nil,
+            MatchMath.enrollCoachStep(haveFrontal: true, haveLeft: true, haveRight: true) == "einmal blinzeln",
+            "Coach Blink Default"
+        )
+        ok(
+            MatchMath.enrollCoachStep(haveFrontal: true, haveLeft: true, haveRight: true, haveBlink: true) == nil,
             "Coach fertig"
         )
+        ok(MatchMath.leftoverCoastAtStamp(prev: nil, miss: 0, now: 10) == nil, "CoastAt Hit tot")
+        ok(MatchMath.leftoverCoastAtStamp(prev: 10, miss: 0, now: 11) == nil, "CoastAt Hit wischt")
+        ok(MatchMath.leftoverCoastAtStamp(prev: nil, miss: 1, now: 10) == 10, "CoastAt Miss start")
+        ok(MatchMath.leftoverCoastAtStamp(prev: 10, miss: 8, now: 10.20) == 10, "CoastAt hält Start")
+        ok(MatchMath.leftoverMissClears(miss: 8, coastAt: 10, now: 10.50), "Coast 0,50 s tot trotz frischem Print")
         ok(!MatchMath.leftoverMissClears(miss: 2, need: 10), "Canonical Miss 2 hält trotz Need 10")
         ok(MatchMath.leftoverMissClears(miss: 5, need: 10), "Canonical Ghost löscht trotz Need 10")
 

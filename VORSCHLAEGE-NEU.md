@@ -1,3 +1,18 @@
+# Aegis Nachtrag 2.1.192 — 2026-09-07
+
+Binary **2.1.192 alpha Build 217**. leftoverCoastAt. Blink-Coach. Helios Fill Ghost tot.
+
+## In 2.1.192 gelandet
+
+1. leftoverCoastAtStamp — Print-TTL ≠ Coast-Start. miss=8 nach 0,50 s ist Ghost.
+2. leftoverHoldChip + leftoverMissClears lesen leftoverCoastAt.
+3. Remint leftoverCoastAt = faceMaps.coastAt (Drop kanonisch).
+4. enrollCoachStep haveBlink Default false. leftoverBlinkSeen verdrahtet.
+5. Models.swift vollständig (FaceObservation/Identity) — Bump hatte 116 Zeilen.
+6. Tests + VERSION = Models = MARKETING 2.1.192 (Build 217). Schema 15 bleibt.
+
+Rest: CameraBroker, FaceTrack einzige Map, Overlay-Metal, CVPixelBuffer, Session-Pause 2 s. Siehe VORSCHLAEGE-GROK.md.
+
 # Aegis Nachtrag 2.1.191 — 2026-09-07
 
 Binary **2.1.191 alpha Build 216**. Enroll frontal. Coach ¾L/¾R. Gallery-Row. Helios Fill-Warp.

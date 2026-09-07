@@ -114,3 +114,275 @@ enum StrategyID: String, CaseIterable, Identifiable, Codable {
         }
     }
 }
+
+struct FaceBox: Codable, Hashable {
+    var x: Double
+    var y: Double
+    var width: Double
+    var height: Double
+}
+
+struct Point2: Codable, Hashable {
+    var x: Double
+    var y: Double
+}
+
+struct FaceQuality: Codable, Hashable {
+    var sharpness: Double
+    var size: Double
+    var frontal: Double
+    var capture: Double
+    var yaw: Double = 0
+    var pitch: Double = 0
+    var roll: Double = 0
+
+    enum CodingKeys: String, CodingKey {
+        case sharpness, size, frontal, capture, yaw, pitch, roll
+    }
+
+    init(sharpness: Double, size: Double, frontal: Double, capture: Double, yaw: Double = 0, pitch: Double = 0, roll: Double = 0) {
+        self.sharpness = sharpness
+        self.size = size
+        self.frontal = frontal
+        self.capture = capture
+        self.yaw = yaw
+        self.pitch = pitch
+        self.roll = roll
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        sharpness = try c.decode(Double.self, forKey: .sharpness)
+        size = try c.decode(Double.self, forKey: .size)
+        frontal = try c.decode(Double.self, forKey: .frontal)
+        capture = try c.decode(Double.self, forKey: .capture)
+        yaw = try c.decodeIfPresent(Double.self, forKey: .yaw) ?? 0
+        pitch = try c.decodeIfPresent(Double.self, forKey: .pitch) ?? 0
+        roll = try c.decodeIfPresent(Double.self, forKey: .roll) ?? 0
+    }
+}
+
+struct MediaItem: Identifiable, Hashable {
+    let id: UUID
+    var url: URL
+    var name: String
+    var kind: Kind
+    var width: Int
+    var height: Int
+    var duration: Double?
+    var parentId: UUID?
+    var timeSec: Double?
+    var preview: CGImage?
+
+    enum Kind: String, Hashable {
+        case photo, video, frame, live, snapshot
+    }
+}
+
+struct LandmarkStroke: Hashable, Codable {
+    var label: String
+    var closed: Bool
+    var points: [Point2]
+}
+
+struct NamedRatio: Hashable, Codable {
+    var id: String
+    var label: String
+    var value: Double
+    var group: String
+    var identity: Bool
+}
+
+struct FaceObservation: Identifiable, Hashable, Codable {
+    var id: UUID
+    var mediaId: UUID
+    var box: FaceBox
+    var score: Double
+    var landmarks: [Point2]
+    var aligned: [Point2]
+    var featurePrint: Data
+    var appearance: [Double]
+    var graph: [Double]
+    var geom3d: [Double]
+    var quality: FaceQuality
+    var trackId: UUID?
+    var strokes: [LandmarkStroke] = []
+    var namedAligned: [Point2] = []
+    var ratioSheet: [NamedRatio] = []
+    /// Live-EMA des Print-Vektors. Nicht persistiert — der archivierte
+    /// `featurePrint` bleibt die Quelle auf Disk.
+    var printVec: [Double] = []
+    /// Stirn/Augen-Print bei okkludierter unterer Hälfte. Persistiert, Vec nicht.
+    var partialPrint: Data = Data()
+    var partialVec: [Double] = []
+    /// Taste „als Teil-Print speichern“ — Slot U auch ohne Auto-Maske.
+    var forcedPartial: Bool = false
+    /// Live-Ampel-History, RAM-only.
+    var qualitySpark: [FaceQuality] = []
+    /// Wann die Face-ID in die Galerie kam. Print-Alter, nicht Capture-Zeit.
+    var enrolledAt: Date? = nil
+
+    enum CodingKeys: String, CodingKey {
+        case id, mediaId, box, score, landmarks, aligned, featurePrint
+        case appearance, graph, geom3d, quality, trackId, strokes, namedAligned, ratioSheet
+        case partialPrint, forcedPartial, enrolledAt
+    }
+
+    init(
+        id: UUID,
+        mediaId: UUID,
+        box: FaceBox,
+        score: Double,
+        landmarks: [Point2],
+        aligned: [Point2],
+        featurePrint: Data,
+        appearance: [Double],
+        graph: [Double],
+        geom3d: [Double],
+        quality: FaceQuality,
+        trackId: UUID?,
+        strokes: [LandmarkStroke] = [],
+        namedAligned: [Point2] = [],
+        ratioSheet: [NamedRatio] = [],
+        printVec: [Double] = [],
+        partialPrint: Data = Data(),
+        partialVec: [Double] = [],
+        forcedPartial: Bool = false,
+        enrolledAt: Date? = nil
+    ) {
+        self.id = id
+        self.mediaId = mediaId
+        self.box = box
+        self.score = score
+        self.landmarks = landmarks
+        self.aligned = aligned
+        self.featurePrint = featurePrint
+        self.appearance = appearance
+        self.graph = graph
+        self.geom3d = geom3d
+        self.quality = quality
+        self.trackId = trackId
+        self.strokes = strokes
+        self.namedAligned = namedAligned
+        self.ratioSheet = ratioSheet
+        self.printVec = printVec
+        self.partialPrint = partialPrint
+        self.partialVec = partialVec
+        self.forcedPartial = forcedPartial
+        self.enrolledAt = enrolledAt
+    }
+
+    /// Kalman-Coast ohne VNDetect. Gleiche UUID, Box aus Kalman, kein Print.
+    static func coast(id: UUID, mediaId: UUID, box: FaceBox) -> FaceObservation {
+        FaceObservation(
+            id: id,
+            mediaId: mediaId,
+            box: box,
+            score: 1,
+            landmarks: [],
+            aligned: [],
+            featurePrint: Data(),
+            appearance: [],
+            graph: [],
+            geom3d: [],
+            quality: FaceQuality(sharpness: 1, size: min(box.width, box.height), frontal: 1, capture: 1),
+            trackId: id
+        )
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        mediaId = try c.decode(UUID.self, forKey: .mediaId)
+        box = try c.decode(FaceBox.self, forKey: .box)
+        score = try c.decode(Double.self, forKey: .score)
+        landmarks = try c.decode([Point2].self, forKey: .landmarks)
+        aligned = try c.decode([Point2].self, forKey: .aligned)
+        featurePrint = try c.decode(Data.self, forKey: .featurePrint)
+        appearance = try c.decode([Double].self, forKey: .appearance)
+        graph = try c.decode([Double].self, forKey: .graph)
+        geom3d = try c.decode([Double].self, forKey: .geom3d)
+        quality = try c.decode(FaceQuality.self, forKey: .quality)
+        trackId = try c.decodeIfPresent(UUID.self, forKey: .trackId)
+        strokes = try c.decodeIfPresent([LandmarkStroke].self, forKey: .strokes) ?? []
+        namedAligned = try c.decodeIfPresent([Point2].self, forKey: .namedAligned) ?? []
+        ratioSheet = try c.decodeIfPresent([NamedRatio].self, forKey: .ratioSheet) ?? []
+        partialPrint = try c.decodeIfPresent(Data.self, forKey: .partialPrint) ?? Data()
+        forcedPartial = try c.decodeIfPresent(Bool.self, forKey: .forcedPartial) ?? false
+        enrolledAt = try c.decodeIfPresent(Date.self, forKey: .enrolledAt)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(mediaId, forKey: .mediaId)
+        try c.encode(box, forKey: .box)
+        try c.encode(score, forKey: .score)
+        try c.encode(landmarks, forKey: .landmarks)
+        try c.encode(aligned, forKey: .aligned)
+        try c.encode(featurePrint, forKey: .featurePrint)
+        try c.encode(appearance, forKey: .appearance)
+        try c.encode(graph, forKey: .graph)
+        try c.encode(geom3d, forKey: .geom3d)
+        try c.encode(quality, forKey: .quality)
+        try c.encodeIfPresent(trackId, forKey: .trackId)
+        try c.encode(strokes, forKey: .strokes)
+        try c.encode(namedAligned, forKey: .namedAligned)
+        try c.encode(ratioSheet, forKey: .ratioSheet)
+        try c.encode(partialPrint, forKey: .partialPrint)
+        if forcedPartial { try c.encode(forcedPartial, forKey: .forcedPartial) }
+        try c.encodeIfPresent(enrolledAt, forKey: .enrolledAt)
+    }
+}
+
+struct Identity: Identifiable, Hashable, Codable {
+    let id: UUID
+    var name: String
+    var faceIds: [UUID]
+    /// Hard-Negatives: Prints, die ausdrücklich *nicht* diese Person sind.
+    var rejectedVecs: [[Double]] = []
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, faceIds, rejectedVecs
+    }
+
+    init(id: UUID, name: String, faceIds: [UUID], rejectedVecs: [[Double]] = []) {
+        self.id = id
+        self.name = name
+        self.faceIds = faceIds
+        self.rejectedVecs = rejectedVecs
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        name = try c.decode(String.self, forKey: .name)
+        faceIds = try c.decode([UUID].self, forKey: .faceIds)
+        rejectedVecs = try c.decodeIfPresent([[Double]].self, forKey: .rejectedVecs) ?? []
+    }
+}
+
+struct IdentityScore: Hashable {
+    var identityId: UUID
+    var percent: Double
+    var distance: Double? = nil
+}
+
+struct StrategyHit: Hashable {
+    var strategy: StrategyID
+    var identityId: UUID?
+    var percent: Double
+    var distance: Double? = nil
+    var margin: Double = 0
+    var versus: [IdentityScore] = []
+    var note: String = ""
+    var measured: Bool = true
+    var geoMix: Double? = nil
+    /// Centroid-Cosine Look-Sieger vs Zweiter. Close-Pair braucht echte Nähe, nicht nur Look-Delta 8.
+    var pairCosine: Double? = nil
+}
+
+struct MatchResult: Hashable {
+    var faceId: UUID
+    var hits: [StrategyHit]
+}

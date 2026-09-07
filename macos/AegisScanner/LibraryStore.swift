@@ -183,6 +183,7 @@ final class LibraryStore: ObservableObject {
     private var leftoverLastIoU: [UUID: Double] = [:]
     private var leftoverCoastPrint: [UUID: [Double]] = [:]
     private var leftoverCoastPrintAt: [UUID: TimeInterval] = [:]
+    private var leftoverCoastAt: [UUID: TimeInterval] = [:]
     private var leftoverUnsureTicks: [UUID: Int] = [:]
     private var leftoverPrintYaw: [UUID: Double] = [:]
     private var leftoverPrintSkipIds: Set<UUID> = []
@@ -709,7 +710,8 @@ final class LibraryStore: ObservableObject {
             face: face,
             identities: identities,
             faces: faces,
-            addingTo: dest
+            addingTo: dest,
+            haveBlink: leftoverBlinkSeen(faceId: face.id)
         )
     }
 
@@ -1369,7 +1371,12 @@ final class LibraryStore: ObservableObject {
             }
         }
         pendingDuplicateName = nil
-        let preview = FaceEngine.enrollmentPreview(face: face, identities: identities, faces: faces)
+        let preview = FaceEngine.enrollmentPreview(
+            face: face,
+            identities: identities,
+            faces: faces,
+            haveBlink: leftoverBlinkSeen(faceId: face.id)
+        )
         let note = preview.isEmpty ? "" : " · \(preview)"
         identities.append(Identity(id: UUID(), name: name, faceIds: [face.id]))
         stampEnrolled(face.id)
@@ -1473,7 +1480,8 @@ final class LibraryStore: ObservableObject {
             face: face,
             identities: identities,
             faces: faces,
-            addingTo: identities[idx]
+            addingTo: identities[idx],
+            haveBlink: leftoverBlinkSeen(faceId: face.id)
         )
         if !identities[idx].faceIds.contains(face.id) {
             identities[idx].faceIds.append(face.id)
@@ -1925,10 +1933,14 @@ final class LibraryStore: ObservableObject {
         )
         let kind = MatchMath.leftoverTrackKind(
             miss: leftoverMissFrames[faceId] ?? 0,
-            coastAt: leftoverCoastPrintAt[faceId],
+            coastAt: leftoverCoastAt[faceId],
             now: liveLastStamp
         )
         return MatchMath.leftoverHoldChipAppendKind(base, kind: kind)
+    }
+
+    func leftoverBlinkSeen(faceId: UUID) -> Bool {
+        liveBlinkSeen[faceId] == true
     }
 
     func leftoverAdoptProgress(faceId: UUID) -> String? {
@@ -2439,6 +2451,7 @@ final class LibraryStore: ObservableObject {
         leftoverWipeUntil.removeValue(forKey: id)
         leftoverCoastPrint.removeValue(forKey: id)
         leftoverCoastPrintAt.removeValue(forKey: id)
+        leftoverCoastAt.removeValue(forKey: id)
         leftoverPrintYaw.removeValue(forKey: id)
         if pair {
             leftoverPairLast.removeValue(forKey: id)
@@ -3180,7 +3193,7 @@ final class LibraryStore: ObservableObject {
             Set(livePosterStill.keys), Set(liveLandmarkPrev.keys), Set(liveLidClosed.keys),
             Set(liveBlinkSeen.keys), Set(liveOpenStreak.keys), Set(boxEuro.keys),
             Set(boxJumpPending.keys),
-            Set(leftoverCoastPrint.keys), Set(leftoverCoastPrintAt.keys),
+            Set(leftoverCoastPrint.keys), Set(leftoverCoastPrintAt.keys), Set(leftoverCoastAt.keys),
             Set(leftoverUnsureTicks.keys), Set(leftoverPrintYaw.keys),
             Set(leftoverOverlayPeakHeld.keys), Set(leftoverOverlayPeakRemain.keys)
         ])
@@ -3220,7 +3233,7 @@ final class LibraryStore: ObservableObject {
             voteAt: liveNameVoteAt,
             px: remintVel.px,
             py: remintVel.py,
-            coastAt: leftoverCoastPrintAt,
+            coastAt: leftoverCoastAt,
             unsureTicks: leftoverUnsureTicks,
             remap: remintPlan
         )
@@ -3246,9 +3259,8 @@ final class LibraryStore: ObservableObject {
         liveOpenStreak = faceMaps.openStreak
         liveNameVoteAt = faceMaps.voteAt
         leftoverCoastPrint = MatchMath.leftoverHoldRemintDrop(hold: leftoverCoastPrint, remap: remintPlan)
-        leftoverCoastPrintAt = faceMaps.coastAt.isEmpty
-            ? MatchMath.leftoverHoldRemintDrop(hold: leftoverCoastPrintAt, remap: remintPlan)
-            : faceMaps.coastAt
+        leftoverCoastPrintAt = MatchMath.leftoverHoldRemintDrop(hold: leftoverCoastPrintAt, remap: remintPlan)
+        leftoverCoastAt = faceMaps.coastAt
         leftoverUnsureTicks = faceMaps.unsureTicks.isEmpty
             ? MatchMath.leftoverHoldRemintDrop(hold: leftoverUnsureTicks, remap: remintPlan)
             : faceMaps.unsureTicks
@@ -3828,6 +3840,13 @@ final class LibraryStore: ObservableObject {
                     } else {
                         let miss = MatchMath.leftoverMissAdvance(prev: leftoverMissFrames[old.id] ?? 0, hit: false)
                         leftoverMissFrames[old.id] = miss
+                        leftoverCoastAt[old.id] = MatchMath.leftoverCoastAtStamp(
+                            prev: MatchMath.leftoverHoldRemintLookup(
+                                hold: leftoverCoastAt, id: old.id, remap: remintPlan
+                            ) ?? leftoverCoastAt[old.id],
+                            miss: miss,
+                            now: liveLastStamp
+                        )
                         if MatchMath.conflictTickAgrees(
                             boxId: nil,
                             printId: aegisHit?.identityId,
@@ -3844,7 +3863,7 @@ final class LibraryStore: ObservableObject {
                         }
                         if MatchMath.leftoverMissClears(
                             miss: miss,
-                            coastAt: leftoverCoastPrintAt[old.id],
+                            coastAt: leftoverCoastAt[old.id],
                             now: liveLastStamp
                         ) {
                             leftoverClearStreak(old.id)
@@ -3856,6 +3875,11 @@ final class LibraryStore: ObservableObject {
                 leftoverUnsureTicks[old.id] = 0
                 if let live = remintPlan[old.id] { leftoverUnsureTicks[live] = 0 }
                 leftoverMissFrames[old.id] = MatchMath.leftoverMissAdvance(prev: leftoverMissFrames[old.id] ?? 0, hit: true)
+                leftoverCoastAt[old.id] = MatchMath.leftoverCoastAtStamp(
+                    prev: leftoverCoastAt[old.id],
+                    miss: leftoverMissFrames[old.id] ?? 0,
+                    now: liveLastStamp
+                )
                 let boxHash = leftoverLiveHash(
                     kalmanX: boxKalman[adopted[bestJ].id]?.x,
                     kalmanY: boxKalman[adopted[bestJ].id]?.y,
@@ -4307,6 +4331,7 @@ final class LibraryStore: ObservableObject {
             )
             leftoverCoastPrint = leftoverCoastPrint.filter { liveIds.contains($0.key) || leftoverIds.contains($0.key) }
             leftoverCoastPrintAt = leftoverCoastPrintAt.filter { leftoverCoastPrint[$0.key] != nil }
+            leftoverCoastAt = leftoverCoastAt.filter { liveIds.contains($0.key) || leftoverIds.contains($0.key) }
             leftoverUnsureTicks = leftoverUnsureTicks.filter { liveIds.contains($0.key) || leftoverIds.contains($0.key) }
             leftoverPrintYaw = leftoverPrintYaw.filter { liveIds.contains($0.key) || leftoverIds.contains($0.key) }
             leftoverHold = leftoverHold.filter { liveIds.contains($0.key) || leftoverIds.contains($0.key) }

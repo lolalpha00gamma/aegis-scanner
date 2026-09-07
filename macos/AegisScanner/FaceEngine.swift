@@ -955,7 +955,8 @@ enum FaceEngine {
     static func enrollmentCoach(
         face: FaceObservation,
         identity: Identity?,
-        faces: [FaceObservation]
+        faces: [FaceObservation],
+        haveBlink: Bool = false
     ) -> String? {
         var haveF = false
         var haveQ = false
@@ -976,7 +977,7 @@ enum FaceEngine {
         }
         let coach = MatchMath.enrollmentCoach(haveFrontal: haveF, haveThreeQuarter: haveQ, yaw: face.quality.yaw)
         if let coach { return coach }
-        if let step = MatchMath.enrollCoachStep(haveFrontal: haveF, haveLeft: haveL, haveRight: haveR) {
+        if let step = MatchMath.enrollCoachStep(haveFrontal: haveF, haveLeft: haveL, haveRight: haveR, haveBlink: haveBlink) {
             return step
         }
         if let chip = MatchMath.leftoverEnrollSlotChip(haveFrontal: haveF, haveLeft: haveL, haveRight: haveR) {
@@ -1036,7 +1037,8 @@ enum FaceEngine {
         face: FaceObservation,
         identities: [Identity],
         faces: [FaceObservation],
-        addingTo: Identity? = nil
+        addingTo: Identity? = nil,
+        haveBlink: Bool = false
     ) -> String {
         var parts: [String] = []
         if let dest = addingTo {
@@ -1053,7 +1055,7 @@ enum FaceEngine {
             let c = poseCoverage(identity: dest, faces: faces)
             parts.append(MatchMath.poseMeterLabel(frontal: c.frontal, threeQuarter: c.threeQuarter, profile: c.profile, upper: c.upper))
         }
-        if let coach = enrollmentCoach(face: face, identity: addingTo, faces: faces) {
+        if let coach = enrollmentCoach(face: face, identity: addingTo, faces: faces, haveBlink: haveBlink) {
             parts.insert(coach, at: 0)
         }
         if let dup = duplicateOf(face: face, identities: identities, faces: faces),

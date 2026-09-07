@@ -5010,6 +5010,17 @@ enum MatchMath {
         kind != .ghost
     }
 
+    /// Print-TTL ≠ Coast-Start. Miss 1 stempelt now, Hit wischt, Miss hält den Start.
+    static func leftoverCoastAtStamp(
+        prev: TimeInterval?,
+        miss: Int,
+        now: TimeInterval
+    ) -> TimeInterval? {
+        if miss <= 0 { return nil }
+        if let prev, prev > 0 { return prev }
+        return now > 0 ? now : nil
+    }
+
     static func leftoverTrackKindChip(_ kind: TrackKind) -> String? {
         switch kind {
         case .live: return nil
@@ -7960,12 +7971,12 @@ enum MatchMath {
         return (f, l, r)
     }
 
-    /// Front → ¾L → ¾R → Blink. enrollmentCoach kennt nur F+¾.
+    /// Front → ¾L → ¾R → Blink. Default haveBlink false — sonst Coach tot am Call-Site.
     static func enrollCoachStep(
         haveFrontal: Bool,
         haveLeft: Bool,
         haveRight: Bool,
-        haveBlink: Bool = true
+        haveBlink: Bool = false
     ) -> String? {
         if !haveFrontal { return "Blick zur Kamera" }
         if !haveLeft { return "Kopf nach links drehen (¾)" }

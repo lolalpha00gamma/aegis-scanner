@@ -843,7 +843,12 @@ struct FaceOverlay: View {
                     let ghost = store.ghostFaceIds().contains(face.id)
                     let kind = MatchMath.overlayBoxKind(selected: selected, pinned: pinned, leftover: leftover, ghost: ghost)
                     let coachDest = owner ?? (store.identities.count == 1 ? store.identities.first : ident)
-                    let coach = selected ? FaceEngine.enrollmentCoach(face: face, identity: coachDest, faces: store.faces) : nil
+                    let coach = selected ? FaceEngine.enrollmentCoach(
+                        face: face,
+                        identity: coachDest,
+                        faces: store.faces,
+                        haveBlink: store.leftoverBlinkSeen(faceId: face.id)
+                    ) : nil
                     let boxColor: Color = {
                         if store.swapFlashing() { return Color.yellow.opacity(0.95) }
                         if store.headCountFlashing() { return Color.cyan.opacity(0.95) }

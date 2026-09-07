@@ -1,4 +1,4 @@
-# Aegis **2.1.191 alpha**
+# Aegis **2.1.192 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,17 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.192 alpha
+
+2.1.191: Enroll frontal, Coach ¾L/¾R, Gallery-Row. leftoverCoastPrintAt war FaceTrack.coastAt — Ada hielt 0,40 s nach jedem Print. Coach haveBlink Default true, Blink-Schritt tot.
+
+- **leftoverCoastAtStamp** — Miss 1 stempelt now, Hit wischt, Miss hält den Start. FaceTrack.coastAt ≠ Print-TTL.
+- **leftoverHoldChip / leftoverMissClears** lesen leftoverCoastAt. Remint nimmt FaceTrack-Drop, kein leftoverHoldRemintDrop-Fallback.
+- **enrollCoachStep haveBlink Default false.** FaceEngine + Strip leftoverBlinkSeen. Foto vor der Cam schließt Coach nicht.
+- Helios **1.5.193:** Fill Ghost tot, WarpWriter, FILL ms · Vel, PINCH-Chip.
+- **Models.swift vollständig** — FaceObservation/Identity/StrategyHit. Der 2.1.192-Bump hatte die Datei auf 116 Zeilen gekürzt.
+- Tests + VERSION = Models = MARKETING 2.1.192 (Build 217). Schema 15 bleibt.
 
 ## Neu in 2.1.191 alpha
 

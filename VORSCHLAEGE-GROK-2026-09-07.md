@@ -1,4 +1,66 @@
+# Nachtrag Grok 2026-09-07 — 2.1.192 gelandet, Rest offen
+
+Quelle: Review + Fix Aegis 2.1.192 (Build 217) auf 2.1.191 (Print-TTL als coastAt, Blink-Default true). Helios 1.5.193.
+Kein Binary-Lauf (Linux-Sandbox). Tests in CI. `bugfix` nicht gemergt. Nur `main`.
+
+## Warum es nach 2.1.191 weiter riss
+
+1. leftoverCoastPrintAt (Print-TTL 2 s, jeder Print frisch) als FaceTrack.coastAt — miss=8 bleibt `.coast` wenn Print < 0,40 s.
+2. enrollCoachStep haveBlink Default true. FaceEngine rief ohne haveBlink — Blink-Schritt tot.
+3. Strip-Coach ohne leftoverBlinkSeen. Foto vor der Cam = Coach fertig.
+4. leftoverCoastAt isEmpty-Fallback über leftoverHoldRemintDrop — FaceTrack-Drop rückgängig.
+5. Models.swift auf 116 Zeilen gekürzt — FaceObservation/Identity tot, App kompiliert nicht.
+
+## In 2.1.192 / 1.5.193 gelandet
+
+- leftoverCoastAtStamp. FaceTrack.coastAt ≠ leftoverCoastPrintAt.
+- leftoverHoldChip / leftoverMissClears / leftoverClearStreak / Remint-Union.
+- leftoverCoastAt = faceMaps.coastAt (kein Drop-Undo).
+- haveBlink Default false. leftoverBlinkSeen. Strip + Preview.
+- Models.swift vollständig (388 Zeilen).
+- Helios obsFillSeesHand !ghost, WarpWriter, FILL ms · Vel, PINCH-Chip.
+
+## Offen (nicht noch ein Slider)
+
+P0 CameraBroker IOSurface.
+P0 FaceTrack einzige Store-Map (20 Dictionaries bleiben).
+P1 Overlay-Metal. LiveCapture nicht @MainActor.
+P1 CameraSession Session-Pause 2 s verdrahten.
+P2 VNTrackObjectRequest. Replay 20 s. HeliosAegisKit.
+
+## Erweiterung (neu)
+
+1. Overlay-Box bleibt Detect-ID, Strip identityId — zwei Identities.
+2. Pose-Meter ¾L/¾R getrennt, nicht ein ¾.
+3. createIdentity verlangt leftoverBlinkSeen — Foto vor der Cam enrollt nicht.
+4. CameraBroker statt flock.
+5. Overlay `HOLD · coast 0,3s` — Alter aus leftoverCoastAt.
+6. FaceTrack Debug-Dump eine Map JSON — 20 Dictionaries unsichtbar.
+7. livePending drop-oldest 1-slot statt emitBusy Drop-new.
+8. Print-Diversity: gleicher Pose-Bin Cosine > 0,98 → Skip (kein Burst).
+9. Name-Lock nur nach Blink + 3 Frames gleicher ID.
+10. Twin-Veto: |Δyaw| < 8° und x-Overlap > 0,45 → ein Exact.
+11. Temperature-skalierte Cosine statt hart 0,80.
+12. Licht-Eimer (frontal / ¾ / Profil) statt einem Cosine.
+13. Match-Log JSONL für Replay.
+14. Drop-in `.mlmodel` FaceEmbedder-Protokoll.
+15. P-Slot Maske/Schal, Brille-Slot als Twin-Veto.
+16. VNTrackObjectRequest neben Rectangles.
+17. RTSP 420f, Reconnect Exponential-Backoff.
+18. Watch-Folder PhotoKit, Export `.aegis` verschlüsselt.
+19. Overlay 60 Hz CAMetalLayer, Detect 8–24 fps.
+20. gallery.json.bak Rotate 3, printRevision je Identity.
+21. Temporal ReID-Graph über Hold-Trail.
+22. Schema 15 bleibt — leftoverCoastAt ist Runtime.
+
+## Bugfix-Skill
+
+Pass 1: Diagnose — Print-TTL als coastAt, Blink-Default, Remint-Fallback.
+Pass 2: 2.1.192 / 1.5.193 auf main, Call-Sites verdrahtet.
+Pass 3: CI muss failen dürfen. Coach-fertig braucht haveBlink:true.
+
 # Nachtrag Grok 2026-09-07 — 2.1.191 gelandet, Rest offen
+
 
 Quelle: Review + Fix Aegis 2.1.191 (Build 216) auf 2.1.190 (Frontal-Enroll tot, Coach ohne ¾R). Helios 1.5.192.
 Kein Binary-Lauf (Linux-Sandbox). Tests in CI. `bugfix` nicht gemergt.
