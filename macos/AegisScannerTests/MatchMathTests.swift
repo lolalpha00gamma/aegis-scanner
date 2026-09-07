@@ -4466,6 +4466,67 @@ enum MatchMathTests {
             ),
             "Twin Yaw-Tie Key Occupied"
         )
+        let twinTieKeyL = MatchMath.leftoverHashTwinOccupied(
+            occupied: ["5.5.4.6"],
+            hash: "5.5.4.6",
+            x: 0.50,
+            others: [(hash: "5.5.4.6", x: 0.50)],
+            yawAbs: 0.20,
+            otherYaws: [0.20],
+            tieKey: "aaa",
+            otherTieKeys: ["bbb"]
+        )
+        ok(twinTieKeyL.isEmpty, "Occupied tieKey Exact frei")
+        let twinTieKeyR = MatchMath.leftoverHashTwinOccupied(
+            occupied: ["5.5.4.6"],
+            hash: "5.5.4.6",
+            x: 0.50,
+            others: [(hash: "5.5.4.6", x: 0.50)],
+            yawAbs: 0.20,
+            otherYaws: [0.20],
+            tieKey: "bbb",
+            otherTieKeys: ["aaa"]
+        )
+        ok(twinTieKeyR == ["5.5.4.6"], "Occupied tieKey Occupied")
+        let aId = UUID(uuidString: "00000000-0000-0000-0000-00000000000a")!
+        let bId = UUID(uuidString: "00000000-0000-0000-0000-00000000000b")!
+        let occRows = MatchMath.leftoverOccupiedOtherRows(
+            live: [(id: aId, hash: "5.5.4.6", x: 0.20)],
+            stored: [(id: bId, hash: "5.5.4.6", x: 0.70)],
+            except: aId
+        )
+        ok(occRows.count == 1 && occRows[0].key == bId.uuidString, "OtherRows UUID")
+        let ones = Array(repeating: 1.0, count: 32)
+        var near = ones
+        near[0] = 0.999
+        let pruned = MatchMath.leftoverPrintBankPrune([
+            (vec: ones, w: 1),
+            (vec: near, w: 1)
+        ])
+        ok(pruned.count == 1, "Print-Bank Prune Burst")
+        let wal = MatchMath.leftoverPairCommitWALBytes(pairs: ["a": "b"])
+        ok(wal != nil, "WAL Bytes")
+        ok(MatchMath.leftoverPairCommitWALName() == "gallery.pair.wal", "WAL Name")
+        ok(
+            MatchMath.leftoverPairCommitWALRestore(
+                data: wal, stamped: 1_000, now: 1_001
+            )?["a"] == "b",
+            "WAL Restore frisch"
+        )
+        ok(
+            MatchMath.leftoverPairCommitWALRestore(
+                data: wal, stamped: 1_000, now: 1_003
+            ) == nil,
+            "WAL Restore tot"
+        )
+        ok(MatchMath.cameraMutexHeartbeatKillSignal(termSentAt: nil, now: 10) == 15, "Kill SIGTERM zuerst")
+        ok(MatchMath.cameraMutexHeartbeatKillSignal(termSentAt: 10, now: 12.1) == 9, "Kill SIGKILL nach 2 s")
+        ok(MatchMath.cameraMutexHeartbeatKillChip(signal: 15) == "SIGTERM", "Chip TERM")
+        let trackHold = MatchMath.leftoverFaceTrackStoreGet(
+            tracks: packed, id: trackId, now: 1_005
+        )
+        ok(trackHold?.nameHeld == "Ada", "FaceTrack Store Get")
+        ok(MatchMath.leftoverFaceTrackStoreGet(tracks: packed, id: trackId, now: 1_011) == nil, "FaceTrack Store TTL")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

@@ -38,6 +38,8 @@ final class LiveCapture: NSObject {
     private var timer: Timer?
     private var snapshotURL: URL?
     private var failObserver: NSObjectProtocol?
+    /// Hung-live: SIGTERM-Zeit je PID. Nächster Claim → SIGKILL nach 2 s.
+    private static var mutexTermSentAt: [Int32: TimeInterval] = [:]
     private var snapshotInFlight = false
     var onFrame: ((CGImage, TimeInterval) -> Void)?
     var onError: ((String) -> Void)?
@@ -333,7 +335,14 @@ final class LiveCapture: NSObject {
                 now: now,
                 stamped: existing.flatMap { MatchMath.cameraMutexStamp($0) }
             ), let killPid = MatchMath.cameraMutexHeartbeatKillAllowed(target: victim, selfPid: pid) {
-                _ = kill(killPid, SIGKILL)
+                let sig = MatchMath.cameraMutexHeartbeatKillSignal(
+                    termSentAt: Self.mutexTermSentAt[killPid],
+                    now: now
+                )
+                _ = kill(killPid, sig)
+                Self.mutexTermSentAt = MatchMath.cameraMutexHeartbeatTermStamp(
+                    prev: Self.mutexTermSentAt, pid: killPid, signal: sig, now: now
+                )
             }
             guard let line = MatchMath.cameraMutexLockedLine(
                 existing: existing, owner: owner, pid: pid, now: now, expectedGen: expectedGen, pidLive: pidLive

@@ -1,4 +1,4 @@
-# Aegis **2.1.176 alpha**
+# Aegis **2.1.177 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,19 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.177 alpha
+
+Twin x+yaw gleich: leftoverHashTwinLeft hatte tieKey, Occupied rief ohne UUID. Print-Bank mischte Burst 0,98. Pair-Commit starb im Crash vor gallery.json. Hung-live SIGKILL ohne TERM. Helios Freeze 800 ms bei 60 fps 48 Frames.
+
+- **leftoverHashTwinOccupied(tieKey:).** LibraryStore reicht UUID. Yaw-Gleichstand lexikographisch Exact.
+- **leftoverOccupiedOtherRows.** Twin-Rows mit UUID, nicht nur Hash.
+- **leftoverPrintBankPrune** in printBankBlend. Burst 0,98 raus.
+- **leftoverPairCommitWAL** vor gallery.json, 3-Rotate `.wal` / `.wal.1` / `.wal.2`. Restore < 2 s.
+- **cameraMutexHeartbeatKillSignal.** SIGTERM, dann SIGKILL nach 2 s.
+- **leftoverFaceTrackStoreGet.** Lookup + Hold in einem Call.
+- Helios **1.5.175:** Freeze-Need aus fps, Curl Pre-Arm, S2 Pinch-Floor.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.177 (Build 202). Schema 15 bleibt.
 
 ## Neu in 2.1.176 alpha
 

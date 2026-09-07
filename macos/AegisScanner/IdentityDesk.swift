@@ -67,6 +67,18 @@ enum GalleryFile {
         directory.appendingPathComponent(MatchMath.galleryBakName(2))
     }
 
+    static var pairWALURL: URL {
+        directory.appendingPathComponent(MatchMath.leftoverPairCommitWALName())
+    }
+
+    static var pairWAL1URL: URL {
+        directory.appendingPathComponent(MatchMath.leftoverPairCommitWALBak(1))
+    }
+
+    static var pairWAL2URL: URL {
+        directory.appendingPathComponent(MatchMath.leftoverPairCommitWALBak(2))
+    }
+
     static func loadPayload() -> GalleryPayload? { decodePayload(url) }
 
     static func loadBackupPayload() -> GalleryPayload? { decodePayload(backupURL) }
@@ -175,6 +187,20 @@ enum GalleryFile {
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         guard let data = try? encoder.encode(payload) else { return }
         let fm = FileManager.default
+        if let wal = MatchMath.leftoverPairCommitWALBytes(pairs: leftoverPairCommit) {
+            if fm.fileExists(atPath: pairWALURL.path) {
+                try? fm.removeItem(at: pairWAL2URL)
+                if fm.fileExists(atPath: pairWAL1URL.path) {
+                    try? fm.moveItem(at: pairWAL1URL, to: pairWAL2URL)
+                }
+                try? fm.moveItem(at: pairWALURL, to: pairWAL1URL)
+            }
+            try? wal.write(to: pairWALURL, options: .atomic)
+            if let fh = FileHandle(forUpdatingAtPath: pairWALURL.path) {
+                try? fh.synchronize()
+                try? fh.close()
+            }
+        }
         if fm.fileExists(atPath: url.path) {
             if MatchMath.galleryBakRotate() >= 3 {
                 try? fm.removeItem(at: backup2URL)

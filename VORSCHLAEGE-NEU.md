@@ -1,3 +1,19 @@
+# Aegis Nachtrag 2.1.177 — 2026-09-07
+
+Binary **2.1.177 alpha Build 202**. Twin-tieKey. Print-Prune Bank. Pair-WAL. SIGTERM. Helios Freeze-fps.
+
+## In 2.1.177 gelandet
+
+1. leftoverHashTwinOccupied(tieKey:) — LibraryStore UUID, Occupied Exact bei Yaw-Tie
+2. leftoverOccupiedOtherRows — Twin-Rows mit UUID
+3. leftoverPrintBankPrune in printBankBlend — Burst 0,98 raus
+4. leftoverPairCommitWAL vor gallery.json, 3-Rotate, Restore < 2 s
+5. cameraMutexHeartbeatKillSignal SIGTERM → SIGKILL 2 s
+6. leftoverFaceTrackStoreGet
+7. Tests + MARKETING_VERSION 2.1.177 (Build 202)
+
+Rest: CameraBroker, Overlay-Metal, IOHID, FaceTrack-Store. Siehe VORSCHLAEGE-GROK.md.
+
 # Aegis Nachtrag 2.1.176 — 2026-09-07
 
 Binary **2.1.176 alpha Build 201**. Hung-live. Enroll ¾L/¾R. Twin-Tie. FaceTrack-Lookup. Helios S2 Ghost.

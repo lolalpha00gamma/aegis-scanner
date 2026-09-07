@@ -1,6 +1,34 @@
-# Nachtrag 2026-09-07 — Vorschläge (Diagnose, kein Merge)
+# Nachtrag 2026-09-07 — 1.5.175 / 2.1.177 (kein Merge von `bugfix`)
 
-Neu, oben. Helios 1.5.174 / Aegis 2.1.176. Nur `main`.
+Helios `bpms9cmnxc-debug/Helios` **1.5.175** (Build 194).
+Aegis `lolalpha00gamma/aegis-scanner` **2.1.177 alpha** (Build 202).
+Nur `main`. Agent-Regel: keine Nebenbranches. `bugfix` gelesen, nicht gemergt.
+
+2.1.176 Occupied ohne tieKey. Print-Bank Burst. Pair-Commit ohne WAL. Hung-live SIGKILL. Helios Freeze 800 ms.
+
+## Warum es schlecht wirkte (dieser Pass)
+
+1. **leftoverHashTwinOccupied ohne tieKey.** leftoverHashTwinLeft sitzt. Occupied rief ohne UUID. Twin x+yaw beide Occupied → Majority tauft falsch.
+2. **Print-Bank Burst.** leftoverPrintPruneDup tot. gallery.json identische Prints, Cosine 0,99 lügt Identität.
+3. **Pair-Commit RAM-only.** Crash während Save = Taufe tot. .bak rotiert gallery, nicht leftoverPairCommit.
+4. **SIGKILL sofort.** Holder nach Sleep tot ohne Unlock. Continuity mutex 12 s.
+5. **FaceTrack Lookup tot als Store.** Maps bleiben Schatten. StoreGet fehlte.
+6. Helios Freeze/Curl/S2-Pinch — siehe Helios VORSCHLAEGE-GROK.md.
+7. Von `bugfix` bewusst nicht gemergt: IOHID, AX SetPosition, Per-App-Gain, JSONL.
+
+## In 1.5.175 / 2.1.177 gelandet
+
+- **leftoverHashTwinOccupied(tieKey:).** LibraryStore UUID. leftoverOccupiedOtherRows.
+- **leftoverPrintBankPrune** in printBankBlend.
+- **leftoverPairCommitWAL** vor gallery.json, 3-Rotate, Restore < 2 s.
+- **cameraMutexHeartbeatKillSignal.** SIGTERM, dann SIGKILL nach 2 s.
+- **leftoverFaceTrackStoreGet.** Lookup+Hold.
+- Helios Freeze-Need, Curl Pre-Arm, S2 Pinch-Floor.
+- Tests + VERSION = Models = MARKETING 2.1.177 (Build 202). Schema 15 bleibt.
+
+Pass 17: Twin-tieKey, Print-Prune, Pair-WAL, SIGTERM — 1.5.175 / 2.1.177.
+
+## Erweiterungen (neu, oben)
 
 1. **Eine Frame-Uhr.** Observation-Timestamp ist die einzige Uhr. Fill nur intra-frame. Coast = Kalman.
 2. **Palm-Print Sticky-ID.** Wrist→Thumb statt Vision L/R.
@@ -10,6 +38,60 @@ Neu, oben. Helios 1.5.174 / Aegis 2.1.176. Nur `main`.
 6. **Negativ-Galerie Props.** Cosine gegen Gitarre/Kabel vor isHand / vor leftoverHold.
 7. **Latency-HUD Tick→AX.** End-to-end ms, Telemetry-Ring 30 s.
 
+8. **CameraBroker-XPC** — eine TCC, IOSurface an beide. Größter einzelner Effizienzgewinn.
+9. **App-Group `group.helios.aegis`.**
+10. **Overlay Metal 90 Hz.**
+11. **IOHID Event-Tap** (`bugfix` 1.5.8).
+12. **AX SetPosition ein Call/Frame** (`bugfix`).
+13. **Per-App Gain** (`bugfix`).
+14. **Gesture-Log JSONL** (`bugfix`).
+15. **FaceTrack `[UUID: FaceTrack]` als einziges leftover-Dict.**
+16. **Enrollment-HUD 3-Slot im Overlay.**
+17. **WAL Restore beim Load** wenn gallery.json fehlt.
+18. **SIGTERM-Chip im Mutex-HUD.**
+19. **Helios liest leftover-Boxen** als Palm-Occlusion.
+20. **Watch-IMU Pinch-Confirm.**
+21. **Vision Hand-Mesh** (macOS 26).
+22. **Frame-ID auf IOSurface.**
+23. **Aegis-Yaw als Helios Click-Lock.**
+24. **VNDetectHumanBodyPose** als Prop-Veto.
+25. **Gemeinsames CameraMath-Package.**
+26. **Telemetry-Ring 30 s + OSLog.**
+27. **Center Stage force-off nach Sleep.**
+28. **Continuity USB-Hub Watchdog.**
+29. **SpaceMap Auto-Recalib.**
+30. **Two-mode Pointer.**
+31. **Tests splitten.**
+32. **VNTrackObjectRequest** statt Remint.
+33. **Aegis live outputQueue ≠ MainActor.**
+34. **Kalman-Zeiger 2D.**
+35. **Latency-HUD.**
+36. **Guitar-Schwelle aus Sitzabstand.**
+37. **Negativ-Galerie.**
+38. **Print-Bank PCA-Whitening.**
+39. **Cursor-Magnetismus.**
+40. **Dwell-Klick.**
+41. **Doorbell-Cue.**
+42. **Clamshell: Vision pausieren.**
+43. **Jerk Dead-Man.**
+44. **Lock Schema v2.**
+45. **Vision Pro Sidecar.**
+46. **CI `swiftc` Tests vor DMG.**
+47. **Zwei-Phasen Mutex INTENT → Yield → CONFIRM.**
+48. **Helios Kill-Switch Datei.**
+49. **Speaker-Diarization.**
+50. **Face-Print ONNX sidecar.**
+51. **Gallery-on-disk mmap.**
+52. **Hover-Preview ohne Click.**
+53. **Curl-Rate Pref.**
+54. **S2 Close-Ratio Pref.**
+55. **Freeze-Ticks Pref.**
+56. **Per-Slot PinchGate continuity flag.**
+57. **Shared integration test** Helios+Aegis gegen Fake-Lock.
+
+Bewusst nicht: Merge `bugfix`, Blind-Patch Schwellen, CameraBroker in diesem Pass, FaceTrack-Store-Rewrite, Overlay-Metal.
+
+Nächster Code-Schritt: CameraBroker-XPC oder Overlay-Metal oder FaceTrack-Store. WAL Restore beim Load.
 # Nachtrag 2026-09-07 — 1.5.174 / 2.1.176 (kein Merge von `bugfix`)
 
 Helios `bpms9cmnxc-debug/Helios` **1.5.174** (Build 193).

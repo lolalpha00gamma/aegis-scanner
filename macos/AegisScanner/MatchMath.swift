@@ -1168,6 +1168,29 @@ enum MatchMath {
         return target
     }
 
+    static func cameraMutexSigTerm() -> Int32 { 15 }
+    static func cameraMutexSigKill() -> Int32 { 9 }
+    static func cameraMutexTermWait() -> TimeInterval { 2 }
+
+    static func cameraMutexHeartbeatKillSignal(termSentAt: TimeInterval?, now: TimeInterval, wait: TimeInterval = 2) -> Int32 {
+        guard let t = termSentAt, now - t >= wait else { return cameraMutexSigTerm() }
+        return cameraMutexSigKill()
+    }
+
+    static func cameraMutexHeartbeatKillChip(signal: Int32) -> String {
+        signal == cameraMutexSigKill() ? "SIGKILL" : "SIGTERM"
+    }
+
+    static func cameraMutexHeartbeatTermStamp(prev: [Int32: TimeInterval], pid: Int32, signal: Int32, now: TimeInterval) -> [Int32: TimeInterval] {
+        var next = prev
+        if signal == cameraMutexSigTerm() {
+            next[pid] = prev[pid] ?? now
+        } else {
+            next.removeValue(forKey: pid)
+        }
+        return next
+    }
+
     /// Overlay: 3-Tick-Mittel wenn voll, sonst EMA.
     static func leftoverScoreTickOverlay(ema: Double, ticks: [Double]) -> Double {
         guard ticks.count >= 3, let mean = leftoverScoreTickMean(ticks) else { return ema }
@@ -1833,7 +1856,9 @@ enum MatchMath {
         x: Double,
         others: [(hash: String, x: Double)],
         yawAbs: Double = 0,
-        otherYaws: [Double] = []
+        otherYaws: [Double] = [],
+        tieKey: String = "",
+        otherTieKeys: [String] = []
     ) -> [String] {
         let bare = leftoverHoldHashBare(hash)
         guard !bare.isEmpty else { return occupied }
@@ -1847,7 +1872,22 @@ enum MatchMath {
         } else {
             twinYaws = []
         }
-        if leftoverHashTwinLeft(x: x, others: twins.map(\.x), yawAbs: yawAbs, otherYaws: twinYaws) {
+        let twinKeys: [String]
+        if otherTieKeys.count == others.count {
+            twinKeys = zip(others, otherTieKeys).compactMap { row, key in
+                leftoverHoldHashBare(row.hash) == bare ? key : nil
+            }
+        } else {
+            twinKeys = []
+        }
+        if leftoverHashTwinLeft(
+            x: x,
+            others: twins.map(\.x),
+            yawAbs: yawAbs,
+            otherYaws: twinYaws,
+            tieKey: tieKey,
+            otherTieKeys: twinKeys
+        ) {
             return occupied.filter { leftoverHoldHashBare($0) != bare }
         }
         return occupied
@@ -1908,14 +1948,23 @@ enum MatchMath {
         stored: [(id: UUID, hash: String, x: Double)],
         except: UUID?
     ) -> [(hash: String, x: Double)] {
+        leftoverOccupiedOtherRows(live: live, stored: stored, except: except).map { (hash: $0.hash, x: $0.x) }
+    }
+
+    /// Twin-Tie braucht UUID, nicht nur Hash. Occupied rief leftoverHashTwinLeft ohne Key.
+    static func leftoverOccupiedOtherRows(
+        live: [(id: UUID, hash: String, x: Double)],
+        stored: [(id: UUID, hash: String, x: Double)],
+        except: UUID?
+    ) -> [(hash: String, x: Double, key: String)] {
         var seen = Set<UUID>()
-        var out: [(hash: String, x: Double)] = []
+        var out: [(hash: String, x: Double, key: String)] = []
         for row in live + stored {
             if row.id == except { continue }
             if seen.contains(row.id) { continue }
             seen.insert(row.id)
             if row.hash.isEmpty { continue }
-            out.append((hash: row.hash, x: row.x))
+            out.append((hash: row.hash, x: row.x, key: row.id.uuidString))
         }
         return out
     }
@@ -6938,6 +6987,7 @@ enum MatchMath {
     }
 
     static func printBankBlend(_ samples: [(vec: [Double], w: Double)]) -> [Double] {
+        let samples = leftoverPrintBankPrune(samples)
         var acc: [Double] = []
         var wsum = 0.0
         for s in samples where s.w > 0 && s.vec.count >= 32 {
@@ -7760,6 +7810,16 @@ enum MatchMath {
         cosine + 1e-12 >= floor
     }
 
+    /// Burst 0,98 nicht in die Bank. gallery.json sonst identische Prints.
+    static func leftoverPrintBankPrune(_ samples: [(vec: [Double], w: Double)], floor: Double = 0.98) -> [(vec: [Double], w: Double)] {
+        var kept: [(vec: [Double], w: Double)] = []
+        for s in samples where s.vec.count >= 32 && s.w > 0 {
+            let dup = kept.contains { leftoverPrintPruneDup(cosine: cosine($0.vec, s.vec), floor: floor) }
+            if !dup { kept.append(s) }
+        }
+        return kept
+    }
+
     static func leftoverPairCommitWALFresh(
         stamped: TimeInterval?,
         now: TimeInterval,
@@ -7775,6 +7835,27 @@ enum MatchMath {
         now: TimeInterval
     ) -> TimeInterval? {
         commit ? now : prev
+    }
+
+    static func leftoverPairCommitWALName() -> String { "gallery.pair.wal" }
+
+    static func leftoverPairCommitWALBak(_ i: Int) -> String {
+        i <= 0 ? leftoverPairCommitWALName() : leftoverPairCommitWALName() + ".\(i)"
+    }
+
+    static func leftoverPairCommitWALBytes(pairs: [String: String]?) -> Data? {
+        guard let pairs, !pairs.isEmpty else { return nil }
+        return try? JSONEncoder().encode(pairs)
+    }
+
+    static func leftoverPairCommitWALRestore(data: Data?, stamped: TimeInterval?, now: TimeInterval) -> [String: String]? {
+        guard leftoverPairCommitWALFresh(stamped: stamped, now: now), let data else { return nil }
+        return try? JSONDecoder().decode([String: String].self, from: data)
+    }
+
+    static func leftoverFaceTrackStoreGet(tracks: [UUID: FaceTrack], id: UUID, now: TimeInterval) -> FaceTrack? {
+        let t = leftoverFaceTrackLookup(tracks: tracks, id: id)
+        return leftoverFaceTrackHolds(track: t, now: now) ? t : nil
     }
 }
 

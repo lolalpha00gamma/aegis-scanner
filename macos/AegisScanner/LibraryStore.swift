@@ -154,14 +154,12 @@ final class LibraryStore: ObservableObject {
             return (id: key, hash: value, x: ox)
         }
         let others = MatchMath.leftoverOccupiedOthers(live: liveRows, stored: storedRows, except: id)
+        let rows = MatchMath.leftoverOccupiedOtherRows(live: liveRows, stored: storedRows, except: id)
         let yawOf: (UUID) -> Double = { fid in
             abs(self.liveYaw[fid] ?? self.faces.first(where: { $0.id == fid })?.quality.yaw ?? 0)
         }
-        let otherYaws: [Double] = others.map { row in
-            let liveId = leftoverLiveHashTick.first(where: { $0.value == row.hash && $0.key != id })?.key
-            let storedId = leftoverLastHash.first(where: { $0.value == row.hash && $0.key != id })?.key
-            guard let fid = liveId ?? storedId else { return 0 }
-            return yawOf(fid)
+        let otherYaws: [Double] = rows.map { row in
+            yawOf(UUID(uuidString: row.key) ?? UUID())
         }
         return MatchMath.leftoverHashTwinOccupied(
             occupied: merged,
@@ -169,7 +167,9 @@ final class LibraryStore: ObservableObject {
             x: x,
             others: others,
             yawAbs: yawOf(id),
-            otherYaws: otherYaws
+            otherYaws: otherYaws,
+            tieKey: id.uuidString,
+            otherTieKeys: rows.map(\.key)
         )
     }
     private var leftoverNameLockUntil: [UUID: TimeInterval] = [:]
