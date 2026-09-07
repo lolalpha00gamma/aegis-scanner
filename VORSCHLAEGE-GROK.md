@@ -1,3 +1,71 @@
+# Nachtrag 2026-09-07 — 1.5.185 / 2.1.184 (kein Merge von `bugfix`)
+
+Aegis `lolalpha00gamma/aegis-scanner` **2.1.184 alpha** (Build 209).
+Helios `bpms9cmnxc-debug/Helios` **1.5.185** (Build 204).
+Nur `main`. Agent-Regel: keine Nebenbranches. `bugfix` gelesen, nicht gemergt.
+
+2.1.183 Peak IoU-Adopt. NameLock Coast wischt Ada. Peak-Floor hart 0,40. Helios Overlay-ID snappt.
+
+## Warum es schlecht wirkte (dieser Pass)
+
+1. **leftoverNameLockHeldCoast vor IoU.** Until-Filter tot-UUID. Matching-Sticky Ghost. Peak-Adopt rettet Overlay-Name, nicht leftoverNameLockKeeps.
+2. **Peak-IoU hart 0,40.** 8 fps Twin-Tie, 60 fps zu weich.
+3. **Helios overlayLerpHands nur gleiche ID.** S2-Coast-ID ≠ Live-ID.
+4. **Zwei Sessions.** Mutex+TERM Pflaster. Ohne CameraBroker zwei Vision, zwei TCC.
+5. Von `bugfix` (1.5.8 / 2.1.15) bewusst nicht gemergt: IOHID Event-Tap, AX SetPosition/Frame, Per-App-Gain, JSONL.
+
+## In 2.1.184 / 1.5.185 gelandet
+
+- **leftoverNameLockHeldIoUAdopt** unique IoU vor Coast. Held + Until auf Live. Twin-Tie tot.
+- **leftoverOverlayPeakIoUFloor** 8 fps 0,32 / 60 fps 0,50. Peak und NameLock.
+- leftoverNameLockAdoptChip `iou Ada`.
+- Helios **overlayLerpAdoptId** unique Palm < 0,18.
+- Tests + MARKETING 2.1.184 / 1.5.185 (Build 209 / 204). Schema 15 bleibt.
+
+Pass 25: NameLock IoU-Adopt, Peak-Floor aus fps, Overlay-ID-Adopt — 2.1.184 / 1.5.185.
+
+## Erweiterungen (neu, oben)
+
+1. **CameraBroker-XPC** — eine TCC, IOSurface an beide. Größter einzelner Effizienzgewinn.
+2. **Vision tracking-ID als Remint-Seed** vor IoU.
+3. **CMSampleBuffer-PTS als Fill-Uhr.** LiveCapture emit ist `Date()`.
+4. **FaceTrack `[UUID: FaceTrack]` als einziges leftover-Dict.**
+5. **Overlay Metal 90 Hz.**
+6. **Aegis live outputQueue ≠ MainActor.** FrameTap hop't jedes CGImage auf Main.
+7. **Aegis live CVPixelBuffer statt CGImage-Hop.**
+8. **Print-Bank nur auf leftoverNameLockHeld Live-UUID** nach IoU-Adopt.
+9. **Face-Print Quality** sharpness×(1-|yaw|/90) vor leftoverHold-Write.
+10. **NameLock-Adopt HUD** `iou Ada` verdrahten.
+11. **leftoverNameLockUntil Restore nach IoU-Adopt** in gallery.json.
+12. **Adaptive IoU-Floor aus Box-Fläche** nicht nur fps — nah = strenger.
+13. **VNTrackObjectRequest** statt Remint.
+14. **Temperature-skalierte Cosine** statt hart 0,80.
+15. **gallery.json.bak Rotate 3** schon WAL — printRevision je Identity.
+16. **P-Slot Maske/Schal**, Brille-Slot als Twin-Veto.
+17. **Temporal ReID-Graph** über Hold-Trail.
+18. **RTSP 420f**, Reconnect Exponential-Backoff.
+19. **Watch-Folder PhotoKit**, Export `.aegis` verschlüsselt.
+20. **Negativ-Galerie Props.**
+21. **Print-Bank PCA-Whitening.**
+22. **IOHID Event-Tap** (`bugfix`) als opt-in Pref.
+23. **Tests splitten** (MatchMathTests > 200 kB).
+24. **Swift Testing** statt DIY `ok()`.
+25. **CI `swiftc` Tests vor DMG hart.**
+26. **Shared Peak via Mutex-Datei** Helios HUD liest Ada.
+27. **Speaker-Diarization.**
+28. **Face-Print ONNX sidecar.**
+29. **Gallery-on-disk mmap.**
+30. **Lock Schema v2.**
+31. **Doorbell-Cue.**
+32. **Center Stage force-off nach Sleep.**
+33. **nv12 IOSurface zero-copy** sobald CameraBroker sitzt.
+34. **App-Group `group.helios.aegis`.**
+35. **POSIX-Semaphore + INTENT → Yield → CONFIRM.**
+
+Bewusst nicht: Merge `bugfix`, Blind-Patch Schwellen, CameraBroker in diesem Pass, FaceTrack-Store-Rewrite, Overlay-Metal.
+
+Nächster Code-Schritt: CameraBroker-XPC oder Aegis outputQueue ≠ MainActor oder PTS-Wall-Anchor.
+
 # Nachtrag 2026-09-07 — 1.5.182 / 2.1.183 (kein Merge von `bugfix`)
 
 Aegis `lolalpha00gamma/aegis-scanner` **2.1.183 alpha** (Build 208).

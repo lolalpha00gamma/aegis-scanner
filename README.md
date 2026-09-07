@@ -1,4 +1,4 @@
-# Aegis **2.1.183 alpha**
+# Aegis **2.1.184 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.184 alpha
+
+Matching-Sticky saß auf tot-UUID: leftoverNameLockHeldCoast wischte Ada, bevor Peak-IoU ziehen konnte. Hart 0,40 IoU-Floor war bei 8 fps Twin-Tie und bei 60 fps zu weich.
+
+- **leftoverNameLockHeldIoUAdopt** unique IoU vor Coast — Held + Until auf Live. Twin-Tie tot. Leerer Name nicht.
+- **leftoverOverlayPeakIoUFloor** 8 fps → 0,32, 60 fps → 0,50. Peak und NameLock teilen den Floor.
+- Helios **1.5.185:** overlayLerpAdoptId — S2-Coast-ID vs Live-ID unique Palm.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.184 (Build 209). Schema 15 bleibt.
 
 ## Neu in 2.1.183 alpha
 

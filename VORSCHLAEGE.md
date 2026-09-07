@@ -1,5 +1,11 @@
 # Aegis — Vorschlagsliste
 
+Stand: **2.1.184 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-GROK.md](VORSCHLAEGE-GROK.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+Neu in 2.1.184: leftoverNameLockHeldIoUAdopt vor Coast, Peak-IoU-Floor aus fps. Helios 1.5.185 overlayLerpAdoptId. Aktueller Nachtrag: [VORSCHLAEGE-GROK.md](VORSCHLAEGE-GROK.md).
+
+# Aegis — Vorschlagsliste
+
 Stand: **2.1.183 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-GROK.md](VORSCHLAEGE-GROK.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 
 Neu in 2.1.183: Peak IoU-Adopt unique ≥ 0,40, PeakRemain in remintKeys. Helios 1.5.182 Ghost-Opacity-Lerp + S2 Ghost-Chip. Aktueller Nachtrag: [VORSCHLAEGE-GROK.md](VORSCHLAEGE-GROK.md).

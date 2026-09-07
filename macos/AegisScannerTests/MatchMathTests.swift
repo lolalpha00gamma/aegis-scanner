@@ -4775,6 +4775,46 @@ enum MatchMathTests {
             stored: [(id: livePeak, x: 0.20, y: 0.20, w: 0.20, h: 0.20)]
         )
         ok(liveKeep.held[livePeak] == "Ada", "Peak IoU-Adopt Live hält")
+        near(MatchMath.leftoverOverlayPeakIoUFloor(fps: 8), 0.32, 0.001, "IoU-Floor 8 fps")
+        near(MatchMath.leftoverOverlayPeakIoUFloor(fps: 60), 0.50, 0.001, "IoU-Floor 60 fps")
+        near(MatchMath.leftoverOverlayPeakIoUFloorDt(0.125), 0.32, 0.001, "IoU-Floor dt 8 fps")
+        near(MatchMath.leftoverOverlayPeakIoUFloor(fps: 0), 0.40, 0.001, "IoU-Floor tot → 0,40")
+        let oldLock = UUID(), liveLock = UUID(), twinLock = UUID()
+        let lockAdopt = MatchMath.leftoverNameLockHeldIoUAdopt(
+            held: [oldLock: "Ada"],
+            until: [oldLock: 10],
+            live: [(id: liveLock, x: 0.21, y: 0.21, w: 0.20, h: 0.20)],
+            stored: [(id: oldLock, x: 0.20, y: 0.20, w: 0.20, h: 0.20)],
+            floor: MatchMath.leftoverOverlayPeakIoUFloor(fps: 8)
+        )
+        ok(lockAdopt.held[liveLock] == "Ada" && lockAdopt.held[oldLock] == nil, "NameLock IoU-Adopt Ada")
+        ok(lockAdopt.until[liveLock] == 10 && lockAdopt.until[oldLock] == nil, "NameLock IoU-Adopt Until")
+        let lockTied = MatchMath.leftoverNameLockHeldIoUAdopt(
+            held: [oldLock: "Ada"],
+            until: [oldLock: 10],
+            live: [
+                (id: liveLock, x: 0.21, y: 0.21, w: 0.20, h: 0.20),
+                (id: twinLock, x: 0.22, y: 0.22, w: 0.20, h: 0.20)
+            ],
+            stored: [(id: oldLock, x: 0.20, y: 0.20, w: 0.20, h: 0.20)]
+        )
+        ok(lockTied.held[oldLock] == "Ada" && lockTied.held[liveLock] == nil, "NameLock IoU-Adopt Twin tot")
+        let lockEmpty = MatchMath.leftoverNameLockHeldIoUAdopt(
+            held: [oldLock: ""],
+            until: [:],
+            live: [(id: liveLock, x: 0.21, y: 0.21, w: 0.20, h: 0.20)],
+            stored: [(id: oldLock, x: 0.20, y: 0.20, w: 0.20, h: 0.20)]
+        )
+        ok(lockEmpty.held[oldLock] == "" && lockEmpty.held[liveLock] == nil, "NameLock IoU-Adopt leer tot")
+        let lockLive = MatchMath.leftoverNameLockHeldIoUAdopt(
+            held: [liveLock: "Ada"],
+            until: [liveLock: 9],
+            live: [(id: liveLock, x: 0.20, y: 0.20, w: 0.20, h: 0.20)],
+            stored: [(id: liveLock, x: 0.20, y: 0.20, w: 0.20, h: 0.20)]
+        )
+        ok(lockLive.held[liveLock] == "Ada", "NameLock IoU-Adopt Live hält")
+        ok(MatchMath.leftoverNameLockAdoptChip(did: true, name: "Ada") == "iou Ada", "NameLock Adopt Chip")
+        ok(MatchMath.leftoverNameLockAdoptChip(did: false, name: "Ada") == nil, "NameLock Adopt Chip tot")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

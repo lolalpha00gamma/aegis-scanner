@@ -1,3 +1,25 @@
+# Aegis + Helios — Analyse 2026-09-07 (2.1.184)
+
+Aegis **2.1.184 alpha** (Build 209). Helios **1.5.185** (Build 204). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.183: Peak IoU-Adopt. leftoverNameLockHeldCoast lief davor — Ada tot. Hart 0,40 Floor. Helios Overlay-ID snappt.
+
+## Warum Match nach 2.1.183 weiter riss
+
+1. **leftoverNameLockHeldCoast vor IoU.** Until-Filter auf tot-UUID. Matching-Sticky sitzt auf Ghost. Peak-Adopt rettet Overlay, nicht leftoverNameLockKeeps.
+2. **Peak-IoU hart 0,40.** Continuity 8 fps Twin überlappt, 60 fps erlaubt Sprung.
+3. **Helios overlayLerpHands ID-mismatch.** S2-Coast vs Live.
+4. FaceEngine CGImage über Main. outputQueue ≠ MainActor weiter offen.
+
+## Was 2.1.184 / 1.5.185 ändert
+
+1. leftoverNameLockHeldIoUAdopt unique IoU vor Coast. Held + Until auf Live. Twin-Tie tot.
+2. leftoverOverlayPeakIoUFloor 8 fps 0,32 / 60 fps 0,50.
+3. Helios overlayLerpAdoptId unique Palm.
+4. Tests + VERSION = Models = MARKETING 2.1.184 (Build 209). Schema 15 bleibt.
+
+`bugfix` mergen: nein.
+
 # Aegis + Helios — Analyse 2026-09-07 (2.1.183)
 
 Aegis **2.1.183 alpha** (Build 208). Helios **1.5.182** (Build 201). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.

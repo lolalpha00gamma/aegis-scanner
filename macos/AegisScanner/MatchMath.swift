@@ -8160,5 +8160,60 @@ enum MatchMath {
         return (h, r)
     }
 
+    /// 8 fps Continuity: Floor 0,32 sonst Twin-Tie. 60 fps: 0,50. Hart 0,40 war beides falsch.
+    static func leftoverOverlayPeakIoUFloor(fps: Double, at8: Double = 0.32, at60: Double = 0.50) -> Double {
+        if fps <= 0 { return 0.40 }
+        let t = min(1, max(0, (fps - 8) / 52))
+        return at8 + (at60 - at8) * t
+    }
+
+    static func leftoverOverlayPeakIoUFloorDt(_ dt: TimeInterval, at8: Double = 0.32, at60: Double = 0.50) -> Double {
+        leftoverOverlayPeakIoUFloor(fps: dt > 1e-9 ? 1 / dt : 8, at8: at8, at60: at60)
+    }
+
+    /// Matching-Sticky analog Peak. Remint-Map leer → leftoverNameLockHeld auf tot-UUID, Coast wischt Ada.
+    /// Unique IoU ≥ floor zieht Held + Until auf Live. Twin-Tie bleibt. Leerer Name nicht.
+    static func leftoverNameLockHeldIoUAdopt(
+        held: [UUID: String],
+        until: [UUID: TimeInterval],
+        live: [(id: UUID, x: Double, y: Double, w: Double, h: Double)],
+        stored: [(id: UUID, x: Double, y: Double, w: Double, h: Double)],
+        floor: Double = 0.40
+    ) -> (held: [UUID: String], until: [UUID: TimeInterval]) {
+        let liveIds = Set(live.map(\.id))
+        var h = held
+        var u = until
+        var storedById: [UUID: (id: UUID, x: Double, y: Double, w: Double, h: Double)] = [:]
+        for row in stored where storedById[row.id] == nil {
+            storedById[row.id] = row
+        }
+        var occupied = Set(h.filter { liveIds.contains($0.key) && !$0.value.isEmpty }.map(\.key))
+        for (oldId, name) in held {
+            if liveIds.contains(oldId) { continue }
+            if name.isEmpty { continue }
+            guard let box = storedById[oldId] else { continue }
+            let hits = live.filter { !occupied.contains($0.id) }.compactMap { row -> (UUID, Double)? in
+                let iou = leftoverBoxIoU(
+                    ax: box.x, ay: box.y, aw: box.w, ah: box.h,
+                    bx: row.x, by: row.y, bw: row.w, bh: row.h
+                )
+                return iou >= floor ? (row.id, iou) : nil
+            }
+            guard hits.count == 1 else { continue }
+            let nid = hits[0].0
+            h[nid] = name
+            if let t = u[oldId] { u[nid] = t }
+            h.removeValue(forKey: oldId)
+            u.removeValue(forKey: oldId)
+            occupied.insert(nid)
+        }
+        return (h, u)
+    }
+
+    static func leftoverNameLockAdoptChip(did: Bool, name: String?) -> String? {
+        guard did, let n = name, !n.isEmpty else { return nil }
+        return "iou \(n)"
+    }
+
 }
 

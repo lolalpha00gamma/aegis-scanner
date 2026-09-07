@@ -3291,6 +3291,27 @@ final class LibraryStore: ObservableObject {
         leftoverPairCommit = MatchMath.leftoverUUIDUUIDMapDropDangling(leftoverPairCommit, keep: keepIds, hold: holdIds)
         leftoverHoldTrail = leftoverHoldTrail.mapValues { MatchMath.leftoverHoldTrailCap($0) }
         let holdBefore = leftoverHold.count
+        let adoptLive = adopted.map {
+            (id: $0.id, x: $0.box.x, y: $0.box.y, w: $0.box.width, h: $0.box.height)
+        }
+        let adoptStored = MatchMath.leftoverOverlayPeakStoredBoxes(
+            streak: leftoverStreakBox.map {
+                (id: $0.key, x: $0.value.x, y: $0.value.y, w: $0.value.width, h: $0.value.height)
+            },
+            kalman: boxKalman.map {
+                (id: $0.key, x: $0.value.x, y: $0.value.y, w: $0.value.w, h: $0.value.h)
+            }
+        )
+        let adoptFloor = MatchMath.leftoverOverlayPeakIoUFloorDt(liveDt)
+        let namedAdopt = MatchMath.leftoverNameLockHeldIoUAdopt(
+            held: leftoverNameLockHeld,
+            until: leftoverNameLockUntil,
+            live: adoptLive,
+            stored: adoptStored,
+            floor: adoptFloor
+        )
+        leftoverNameLockHeld = namedAdopt.held
+        leftoverNameLockUntil = namedAdopt.until
         let lockedIds = MatchMath.leftoverNameLockLive(until: leftoverNameLockUntil, now: now)
         leftoverNameLockUntil = leftoverNameLockUntil.filter { lockedIds.contains($0.key) }
         leftoverNameLockHeld = MatchMath.leftoverNameLockHeldCoast(
@@ -3303,17 +3324,9 @@ final class LibraryStore: ObservableObject {
             let peakBoxes = MatchMath.leftoverOverlayPeakIoUAdopt(
                 held: leftoverOverlayPeakHeld,
                 remain: leftoverOverlayPeakRemain,
-                live: adopted.map {
-                    (id: $0.id, x: $0.box.x, y: $0.box.y, w: $0.box.width, h: $0.box.height)
-                },
-                stored: MatchMath.leftoverOverlayPeakStoredBoxes(
-                    streak: leftoverStreakBox.map {
-                        (id: $0.key, x: $0.value.x, y: $0.value.y, w: $0.value.width, h: $0.value.height)
-                    },
-                    kalman: boxKalman.map {
-                        (id: $0.key, x: $0.value.x, y: $0.value.y, w: $0.value.w, h: $0.value.h)
-                    }
-                )
+                live: adoptLive,
+                stored: adoptStored,
+                floor: adoptFloor
             )
             leftoverOverlayPeakHeld = peakBoxes.held
             leftoverOverlayPeakRemain = peakBoxes.remain

@@ -1,3 +1,16 @@
+# Aegis Nachtrag 2.1.184 — 2026-09-07
+
+Binary **2.1.184 alpha Build 209**. NameLock IoU-Adopt. Peak-IoU-Floor aus fps. Helios Lerp-Adopt.
+
+## In 2.1.184 gelandet
+
+1. leftoverNameLockHeldIoUAdopt unique IoU vor Coast — Held + Until auf Live
+2. leftoverOverlayPeakIoUFloor 8 fps 0,32 / 60 fps 0,50 — Peak und NameLock
+3. leftoverNameLockAdoptChip `iou Ada`
+4. Tests + VERSION = Models = MARKETING_VERSION 2.1.184 (Build 209)
+
+Rest: CameraBroker, Overlay-Metal, IOHID, FaceTrack-Store, outputQueue ≠ MainActor. Siehe VORSCHLAEGE-GROK.md.
+
 # Aegis Nachtrag 2.1.183 — 2026-09-07
 
 Binary **2.1.183 alpha Build 208**. Peak IoU-Adopt. Helios Ghost-Opacity-Lerp.
