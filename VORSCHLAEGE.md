@@ -1,5 +1,22 @@
 # Aegis — Vorschlagsliste
 
+Stand: **2.1.170 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-GROK.md](VORSCHLAEGE-GROK.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
+
+Neu in 2.1.170: leftoverHoldLookupUnsure, Detect-Skip IoU, Kalman-Vel, Heartbeat-SIGKILL.
+
+## In 2.1.170 wirklich im Code
+
+2.1.169: Remint-Lookup. leftoverCoastCosine schob Hold 0,70 als Cosine. Twin getauft.
+
+1. **leftoverHoldLookupUnsure / leftoverHoldViaLookup** Twin ohne Vec → `?`.
+2. **leftoverDetectSkipIoUOnly / leftoverPick(iouOnly).**
+3. **leftoverCoastCosineMeasured** + holdPrev Lookup.
+4. **leftoverFaceTrackKalmanVel** px/py im FaceTrack.
+5. **cameraMutexHeartbeatKillPid.**
+6. Tests + VERSION = Models = MARKETING_VERSION 2.1.170 (Build 195). Schema 15 bleibt.
+
+# Aegis — Vorschlagsliste
+
 Stand: **2.1.169 alpha**. Aktueller Nachtrag: [VORSCHLAEGE-GROK.md](VORSCHLAEGE-GROK.md). Analyse: [ANALYSE.md](ANALYSE.md). Nur `main`. `bugfix` ist Altlast — nicht fortsetzen.
 
 Neu in 2.1.169: leftoverHoldRemintLookup, Mutex WRITE pidLive.

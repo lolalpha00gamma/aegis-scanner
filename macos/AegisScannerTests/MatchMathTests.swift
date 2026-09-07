@@ -4078,12 +4078,101 @@ enum MatchMathTests {
         let coastLookup = MatchMath.leftoverHoldRemintDrop(
             hold: [liveOld: vecA], remap: [liveOld: liveNew]
         )
+
+        ok(MatchMath.leftoverHoldViaLookup(hold: lookupHold, id: liveOld, remap: [liveOld: liveNew]), "Hold via Lookup")
+        ok(!MatchMath.leftoverHoldViaLookup(hold: lookupHold, id: liveNew, remap: [liveOld: liveNew]), "Hold live kein Lookup")
+        ok(MatchMath.leftoverHoldLookupUnsure(skipCosine: nil, holdViaLookup: true), "Unsure Skip nil + Lookup")
+        ok(!MatchMath.leftoverHoldLookupUnsure(skipCosine: 0.91, holdViaLookup: true), "Unsure tot mit Print")
+        ok(!MatchMath.leftoverHoldLookupUnsure(skipCosine: nil, holdViaLookup: false), "Unsure tot ohne Lookup")
+        ok(MatchMath.leftoverHoldLookupUnsureNote() == "?", "Unsure Note")
+        ok(MatchMath.leftoverPickPrint(raw: nil, smoothed: 0.70, holdOnlyUnsure: true) == nil, "PickPrint Unsure kein Hold")
+        ok(MatchMath.leftoverPickPrint(raw: 0.82, smoothed: 0.70, holdOnlyUnsure: true) == 0.82, "PickPrint Unsure Roh")
+        ok(MatchMath.leftoverPickPrint(raw: nil, smoothed: 0.70) == 0.70, "PickPrint Coast Hold")
         ok(
-            MatchMath.leftoverHoldRemintLookup(
-                hold: coastLookup, id: liveOld, remap: [liveOld: liveNew]
-            )?.count == 32,
-            "Lookup Coast nach Drop"
+            MatchMath.leftoverPick(candidates: [(0, 0.50, nil)], holdPrev: 0.70, holdOnlyUnsure: true) == nil,
+            "Pick Unsure Twin tot"
         )
+        ok(
+            MatchMath.leftoverPick(candidates: [(0, 0.50, 0.82)], holdPrev: 0.70, holdOnlyUnsure: true) == 0,
+            "Pick Unsure mit Print"
+        )
+        ok(MatchMath.leftoverDetectSkipIoUOnly(skipCosine: nil, skipDetect: true, skipPrints: false, holdViaLookup: false), "Detect-Skip IoU")
+        ok(!MatchMath.leftoverDetectSkipIoUOnly(skipCosine: nil, skipDetect: true, skipPrints: false, holdViaLookup: true), "Detect-Skip Lookup kein IoU")
+        ok(!MatchMath.leftoverDetectSkipIoUOnly(skipCosine: 0.91, skipDetect: true, skipPrints: false, holdViaLookup: false), "Detect-Skip mit Vec tot")
+        ok(
+            MatchMath.leftoverCoastCosineMeasured(
+                skipCosine: nil, skipDetect: true, skipPrints: true, live: nil, stored: 0.70,
+                livePrintEmpty: true, holdViaLookup: true
+            ) == nil,
+            "Coast Measured Lookup Unsure"
+        )
+        ok(
+            MatchMath.leftoverCoastCosineMeasured(
+                skipCosine: 0.91, skipDetect: true, skipPrints: true, live: nil, stored: 0.70,
+                livePrintEmpty: true, holdViaLookup: true
+            ) == 0.91,
+            "Coast Measured Print"
+        )
+        ok(
+            MatchMath.leftoverCoastCosineMeasured(
+                skipCosine: nil, skipDetect: true, skipPrints: true, live: nil, stored: 0.70,
+                livePrintEmpty: true, holdViaLookup: false
+            ) == nil,
+            "Coast Measured Detect-Skip IoU"
+        )
+        ok(MatchMath.leftoverPickArgmaxIou([0.40, 0.90, 0.55]) == 1, "Argmax IoU")
+        ok(MatchMath.leftoverPickArgmaxIou([]) == nil, "Argmax IoU leer")
+        ok(
+            MatchMath.leftoverPick(
+                candidates: [(0, 0.40, nil), (1, 0.88, nil)],
+                holdPrev: 0.70,
+                iouOnly: true
+            ) == 1,
+            "Pick IoU-only nicht Hold"
+        )
+        let prevBox = MatchMath.FaceTrackBox(x: 0.10, y: 0.20, w: 0.30, h: 0.40)
+        let liveBox = MatchMath.FaceTrackBox(x: 0.12, y: 0.20, w: 0.30, h: 0.40)
+        let vel = MatchMath.leftoverFaceTrackKalmanVel(prev: prevBox, live: liveBox, dt: 0.10)
+        ok(abs(vel.px - 0.20) < 1e-9 && abs(vel.py) < 1e-9, "Kalman Vel px")
+        let pred = MatchMath.leftoverFaceTrackKalmanPredict(box: liveBox, px: vel.px, py: vel.py, dt: 0.10)
+        ok(abs(pred.x - 0.14) < 1e-9, "Kalman Predict")
+        let sleepVel = MatchMath.leftoverFaceTrackKalmanVel(prev: prevBox, live: liveBox, dt: 3)
+        ok(sleepVel.px == 0 && sleepVel.py == 0, "Kalman Vel Sleep tot")
+        let packVel = MatchMath.leftoverFaceTrackPack(
+            hold: [liveNew: 0.72],
+            pending: [:],
+            streak: [:],
+            lastHash: [:],
+            lastIoU: [:],
+            nameHeld: [:],
+            nameUntil: [:],
+            miss: [:],
+            px: [liveNew: 0.20],
+            py: [liveNew: -0.10]
+        )
+        ok(packVel[liveNew]?.px == 0.20 && packVel[liveNew]?.py == -0.10, "FaceTrack Vel Pack")
+        let dropVel = MatchMath.leftoverFaceTrackRemintDrop(packVel, remap: [liveNew: liveOld])
+        ok(dropVel[liveOld]?.px == 0.20 && dropVel[liveNew] == nil, "FaceTrack Vel RemintDrop")
+        let killLine = MatchMath.cameraMutexLine(owner: "helios", pid: 9, now: 1_000, gen: 4)
+        ok(MatchMath.cameraMutexStamp(killLine) == 1_000, "Mutex Stamp")
+        ok(
+            MatchMath.cameraMutexHeartbeatKillPid(pid: 9, live: false, now: 1_001, stamped: 1_000) == 9,
+            "Heartbeat tot-PID"
+        )
+        ok(
+            MatchMath.cameraMutexHeartbeatKillPid(pid: 9, live: true, now: 1_020, stamped: 1_000) == nil,
+            "Heartbeat live nie"
+        )
+        ok(
+            MatchMath.cameraMutexHeartbeatKillPid(pid: 9, live: nil, now: 1_007, stamped: 1_000) == 9,
+            "Heartbeat 6 s hung"
+        )
+        ok(
+            MatchMath.cameraMutexHeartbeatKillPid(pid: 9, live: nil, now: 1_003, stamped: 1_000) == nil,
+            "Heartbeat vor 6 s tot"
+        )
+        ok(MatchMath.cameraMutexHeartbeatKillAllowed(target: 9, selfPid: 3) == 9, "Kill fremd")
+        ok(MatchMath.cameraMutexHeartbeatKillAllowed(target: 3, selfPid: 3) == nil, "Kill self tot")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

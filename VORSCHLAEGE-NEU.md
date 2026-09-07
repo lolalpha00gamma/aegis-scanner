@@ -1,3 +1,18 @@
+# Aegis Nachtrag 2.1.170 — 2026-09-07
+
+Binary **2.1.170 alpha Build 195**. Unsure ohne Vec, Detect-Skip IoU, Kalman-Vel, Heartbeat-SIGKILL.
+
+## In 2.1.170 gelandet
+
+1. leftoverHoldLookupUnsure / leftoverHoldViaLookup — Twin nicht auf 0,70 taufen
+2. leftoverDetectSkipIoUOnly / leftoverPick(iouOnly) — Detect-Skip max IoU
+3. leftoverCoastCosineMeasured + holdPrev Lookup
+4. leftoverFaceTrackKalmanVel px/py im FaceTrack
+5. cameraMutexHeartbeatKillPid — tot-PID SIGKILL
+6. Tests + VERSION = Models = MARKETING_VERSION 2.1.170 (Build 195)
+
+Rest: FaceTrack als Store, CameraBroker, Overlay-Metal. Siehe VORSCHLAEGE-GROK.md.
+
 # Aegis Nachtrag 2.1.169 — 2026-09-06
 
 Binary **2.1.169 alpha Build 194**. Remint-Lookup nach Drop, Mutex WRITE pidLive.

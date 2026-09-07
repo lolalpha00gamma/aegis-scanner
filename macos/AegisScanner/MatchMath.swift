@@ -276,7 +276,9 @@ enum MatchMath {
         holdAt: TimeInterval = 0,
         holdTTL: TimeInterval = leftoverAdoptSec,
         frameCapture: Double? = nil,
-        holdOccupied: [String] = []
+        holdOccupied: [String] = [],
+        holdOnlyUnsure: Bool = false,
+        iouOnly: Bool = false
     ) -> Int? {
         if leftoverLookawayBlocks(yawAbs: lookawayYaw, enrolled: lookawayEnrolled) {
             return nil
@@ -310,8 +312,9 @@ enum MatchMath {
             )
         }
         ok = ok.filter {
-            leftoverPrintOk(
-                cosine: leftoverPickPrint(raw: $0.cosine, smoothed: holdOf($0.index)),
+            if iouOnly { return true }
+            return leftoverPrintOk(
+                cosine: leftoverPickPrint(raw: $0.cosine, smoothed: holdOf($0.index), holdOnlyUnsure: holdOnlyUnsure),
                 sharpness: sharpness[$0.index],
                 yawAbs: yawAbs[$0.index],
                 capture: leftoverSessionCaptureBox(
@@ -329,7 +332,7 @@ enum MatchMath {
                 index: $0.index,
                 iou: $0.iou,
                 cosine: leftoverHoldSmooth(
-                    raw: leftoverPickPrint(raw: $0.cosine, smoothed: holdOf($0.index)),
+                    raw: leftoverPickPrint(raw: $0.cosine, smoothed: holdOf($0.index), holdOnlyUnsure: holdOnlyUnsure),
                     prev: holdOf($0.index),
                     dt: dt,
                     captureJump: leftoverCaptureJump(prev: session, next: liveCap($0.index))
@@ -356,7 +359,7 @@ enum MatchMath {
             }
         }
         guard !printable.isEmpty else { return nil }
-        if printable.allSatisfy({
+        if !iouOnly, printable.allSatisfy({
             unknownCentroid(
                 bestCosine: $0.cosine,
                 capture: leftoverSessionCaptureBox(
@@ -414,8 +417,15 @@ enum MatchMath {
                 )
             )
         }
+        if iouOnly {
+            let ious = pool.map(\.iou)
+            if let i = leftoverPickArgmaxIou(ious) {
+                return pool[i].index
+            }
+            return nil
+        }
         let origRaw = Dictionary(uniqueKeysWithValues: candidates.map {
-            ($0.index, leftoverPickPrint(raw: $0.cosine, smoothed: holdOf($0.index)) ?? -1.0)
+            ($0.index, leftoverPickPrint(raw: $0.cosine, smoothed: holdOf($0.index), holdOnlyUnsure: holdOnlyUnsure) ?? -1.0)
         })
         let floorRaw = pool.map { origRaw[$0.index] ?? ($0.cosine ?? -1) }
         if leftoverAmbiguousBlocks(raw: floorRaw, scored: scored) { return nil }
@@ -439,6 +449,12 @@ enum MatchMath {
             return idx
         }
         return nil
+    }
+
+    /// Detect-Skip ohne Print-Vec: max IoU, nicht Hold-Zahl 0,70.
+    static func leftoverPickArgmaxIou(_ ious: [Double]) -> Int? {
+        guard !ious.isEmpty else { return nil }
+        return ious.indices.max(by: { ious[$0] < ious[$1] })
     }
 
     /// Argmax auf Roh-Cosine. leftoverScore nur Tie-Break wenn Spread ≤ 0,08.
@@ -1101,6 +1117,33 @@ enum MatchMath {
     static func cameraMutexPidDead(_ pid: Int32?) -> Bool {
         guard let pid else { return true }
         return pid <= 0
+    }
+
+    static func cameraMutexStamp(_ text: String) -> TimeInterval? {
+        let parts = text.split(whereSeparator: { $0 == " " || $0 == "\n" }).map(String.init)
+        guard parts.count >= 3 else { return nil }
+        return TimeInterval(parts[2])
+    }
+
+    /// Nach Sleep: tot-PID SIGKILL, nicht 12 s stale. Live-PID nie. Self nie.
+    static func cameraMutexHeartbeatKillPid(
+        pid: Int32?,
+        live: Bool?,
+        now: TimeInterval,
+        stamped: TimeInterval?,
+        heartbeat: TimeInterval = cameraMutexHeartbeatSec()
+    ) -> Int32? {
+        guard let pid, pid > 0 else { return nil }
+        if live == true { return nil }
+        if live == false { return pid }
+        guard let stamped else { return nil }
+        if now - stamped >= heartbeat * 3 { return pid }
+        return nil
+    }
+
+    static func cameraMutexHeartbeatKillAllowed(target: Int32?, selfPid: Int32) -> Int32? {
+        guard let target, target > 0, target != selfPid else { return nil }
+        return target
     }
 
     /// Overlay: 3-Tick-Mittel wenn voll, sonst EMA.
@@ -3040,6 +3083,65 @@ enum MatchMath {
         return nil
     }
 
+    /// leftoverHold sitzt nur über Remint-Lookup, nicht auf leftoverId.
+    static func leftoverHoldViaLookup<Value>(
+        hold: [UUID: Value],
+        id: UUID,
+        remap: [UUID: UUID]
+    ) -> Bool {
+        hold[id] == nil && leftoverHoldRemintLookup(hold: hold, id: id, remap: remap) != nil
+    }
+
+    /// leftoverCoastPrintSkipCosine nil + Hold nur Lookup = Unsure. Twin nicht auf 0,70 taufen.
+    static func leftoverHoldLookupUnsure(skipCosine: Double?, holdViaLookup: Bool) -> Bool {
+        skipCosine == nil && holdViaLookup
+    }
+
+    static func leftoverHoldLookupUnsureNote() -> String { "?" }
+
+    /// Detect-Skip ohne beide Coast-Vec: nur IoU. Hold-Zahl nicht als Cosine.
+    static func leftoverDetectSkipIoUOnly(
+        skipCosine: Double?,
+        skipDetect: Bool,
+        skipPrints: Bool,
+        holdViaLookup: Bool
+    ) -> Bool {
+        leftoverCoastPrintKeeps(skipDetect: skipDetect, skipPrints: skipPrints)
+            && skipCosine == nil
+            && !holdViaLookup
+    }
+
+    /// Gemessener Print oder nil. Hold-Lookup 0,70 und Detect-Skip-IoU nie als Cosine.
+    static func leftoverCoastCosineMeasured(
+        skipCosine: Double?,
+        skipDetect: Bool,
+        skipPrints: Bool,
+        live: Double?,
+        stored: Double?,
+        livePrintEmpty: Bool,
+        holdViaLookup: Bool
+    ) -> Double? {
+        if leftoverHoldLookupUnsure(skipCosine: skipCosine, holdViaLookup: holdViaLookup) {
+            return nil
+        }
+        if let skipCosine { return skipCosine }
+        if leftoverDetectSkipIoUOnly(
+            skipCosine: skipCosine,
+            skipDetect: skipDetect,
+            skipPrints: skipPrints,
+            holdViaLookup: holdViaLookup
+        ) {
+            return nil
+        }
+        return leftoverCoastCosine(
+            skipDetect: skipDetect,
+            skipPrints: skipPrints,
+            live: live,
+            stored: stored,
+            livePrintEmpty: livePrintEmpty
+        )
+    }
+
     /// Identität als ein Objekt. LibraryStore remintet Hold/Pending/Streak/Hash/IoU/Name/Miss/Pair
     /// plus Live-Skalare (Yaw/Still/Blink/EMA) über Pack. Arrays (Print-Trail, Name-Hist) extra.
     struct FaceTrackBox: Equatable {
@@ -3072,6 +3174,34 @@ enum MatchMath {
         var lidClosed: Bool = false
         var openStreak: Int = 0
         var voteAt: TimeInterval = 0
+        var px: Double = 0
+        var py: Double = 0
+        var pw: Double = 0
+        var ph: Double = 0
+    }
+
+    /// Kalman-Vel nach Remint sonst 0. dt 0 / Sleep > 2 s tot.
+    static func leftoverFaceTrackKalmanVel(
+        prev: FaceTrackBox?,
+        live: FaceTrackBox,
+        dt: Double
+    ) -> (px: Double, py: Double, pw: Double, ph: Double) {
+        guard let prev, dt > 1e-4, dt < 2 else { return (0, 0, 0, 0) }
+        return (
+            (live.x - prev.x) / dt,
+            (live.y - prev.y) / dt,
+            (live.w - prev.w) / dt,
+            (live.h - prev.h) / dt
+        )
+    }
+
+    static func leftoverFaceTrackKalmanPredict(
+        box: FaceTrackBox,
+        px: Double,
+        py: Double,
+        dt: Double
+    ) -> FaceTrackBox {
+        FaceTrackBox(x: box.x + px * dt, y: box.y + py * dt, w: box.w, h: box.h)
     }
 
     static func leftoverFaceTrackRemintPair(
@@ -3126,7 +3256,11 @@ enum MatchMath {
         blinkSeen: [UUID: Bool] = [:],
         lidClosed: [UUID: Bool] = [:],
         openStreak: [UUID: Int] = [:],
-        voteAt: [UUID: TimeInterval] = [:]
+        voteAt: [UUID: TimeInterval] = [:],
+        px: [UUID: Double] = [:],
+        py: [UUID: Double] = [:],
+        pw: [UUID: Double] = [:],
+        ph: [UUID: Double] = [:]
     ) -> [UUID: FaceTrack] {
         let keys = leftoverHoldRemintKeys([
             Set(hold.keys), Set(pending.keys), Set(streak.keys), Set(lastHash.keys),
@@ -3134,7 +3268,7 @@ enum MatchMath {
             Set(streakBox.keys), Set(kalman.keys), Set(pairLast.keys), Set(pairStreak.keys),
             Set(yaw.keys), Set(pitch.keys), Set(roll.keys), Set(stillFor.keys),
             Set(scoreEma.keys), Set(poseAt.keys), Set(blinkSeen.keys), Set(lidClosed.keys),
-            Set(openStreak.keys), Set(voteAt.keys)
+            Set(openStreak.keys), Set(voteAt.keys), Set(px.keys), Set(py.keys), Set(pw.keys), Set(ph.keys)
         ])
         var out: [UUID: FaceTrack] = [:]
         out.reserveCapacity(keys.count)
@@ -3161,7 +3295,11 @@ enum MatchMath {
                 blinkSeen: blinkSeen[id] ?? false,
                 lidClosed: lidClosed[id] ?? false,
                 openStreak: openStreak[id] ?? 0,
-                voteAt: voteAt[id] ?? 0
+                voteAt: voteAt[id] ?? 0,
+                px: px[id] ?? 0,
+                py: py[id] ?? 0,
+                pw: pw[id] ?? 0,
+                ph: ph[id] ?? 0
             )
         }
         return out
@@ -3190,6 +3328,10 @@ enum MatchMath {
         var lidClosed: [UUID: Bool] = [:]
         var openStreak: [UUID: Int] = [:]
         var voteAt: [UUID: TimeInterval] = [:]
+        var px: [UUID: Double] = [:]
+        var py: [UUID: Double] = [:]
+        var pw: [UUID: Double] = [:]
+        var ph: [UUID: Double] = [:]
     }
 
     /// Pack-Inverse. Nur gesetzte Felder — Defaults nicht in die Maps schreiben.
@@ -3226,6 +3368,10 @@ enum MatchMath {
             if t.lidClosed { m.lidClosed[id] = true }
             if t.openStreak != 0 { m.openStreak[id] = t.openStreak }
             if t.voteAt != 0 { m.voteAt[id] = t.voteAt }
+            if t.px != 0 { m.px[id] = t.px }
+            if t.py != 0 { m.py[id] = t.py }
+            if t.pw != 0 { m.pw[id] = t.pw }
+            if t.ph != 0 { m.ph[id] = t.ph }
         }
         return m
     }
@@ -3238,7 +3384,7 @@ enum MatchMath {
         FaceBox(x: box.x, y: box.y, width: box.w, height: box.h)
     }
 
-    /// Ein Remint für die Identitäts-Maps. Kalman-Vel bleibt draußen (px/py).
+    /// Ein Remint für die Identitäts-Maps. Kalman-Vel (px/py) im Struct.
     /// Live-Skalare (Yaw/Still/Blink/EMA) mit Pack. Arrays (Trail/Hist) extra Drop.
     static func leftoverFaceTrackRemintDropMaps(
         hold: [UUID: Double],
@@ -3263,6 +3409,10 @@ enum MatchMath {
         lidClosed: [UUID: Bool] = [:],
         openStreak: [UUID: Int] = [:],
         voteAt: [UUID: TimeInterval] = [:],
+        px: [UUID: Double] = [:],
+        py: [UUID: Double] = [:],
+        pw: [UUID: Double] = [:],
+        ph: [UUID: Double] = [:],
         remap: [UUID: UUID]
     ) -> FaceTrackMaps {
         leftoverFaceTrackUnpack(
@@ -3289,7 +3439,11 @@ enum MatchMath {
                     blinkSeen: blinkSeen,
                     lidClosed: lidClosed,
                     openStreak: openStreak,
-                    voteAt: voteAt
+                    voteAt: voteAt,
+                    px: px,
+                    py: py,
+                    pw: pw,
+                    ph: ph
                 ),
                 remap: remap
             )
@@ -5824,7 +5978,11 @@ enum MatchMath {
     static let leftoverHoldSpike = 0.04
 
     /// Floor auf RAW. Ohne Live-Print: Hold/Coast, sonst leftoverPrintOk stirbt 7/8 Detect-Skip.
-    static func leftoverPickPrint(raw: Double?, smoothed: Double?) -> Double? { raw ?? smoothed }
+    /// holdOnlyUnsure: Hold-Lookup 0,70 ist kein Cosine. Twin nicht taufen.
+    static func leftoverPickPrint(raw: Double?, smoothed: Double?, holdOnlyUnsure: Bool = false) -> Double? {
+        if holdOnlyUnsure { return raw }
+        return raw ?? smoothed
+    }
 
     /// Nacht-Hold 0,61 → 0,66 ist Erholung, kein Twin-Spike.
     static func leftoverHoldClimb(prev: Double?, floor: Double = leftoverPrintGenuine) -> Bool {

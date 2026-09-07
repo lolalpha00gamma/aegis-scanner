@@ -1,4 +1,4 @@
-# Aegis **2.1.169 alpha**
+# Aegis **2.1.170 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,18 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.170 alpha
+
+Warum leftover matching nach RemintDrop den Twin mit leftoverHold 0,70 taufte, Detect-Skip ohne Coast-Vec die Hold-Zahl als Cosine nahm, und ein Zombie-PID nach Sleep den Mutex hielt:
+
+- **leftoverHoldLookupUnsure / leftoverHoldViaLookup.** leftoverCoastPrintSkipCosine nil + Hold nur Lookup → Unsure `?`. Twin nicht auf 0,70 taufen. leftoverPickPrint(holdOnlyUnsure) fällt nicht auf Hold zurück.
+- **leftoverDetectSkipIoUOnly / leftoverPickArgmaxIou.** Detect-Skip ohne beide Coast-Vec: nur IoU, nicht Hold-Zahl. leftoverPick(iouOnly).
+- **leftoverCoastCosineMeasured.** LibraryStore leftover matching: HoldPrev über Remint-Lookup. Overlay `?` wenn Unsure.
+- **leftoverFaceTrackKalmanVel / Predict.** px/py/pw/ph im FaceTrack. Pack/Unpack/RemintDropMaps. Sleep-dt > 2 s tot.
+- **cameraMutexHeartbeatKillPid.** tot-PID SIGKILL unter LOCK_EX, Self nie, Live nie. CameraSession + LiveCapture.
+- Helios **1.5.168:** palmBind Joint-Group 16 vs 6 vor Conf-Tie.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.170 (Build 195). Schema 15 bleibt.
 
 ## Neu in 2.1.169 alpha
 

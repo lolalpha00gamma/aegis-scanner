@@ -1,3 +1,85 @@
+# Nachtrag 2026-09-07 — 1.5.168 / 2.1.170 (kein Merge von `bugfix`)
+
+Helios `bpms9cmnxc-debug/Helios` **1.5.168** (Build 187).
+Aegis `lolalpha00gamma/aegis-scanner` **2.1.170 alpha** (Build 195).
+Nur `main`. Agent-Regel: keine Nebenbranches. `bugfix` gelesen, nicht gemergt.
+
+2.1.169 Lookup las Hold/Kalman/Coast, leftoverPick bekam trotzdem leftoverHold[old.id] = nil und leftoverCoastCosine schob die Hold-Zahl 0,70 als Cosine. Twin im Kalman-Kasten erbte den Namen.
+
+## Warum es schlecht wirkte (dieser Pass)
+
+1. **leftoverHold als Cosine.** leftoverCoastPrintSkipCosine nil → leftoverCoastCosine(stored: 0,70). leftoverPickPrint fällt auf Hold. leftoverPrintOk(0,70) pinnt. Twin ohne Vec getauft.
+2. **leftoverPick holdPrev old.id.** Lookup saß nur beim Kandidaten-Bau. leftoverHoldPrevOf / leftoverAdvance lasen leftoverHold[old.id] nach Drop = nil.
+3. **Detect-Skip ohne Coast-Vec.** Hold-Zahl rankte Kandidaten, nicht IoU. Nachbar mit 0,70 schlug echte Überlappung.
+4. **Mutex tot-PID frei, Zombie blieb.** WRITE pidLive gibt den Lock frei. Der tote PID-Eintrag nach Sleep wurde nicht SIGKILL — hung Prozess 12 s.
+5. **palmBind Conf-Tie ohne Joint-Group.** Gitarre 6 Joints vs Hand 16, gleiche Scale: Vision-Conf, nicht Topologie.
+6. **Kalman-Vel nicht im FaceTrack.** Predict nach Remint 0. Maps extra, Struct kannte px/py nicht.
+7. Von `bugfix` (1.5.8 / 2.1.15) bewusst nicht gemergt: IOHID Event-Tap, AX SetPosition/Frame, Per-App-Gain, JSONL.
+
+## In 1.5.168 / 2.1.170 gelandet
+
+- **leftoverHoldViaLookup / leftoverHoldLookupUnsure.** skipCosine nil + Hold nur Lookup → Unsure `?`. leftoverPickPrint(holdOnlyUnsure) kein Hold-Fallback. leftoverPick tot.
+- **leftoverDetectSkipIoUOnly / leftoverPickArgmaxIou / leftoverPick(iouOnly).** Detect-Skip ohne Vec: max IoU, nicht Hold-Zahl.
+- **leftoverCoastCosineMeasured.** LibraryStore leftover matching. holdPrev = Remint-Lookup. Overlay `?`.
+- **leftoverFaceTrackKalmanVel / Predict.** px/py/pw/ph im FaceTrack. Pack/Unpack/RemintDropMaps. dt > 2 s tot.
+- **cameraMutexHeartbeatKillPid / KillAllowed.** tot-PID SIGKILL unter LOCK_EX. Self nie, Live nie. CameraSession + LiveCapture.
+- **palmBindJointGroupPrefers.** 16 vs 6 vor Conf-Tie. palmBindHandsFirst verdrahtet.
+- Tests + MARKETING 1.5.168 / 2.1.170 (Build 187 / 195). Schema 15 bleibt.
+
+Pass 11: Unsure ohne Vec, Detect-Skip IoU, Joint-Group, Heartbeat-SIGKILL, Kalman-Vel — 1.5.168 / 2.1.170.
+
+## Erweiterungen (neu, oben)
+
+1. **LibraryStore `[UUID: FaceTrack]` als Source of Truth.** Vel sitzt im Struct. Maps bleiben Schatten — ein Dict, Apply/Decode/Encode einmal.
+2. **Coast-Print in gallery.json.** Restart sonst Twin neu. leftoverCoastPrint nicht nur RAM.
+3. **leftoverTried nicht auf Unsure.** Nächster Tick mit Print darf pinnen. Jetzt leftoverTried.insert — Retry tot bis Dropout.
+4. **CameraBroker-XPC** — eine TCC, IOSurface an beide. Größter einzelner Effizienzgewinn.
+5. **App-Group `group.helios.aegis`.** Yield/Mutex/Pad einmal. Panel in Helios steuert Aegis.
+6. **Overlay Metal 90 Hz.** SwiftUI ForEach 21×2 tot. Detect 8–12 fps, Overlay 60 Hz, Baptize nur Detect-Tick.
+7. **IOHID Event-Tap** statt CGEvent (`bugfix`).
+8. **AX SetPosition ein Call/Frame** (`bugfix`).
+9. **Per-App Gain aus AX bundle id** (`bugfix`).
+10. **Gesture-Log JSONL** (`bugfix`).
+11. **Shared Fake-Lock-Test** tot-PID Write ohne AVCapture. Linux-CI Fixture.
+12. **Zwei-Phasen Mutex INTENT → Yield → CONFIRM** in der Lock-Zeile (Palm-Rect / Face-Rect) bis CameraBroker.
+13. **VNDetectHumanBodyPose** als Prop-Veto. Hand Shape-Prior statt neuer Thresholds.
+14. **Enrollment-HUD:** 3 Yaw-Slots + Blink bevor Taufe. Unsure-Chip sitzt, HUD fehlt.
+15. **Pair-Commit WAL** in gallery.json (Crash mitten im Twin).
+16. **Helios Kill-Switch Datei** neben Mutex — Aegis mutet Baptize solange Faust-Lock.
+17. **Face-Print ONNX sidecar** optional neben Vision — Open-Set Energy ehrlich.
+18. **Speaker-Diarization** als Aegis-Cue (wer spricht, bleibt S1).
+19. **Gemeinsames CameraMath-Package** (Mutex/Format/Rotation/Yield leben doppelt). Drift 1.5.168/2.1.170 sonst in einem Monat.
+20. **Lokaler Telemetry-Ring 30 s** (fps, ranks, remint, mutex, skip-ratio, claim-dt, unsure-ratio) + OSLog.
+21. **Center Stage force-off nach Sleep** in beiden Clients.
+22. **Continuity USB-Hub Watchdog** nach Sleep (uniqueID wechselt, Format 0×0).
+23. **Per-Slot One-Euro Cutoff aus fps**, nicht global 14 bei 8 fps.
+24. **SpaceMap Auto-Recalib** RMS > 24 px / 2 s, eine Karte je Display-UUID.
+25. **Two-mode Pointer:** Desk absolut, 0,8 s Dwell relativ.
+26. **Tests splitten** (GestureTests / MatchMathTests). Dateien > 200 kB.
+27. **Vision revision + VNTrackObjectRequest** statt eigenes Remint.
+28. **Gallery compaction:** pruneCosine 0,98 Burst raus, WAL checkpoint jede 50 Saves.
+29. **Aegis live outputQueue ≠ MainActor** — Detect-Jank nicht in SwiftUI.
+30. **Palm-Occlusion S2∩S1.** Hand-over-Face Mute über die Lock-Zeile.
+31. **destEdgePad Pref je Display-UUID.**
+32. **Kalman-Zeiger 2D** constant-velocity statt 1-Euro + Predict. FaceTrack-Vel ist der Baustein.
+33. **maximumHandCount 2** hart. Joint-Group sitzt, Observation-first bleibt Vision-seitig.
+34. **Latency-HUD** Tick zu AX-move, über 40 ms Gain halb.
+35. **Prefs je camera uniqueID** (Orient, Format, Pad).
+36. **leftoverSoftmaxBlocks bleibt auf leftoverScore.** Nicht auf Roh umstellen.
+37. **Shared integration test** Helios+Aegis gegen Fake-Lock-Datei.
+38. **Helios palmScale histogram prior Bayes** — Gitarre 0,29 vs Hand 0,14, nicht nur hartes Gate + Veto.
+39. **Mutex Heartbeat hung-live.** Jetzt nur tot-PID. Live-PID mit Stamp > 6 s nach Sleep nicht SIGKILL — bewusste Grenze.
+40. **FaceTrack Encode in gallery.json extra** — Restart lädt Maps, nicht das Struct (Vel stirbt).
+41. **stabilizeLiveMatches remint-aware.** Vote-Cap nach Remint 1 Tick statt 3.
+42. **OneEuro State in FaceTrack.** boxEuro remintet extra.
+43. **CI `swiftc` MatchMathTests + GestureTests vor DMG.** Linux-Sandbox hat kein Swift.
+44. **leftover matching Unsure-Streak.** 3× `?` hintereinander → leftoverClearStreak, nicht ewig Gast.
+45. **Coast-Vec TTL.** RAM-Cache ohne Print 2 s → nil, sonst Twin nach Stillstand.
+
+Bewusst nicht: Merge `bugfix`, Blind-Patch Schwellen, leftoverSoftmaxBlocks auf Roh, SIGKILL live-hung PID, CameraBroker in diesem Pass.
+
+Nächster Code-Schritt: `[UUID: FaceTrack]` als Store oder CameraBroker oder Overlay-Metal.
+
 # Nachtrag 2026-09-06 — 1.5.167 / 2.1.169 (kein Merge von `bugfix`)
 
 Helios `bpms9cmnxc-debug/Helios` **1.5.167** (Build 186).

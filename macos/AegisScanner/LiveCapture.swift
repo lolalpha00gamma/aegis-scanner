@@ -327,6 +327,14 @@ final class LiveCapture: NSObject {
             let existing = buf.isEmpty ? nil : String(bytes: buf, encoding: .utf8)
             let holderPid = existing.flatMap { MatchMath.cameraMutexPid($0) }
             let pidLive: Bool? = holderPid.map { p in p > 0 && (kill(p, 0) == 0 || errno == EPERM) }
+            if let victim = MatchMath.cameraMutexHeartbeatKillPid(
+                pid: holderPid,
+                live: pidLive,
+                now: now,
+                stamped: existing.flatMap { MatchMath.cameraMutexStamp($0) }
+            ), let killPid = MatchMath.cameraMutexHeartbeatKillAllowed(target: victim, selfPid: pid) {
+                _ = kill(killPid, SIGKILL)
+            }
             guard let line = MatchMath.cameraMutexLockedLine(
                 existing: existing, owner: owner, pid: pid, now: now, expectedGen: expectedGen, pidLive: pidLive
             ) else {

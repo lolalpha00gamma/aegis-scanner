@@ -3379,6 +3379,9 @@ final class LibraryStore: ObservableObject {
                 let oldKal = MatchMath.leftoverHoldRemintLookup(
                     hold: boxKalman, id: old.id, remap: remintPlan
                 )
+                let holdViaLookup = MatchMath.leftoverHoldViaLookup(
+                    hold: leftoverHold, id: old.id, remap: remintPlan
+                )
                 for (j, face) in adopted.enumerated() {
                     guard MatchMath.leftoverAdoptAllowed(
                         adoptedEnrolled: namedTracks.contains(face.id) || enrolled.contains(face.id)
@@ -3407,18 +3410,15 @@ final class LibraryStore: ObservableObject {
                         old: ov,
                         oldStored: cachedPrint
                     )
-                    let cosine: Double?
-                    if let liveCos {
-                        cosine = liveCos
-                    } else {
-                        cosine = MatchMath.leftoverCoastCosine(
-                            skipDetect: skipDetect,
-                            skipPrints: skipPrints,
-                            live: nil,
-                            stored: storedHold,
-                            livePrintEmpty: face.featurePrint.isEmpty && face.printVec.count < 32
-                        )
-                    }
+                    let cosine = MatchMath.leftoverCoastCosineMeasured(
+                        skipCosine: liveCos,
+                        skipDetect: skipDetect,
+                        skipPrints: skipPrints,
+                        live: nil,
+                        stored: storedHold,
+                        livePrintEmpty: face.featurePrint.isEmpty && face.printVec.count < 32,
+                        holdViaLookup: holdViaLookup
+                    )
                     cands.append((j, o, cosine))
                 }
                 leftoverItems.append((old, cands.compactMap(\.cosine).max(), cands))
@@ -3510,6 +3510,16 @@ final class LibraryStore: ObservableObject {
                     }
                     continue
                 }
+                let skipCosineBest = remaining.compactMap(\.cosine).max()
+                let holdUnsure = MatchMath.leftoverHoldLookupUnsure(
+                    skipCosine: skipCosineBest, holdViaLookup: holdViaLookup
+                )
+                let iouOnly = MatchMath.leftoverDetectSkipIoUOnly(
+                    skipCosine: skipCosineBest,
+                    skipDetect: skipDetect,
+                    skipPrints: skipPrints,
+                    holdViaLookup: holdViaLookup
+                )
                 guard let bestJ = MatchMath.leftoverPick(
                     candidates: remaining,
                     sharpness: sharp,
@@ -3517,7 +3527,7 @@ final class LibraryStore: ObservableObject {
                     yawAbs: yawAbs,
                     aspectOk: aspectOk,
                     twinPair: aegisHit?.pairCosine,
-                    holdPrev: leftoverHold[old.id],
+                    holdPrev: storedHold,
                     liveIds: liveIds,
                     leftoverId: old.id,
                     printId: aegisHit?.identityId,
@@ -3555,8 +3565,18 @@ final class LibraryStore: ObservableObject {
                     holdAt: now,
                     holdTTL: leftoverHoldTTL,
                     frameCapture: liveFrameCapture,
-                    holdOccupied: leftoverOccupiedHashes(except: old.id)
+                    holdOccupied: leftoverOccupiedHashes(except: old.id),
+                    holdOnlyUnsure: holdUnsure,
+                    iouOnly: iouOnly
                 ) else {
+                    if holdUnsure {
+                        if let best = remaining.max(by: { $0.iou < $1.iou }) {
+                            leftoverPending[adopted[best.index].id] = MatchMath.leftoverHoldLookupUnsureNote()
+                        }
+                        leftoverTried.insert(old.id)
+                        leftoverPins += 1
+                        continue
+                    }
                     let twin = aegisHit?.pairCosine
                     if let twinLabel = MatchMath.leftoverTwinPairLabel(pairCosine: twin) {
                         for cand in remaining {
@@ -3608,7 +3628,7 @@ final class LibraryStore: ObservableObject {
                     fallback: leftoverRankedHash(id: old.id, fallback: boxHash)
                 )
                 let holdPrev = MatchMath.leftoverHoldPrevOf(
-                    frontal: leftoverHold[old.id],
+                    frontal: storedHold,
                     yawAbs: abs(adopted[bestJ].quality.yaw),
                     bins: leftoverHoldBins,
                     id: old.id,
@@ -3715,7 +3735,7 @@ final class LibraryStore: ObservableObject {
                 leftoverPending.removeValue(forKey: adopted[bestJ].id)
                 let pinCos = remaining.first(where: { $0.index == bestJ })?.cosine ?? item.bestCos
                 let holdNow = MatchMath.leftoverHoldPrevOf(
-                    frontal: leftoverHold[old.id],
+                    frontal: storedHold,
                     yawAbs: abs(adopted[bestJ].quality.yaw),
                     bins: leftoverHoldBins,
                     id: old.id,
