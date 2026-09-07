@@ -1665,7 +1665,7 @@ enum FaceEngine {
     private static func stampPrints(_ faces: [FaceObservation], from image: CGImage, orientation: CGImagePropertyOrientation = .up, continuity: Bool = false, minSharpness: Double = MatchMath.sharpnessFloor, skipPrintBoxes: [FaceBox] = []) -> [FaceObservation] {
         let needPrint = faces.contains { face in
             !MatchMath.leftoverPrintSkipHits(face: face.box, skipBoxes: skipPrintBoxes)
-                && !MatchMath.skipPrint(sharpness: face.quality.sharpness, continuity: continuity)
+                && !MatchMath.skipPrint(sharpness: face.quality.sharpness, continuity: continuity, yaw: face.quality.yaw)
                 && face.quality.sharpness >= minSharpness
         }
         let found = needPrint ? facePrintsInImage(image, orientation: orientation) : []
@@ -1673,7 +1673,7 @@ enum FaceEngine {
         return faces.map { face in
             var next = face
             if MatchMath.leftoverPrintSkipHits(face: face.box, skipBoxes: skipPrintBoxes)
-                || MatchMath.skipPrint(sharpness: face.quality.sharpness, continuity: continuity)
+                || MatchMath.skipPrint(sharpness: face.quality.sharpness, continuity: continuity, yaw: face.quality.yaw)
             {
                 next.featurePrint = Data()
                 next.printVec = []

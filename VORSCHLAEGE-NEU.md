@@ -1,4 +1,19 @@
+# Aegis Nachtrag 2.1.189 — 2026-09-07
+
+Binary **2.1.189 alpha Build 214**. ¾-Enroll. Remint-Drop. TrackKind. Helios Kalman-Klemme.
+
+## In 2.1.189 gelandet
+
+1. skipPrint: ¾ (Bin 1) kein Quality-Skip. FaceEngine übergibt Yaw.
+2. leftoverFaceTrackRemint = Drop wenn canonical. Source-UUID tot.
+3. leftoverTrackKind live | coast | ghost. leftoverMissClears liest Kind.
+4. obsFillUsesMutexPts dt. Epoch-Mismatch → own.
+5. Tests + VERSION = Models = MARKETING 2.1.189 (Build 214). Schema 15 bleibt.
+
+Rest: CameraBroker, FaceTrack einzige Map, Overlay-Metal, CVPixelBuffer. Siehe VORSCHLAEGE-GROK.md.
+
 # Aegis Nachtrag 2.1.188 — 2026-09-07
+
 
 Binary **2.1.188 alpha Build 213**. Mutex v2, Kamera-Paar, Twin-tieKey ohne Yaw, Kill aus.
 

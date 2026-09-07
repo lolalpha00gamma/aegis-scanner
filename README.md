@@ -1,4 +1,4 @@
-# Aegis **2.1.188 alpha**
+# Aegis **2.1.189 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -14,7 +14,18 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
 
+## Neu in 2.1.189 alpha
+
+1.5.189/2.1.188: Mutex v2, Kamera-Paar, SIGKILL aus. skipPrint nutzte Yaw-Quality als Gate — ¾ kam nicht in die Bank. Remint hielt Source-UUIDs. FaceEngine übergab kein Yaw.
+
+- **skipPrint ¾** — Bin 1 enrollt. FaceEngine übergibt Yaw. Profil bleibt Skip.
+- **FaceTrack Remint = Drop** wenn canonical. Source-UUID tot.
+- **TrackKind** live | coast | ghost. leftoverMissClears liest Kind.
+- Helios **1.5.190:** Kalman-Prop-Klemme, Fill-Gap displayTick, SlotKind Joints+Span.
+- Tests + VERSION = Models = MARKETING 2.1.189 (Build 214). Schema 15 bleibt.
+
 ## Neu in 2.1.188 alpha
+
 
 Mutex v1 mischte 3/4/5 Felder. PTS-Cap 80 ms < Continuity-Frame. Twin x-Tie ohne Yaw tötete beide. Auto+Auto + SIGKILL.
 

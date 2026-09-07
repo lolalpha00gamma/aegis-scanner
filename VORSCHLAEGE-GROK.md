@@ -1,4 +1,11 @@
+# Nachtrag 2026-09-07 — 2.1.189 / 1.5.190 (kein Merge von `bugfix`)
+
+Aegis `lolalpha00gamma/aegis-scanner` **2.1.189 alpha** (Build 214).
+Helios `bpms9cmnxc-debug/Helios` **1.5.190** (Build 209).
+Nur `main`. ¾-Enroll, Remint-Drop, TrackKind. Helios Kalman-Klemme + Fill-Gap.
+
 # Nachtrag 2026-09-07 — 2.1.187 / 1.6.33 (kein Merge von `bugfix`)
+
 
 Aegis `lolalpha00gamma/aegis-scanner` **2.1.187 alpha** (Build 212).
 Helios `lolalpha00gamma/Helios` **1.6.33** (Build 66).

@@ -1032,8 +1032,15 @@ enum MatchMath {
     }
 
     /// Fill-Uhr: Mutex-PTS wenn Skew klein, sonst eigene. 80 ms war kürzer als Continuity 8 fps (125 ms).
-    static func obsFillUsesMutexPts(own: TimeInterval, mutex: TimeInterval?, maxSkew: TimeInterval = 0.22) -> TimeInterval {
-        guard let mutex, mutex > 0, own > 0, abs(own - mutex) <= maxSkew else { return own }
+    /// dt setzt Skew auf max(220 ms, 1,5×dt). Epoch-Mismatch bleibt own.
+    static func obsFillUsesMutexPts(
+        own: TimeInterval,
+        mutex: TimeInterval?,
+        maxSkew: TimeInterval = 0.22,
+        dt: TimeInterval = 0
+    ) -> TimeInterval {
+        let skew = max(maxSkew, dt > 0 ? dt * 1.5 : 0)
+        guard let mutex, mutex > 0, own > 0, abs(own - mutex) <= skew else { return own }
         return mutex
     }
 
@@ -3561,7 +3568,10 @@ enum MatchMath {
         _ tracks: [UUID: FaceTrack],
         remap: [UUID: UUID]
     ) -> [UUID: FaceTrack] {
-        leftoverFaceTrackRemintPair(leftoverHoldRemintApply(hold: tracks, remap: remap), remap: remap)
+        if leftoverFaceTrackIsCanonical() {
+            return leftoverFaceTrackRemintDrop(tracks, remap: remap)
+        }
+        return leftoverFaceTrackRemintPair(leftoverHoldRemintApply(hold: tracks, remap: remap), remap: remap)
     }
 
     static func leftoverFaceTrackRemintDrop(
@@ -4964,13 +4974,48 @@ enum MatchMath {
     /// Laplacian unter Floor: Print-Request lohnt nicht.
     /// Continuity/Desk-View oft 0,10–0,14 — dort 0,08 statt 0,12.
     /// yaw: Profil drückt Quality = sharpness×(1-|yaw°|/90) unter den Floor.
+    /// ¾ (Bin 1) darf enrollen — Quality-Druck durch Yaw ist kein Skip-Gate.
     static func skipPrint(sharpness: Double, continuity: Bool = false, yaw: Double? = nil) -> Bool {
         let floor = activeSharpnessFloor(continuity: continuity)
         if sharpness < floor { return true }
-        if let yaw {
-            return printQuality(sharpness: sharpness, yaw: yaw) < floor
+        guard let yaw else { return false }
+        if leftoverHoldBin(yawAbs: abs(yaw)) == 1 { return false }
+        return printQuality(sharpness: sharpness, yaw: yaw) < floor
+    }
+
+    static func printQualityBlocksEnroll(yawAbs: Double) -> Bool {
+        leftoverHoldBin(yawAbs: yawAbs) != 1
+    }
+
+    /// Coast analog Helios-Ghost. leftover miss > 0 ist nicht gleich tot.
+    enum TrackKind: String {
+        case live, coast, ghost
+    }
+
+    static func leftoverTrackKind(
+        miss: Int,
+        coastAt: TimeInterval? = nil,
+        now: TimeInterval = 0,
+        coastNeed: TimeInterval = 0.40
+    ) -> TrackKind {
+        if miss <= 0 { return .live }
+        if let t = coastAt, t > 0, now - t < coastNeed { return .coast }
+        if miss <= 4 { return .coast }
+        return .ghost
+    }
+
+    static func leftoverFaceTrackIsCanonical() -> Bool { true }
+
+    static func leftoverTrackKindKeeps(_ kind: TrackKind) -> Bool {
+        kind != .ghost
+    }
+
+    static func leftoverTrackKindChip(_ kind: TrackKind) -> String? {
+        switch kind {
+        case .live: return nil
+        case .coast: return "coast"
+        case .ghost: return "ghost"
         }
-        return false
     }
 
     /// sharpness × (1 − |yaw|/90°). Profil 90° → 0.
@@ -5377,7 +5422,7 @@ enum MatchMath {
     }
 
     static func leftoverMissClears(miss: Int, need: Int = leftoverMissNeed) -> Bool {
-        miss >= need
+        leftoverTrackKind(miss: miss) != .live && miss >= need
     }
 
     /// Leerer Detector-Frame wischt Streak/Kalman nicht. 8 fps Dropout = Gast n+1 sonst.

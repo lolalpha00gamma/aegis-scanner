@@ -1,4 +1,18 @@
+# Aegis 2.1.189 — ¾-Enroll, Remint-Drop, TrackKind
+
+Aegis **2.1.189 alpha** (Build 214). Helios **1.5.190** (Build 209). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.188: Mutex v2, Built-in-Default, Twin tieKey. skipPrint Yaw-Quality tötete ¾. Remint hielt Source. FaceEngine ohne Yaw.
+
+## Was 2.1.189 ändert
+
+1. **skipPrint Bin 1** kein Quality-Skip. FaceEngine übergibt Yaw.
+2. **leftoverFaceTrackRemint = Drop** wenn canonical.
+3. **TrackKind** live | coast | ghost. leftoverMissClears liest Kind.
+4. Tests + MARKETING 2.1.189 (Build 214). Schema 15 bleibt.
+
 # Aegis 2.1.188 — Kamera-Paar, Mutex v2, Twin ohne Yaw, kein SIGKILL
+
 
 Aegis **2.1.188 alpha** (Build 213). Helios **1.5.189** (Build 208). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
 
