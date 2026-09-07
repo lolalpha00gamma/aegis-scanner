@@ -1,4 +1,4 @@
-# Aegis **2.1.180 alpha**
+# Aegis **2.1.181 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.181 alpha
+
+Remint-UUID 1–3 Frames Overlay „?“ trotz Ada. leftoverOverlayGuestOf Need 3, Hist keep 1. Helios Hub-Doppelframe snappt Lerp, Floor 0,05 freeze, Reanchor hart 8 px.
+
+- **leftoverOverlayPeakGuest / PeakName / PeakAdvance.** Ada hält 3 Frames über „?“. Display dekrementiert nicht.
+- leftoverOverlayPeakHeld/Remain remint-drop, unique live Set.
+- Helios **1.5.180:** Lerp-Hitch Cap 2, overlayLerpDtOf, pointerReanchorRms.
+- Tests + VERSION = Models = MARKETING_VERSION 2.1.181 (Build 206). Schema 15 bleibt.
 
 ## Neu in 2.1.180 alpha
 

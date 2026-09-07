@@ -8023,5 +8023,73 @@ enum MatchMath {
         guard let n = name, !n.isEmpty else { return nil }
         return "store \(n)"
     }
+
+    /// „?“ / „??“ / Gast. „Ada?“ ist Name, kein Unsure.
+    static func leftoverOverlayPeakIsUnsure(_ name: String) -> Bool {
+        let t = name.trimmingCharacters(in: .whitespaces)
+        if t.isEmpty { return true }
+        if t == "?" || t == "??" { return true }
+        if t.hasPrefix("Gast") { return true }
+        return false
+    }
+
+    static func leftoverOverlayPeakBare(_ name: String) -> String {
+        var t = name.trimmingCharacters(in: .whitespaces)
+        if t.hasSuffix("?") && t != "?" && t != "??" {
+            t.removeLast()
+        }
+        return t
+    }
+
+    /// Remint-UUID 1–3 Frames „?“. Peak hält Ada, nicht UUID.
+    static func leftoverOverlayPeakGuest(
+        guest: String,
+        held: String?,
+        remaining: Int,
+        need: Int = 3
+    ) -> (name: String, remaining: Int) {
+        if !leftoverOverlayPeakIsUnsure(guest) { return (guest, need) }
+        if remaining > 0, let held, !leftoverOverlayPeakIsUnsure(held) {
+            return (held, remaining - 1)
+        }
+        return (guest, 0)
+    }
+
+    /// Display: PeakGuest dekrementiert. SwiftUI nach Advance — remain=0 hielte Ada tot.
+    static func leftoverOverlayPeakName(guest: String, held: String?) -> String {
+        if !leftoverOverlayPeakIsUnsure(guest) { return guest }
+        if let held, !leftoverOverlayPeakIsUnsure(held) { return held }
+        return guest
+    }
+
+    static func leftoverOverlayPeakAdvance(
+        guest: [UUID: String],
+        held: [UUID: String],
+        remain: [UUID: Int],
+        live: [UUID],
+        need: Int = 3
+    ) -> (held: [UUID: String], remain: [UUID: Int]) {
+        var h = held
+        var r = remain
+        let keep = Set(live)
+        for id in keep.union(Set(h.keys)) {
+            if !keep.contains(id) {
+                h.removeValue(forKey: id)
+                r.removeValue(forKey: id)
+                continue
+            }
+            let g = guest[id] ?? "?"
+            let step = leftoverOverlayPeakGuest(guest: g, held: h[id], remaining: r[id] ?? 0, need: need)
+            if leftoverOverlayPeakIsUnsure(step.name) {
+                h.removeValue(forKey: id)
+                r[id] = 0
+            } else {
+                h[id] = leftoverOverlayPeakBare(step.name)
+                r[id] = step.remaining
+            }
+        }
+        return (h, r)
+    }
+
 }
 

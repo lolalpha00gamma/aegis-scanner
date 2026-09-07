@@ -1,3 +1,99 @@
+# Nachtrag 2026-09-07 — 1.5.180 / 2.1.181 (kein Merge von `bugfix`)
+
+Helios `bpms9cmnxc-debug/Helios` **1.5.180** (Build 199).
+Aegis `lolalpha00gamma/aegis-scanner` **2.1.181 alpha** (Build 206).
+Nur `main`. Agent-Regel: keine Nebenbranches. `bugfix` gelesen, nicht gemergt.
+
+1.5.179 Overlay-Lerp an, Fill-Uhr Ghost, Reanchor-Split. Hub-Doppelframe snappt Lerp. Floor 0,05 freeze. Reanchor hart 8 px. Aegis Overlay „?“ 1–3 Frames nach Remint-UUID.
+
+## Warum es schlecht wirkte (dieser Pass)
+
+1. **overlayLerpShould true, Hitch tot.** Continuity-Hub schiebt 8–20 ms Doppelframe. dt 0,010 < 0,045 → Lerp-Tabellen leer, Skelett snappt auf 8 fps.
+2. **overlayLerpDt Floor 0,05.** 8 fps 0,125. t = elapsed/0,05 = 1 nach 50 ms, Freeze 75 ms bis zum nächsten Vision-Tick.
+3. **pointerReanchor hart 8 px.** 60 fps Built-in: 5 px CGWarp-Drift bleibt. Studio-Display snappt. 8 fps braucht 8 px, 60 fps 3 px.
+4. **Aegis leftoverOverlayGuestOf nach Remint.** Hist keep 1, Need 3. Sticky sitzt auf alter UUID. 1–3 Frames „?“ trotz Ada.
+5. **Zwei Sessions.** Mutex+TERM ist Pflaster. Ohne CameraBroker zwei Vision, zwei TCC.
+6. Von `bugfix` (1.5.8 / 2.1.15) bewusst nicht gemergt: IOHID Event-Tap, AX SetPosition/Frame, Per-App-Gain, JSONL.
+
+## In 1.5.180 / 2.1.181 gelandet
+
+- **pointerReanchorRms(dt:)** 8 fps → 8 px, 60 fps → 3 px. Kamera-Tick. HUD `REAN 3`.
+- **overlayLerpDtOf** ohne Floor 0,05.
+- **overlayLerpHitchKeeps** Hub-Doppelframe, Cap 2. AppState hält From/To. HUD `LERP hitch`.
+- **leftoverOverlayPeakGuest / PeakName / PeakAdvance** 3 Frames über Remint-UUID. Display dekrementiert nicht.
+- Tests + MARKETING 1.5.180 / 2.1.181 (Build 199 / 206). Schema 15 bleibt.
+
+Pass 22: Lerp-Hitch, Reanchor-RMS, Overlay-Peak — 1.5.180 / 2.1.181.
+
+## Erweiterungen (neu, oben)
+
+1. **CameraBroker-XPC** — eine TCC, IOSurface an beide. Größter einzelner Effizienzgewinn.
+2. **CMSampleBuffer-PTS als Fill-Uhr.** lastFillSeen ist Wandzeit. Continuity-Hub-Sleep vs PTS-Sprung.
+3. **FaceTrack `[UUID: FaceTrack]` als einziges leftover-Dict.** Matching bleibt Schatten-Maps.
+4. **Overlay Metal 90 Hz.** SwiftUI ForEach 21×2 tot. Lerp 8 fps glättet Knochen, nicht das HUD.
+5. **Eine Homographie je Display-UUID.**
+6. **POSIX-Semaphore + INTENT → Yield → CONFIRM.** flock überlebt Sleep/Hub schlecht.
+7. **Palm-Print Sticky-ID.** Wrist→Thumb statt Vision L/R.
+8. **Overlay-Why Inspector.** Tap auf HUD-Chip zeigt Veto.
+9. **Latency-HUD Tick→AX.**
+10. **App-Group `group.helios.aegis`.**
+11. **IOHID Event-Tap** (`bugfix` 1.5.8).
+12. **AX SetPosition ein Call/Frame** (`bugfix`).
+13. **Per-App Gain aus AX bundle id** (`bugfix`).
+14. **Gesture-Log JSONL** (`bugfix`).
+15. **Enrollment-HUD 3-Slot im Overlay.**
+16. **Helios liest Aegis leftover-Boxen** als Palm-Occlusion.
+17. **Watch-IMU Pinch-Confirm.**
+18. **Vision Hand-Mesh** (macOS 26).
+19. **Aegis-Yaw als Helios Click-Lock.**
+20. **VNDetectHumanBodyPose** als Prop-Veto.
+21. **Gemeinsames CameraMath-Package.**
+22. **Telemetry-Ring 30 s + OSLog.**
+23. **Center Stage force-off nach Sleep.**
+24. **Continuity USB-Hub Watchdog + AVCaptureSession interruption.**
+25. **SpaceMap Auto-Recalib** RMS > 24 px / 2 s.
+26. **Two-mode Pointer:** Desk absolut, 0,8 s Dwell relativ.
+27. **Tests splitten** (GestureTests / MatchMathTests > 200 kB).
+28. **VNTrackObjectRequest** statt Remint.
+29. **Aegis live outputQueue ≠ MainActor.**
+30. **Kalman-Zeiger 2D** constant-velocity.
+31. **Guitar-Schwelle aus Sitzabstand** (IOD / FOV).
+32. **Negativ-Galerie Props.**
+33. **Print-Bank PCA-Whitening.**
+34. **Cursor-Magnetismus** 8 px an AX-Hit.
+35. **Dwell-Klick** optional neben Pinzette.
+36. **Doorbell-Cue.**
+37. **Clamshell: Vision pausieren.**
+38. **Jerk Dead-Man.**
+39. **Lock Schema v2.**
+40. **Vision Pro Sidecar.**
+41. **CI `swiftc` Tests vor DMG.**
+42. **Helios Kill-Switch Datei** neben Mutex.
+43. **Continuity double-frame drop** vor Vision (AVCapture coalesce < 45 ms).
+44. **Overlay Knochen-Längen Constraint** nach Bezier — Tips überschwingen sonst.
+45. **leftoverOverlayPeak IoU-Adopt** wenn Remint-Map fehlt.
+46. **DisplayLink rebase auf PTS** nach Hub-Sleep.
+47. **Swift Testing** statt DIY `ok()`.
+48. **nv12 IOSurface zero-copy** sobald CameraBroker sitzt.
+49. **Pinch-Hysterese aus palmScale**, nicht px.
+50. **Face-Print Cosine-EMA** statt Majority-3.
+51. **Mutex kevent EVFILT_VNODE + fcntl** statt flock-only.
+52. **Helios Warp nur auf Display-UUID** unter dem Cursor.
+53. **VNDetectFaceRectangles tracking-ID** statt Eigen-Remint.
+54. **Camera interruption-Handler** + Session-Restart-Token.
+55. **Overlay-Name Peak über Empty-Coast** (Hold ohne UUID).
+56. **One-Euro minCutoff aus MAD**, nicht nur fps.
+57. **Helios CGEventSource HID-Post** (`bugfix` IOHID Vorstufe).
+58. **Aegis liveNameHist Ring nach Peak**, nicht vor.
+59. **Bone-velocity clamp Overlay** (Bezier überschwingt Tips).
+60. **Shared flock INTENT-byte** in Lockfile Schema v2.
+61. **S2 Pinch-Mute aus Yaw** (Aegis Blick weg = Helios kein Klick).
+62. **Fill-Gap Predict nur wenn PTS monoton.**
+63. **Overlay-Ghost Peak an Hitch koppeln** — Hub-Frame kein Ghost-Reset.
+64. **Print-Bank k-NN 3** statt 1-NN Burst.
+
+Bewusst nicht: Merge `bugfix`, Blind-Patch Schwellen, CameraBroker in diesem Pass, FaceTrack-Store-Rewrite, Overlay-Metal.
+
 # Nachtrag 2026-09-07 — 1.5.179 / 2.1.180 (kein Merge von `bugfix`)
 
 Helios `bpms9cmnxc-debug/Helios` **1.5.179** (Build 198).

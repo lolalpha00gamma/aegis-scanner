@@ -4691,6 +4691,43 @@ enum MatchMathTests {
         ok(MatchMath.leftoverPairCommitWALAgeOk(age: 10), "WAL Age 10 s")
         ok(!MatchMath.leftoverPairCommitWALAgeOk(age: 90_000), "WAL Age 24 h tot")
 
+        ok(MatchMath.leftoverOverlayPeakIsUnsure("?"), "Peak Unsure ?")
+        ok(MatchMath.leftoverOverlayPeakIsUnsure("??"), "Peak Unsure ??")
+        ok(MatchMath.leftoverOverlayPeakIsUnsure("Gast 1"), "Peak Unsure Gast")
+        ok(!MatchMath.leftoverOverlayPeakIsUnsure("Ada"), "Peak Ada tot")
+        ok(!MatchMath.leftoverOverlayPeakIsUnsure("Ada?"), "Peak Ada? tot")
+        ok(MatchMath.leftoverOverlayPeakBare("Ada?") == "Ada", "Peak Bare Ada?")
+        ok(MatchMath.leftoverOverlayPeakBare("?") == "?", "Peak Bare ?")
+        let pg0 = MatchMath.leftoverOverlayPeakGuest(guest: "Ada", held: nil, remaining: 0)
+        ok(pg0.name == "Ada" && pg0.remaining == 3, "Peak Guest Ada reset")
+        let pg1 = MatchMath.leftoverOverlayPeakGuest(guest: "?", held: "Ada", remaining: 3)
+        ok(pg1.name == "Ada" && pg1.remaining == 2, "Peak Guest hält Ada")
+        let pg2 = MatchMath.leftoverOverlayPeakGuest(guest: "?", held: "Ada", remaining: 1)
+        ok(pg2.name == "Ada" && pg2.remaining == 0, "Peak Guest last")
+        let pg3 = MatchMath.leftoverOverlayPeakGuest(guest: "?", held: "Ada", remaining: 0)
+        ok(pg3.name == "?" && pg3.remaining == 0, "Peak Guest tot")
+        let pid = UUID()
+        let dead = UUID()
+        let adv = MatchMath.leftoverOverlayPeakAdvance(
+            guest: [pid: "?"],
+            held: [pid: "Ada", dead: "Bert"],
+            remain: [pid: 3, dead: 3],
+            live: [pid]
+        )
+        ok(adv.held[pid] == "Ada" && adv.remain[pid] == 2, "Peak Advance Ada")
+        ok(adv.held[dead] == nil, "Peak Advance tot-UUID")
+        let adv2 = MatchMath.leftoverOverlayPeakAdvance(
+            guest: [pid: "Ada"],
+            held: [:],
+            remain: [:],
+            live: [pid]
+        )
+        ok(adv2.held[pid] == "Ada" && adv2.remain[pid] == 3, "Peak Advance live reset")
+        ok(MatchMath.leftoverOverlayPeakName(guest: "?", held: "Ada") == "Ada", "Peak Name hält")
+        ok(MatchMath.leftoverOverlayPeakName(guest: "Ada", held: "Bert") == "Ada", "Peak Name live")
+        ok(MatchMath.leftoverOverlayPeakName(guest: "?", held: nil) == "?", "Peak Name tot")
+        ok(MatchMath.leftoverOverlayPeakName(guest: "??", held: "Ada") == "Ada", "Peak Name ??")
+
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)
             exit(1)

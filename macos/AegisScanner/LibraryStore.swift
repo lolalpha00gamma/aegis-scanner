@@ -174,6 +174,8 @@ final class LibraryStore: ObservableObject {
     }
     private var leftoverNameLockUntil: [UUID: TimeInterval] = [:]
     private var leftoverNameLockHeld: [UUID: String] = [:]
+    private var leftoverOverlayPeakHeld: [UUID: String] = [:]
+    private var leftoverOverlayPeakRemain: [UUID: Int] = [:]
     private var leftoverLastHash: [UUID: String] = [:]
     private var leftoverCaptureHistByHash: [String: [Double]] = [:]
     private var leftoverCaptureHistAt: [String: TimeInterval] = [:]
@@ -1655,7 +1657,8 @@ final class LibraryStore: ObservableObject {
     }
 
     /// Mehrheit < Need: „?“ statt Gast-Taufe Tick 1. Streak 2 = „??“.
-    func leftoverOverlayGuest(for id: UUID) -> String {
+    /// Peak-Hold 3 Frames über Remint-UUID — SwiftUI-Body mutiert nicht.
+    func leftoverOverlayGuestRaw(for id: UUID) -> String {
         let hist = liveNameHist[id] ?? []
         let need = 3
         return MatchMath.leftoverOverlayGuestOf(
@@ -1666,6 +1669,13 @@ final class LibraryStore: ObservableObject {
             guest: guestName(for: id),
             streak: leftoverUnsureTicks[id] ?? 0,
             sticky: leftoverNameLockHeld[id]
+        )
+    }
+
+    func leftoverOverlayGuest(for id: UUID) -> String {
+        MatchMath.leftoverOverlayPeakName(
+            guest: leftoverOverlayGuestRaw(for: id),
+            held: leftoverOverlayPeakHeld[id]
         )
     }
 
@@ -2086,6 +2096,8 @@ final class LibraryStore: ObservableObject {
         leftoverMissCoastTicks = 0
         leftoverNameLockUntil = [:]
         leftoverNameLockHeld = [:]
+        leftoverOverlayPeakHeld = [:]
+        leftoverOverlayPeakRemain = [:]
         liveNameVoteAt = [:]
         tapNameLockUntil = [:]
         liveFaceStreak = 0
@@ -3122,7 +3134,8 @@ final class LibraryStore: ObservableObject {
             Set(liveBlinkSeen.keys), Set(liveOpenStreak.keys), Set(boxEuro.keys),
             Set(boxJumpPending.keys),
             Set(leftoverCoastPrint.keys), Set(leftoverCoastPrintAt.keys),
-            Set(leftoverUnsureTicks.keys), Set(leftoverPrintYaw.keys)
+            Set(leftoverUnsureTicks.keys), Set(leftoverPrintYaw.keys),
+            Set(leftoverOverlayPeakHeld.keys)
         ])
         let remintPlan = MatchMath.leftoverHoldRemintMap(
             live: remintLive,
@@ -3192,6 +3205,8 @@ final class LibraryStore: ObservableObject {
         leftoverUnsureTicks = faceMaps.unsureTicks.isEmpty
             ? MatchMath.leftoverHoldRemintDrop(hold: leftoverUnsureTicks, remap: remintPlan)
             : faceMaps.unsureTicks
+        leftoverOverlayPeakHeld = MatchMath.leftoverHoldRemintDrop(hold: leftoverOverlayPeakHeld, remap: remintPlan)
+        leftoverOverlayPeakRemain = MatchMath.leftoverHoldRemintDrop(hold: leftoverOverlayPeakRemain, remap: remintPlan)
         leftoverPrintYaw = MatchMath.leftoverHoldRemintDrop(hold: leftoverPrintYaw, remap: remintPlan)
         leftoverHoldTrail = MatchMath.leftoverHoldRemintDrop(hold: leftoverHoldTrail, remap: remintPlan)
         liveSlotHold = MatchMath.leftoverHoldRemintDrop(hold: liveSlotHold, remap: remintPlan)
@@ -3282,6 +3297,18 @@ final class LibraryStore: ObservableObject {
             locked: lockedIds,
             ghosts: ghostIds
         )
+        do {
+            let peakLive = Array(Set(liveIds + adopted.map(\.id) + ghostIds))
+            let guests = Dictionary(uniqueKeysWithValues: peakLive.map { ($0, leftoverOverlayGuestRaw(for: $0)) })
+            let advanced = MatchMath.leftoverOverlayPeakAdvance(
+                guest: guests,
+                held: leftoverOverlayPeakHeld,
+                remain: leftoverOverlayPeakRemain,
+                live: peakLive
+            )
+            leftoverOverlayPeakHeld = advanced.held
+            leftoverOverlayPeakRemain = advanced.remain
+        }
         leftoverHold = MatchMath.leftoverHoldSurvive(hold: leftoverHold, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)
         leftoverHoldBins = MatchMath.leftoverHoldSurviveBins(hold: leftoverHoldBins, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)
         leftoverHoldTrail = MatchMath.leftoverHoldSurvive(hold: leftoverHoldTrail, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)

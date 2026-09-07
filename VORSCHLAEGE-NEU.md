@@ -1,3 +1,16 @@
+# Aegis Nachtrag 2.1.181 — 2026-09-07
+
+Binary **2.1.181 alpha Build 206**. Overlay-Peak 3 Frames nach Remint. Helios Lerp-Hitch + Reanchor-RMS.
+
+## In 2.1.181 gelandet
+
+1. leftoverOverlayPeakGuest / PeakName / PeakAdvance — Ada hält 3 Frames über „?“
+2. leftoverOverlayPeakHeld/Remain remint-drop + unique live Set
+3. Display PeakName dekrementiert nicht (SwiftUI nach Advance)
+4. Tests + VERSION = Models = MARKETING_VERSION 2.1.181 (Build 206)
+
+Rest: CameraBroker, Overlay-Metal, IOHID, FaceTrack-Store. Siehe VORSCHLAEGE-GROK.md.
+
 # Aegis Nachtrag 2.1.180 — 2026-09-07
 
 Binary **2.1.180 alpha Build 205**. Overlay-Sticky nach Remint/TTL. Helios Overlay-Lerp + Fill-Uhr.

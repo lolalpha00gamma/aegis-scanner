@@ -1,3 +1,24 @@
+# Aegis + Helios — Analyse 2026-09-07 (2.1.181)
+
+Aegis **2.1.181 alpha** (Build 206). Helios **1.5.180** (Build 199). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
+
+2.1.180: Overlay-Sticky nach Remint/TTL. Sticky sitzt auf alter UUID. Hist keep 1 vs Need 3 → „?“. Helios Lerp-Hitch tot.
+
+## Warum Match nach 2.1.180 weiter riss
+
+1. **Remint-UUID.** leftoverOverlayGuestOf Need 3, Hist keep 1. Sticky auf tot-UUID.
+2. **Peak fehlte.** 1–3 Frames Overlay „?“ obwohl Ada live.
+3. **Helios Hub-Doppelframe / Floor 0,05 / Reanchor 8 px hart.**
+
+## Was 2.1.181 ändert
+
+1. leftoverOverlayPeakGuest / PeakName / PeakAdvance 3 Frames.
+2. PeakHeld remint-drop. Display PeakName ohne Dekrement.
+3. Helios 1.5.180 Lerp-Hitch, overlayLerpDtOf, pointerReanchorRms.
+4. Tests + VERSION = Models = MARKETING 2.1.181 (Build 206).
+
+`bugfix` mergen: nein.
+
 # Aegis + Helios — Analyse 2026-09-07 (2.1.180)
 
 Aegis **2.1.180 alpha** (Build 205). Helios **1.5.179** (Build 198). Nur `main`. `bugfix` ist 2.1.15 — nichts mergen.
