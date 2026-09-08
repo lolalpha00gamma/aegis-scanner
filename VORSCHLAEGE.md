@@ -1,4 +1,47 @@
+# 2.1.218 — Lookalike Negative, Night/IR Gate, Guest-TTL, Hidden-Album.
+
+## In 2.1.218 wirklich im Code
+
+2.1.217 Temporal Vote, Capture-Skip, People-Dup, Enroll-Meter. Twins 0,91/0,88 tauften. Nacht-Continuity vergiftete Prints. Gäste ohne Print blieben. Hidden-Album als People-Seed.
+
+1. **Lookalike Negative-Embed.** `lookalikeNegative` / `lookalikeNegativeScores` in leftoverPick + rank. `lookalikeRejectedCap`.
+2. **Night/IR Continuity Luma-Gate.** `nightIRPrintSkip` in `stampPrints`.
+3. **Guest-TTL 30 s.** `guestTTLExpired` + `pruneGuestTTL` vor persist.
+4. **Photos Hidden-Album skip.** `peopleAlbumSkipHidden`.
+5. Tests + VERSION = Models = MARKETING 2.1.218 (Build 243). Schema 15 bleibt.
+
+## Erweiterung (neu, 2.1.218)
+
+1. **CameraBroker XPC + IOSurface** mit Helios. Eine TCC. P0.
+2. **gallery ANN / HNSW** nach Print-Index.
+3. **Identity-Merge-Wizard** Cosine 0,89–0,94 + Pairwise-Heatmap.
+4. **Print-Cache persist** auf Disk (RAM tot nach Restart).
+5. **LiveCapture nicht @MainActor.**
+6. **Face-Print Versioning** nach Vision-Modellwechsel.
+7. **RAW/HEIC Watch-Folder** ohne JPEG-Probe.
+8. **Export Embeddings** JSONL für Offline-HNSW.
+9. **UMAP Cluster-View** der Galerie.
+10. **Merge-Undo 30 s** nach People-Dup Skip.
+11. **Capture-Quality Spark** an der Overlay-Box.
+12. **Enrollment Liveness** Front→¾L→¾R als Pflicht, nicht nur Chip.
+13. **Glasses On/Off Twin-Templates.**
+14. **Per-Camera WB-Lock** damit Nacht-IR Prints nicht driftet.
+15. **Cosine 3-Tick Median** statt leftoverHold-EMA.
+16. **Auto-Split Twins** aus FA-Matrix.
+17. **P-Slot Maske/Schal**, Brille Twin-Veto.
+18. **ReID-Graph** Hold-Trail.
+19. **Stereo Built-in + Continuity** Disparität als Yaw-Prior.
+20. **Overlay CAMetalLayer 60 Hz.**
+21. **Gemeinsamer CVPixelBuffer** Detect+Print.
+22. **Drop-in `.mlmodel`** Print-Backbone.
+23. **gallery.json.bak Rotate 3.**
+24. **mmap leftover-Boxen** Helios↔Aegis Palm-Occlusion.
+25. **Video-Cut ReID** über Szenenwechsel.
+
+P0 CameraBroker. Kein neues leftover*-Flag.
+
 # 2.1.217 — Temporal Vote, Capture-Quality Skip, People-Dup, Enroll-Meter.
+
 
 ## In 2.1.217 wirklich im Code
 

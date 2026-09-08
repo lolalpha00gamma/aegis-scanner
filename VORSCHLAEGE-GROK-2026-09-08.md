@@ -1,3 +1,29 @@
+# Aegis Vorschläge — 2026-09-08 (Pass 19, 2.1.218)
+
+Stand 2.1.218 alpha. Lookalike, Night/IR, Guest-TTL, Hidden-Album.
+
+## Gelandet in 2.1.218
+
+- lookalikeNegative / lookalikeNegativeScores / lookalikeRejectedCap
+- nightIRPrintSkip in stampPrints
+- guestTTLExpired + pruneGuestTTL
+- peopleAlbumSkipHidden
+
+## Erweiterung (neu)
+
+181. **Print-Cache persist** Disk.
+182. **LiveCapture off MainActor.**
+183. **Enrollment Liveness Pflicht.**
+184. **Glasses On/Off Templates.**
+185. **Per-Camera WB-Lock.**
+186. **Cosine 3-Tick Median.**
+187. **Auto-Split Twins** FA-Matrix.
+188. **HNSW Gallery.**
+189. **Merge-Undo 30 s.**
+190. **Capture-Quality Spark.**
+
+P0: CameraBroker. Kein neues leftover*-Flag.
+
 # Aegis Vorschläge — 2026-09-08 (Pass 18, 2.1.217)
 
 Stand 2.1.217 alpha. Temporal Vote, Capture-Skip, People-Dup, Enroll-Meter.

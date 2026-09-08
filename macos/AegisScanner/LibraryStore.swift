@@ -430,7 +430,26 @@ final class LibraryStore: ObservableObject {
         }
     }
 
+    private func pruneGuestTTL() {
+        let now = Date()
+        let drop = identities.filter { ident in
+            let enrolled = ident.faceIds.compactMap { fid in
+                faces.first { $0.id == fid }?.enrolledAt
+            }.min()
+            return MatchMath.guestTTLExpired(
+                isGuest: MatchMath.guestPersistKeeps(name: ident.name),
+                enrolledAt: enrolled,
+                now: now,
+                lastSeen: leftoverStreakSince[ident.id.uuidString]
+            )
+        }
+        guard !drop.isEmpty else { return }
+        let ids = Set(drop.map(\.id))
+        identities.removeAll { ids.contains($0.id) }
+    }
+
     private func persist() {
+        pruneGuestTTL()
         GalleryFile.save(
             identities: identities,
             faces: faces,
@@ -5213,6 +5232,11 @@ final class LibraryStore: ObservableObject {
                     if seeded >= 8 { stop.pointee = true; return }
                     let name = col.localizedTitle ?? ""
                     if MatchMath.peopleAlbumSkipEmpty(name) { return }
+                    if MatchMath.peopleAlbumSkipHidden(
+                        title: name,
+                        subtypeRaw: Int(col.assetCollectionSubtype.rawValue),
+                        isHidden: false
+                    ) { return }
                     if self.identities.contains(where: {
                         MatchMath.peopleAlbumPersonKey($0.name) == MatchMath.peopleAlbumPersonKey(name)
                     }) { return }

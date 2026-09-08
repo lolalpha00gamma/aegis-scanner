@@ -1118,7 +1118,9 @@ enum FaceEngine {
         let strong = (best?.percent ?? 0) >= 90 && margin >= 4
         let hasRival = second != nil
         let assign: Bool
-        if hasRival {
+        if MatchMath.lookalikeNegativePercent(best: best?.percent ?? 0, second: second?.percent ?? 0) {
+            assign = false
+        } else if hasRival {
             assign = (best?.percent ?? 0) >= floors.match && (margin >= minMargin || strong)
         } else {
             assign = (best?.percent ?? 0) >= floors.solo && minMargin <= embedMargin
@@ -1680,6 +1682,15 @@ enum FaceEngine {
     }
 
     private static func stampPrints(_ faces: [FaceObservation], from image: CGImage, orientation: CGImagePropertyOrientation = .up, continuity: Bool = false, minSharpness: Double = MatchMath.sharpnessFloor, skipPrintBoxes: [FaceBox] = []) -> [FaceObservation] {
+        let luma01 = lumaStats(image).mean / 255.0
+        if MatchMath.nightIRPrintSkip(luma: luma01, continuity: continuity) {
+            return faces.map { face in
+                var next = face
+                next.featurePrint = Data()
+                next.printVec = []
+                return next
+            }
+        }
         let needPrint = faces.contains { face in
             !MatchMath.leftoverPrintSkipHits(face: face.box, skipBoxes: skipPrintBoxes)
                 && !MatchMath.skipPrint(sharpness: face.quality.sharpness, continuity: continuity, yaw: face.quality.yaw)

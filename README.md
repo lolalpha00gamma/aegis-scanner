@@ -1,4 +1,4 @@
-# Aegis **2.1.217 alpha**
+# Aegis **2.1.218 alpha**
 
 
 
@@ -14,6 +14,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.218 alpha
+
+2.1.217 Temporal Vote, Capture-Skip, People-Dup, Enroll-Meter. Twins tauften trotzdem (0,91 vs 0,88). Nacht-Continuity vergiftete Prints. Gäste blieben ewig. Hidden-Album wurde geseedet.
+
+- **Lookalike Negative-Embed.** Gap < 0,04 bei beiden hoch → kein Name, Hard-Negativ-Cap.
+- **Night/IR Luma-Gate.** Continuity Luma < 0,12 skippt Print.
+- **Guest-TTL 30 s.** Auto-Forget ohne lastSeen.
+- **Photos Hidden-Album skip.** Hidden / Zuletzt gelöscht / subtype 205.
+- Tests + VERSION = Models = MARKETING 2.1.218 (Build 243). Schema 15 bleibt.
 
 ## Neu in 2.1.217 alpha
 

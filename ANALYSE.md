@@ -1,4 +1,22 @@
+# Aegis 2.1.218 — Lookalike Negative, Night/IR Gate, Guest-TTL, Hidden-Album
+
+Aegis **2.1.218 alpha** (Build 243). Helios **1.6.56** (Build 89). Nur `main`. `bugfix` mergen: nein.
+
+## Was 2.1.218 ändert
+
+2.1.217: Temporal Vote, Capture-Skip, People-Dup, Enroll-Meter. Danach tauften Twins (Ada 0,91 / Ben 0,88) — Softmax-Block braucht beide unter Floor, Gap-Unsure 0,08 ließ 0,03 durch wenn beide hoch. Continuity-Nacht druckte IR-Müll (CLAHE hellte, Print blieb). Gäste ohne lastSeen blieben in gallery.json. People-Seed nahm Hidden/Zuletzt gelöscht.
+
+| # | Bug | Fix |
+|---|---|---|
+| 1 | Twin False-Accept | `lookalikeNegative` in leftoverPick + rank |
+| 2 | Nacht-Print Gift | `nightIRPrintSkip` Luma < 0,12 |
+| 3 | Gast-Müll | `guestTTLExpired` 30 s + lastSeen |
+| 4 | Hidden-Album Seed | `peopleAlbumSkipHidden` |
+
+Nicht: CameraBroker, HNSW, LiveCapture off MainActor, Overlay-Metal.
+
 # Aegis 2.1.217 — Temporal Vote, Capture-Quality Skip, People-Dup, Enroll-Meter
+
 
 Aegis **2.1.217 alpha** (Build 242). Helios **1.6.55** (Build 88). Nur `main`. `bugfix` mergen: nein.
 

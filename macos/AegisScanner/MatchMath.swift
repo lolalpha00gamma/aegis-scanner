@@ -439,6 +439,7 @@ enum MatchMath {
         let floorRaw = pool.map { origRaw[$0.index] ?? ($0.cosine ?? -1) }
         if leftoverAmbiguousBlocks(raw: floorRaw, scored: scored) { return nil }
         if leftoverSoftmaxBlocks(leftoverScoreSoftmax(scored, gallery: gallery), capture: session) { return nil }
+        if lookalikeNegativeScores(floorRaw) { return nil }
         let arg = leftoverPickArgmax(raw: floorRaw, scored: scored)
         let rawBest = floorRaw.indices.max(by: { floorRaw[$0] < floorRaw[$1] })
         if arg == rawBest, leftoverOpenSetUnsure(scores: floorRaw) { return nil }
@@ -2134,6 +2135,67 @@ enum MatchMath {
         if q < 40 { return "Q \(q) · schwach" }
         if q < 70 { return "Q \(q)" }
         return "Q \(q) · gut"
+    }
+
+    /// Twin-False-Accept: beide hoch und Gap klein → kein Name.
+    static func lookalikeNegative(
+        best: Double,
+        second: Double,
+        bestFloor: Double = 0.80,
+        secondFloor: Double = 0.76,
+        gap: Double = 0.04
+    ) -> Bool {
+        best >= bestFloor && second >= secondFloor && (best - second) < gap
+    }
+
+    static func lookalikeNegativeScores(_ scores: [Double]) -> Bool {
+        let ok = scores.filter { $0.isFinite }.sorted(by: >)
+        guard ok.count >= 2 else { return false }
+        return lookalikeNegative(best: ok[0], second: ok[1])
+    }
+
+    static func lookalikeNegativePercent(best: Double, second: Double) -> Bool {
+        lookalikeNegative(best: best / 100, second: second / 100)
+    }
+
+    /// Probe als Hard-Negativ an beide Kandidaten, Cap 8.
+    static func lookalikeRejectedCap(_ vecs: [[Double]], adding: [Double], cap: Int = 8) -> [[Double]] {
+        guard adding.count >= 32 else { return vecs }
+        var out = vecs
+        out.append(adding)
+        if out.count > cap { out.removeFirst(out.count - cap) }
+        return out
+    }
+
+    /// Continuity Nacht/IR: Luma < 0,12 vergiftet den Print.
+    static func nightIRPrintSkip(luma: Double, continuity: Bool, floor: Double = 0.12) -> Bool {
+        continuity && luma >= 0 && luma < floor
+    }
+
+    /// Gast ohne Print 30 s → Forget. Enrolled Namen bleiben.
+    static func guestTTLNeed() -> TimeInterval { 30 }
+
+    static func guestTTLExpired(
+        isGuest: Bool,
+        enrolledAt: Date?,
+        now: Date = Date(),
+        ttl: TimeInterval = 30,
+        lastSeen: TimeInterval? = nil
+    ) -> Bool {
+        guard isGuest else { return false }
+        let t = lastSeen ?? enrolledAt?.timeIntervalSince1970 ?? 0
+        guard t > 0 else { return false }
+        return now.timeIntervalSince1970 - t >= ttl
+    }
+
+    /// Hidden / Zuletzt gelöscht nie seeden.
+    static func peopleAlbumSkipHidden(title: String, subtypeRaw: Int = 0, isHidden: Bool = false) -> Bool {
+        if isHidden { return true }
+        if subtypeRaw == 205 { return true }
+        let t = title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if t.isEmpty { return false }
+        return t == "hidden" || t == "ausgeblendet" || t.contains("hidden album")
+            || t == "recently deleted" || t == "zuletzt gelöscht" || t.contains("gelöscht")
     }
 
     /// authorized = 3, limited = 4. Restricted/denied tot.
