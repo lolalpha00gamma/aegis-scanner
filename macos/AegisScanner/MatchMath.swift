@@ -3057,17 +3057,63 @@ enum MatchMath {
     }
 
     /// leftoverLastHash leer nach Restart: Hash-Key aus leftoverHoldByHash, nur Solo.
-    /// Twin bleibt Exact-only.
+    /// Twin bleibt Exact-only. 1 Hold + fremder Hash (2 Faces) stiehlt den Nachbarn.
     static func leftoverHoldByHashSolo(
         liveHash: String,
         holdIDs: [UUID],
-        tableKeys: [String]
+        tableKeys: [String],
+        facesInFrame: Int = 1
     ) -> UUID? {
-        leftoverHoldByHashRescue(
+        guard holdIDs.count == 1, facesInFrame <= 1 else { return nil }
+        let people = Set(tableKeys.map { leftoverHoldHashSpatial($0) }.filter { !$0.isEmpty })
+        guard people.count == 1 else { return nil }
+        return leftoverHoldByHashRescue(
             liveHash: liveHash,
             stored: holdIDs.map { ($0, "") },
-            tableKeys: tableKeys
+            tableKeys: tableKeys,
+            facesInFrame: facesInFrame
         )
+    }
+
+    /// Ghost-Hashes nach Coast-TTL: Occupied nur Live. Sonst Exact-Hold tot.
+    static func leftoverOccupiedLiveOnly(
+        stored: [String],
+        live: [String],
+        coastExpired: Bool
+    ) -> [String] {
+        leftoverOccupiedMerge(stored: coastExpired ? [] : stored, live: live)
+    }
+
+    /// leftoverLastHash nach Coast: UUID weder live noch Coast → Ghost, Occupied tot.
+    static func leftoverOccupiedGhostDrop(
+        stored: [(id: UUID, hash: String)],
+        liveIDs: Set<UUID>,
+        coastIDs: Set<UUID>
+    ) -> [String] {
+        stored.compactMap { row in
+            guard !row.hash.isEmpty else { return nil }
+            if liveIDs.contains(row.id) || coastIDs.contains(row.id) { return row.hash }
+            return nil
+        }
+    }
+
+    /// Eine Map, ein Write. Hash+Hold+PairLast+Peak+NameLock nicht nacheinander.
+    static func leftoverAssignAtomicAll(
+        tracks: [UUID: LeftoverTrack],
+        liveToHold: [UUID: UUID]
+    ) -> [UUID: LeftoverTrack] {
+        var out: [UUID: LeftoverTrack] = [:]
+        var taken = Set<UUID>()
+        for (live, hold) in liveToHold {
+            guard var t = tracks[hold] ?? tracks[live] else { continue }
+            if taken.contains(hold) { continue }
+            taken.insert(hold)
+            t.id = live
+            t.hold = hold
+            t.pairLast = hold
+            out[live] = t
+        }
+        return out
     }
 
     /// Tick füllt Last-Löcher. Last nicht überschreiben.
@@ -3094,6 +3140,8 @@ enum MatchMath {
         ) {
             return hit
         }
+        // Exact-Hash darf Twin. Table-Key 1-open stiehlt sonst den Nachbarn.
+        guard facesInFrame <= 1 else { return nil }
         let spatial = leftoverHoldHashSpatial(liveHash)
         guard !spatial.isEmpty else { return nil }
         let inTable = tableKeys.contains { leftoverHoldHashSpatial($0) == spatial && !$0.isEmpty }

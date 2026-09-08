@@ -2,10 +2,10 @@ import CoreGraphics
 import Foundation
 
 enum AppVersion {
-    static let marketing = "2.1.203"
-    static let build = 228
+    static let marketing = "2.1.204"
+    static let build = 229
     static let channel = "alpha"
-    static let display = "2.1.203 alpha"
+    static let display = "2.1.204 alpha"
 }
 
 enum StrategyTrack: String, CaseIterable, Identifiable {
@@ -160,6 +160,20 @@ struct FaceQuality: Codable, Hashable {
         pitch = try c.decodeIfPresent(Double.self, forKey: .pitch) ?? 0
         roll = try c.decodeIfPresent(Double.self, forKey: .roll) ?? 0
     }
+}
+
+/// Eine Spur, eine Map. Hold/Peak/PairLast/NameLock/Hash/Bin nicht 20 Dictionaries.
+/// Nicht `MatchMath.FaceTrack` (Pack der Live-Skalare) — das ist die Store-Identität.
+struct LeftoverTrack: Equatable, Hashable, Codable {
+    var id: UUID
+    var hash: String = ""
+    var bin: Int = 0
+    var hold: UUID? = nil
+    var pairLast: UUID? = nil
+    var peak: Double = 0
+    var nameLock: String? = nil
+    var coastAt: TimeInterval? = nil
+    var kind: String = "live"
 }
 
 struct MediaItem: Identifiable, Hashable {

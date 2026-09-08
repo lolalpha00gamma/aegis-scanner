@@ -5289,6 +5289,64 @@ enum MatchMathTests {
             "Hold-Key ¾L ≠ ¾R"
         )
 
+        ok(
+            MatchMath.leftoverHoldByHashSolo(
+                liveHash: "5.5.4.6",
+                holdIDs: [hashSoloOld],
+                tableKeys: ["5.5.4.6#0"],
+                facesInFrame: 2
+            ) == nil,
+            "HoldByHash Solo 2 Faces tot"
+        )
+        ok(
+            MatchMath.leftoverHoldByHashRescue(
+                liveHash: "5.5.4.6",
+                stored: [(id: hashSoloOld, hash: "")],
+                tableKeys: ["5.5.4.6#0"],
+                facesInFrame: 2
+            ) == nil,
+            "ByHash Rescue 2 Faces 1-open tot"
+        )
+        let twinLive = UUID(), adaLive = UUID()
+        let remintSteal = MatchMath.leftoverHoldRemint(
+            hold: [hashSoloOld: 0.77],
+            live: [(id: twinLive, x: 0.90), (id: adaLive, x: 0.85)],
+            stored: [(id: hashSoloOld, x: 0.20)],
+            liveHash: [twinLive: "5.5.4.6", adaLive: "1.1.1.1"],
+            hashTableKeys: ["5.5.4.6#0"]
+        )
+        ok(remintSteal[twinLive] == nil, "Remint 2 Faces stiehlt nicht")
+        let ghost = MatchMath.leftoverOccupiedLiveOnly(
+            stored: ["1.2.0.0"], live: ["9.9.9.9"], coastExpired: true
+        )
+        ok(ghost == ["9.9.9.9"], "Occupied nach Coast nur Live")
+        let keepGhost = MatchMath.leftoverOccupiedLiveOnly(
+            stored: ["1.2.0.0"], live: ["9.9.9.9"], coastExpired: false
+        )
+        ok(keepGhost.contains("1.2.0.0") && keepGhost.contains("9.9.9.9"), "Occupied vor Coast hält Ghost")
+        let adaGhost = UUID(), bobLive = UUID()
+        let dropped = MatchMath.leftoverOccupiedGhostDrop(
+            stored: [(id: adaGhost, hash: "1.2.0.0"), (id: bobLive, hash: "9.9.9.9")],
+            liveIDs: [bobLive],
+            coastIDs: []
+        )
+        ok(dropped == ["9.9.9.9"], "Ghost-UUID Occupied tot")
+        let coastKeep = MatchMath.leftoverOccupiedGhostDrop(
+            stored: [(id: adaGhost, hash: "1.2.0.0"), (id: bobLive, hash: "9.9.9.9")],
+            liveIDs: [bobLive],
+            coastIDs: [adaGhost]
+        )
+        ok(coastKeep.contains("1.2.0.0") && coastKeep.contains("9.9.9.9"), "Coast-UUID Occupied hält")
+        let adaT = UUID(), twinT = UUID(), liveT = UUID()
+        let tracks: [UUID: LeftoverTrack] = [
+            adaT: LeftoverTrack(id: adaT, hash: "5.5.4.6", peak: 0.82, nameLock: "Ada")
+        ]
+        let atomic = MatchMath.leftoverAssignAtomicAll(tracks: tracks, liveToHold: [liveT: adaT])
+        ok(atomic[liveT]?.hold == adaT, "AssignAtomic Hold")
+        ok(atomic[liveT]?.nameLock == "Ada", "AssignAtomic NameLock ein Write")
+        ok(atomic[liveT]?.pairLast == adaT, "AssignAtomic PairLast")
+        ok(atomic[twinT] == nil, "AssignAtomic Twin nicht mitgeschrieben")
+
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)
             exit(1)

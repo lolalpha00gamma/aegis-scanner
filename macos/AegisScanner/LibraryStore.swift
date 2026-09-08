@@ -144,7 +144,16 @@ final class LibraryStore: ObservableObject {
             let yaw = abs(liveYaw[key] ?? faces.first(where: { $0.id == key })?.quality.yaw ?? 0)
             return (hash: value, yawAbs: yaw)
         }
-        let stored = leftoverLastHash.compactMap { key, value in key == id ? nil : value }
+        let storedRowsAll: [(id: UUID, hash: String)] = leftoverLastHash.compactMap { key, value in
+            key == id ? nil : (id: key, hash: value)
+        }
+        var liveIDs = Set(leftoverLiveHashTick.keys)
+        if let id { liveIDs.remove(id) }
+        let stored = MatchMath.leftoverOccupiedGhostDrop(
+            stored: storedRowsAll,
+            liveIDs: liveIDs,
+            coastIDs: Set(leftoverCoastPrint.keys)
+        )
         let merged = MatchMath.leftoverOccupiedMergeYaw(stored: stored, live: liveYawRows)
         guard let id else { return merged }
         let hash = leftoverLiveHashTick[id] ?? leftoverLastHash[id] ?? ""

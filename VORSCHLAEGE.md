@@ -1,3 +1,5 @@
+# 2.1.204 — Rescue facesInFrame (Remint), GhostDrop Occupied, LeftoverTrack, AssignAtomic.
+
 # 2.1.203 — Overlay Twin-Chip ¾L/¾R, leftoverHoldLabel signed.
 
 # 2.1.202 — Print-Yaw persist, Detect≠Print, Twin-Bin signed, Overlay-Lerp, Blink-Assign.

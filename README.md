@@ -1,4 +1,4 @@
-# Aegis **2.1.203 alpha**
+# Aegis **2.1.204 alpha**
 
 
 Direkt laden:
@@ -14,6 +14,17 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.204 alpha
+
+2.1.203: Overlay Twin-Chip ¾L/¾R. Solo-Rescue stahl Twins (1 Hold + 2 Faces) auf dem Remint-Pfad. Occupied hielt Ghost-Hashes nach Coast. `MatchMath.FaceTrack` ist Pack, nicht Store.
+
+- **leftoverHoldByHashRescue** Table-Key 1-open tot bei facesInFrame > 1. Remint-Pfad, nicht nur Tests.
+- **leftoverHoldByHashSolo** facesInFrame ≤ 1.
+- **leftoverOccupiedGhostDrop** in LibraryStore. UUID weder live noch Coast → Occupied tot.
+- **LeftoverTrack** Store-Struct (nicht MatchMath.FaceTrack Pack). leftoverAssignAtomicAll ein Write.
+- Helios **1.6.42:** Fusion Source-Tag, Reliability-Decay, freezeKalmanQ(dt).
+- Tests + VERSION = Models = MARKETING 2.1.204 (Build 229). Schema 15 bleibt.
 
 ## Neu in 2.1.203 alpha
 
