@@ -1234,6 +1234,75 @@ enum MatchMath {
     /// Sleep/Wake: Session neu, Kalman halten.
     static func liveRecoversOnWake() -> Bool { true }
 
+    /// Overlay coasten sobald Detect busy — nicht erst nach 1 s Hung.
+    static func liveCoastOverlayWhileBusy(busy: Bool) -> Bool { busy }
+
+    /// Osmo/Continuity: Built-in-Early-Return sonst vor dem Switch. Auto/Built-in bleiben Front.
+    static func cameraChoiceSkipsBuiltIn(_ raw: String) -> Bool {
+        raw == "continuity" || raw == "osmo"
+    }
+
+    /// Hung-Coast vom last-real Kalman, nicht rekursiv. origin 0 → ein Tick.
+    static func liveCoastElapsed(now: TimeInterval, origin: TimeInterval) -> TimeInterval {
+        guard origin > 0, now >= origin else { return 0.04 }
+        return min(1.0, now - origin)
+    }
+
+    /// Kalman-Box + Vel vom Origin. Hung-Coast kopierte sonst die stehende Kiste.
+    /// dt akkumuliert (busySince). Cap 0,28 gegen Teleport, Kalman selbst unberührt.
+    static func liveCoastBoxes(
+        kalman: [(id: UUID, x: Double, y: Double, w: Double, h: Double)],
+        vel: [UUID: (vx: Double, vy: Double)],
+        dt: TimeInterval
+    ) -> [(id: UUID, x: Double, y: Double, w: Double, h: Double)] {
+        let t = max(0.008, min(1.0, dt))
+        return kalman.map { row in
+            let v = vel[row.id] ?? (vx: 0, vy: 0)
+            return (
+                id: row.id,
+                x: boxKalmanPredict(x: row.x, v: v.vx, dt: t, cap: 0.28),
+                y: boxKalmanPredict(x: row.y, v: v.vy, dt: t, cap: 0.28),
+                w: row.w,
+                h: row.h
+            )
+        }
+    }
+
+    /// Front + eine Seite L + eine Seite R. 0…1.
+    static func printYawCoverage(bins: Set<Int>) -> Double {
+        var s = 0.0
+        if bins.contains(0) { s += 0.40 }
+        if bins.contains(-1) || bins.contains(-2) { s += 0.30 }
+        if bins.contains(1) || bins.contains(2) { s += 0.30 }
+        return s
+    }
+
+    static func printYawCoverageFromCache(cached: Set<String>, hash: String) -> Double {
+        let spatial = leftoverHoldHashSpatial(hash)
+        guard !spatial.isEmpty else { return 0 }
+        var bins = Set<Int>()
+        for k in cached {
+            guard k.hasPrefix(spatial), let r = k.range(of: "#"), let b = Int(k[r.upperBound...]) else { continue }
+            bins.insert(b)
+        }
+        return printYawCoverage(bins: bins)
+    }
+
+    static func printYawCoverageChip(_ coverage: Double) -> String {
+        if coverage >= 0.99 { return "YAW ●●●" }
+        if coverage >= 0.69 { return "YAW ●●○" }
+        if coverage >= 0.39 { return "YAW ●○○" }
+        if coverage > 0 { return "YAW ○○○" }
+        return "YAW —"
+    }
+
+    /// Bestes Yaw-Budget über alle Spatial-Hashes im Print-Cache.
+    static func printYawCoverageBest(cached: Set<String>) -> Double {
+        let hashes = Set(cached.map { leftoverHoldHashSpatial($0) }.filter { !$0.isEmpty })
+        guard !hashes.isEmpty else { return 0 }
+        return hashes.map { printYawCoverageFromCache(cached: cached, hash: $0) }.max() ?? 0
+    }
+
     /// Osmo ist nicht Mac — uniqueID-Reconnect sonst Kalman-Dump.
     static func cameraRoleOf(name: String, isContinuity: Bool, isExternal: Bool = false) -> String {
         let n = name.lowercased()

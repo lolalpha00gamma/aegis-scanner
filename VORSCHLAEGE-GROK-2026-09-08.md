@@ -1,4 +1,27 @@
+# Aegis Vorschläge — 2026-09-08 (Pass 12, 2.1.211)
+
+Stand 2.1.211 alpha. Osmo Choice, Coast ohne Kalman-Write, Yaw-Meter.
+
+## Gelandet in 2.1.211
+
+- CameraChoice.osmo + cameraChoiceSkipsBuiltIn
+- liveCoastElapsed + skipDetect Kalman halt
+- printYawCoverageBest Chip
+
+## Erweiterung (neu)
+
+102. **Osmo Format-Leiter** 720@24, nicht Continuity-8.
+103. **Enroll-SM** Chip treibt Front→¾L→¾R→Blink.
+104. **mmap leftover-Boxen** Helios Palm-Occlusion.
+105. **VNTrackObjectRequest** zwischen Detect.
+106. **Softmax-Temperature × Gallery-Größe.**
+107. **False-Accept JSONL Replay-UI.**
+108. **PhotoKit People-Album** Enroll-Seed.
+
+P0: CameraBroker. Kein neues leftover*-Flag.
+
 # Aegis Vorschläge — 2026-09-08 (Pass 11, 2.1.210)
+
 
 Stand 2.1.210 alpha. Hung coast, inflight 0, Name-Strip, Wake.
 

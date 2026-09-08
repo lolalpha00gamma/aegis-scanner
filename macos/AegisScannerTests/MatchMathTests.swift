@@ -5565,6 +5565,35 @@ enum MatchMathTests {
         )
         near(MatchMath.leftoverJpegProbeLookupBin(table: jpegOldSpatial, hash: "5.5.4.6", yaw: 0)?.delta ?? 1, 0.03, 0.001, "JPEG Spatial Fallback frontal")
         ok(MatchMath.leftoverJpegProbeLookupBin(table: jpegOldSpatial, hash: "5.5.4.6", yaw: 0.50) == nil, "JPEG Spatial Fallback Profil tot")
+        ok(MatchMath.liveCoastOverlayWhileBusy(busy: true), "Coast solange busy")
+        ok(!MatchMath.liveCoastOverlayWhileBusy(busy: false), "Coast nicht idle")
+        ok(MatchMath.cameraChoiceSkipsBuiltIn("osmo"), "Osmo nicht Built-in Front")
+        ok(MatchMath.cameraChoiceSkipsBuiltIn("continuity"), "Continuity nicht Built-in")
+        ok(!MatchMath.cameraChoiceSkipsBuiltIn("auto"), "Auto Built-in zuerst")
+        ok(!MatchMath.cameraChoiceSkipsBuiltIn("builtIn"), "Built-in bleibt Front")
+        near(MatchMath.liveCoastElapsed(now: 5.5, origin: 4.0), 1.0, 0.001, "Coast elapsed cap 1s")
+        near(MatchMath.liveCoastElapsed(now: 4.10, origin: 4.0), 0.10, 0.001, "Coast elapsed 100 ms")
+        let idA = UUID()
+        let coast = MatchMath.liveCoastBoxes(
+            kalman: [(id: idA, x: 0.20, y: 0.30, w: 0.10, h: 0.12)],
+            vel: [idA: (vx: 0.40, vy: 0)],
+            dt: 0.10
+        )
+        ok(abs((coast.first?.x ?? 0) - 0.24) < 0.02, "Coast Box +vx")
+        let far = MatchMath.liveCoastBoxes(
+            kalman: [(id: idA, x: 0.20, y: 0.30, w: 0.10, h: 0.12)],
+            vel: [idA: (vx: 0.40, vy: 0)],
+            dt: 1.0
+        )
+        ok(abs((far.first?.x ?? 0) - 0.48) < 0.02, "Coast 1s cap 0,28")
+        ok(MatchMath.printYawCoverage(bins: [0, -1, 1]) >= 0.99, "YAW voll")
+        ok(abs(MatchMath.printYawCoverage(bins: [0]) - 0.40) < 0.01, "YAW nur front")
+        ok(MatchMath.printYawCoverageChip(1) == "YAW ●●●", "YAW chip voll")
+        ok(MatchMath.printYawCoverageChip(0) == "YAW —", "YAW chip leer")
+        var yawCache: Set<String> = ["6.6.4.6#0", "6.6.4.6#-1", "6.6.4.6#1"]
+        near(MatchMath.printYawCoverageFromCache(cached: yawCache, hash: "6.6.4.6"), 1.0, 0.01, "YAW cache voll")
+        near(MatchMath.printYawCoverageBest(cached: yawCache), 1.0, 0.01, "YAW best voll")
+        ok(MatchMath.printYawCoverageBest(cached: []) == 0, "YAW best leer")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

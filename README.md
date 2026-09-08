@@ -1,4 +1,5 @@
-# Aegis **2.1.210 alpha**
+# Aegis **2.1.211 alpha**
+
 
 
 Direkt laden:
@@ -14,6 +15,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.211 alpha
+
+2.1.210 Hung coast, inflight 0, Name-Strip, Wake. Osmo-Picker gab FaceTime. Coast schrieb Kalman → Vel-Flip nach Detect. Overlay freeze bis Hung-Spawn. Yaw-Bins unsichtbar.
+
+- **Osmo / Extern.** `CameraChoice.osmo`. Built-in-Early-Return nur Auto/Built-in.
+- **Hung-Coast ohne Kalman-Write.** Overlay last-real + Vel × elapsed. `skipDetect` hält Kalman.
+- **Yaw-Coverage-Meter.** Toolbar `YAW ●●●` aus Print-Cache-Bins.
+- Tests + VERSION = Models = MARKETING 2.1.211 (Build 236). Schema 15 bleibt.
 
 ## Neu in 2.1.210 alpha
 

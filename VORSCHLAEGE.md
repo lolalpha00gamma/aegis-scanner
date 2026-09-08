@@ -1,4 +1,41 @@
+# 2.1.211 — Osmo Choice, Coast ohne Kalman-Write, Yaw-Meter.
+
+## In 2.1.211 wirklich im Code
+
+2.1.210 Hung coast, inflight 0, Name-Strip, Wake. Osmo-Picker tot (Front-Early-Return). Coast schrieb Kalman → Vel-Flip. Overlay freeze bis 1 s. Yaw-Bins unsichtbar.
+
+1. **CameraChoice.osmo** + `cameraChoiceSkipsBuiltIn`. Continuity/Osmo nicht FaceTime.
+2. **liveCoastBoxes vom Origin.** Kalman last-real. `skipDetect` kein Kalman-Write.
+3. **printYawCoverageBest + Chip** in der Toolbar.
+4. Tests + VERSION = Models = MARKETING 2.1.211 (Build 236). Schema 15 bleibt.
+
+## Erweiterung (neu, 2.1.211)
+
+1. **CameraBroker XPC + IOSurface** mit Helios. Eine TCC. P0.
+2. **gallery ANN / HNSW** nach Print-Index.
+3. **Identity-Merge-Wizard** Cosine 0,89–0,94 + Pairwise-Heatmap.
+4. **PhotoKit People-Album** als Enroll-Seed.
+5. **Box-Track 60 Hz** CADisplayLink unabhängig von Detect 8–24.
+6. **False-Accept JSONL Replay-UI.**
+7. **Softmax-Temperature × Gallery-Größe.**
+8. **Cluster-Merge** mit 3 Stills bestätigen.
+9. **P-Slot Maske/Schal**, Brille Twin-Veto.
+10. **ReID-Graph** Hold-Trail.
+11. **Stereo Built-in + Continuity** Disparität als Yaw-Prior.
+12. **Overlay CAMetalLayer 60 Hz.**
+13. **Gemeinsamer CVPixelBuffer** Detect+Print.
+14. **VNTrackObjectRequest** Box zwischen Detect-Ticks.
+15. **LiveCapture nicht @MainActor.**
+16. **Drop-in `.mlmodel`** Print-Backbone.
+17. **Enroll-SM** Front → ¾L → ¾R → Blink, Chip treibt die Schritte.
+18. **gallery.json.bak Rotate 3.**
+19. **Osmo Format-Leiter** 720@24 analog Helios, nicht Continuity-8.
+20. **mmap leftover-Boxen** Helios↔Aegis Palm-Occlusion.
+
+P0 CameraBroker. Kein neues leftover*-Flag.
+
 # 2.1.210 — Hung Overlay coast, inflight 0, Name-Strip, Wake.
+
 
 ## In 2.1.210 wirklich im Code
 

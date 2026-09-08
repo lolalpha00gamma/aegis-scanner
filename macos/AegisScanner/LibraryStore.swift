@@ -51,6 +51,7 @@ final class LibraryStore: ObservableObject {
     @Published var cameraChoice: CameraChoice = .builtIn
     @Published var liveFormatChip: String = ""
     @Published var mutexChip: String = "—"
+    @Published var yawCoverageChip: String = "YAW —"
     @Published var yieldAutoReturn = true
     @Published var yieldGrace: Double = 4
     @Published var mutexKill = false
@@ -80,6 +81,7 @@ final class LibraryStore: ObservableObject {
     private var livePending: (image: CGImage, mediaId: UUID, stamp: TimeInterval)?
     private var liveDetectGen: UInt64 = 0
     private var liveBusySince: TimeInterval = 0
+    private var liveCoastAt: TimeInterval = 0
     private var leftoverPrintCache: Set<String> = []
     private var liveRoiTick = 0
     private var liveRoiSkipOnce = false
@@ -2039,6 +2041,7 @@ final class LibraryStore: ObservableObject {
         liveDetectGen &+= 1
         liveBusy = false
         liveBusySince = 0
+        liveCoastAt = 0
         liveDetectInflight = 0
         liveCapture.recoverAfterWake()
     }
@@ -2227,6 +2230,7 @@ final class LibraryStore: ObservableObject {
         livePending = nil
         liveBusy = false
         liveBusySince = 0
+        liveCoastAt = 0
         liveDetectInflight = 0
         liveCapture.markFrameConsumed()
         liveRoiTick = 0
@@ -2288,6 +2292,7 @@ final class LibraryStore: ObservableObject {
         leftoverLastIoU = [:]
         leftoverPrintSkipIds = []
         leftoverPrintCache = []
+        yawCoverageChip = "YAW —"
         leftoverJpegAt = [:]
         leftoverJpegHash = [:]
         leftoverJpegCos = [:]
@@ -2361,6 +2366,7 @@ final class LibraryStore: ObservableObject {
                 self.leftoverDetectAt = 0
                 self.leftoverPrintAt = 0
                 self.leftoverPrintCache = []
+                self.yawCoverageChip = "YAW —"
                 self.liveDetectGen &+= 1
             }
             self.lastCameraUniqueID = uid
@@ -2392,24 +2398,30 @@ final class LibraryStore: ObservableObject {
         if liveBusy {
             livePending = (image, mediaId, stamp)
             let busyFor = liveBusySince > 0 ? now - liveBusySince : 0
-            if MatchMath.liveEmitHungCancel(busy: true, busyFor: busyFor) {
-                if MatchMath.liveHungCoastOverlay(), !boxKalman.isEmpty {
-                    let coast = boxKalman.map { (id, v) in
-                        FaceObservation.coast(
-                            id: id,
-                            mediaId: mediaId,
-                            box: FaceBox(x: v.x, y: v.y, width: v.w, height: v.h)
-                        )
-                    }
-                    applyLiveFaces(
-                        coast,
-                        image: image,
+            if MatchMath.liveCoastOverlayWhileBusy(busy: true), !boxKalman.isEmpty {
+                if liveCoastAt == 0 { liveCoastAt = liveBusySince > 0 ? liveBusySince : now }
+                let snap: [(id: UUID, x: Double, y: Double, w: Double, h: Double)] = boxKalman.map { (id, v) in
+                    (id: id, x: v.x, y: v.y, w: v.w, h: v.h)
+                }
+                let elapsed = MatchMath.liveCoastElapsed(now: now, origin: liveCoastAt)
+                let stepped = MatchMath.liveCoastBoxes(kalman: snap, vel: boxKalmanV, dt: elapsed)
+                let coast = stepped.map { row in
+                    FaceObservation.coast(
+                        id: row.id,
                         mediaId: mediaId,
-                        stamp: stamp,
-                        skipDetect: true,
-                        skipPrints: true
+                        box: FaceBox(x: row.x, y: row.y, width: row.w, height: row.h)
                     )
                 }
+                applyLiveFaces(
+                    coast,
+                    image: image,
+                    mediaId: mediaId,
+                    stamp: stamp,
+                    skipDetect: true,
+                    skipPrints: true
+                )
+            }
+            if MatchMath.liveEmitHungCancel(busy: true, busyFor: busyFor) {
                 if MatchMath.liveHungSpawnOk(inflight: liveDetectInflight) {
                     liveDetectGen &+= 1
                     liveBusySince = now
@@ -2422,6 +2434,7 @@ final class LibraryStore: ObservableObject {
         }
         liveBusy = true
         liveBusySince = now
+        if liveCoastAt == 0 { liveCoastAt = now }
         runLiveDetect(image, mediaId: mediaId, stamp: stamp)
     }
 
@@ -2533,6 +2546,7 @@ final class LibraryStore: ObservableObject {
                         } else {
                             self.liveBusy = false
                             self.liveBusySince = 0
+                            self.liveCoastAt = 0
                             self.liveCapture.markFrameConsumed()
                         }
                     }
@@ -2546,6 +2560,7 @@ final class LibraryStore: ObservableObject {
                 if !self.liveActive || self.liveMediaId != mediaId {
                     self.liveBusy = false
                     self.livePending = nil
+                    self.liveCoastAt = 0
                     self.liveCapture.markFrameConsumed()
                     return
                 }
@@ -2560,11 +2575,13 @@ final class LibraryStore: ObservableObject {
                     skipDetect: skipDetect,
                     skipPrints: skipPrints
                 )
+                self.liveCoastAt = CACurrentMediaTime()
                 if let pending = self.livePending {
                     self.livePending = nil
                     self.runLiveDetect(pending.image, mediaId: pending.mediaId, stamp: pending.stamp)
                 } else {
                     self.liveBusy = false
+                    self.liveCoastAt = 0
                     self.liveCapture.markFrameConsumed()
                 }
             }
@@ -2941,7 +2958,9 @@ final class LibraryStore: ObservableObject {
                 }
                 let t = now
                 let area = face.box.width * face.box.height
-                if MatchMath.boxKalmanUses(dt: liveDt) {
+                if skipDetect {
+                    // Overlay-Coast: face.box bleibt Predict. Kalman last-real, sonst Vel-Flip.
+                } else if MatchMath.boxKalmanUses(dt: liveDt) {
                     let prev = boxKalman[old.id]
                     let px0 = prev?.x ?? face.box.x
                     let py0 = prev?.y ?? face.box.y
@@ -3823,6 +3842,9 @@ final class LibraryStore: ObservableObject {
                         cached: leftoverPrintCache,
                         hash: ranked,
                         yaw: face.quality.yaw
+                    )
+                    yawCoverageChip = MatchMath.printYawCoverageChip(
+                        MatchMath.printYawCoverageBest(cached: leftoverPrintCache)
                     )
                 }
                 let from = leftoverLastHash[face.id]

@@ -16,13 +16,14 @@ enum LiveKind: String {
 }
 
 enum CameraChoice: String, CaseIterable, Identifiable {
-    case auto, builtIn, continuity
+    case auto, builtIn, continuity, osmo
     var id: String { rawValue }
     var titleDE: String {
         switch self {
         case .auto: return "Auto (Built-in zuerst)"
         case .builtIn: return "Built-in Front"
         case .continuity: return "Continuity / Desk-View"
+        case .osmo: return "Osmo / Extern"
         }
     }
 }
@@ -348,13 +349,11 @@ final class LiveCapture: NSObject {
             }) { return front }
             if let builtIn = discovered.first(where: { $0.deviceType == .builtInWideAngleCamera }) { return builtIn }
         }
-        if let front = discovered.first(where: {
-            $0.deviceType == .builtInWideAngleCamera && ($0.position == .front || $0.position == .unspecified)
-        }) {
-            if choice != .continuity { return front }
-        }
-        if let builtIn = discovered.first(where: { $0.deviceType == .builtInWideAngleCamera }) {
-            if choice != .continuity { return builtIn }
+        if !MatchMath.cameraChoiceSkipsBuiltIn(choice.rawValue) {
+            if let front = discovered.first(where: {
+                $0.deviceType == .builtInWideAngleCamera && ($0.position == .front || $0.position == .unspecified)
+            }) { return front }
+            if let builtIn = discovered.first(where: { $0.deviceType == .builtInWideAngleCamera }) { return builtIn }
         }
         let extra = discovered.first(where: {
             if #available(macOS 14.0, *) {
@@ -365,6 +364,13 @@ final class LiveCapture: NSObject {
         switch choice {
         case .continuity:
             return extra ?? discovered.first ?? AVCaptureDevice.default(for: .video)
+        case .osmo:
+            if let named = discovered.first(where: {
+                let n = $0.localizedName.lowercased()
+                return n.contains("osmo") || n.contains("dji") || $0.deviceType == .external
+            }) { return named }
+            return discovered.first(where: { $0.deviceType == .external })
+                ?? extra ?? discovered.first ?? AVCaptureDevice.default(for: .video)
         case .builtIn:
             return discovered.first(where: { $0.deviceType == .builtInWideAngleCamera })
                 ?? extra ?? discovered.first ?? AVCaptureDevice.default(for: .video)

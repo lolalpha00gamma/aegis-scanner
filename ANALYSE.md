@@ -1,4 +1,21 @@
+# Aegis 2.1.211 — Osmo Choice, Coast ohne Kalman-Write, Yaw-Meter
+
+Aegis **2.1.211 alpha** (Build 236). Helios **1.6.49** (Build 82). Nur `main`. `bugfix` mergen: nein.
+
+## Was 2.1.211 ändert
+
+2.1.210: Hung Overlay coast, inflight 0, Name-Strip, Wake. Osmo im Picker landete auf FaceTime (`choice != .continuity`). Coast schrieb Kalman jedes Busy-Frame → Detect Vel-Flip, Overlay ping-pong. Yaw-Bins nur intern.
+
+| # | Bug | Fix |
+|---|---|---|
+| 1 | Osmo = FaceTime | `cameraChoiceSkipsBuiltIn` vor Front-Return |
+| 2 | Coast Kalman-Write | Origin-Elapsed, `skipDetect` kein Kalman |
+| 3 | Yaw unsichtbar | `printYawCoverageBest` Toolbar-Chip |
+
+Nicht: CameraBroker, HNSW, Overlay-Metal, LiveCapture off MainActor.
+
 # Aegis 2.1.210 — Hung Overlay coast, inflight 0, Name-Strip, Wake
+
 
 Aegis **2.1.210 alpha** (Build 235). Helios **1.6.48** (Build 81). Nur `main`. `bugfix` mergen: nein.
 

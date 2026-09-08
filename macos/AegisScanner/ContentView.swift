@@ -64,8 +64,8 @@ struct ContentView: View {
                 }
             }
             .pickerStyle(.menu)
-            .frame(width: 150)
-            .help("Paar: Aegis = Built-in, Helios = Continuity. Auto auf beiden kämpft um dieselbe Cam.")
+            .frame(width: 190)
+            .help("Paar: Aegis = Built-in, Helios = Continuity. Osmo = DJI/Extern. Auto auf beiden kämpft um dieselbe Cam.")
             Toggle("Kill", isOn: Binding(
                 get: { store.mutexKill },
                 set: { store.setMutexKill($0) }
@@ -76,6 +76,12 @@ struct ContentView: View {
                     .font(.system(.caption, design: .monospaced))
                     .foregroundStyle(.orange)
                     .help("Capture-Format. BGRA 8 = Continuity tot.")
+            }
+            if store.liveActive, store.yawCoverageChip != "YAW —" {
+                Text(store.yawCoverageChip)
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(.mint)
+                    .help("Print-Cache Yaw-Bins: Front + L + R. ●●● = enroll-fertig.")
             }
             if store.mutexChip != "—" && !store.mutexChip.isEmpty {
                 Text(store.mutexChip.uppercased())
