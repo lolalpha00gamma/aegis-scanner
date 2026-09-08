@@ -161,7 +161,10 @@ final class LibraryStore: ObservableObject {
     private func leftoverOccupiedHashes(except id: UUID? = nil) -> [String] {
         let liveYawRows: [(hash: String, yawAbs: Double)] = leftoverLiveHashTick.compactMap { key, value in
             if key == id { return nil }
-            let yaw = liveYaw[key] ?? faces.first(where: { $0.id == key })?.quality.yaw ?? 0
+            let yaw = MatchMath.leftoverOccupiedYawLive(
+                live: liveYaw[key] ?? faces.first(where: { $0.id == key })?.quality.yaw,
+                printed: leftoverPrintYaw[key]
+            )
             return (hash: value, yawAbs: yaw)
         }
         let storedRowsAll: [(id: UUID, hash: String)] = leftoverLastHash.compactMap { key, value in
@@ -189,7 +192,10 @@ final class LibraryStore: ObservableObject {
         let others = MatchMath.leftoverOccupiedOthers(live: liveRows, stored: storedRows, except: id)
         let rows = MatchMath.leftoverOccupiedOtherRows(live: liveRows, stored: storedRows, except: id)
         let yawOf: (UUID) -> Double = { fid in
-            self.liveYaw[fid] ?? self.faces.first(where: { $0.id == fid })?.quality.yaw ?? 0
+            MatchMath.leftoverOccupiedYawLive(
+                live: self.liveYaw[fid] ?? self.faces.first(where: { $0.id == fid })?.quality.yaw,
+                printed: self.leftoverPrintYaw[fid]
+            )
         }
         let otherYaws: [Double] = rows.map { row in
             MatchMath.leftoverOccupiedYaw(key: row.key, yawOf: yawOf)
@@ -1883,14 +1889,24 @@ final class LibraryStore: ObservableObject {
         }
         let twinHash = leftoverLiveHashTick[faceId] ?? leftoverLastHash[faceId]
         if let twinHash {
-            let oxs: [Double] = leftoverLiveHashTick.compactMap { key, value in
+            let oxs: [(x: Double, yaw: Double)] = leftoverLiveHashTick.compactMap { key, value in
                 if key == faceId { return nil }
                 if MatchMath.leftoverHoldHashBare(value) != MatchMath.leftoverHoldHashBare(twinHash) { return nil }
-                return boxKalman[key]?.x ?? faces.first(where: { $0.id == key })?.box.x
+                let x = boxKalman[key]?.x ?? faces.first(where: { $0.id == key })?.box.x ?? 0
+                let yaw = MatchMath.leftoverOccupiedYawLive(
+                    live: liveYaw[key] ?? faces.first(where: { $0.id == key })?.quality.yaw,
+                    printed: leftoverPrintYaw[key]
+                )
+                return (x: x, yaw: yaw)
             }
             if let chip = MatchMath.leftoverHashTwinChip(
                 x: boxKalman[faceId]?.x ?? faces.first(where: { $0.id == faceId })?.box.x ?? 0,
-                others: oxs
+                others: oxs.map(\.x),
+                yawAbs: MatchMath.leftoverOccupiedYawLive(
+                    live: liveYaw[faceId] ?? faces.first(where: { $0.id == faceId })?.quality.yaw,
+                    printed: leftoverPrintYaw[faceId]
+                ),
+                otherYaws: oxs.map(\.yaw)
             ) {
                 bits.append(chip)
             }
@@ -2606,6 +2622,10 @@ final class LibraryStore: ObservableObject {
             guard !skipPrints, MatchMath.cameraMutexPalmSkip(holder: liveCapture.mutexHolder, continuity: cont) else { return nil }
             return liveCapture.mutexPalmBox(imageW: Double(image.width), imageH: Double(image.height))
         }()
+        let skipPrintPalms: [FaceBox] = {
+            guard !skipPrints, MatchMath.cameraMutexPalmSkip(holder: liveCapture.mutexHolder, continuity: cont) else { return [] }
+            return liveCapture.mutexPalmBoxes(imageW: Double(image.width), imageH: Double(image.height))
+        }()
         liveDetectGen &+= 1
         let gen = liveDetectGen
         Task.detached(priority: .userInitiated) {
@@ -2625,13 +2645,13 @@ final class LibraryStore: ObservableObject {
                     FaceObservation.coast(id: k.id, mediaId: mediaId, box: b)
                 }
                 if MatchMath.overlayTrackForcesDetect(lost: FaceEngine.lastTrackLostCount(), live: kalmanSnap.count) {
-                    found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true, skipPrints: skipPrints, roi: roi, skipPrintBoxes: skipPrintBoxes, skipPrintPalm: skipPrintPalm)) ?? found
+                    found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true, skipPrints: skipPrints, roi: roi, skipPrintBoxes: skipPrintBoxes, skipPrintPalm: skipPrintPalm, skipPrintPalms: skipPrintPalms)) ?? found
                     if !found.isEmpty {
                         FaceEngine.seedTrack(boxes: found.map(\.box), image: image)
                     }
                 }
             } else {
-                found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true, skipPrints: skipPrints, roi: roi, skipPrintBoxes: skipPrintBoxes, skipPrintPalm: skipPrintPalm)) ?? []
+                found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true, skipPrints: skipPrints, roi: roi, skipPrintBoxes: skipPrintBoxes, skipPrintPalm: skipPrintPalm, skipPrintPalms: skipPrintPalms)) ?? []
                 if MatchMath.overlayTrackPersistReset(skipDetect: false) {
                     FaceEngine.seedTrack(boxes: found.map(\.box), image: image)
                 }
@@ -2639,7 +2659,7 @@ final class LibraryStore: ObservableObject {
             if !skipDetect, found.isEmpty, roi != nil, MatchMath.liveRoiMissRetries(hadROI: true, empty: true) {
                 if MatchMath.liveRoiMissGoesFull(dt: dt) {
                     roi = nil
-                    found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true, skipPrints: skipPrints, roi: nil, skipPrintBoxes: skipPrintBoxes, skipPrintPalm: skipPrintPalm)) ?? []
+                    found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true, skipPrints: skipPrints, roi: nil, skipPrintBoxes: skipPrintBoxes, skipPrintPalm: skipPrintPalm, skipPrintPalms: skipPrintPalms)) ?? []
                 } else if let raw = roiTuple {
                     let exp = MatchMath.liveRoiExpand(raw, imageW: Double(image.width), imageH: Double(image.height))
                     found = (try? FaceEngine.detect(
@@ -2647,10 +2667,10 @@ final class LibraryStore: ObservableObject {
                         skipPrints: skipPrints,
                         roi: FaceBox(x: exp.x, y: exp.y, width: exp.w, height: exp.h),
                         skipPrintBoxes: skipPrintBoxes,
-                        skipPrintPalm: skipPrintPalm
+                        skipPrintPalm: skipPrintPalm, skipPrintPalms: skipPrintPalms
                     )) ?? []
                     if found.isEmpty {
-                        found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true, skipPrints: skipPrints, roi: nil, skipPrintBoxes: skipPrintBoxes, skipPrintPalm: skipPrintPalm)) ?? []
+                        found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true, skipPrints: skipPrints, roi: nil, skipPrintBoxes: skipPrintBoxes, skipPrintPalm: skipPrintPalm, skipPrintPalms: skipPrintPalms)) ?? []
                     }
                 }
             }

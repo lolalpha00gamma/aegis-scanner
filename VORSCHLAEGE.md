@@ -1,4 +1,42 @@
+# 2.1.228 — Per-sign Rank, Twin-Chip Yaw, Print-Yaw Ghost, zwei Palmen.
+
+## In 2.1.228 wirklich im Code
+
+2.1.227 Occupied signed, FIFO, HoldSmooth intern. Merge L+R nur Exact. Chip x-only. Ghost-Yaw 0. Eine Palme.
+
+1. **leftoverOccupiedMergeYaw per-sign Rank.** 2L+1R `#101`.
+2. **leftoverHashTwinChip signed Yaw.**
+3. **leftoverOccupiedYawLive** nil→Print, 0 frontal.
+4. **Zwei Palmen skipPrint.** cameraMutexPalms.
+5. Tests + VERSION = Models = MARKETING 2.1.228 (Build 253). Schema 15 bleibt.
+
+## Erweiterung (neu, 2.1.228)
+
+1. **CameraBroker XPC + IOSurface** mit Helios. Eine TCC. P0.
+2. **gallery ANN / HNSW** nach Print-Index.
+3. **LiveCapture nicht @MainActor.**
+4. **Face-Print Versioning.**
+5. **Glasses On/Off Twin-Templates.**
+6. **Per-Camera WB-Lock.**
+7. **Export Embeddings** JSONL.
+8. **UMAP Cluster-View.**
+9. **Overlay CAMetalLayer 60 Hz.**
+10. **Blink-Liveness EAR.**
+11. **Mutex-PTS pro Frame** (Helios Heartbeat jetzt 80 ms).
+12. **EAR + SM AND** für Unnamed-Taufe.
+13. **FA-JSONL Twin-Split Auto** nach Restart.
+14. **Profil-Hold nicht in Frontal-EMA.**
+15. **Continuity Night-IR eigene Galerie.**
+16. **Identity-Merge-Wizard.**
+17. **leftoverHoldTrail Disk persist.**
+18. **leftoverHoldWriteOk abs lassen.**
+19. **leftoverOccupiedMergeYaw 2L+2R.**
+20. **LiveCapture mutexBeat 80 ms** analog Helios.
+
+P0 CameraBroker. Kein neues leftover*-Flag.
+
 # 2.1.224 — PTS-Fill, Palm-skipPrint, Twin P-Slot.
+
 
 ## In 2.1.224 wirklich im Code
 

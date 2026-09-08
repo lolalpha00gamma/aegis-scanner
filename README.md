@@ -1,4 +1,4 @@
-# Aegis **2.1.227 alpha**
+# Aegis **2.1.228 alpha**
 
 
 
@@ -14,6 +14,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.228 alpha
+
+Warum Twins bei 2×¾L+1×¾R weiter Exact stahlen: Merge L+R shortcut emittierte nur Exact. Twin-Chip war Screen-x. Ghost ohne liveYaw galt als frontal. Helios schrieb eine Palme — Clutch-Hand occludierte nicht.
+
+- **Per-sign Rank.** 2L+1R: Extra-L `#101`, Gegenpose Exact.
+- **Twin-Chip signed Yaw.** Profil-gegen-Profil nicht TWIN L/R nach x.
+- **Occupied-Yaw aus Print** wenn live fehlt. 0 bleibt frontal.
+- **Zwei Palmen skipPrint.** Clutch-Hand.
+- Tests + VERSION = Models = MARKETING 2.1.228 (Build 253). Schema 15 bleibt.
 
 ## Neu in 2.1.227 alpha
 

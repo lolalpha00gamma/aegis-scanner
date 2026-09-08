@@ -1,3 +1,41 @@
+# Aegis Vorschläge — 2026-09-08 (Pass 29, 2.1.228)
+
+Stand 2.1.228 alpha. Per-sign Rank 2L+1R, Twin-Chip signed, Occupied-Yaw aus Print, zwei Palmen skipPrint.
+
+## Gelandet in 2.1.228
+
+- leftoverOccupiedMergeYaw per-sign Rank (2L+1R `#101`)
+- leftoverHashTwinChip signed Yaw
+- leftoverOccupiedYawLive nil→Print, 0 bleibt frontal
+- cameraMutexPalms + leftoverPrintSkipHits(palms:)
+
+## Erweiterung (neu)
+
+335. **LiveCapture off MainActor.** Detect+Print blockiert die UI. P0 nach CameraBroker.
+336. **HNSW Gallery.** Linear-Scan O(n) jede Frame.
+337. **CameraBroker XPC + IOSurface** mit Helios. Eine TCC. P0.
+338. **Overlay CAMetalLayer 60 Hz.**
+339. **leftoverHoldTrail Disk persist.** Restart sonst Frontal-Median 1 Tick.
+340. **Glasses On/Off Templates.**
+341. **Face-Print Versioning.**
+342. **Export Embeddings JSONL.**
+343. **UMAP Cluster-View.**
+344. **Identity-Merge-Wizard.**
+345. **Blink-Liveness EAR**, nicht nur SM-Chip.
+346. **Profil-Hold nicht in Frontal-EMA.** leftoverHold Bin 0 bleibt Front.
+347. **Continuity Night-IR eigene Galerie.**
+348. **Per-Camera WB-Lock** Osmo vs Phone.
+349. **Mutex-PTS pro Frame** von Helios (Heartbeat wenn LOCK_SH Helios-EX blockt).
+350. **EAR + SM AND** für Taufe — Chip allein lässt 1 Frontal+Fake-Blink.
+351. **False-Accept JSONL → Twin-Split Auto** nach Restart ohne FA-Heat.
+352. **leftoverHoldWriteOk** bleibt abs (`y >= lookaway`). Signed ließe ¾L in Frontal-Hold. Call-Sites abs lassen, Helper umbenennen.
+353. **Print-Cache FIFO nach Restart.** Altes JSON war sortiert, ein Tick Suffix bis neue Puts.
+354. **leftoverOccupiedMergeYaw 2L+2R** Rank je Seite unabhängig, nicht nur 2+1.
+355. **skipPrintPalms IoU 0,18** nicht printBudgetIoU wenn Palme in skipBoxes landet.
+356. **LiveCapture mutexBeat 80 ms** analog Helios — 2 s Heartbeat > Fill-Skew 220 ms.
+
+P0: CameraBroker. Kein neues leftover*-Flag. Branch `bugfix` (2.1.15) nicht mergen.
+
 # Aegis Vorschläge — 2026-09-08 (Pass 28, 2.1.227)
 
 Stand 2.1.227 alpha. Occupied signed Yaw, Twin Gegenpose beide Exact, Print-Cache FIFO, HoldSmooth intern Bin-Trail.

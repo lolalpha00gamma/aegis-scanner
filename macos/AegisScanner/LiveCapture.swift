@@ -68,7 +68,7 @@ final class LiveCapture: NSObject {
     private var mutexBeat: Timer?
     private var mutexClaimFails = 0
     private var lastMutexClaimAt: TimeInterval = 0
-    private var lastMutexPalm: (x: CGFloat, y: CGFloat, w: CGFloat)?
+    private var lastMutexPalms: [(x: CGFloat, y: CGFloat, w: CGFloat)] = []
     private(set) var mutexHolder: String?
     private var lastFaceStreak = 0
     private var lastVisMs: Double = 0
@@ -76,8 +76,11 @@ final class LiveCapture: NSObject {
     static func orientKey(_ uniqueID: String) -> String { "aegis.camOrient.\(uniqueID)" }
 
     func mutexPalmBox(imageW: Double, imageH: Double) -> FaceBox? {
-        guard let palm = lastMutexPalm else { return nil }
-        return MatchMath.cameraMutexPalmBox(palm, imageW: imageW, imageH: imageH)
+        mutexPalmBoxes(imageW: imageW, imageH: imageH).first
+    }
+
+    func mutexPalmBoxes(imageW: Double, imageH: Double) -> [FaceBox] {
+        lastMutexPalms.map { MatchMath.cameraMutexPalmBox($0, imageW: imageW, imageH: imageH) }
     }
 
     func setOrientOverride(_ value: String) {
@@ -532,7 +535,7 @@ final class LiveCapture: NSObject {
         if tmpBusy { return (nil, true, nil) }
         let empty = cachesPresent && (caches == nil || caches?.isEmpty == true)
         guard let text = MatchMath.cameraMutexPickText(caches: caches, tmp: tmp, cachesEmpty: empty) else {
-            lastMutexPalm = nil
+            lastMutexPalms = []
             mutexHolder = nil
             tap?.mutexPts = 0
             return (nil, false, nil)
@@ -544,7 +547,7 @@ final class LiveCapture: NSObject {
         } else {
             tap?.mutexPts = 0
         }
-        lastMutexPalm = MatchMath.cameraMutexPalm(text)
+        lastMutexPalms = MatchMath.cameraMutexPalms(text)
         let holder = MatchMath.cameraMutexParse(text, now: Date().timeIntervalSince1970, pidLive: live)
         mutexHolder = holder
         return (

@@ -1229,11 +1229,12 @@ enum MatchMath {
         expectedGen: UInt32? = nil,
         pidLive: Bool? = nil,
         pts: TimeInterval? = nil,
-        palm: (x: CGFloat, y: CGFloat, w: CGFloat)? = nil
+        palm: (x: CGFloat, y: CGFloat, w: CGFloat)? = nil,
+        palms: [(x: CGFloat, y: CGFloat, w: CGFloat)] = []
     ) -> String? {
         guard cameraMutexWriteAllowed(existing: existing, owner: owner, now: now, pidLive: pidLive) else { return nil }
         guard cameraMutexCasAllows(existing: existing, owner: owner, expectedGen: expectedGen) else { return nil }
-        return cameraMutexLine(owner: owner, pid: pid, now: now, gen: cameraMutexBumpGen(existing), pts: pts, palm: palm)
+        return cameraMutexLine(owner: owner, pid: pid, now: now, gen: cameraMutexBumpGen(existing), pts: pts, palm: palm, palms: palms)
     }
     /// 3 s war kürzer als Continuity-Frame. Heartbeat 2 s, Stale 12.
     static func cameraMutexStale() -> TimeInterval { 12 }
@@ -1249,13 +1250,17 @@ enum MatchMath {
         return parts.last == "v2" ? 2 : 1
     }
 
-    static func cameraMutexLine(owner: String, pid: Int32, now: TimeInterval, gen: UInt32 = 0, pts: TimeInterval? = nil, palm: (x: CGFloat, y: CGFloat, w: CGFloat)? = nil) -> String {
+    static func cameraMutexLine(owner: String, pid: Int32, now: TimeInterval, gen: UInt32 = 0, pts: TimeInterval? = nil, palm: (x: CGFloat, y: CGFloat, w: CGFloat)? = nil, palms: [(x: CGFloat, y: CGFloat, w: CGFloat)] = []) -> String {
         let p: TimeInterval
         if let pts, pts > 0, pts.isFinite { p = pts } else { p = 0 }
-        if let palm {
-            return String(format: "%@ %d %.3f %u %.3f %.3f %.3f %.3f v2", owner, pid, now, gen, p, Double(palm.x), Double(palm.y), Double(palm.w))
+        var all = palms.filter { $0.w > 0 }
+        if all.isEmpty, let palm, palm.w > 0 { all = [palm] }
+        var s = String(format: "%@ %d %.3f %u %.3f", owner, pid, now, gen, p)
+        for row in all.prefix(2) {
+            s += String(format: " %.3f %.3f %.3f", Double(row.x), Double(row.y), Double(row.w))
         }
-        return String(format: "%@ %d %.3f %u %.3f v2", owner, pid, now, gen, p)
+        s += " v2"
+        return s
     }
 
     /// Unix-Wall, nie CMSampleBuffer-PTS. Media < 1e6 ist Session-Zeit — obsFill sonst tot.
@@ -1272,13 +1277,24 @@ enum MatchMath {
         return v
     }
 
-    /// Palme UV vor v2. Alte 6-Felder-Zeile bleibt lesbar.
+    /// Palme UV vor v2. Alte 6-Felder-Zeile bleibt lesbar. Zweite Palme: cameraMutexPalms.
     static func cameraMutexPalm(_ text: String) -> (x: CGFloat, y: CGFloat, w: CGFloat)? {
+        cameraMutexPalms(text).first
+    }
+
+    static func cameraMutexPalms(_ text: String) -> [(x: CGFloat, y: CGFloat, w: CGFloat)] {
         let parts = text.split(whereSeparator: { $0 == " " || $0 == "\n" }).map(String.init)
-        guard parts.count >= 9, parts.last == "v2" else { return nil }
-        guard let x = Double(parts[5]), let y = Double(parts[6]), let w = Double(parts[7]) else { return nil }
-        guard x.isFinite, y.isFinite, w.isFinite, w > 0 else { return nil }
-        return (CGFloat(x), CGFloat(y), CGFloat(w))
+        guard parts.count >= 9, parts.last == "v2" else { return [] }
+        var out: [(x: CGFloat, y: CGFloat, w: CGFloat)] = []
+        var i = 5
+        while i + 2 < parts.count - 1 {
+            if let x = Double(parts[i]), let y = Double(parts[i + 1]), let w = Double(parts[i + 2]),
+               x.isFinite, y.isFinite, w.isFinite, w > 0 {
+                out.append((CGFloat(x), CGFloat(y), CGFloat(w)))
+            }
+            i += 3
+        }
+        return out
     }
 
     /// Nur Continuity: Helios-Palme und Aegis-Built-in liegen in fremden UV-Räumen.
@@ -2930,7 +2946,20 @@ enum MatchMath {
             let hasL = signed.contains { $0 < 0 }
             let hasR = signed.contains { $0 > 0 }
             if hasL && hasR {
-                if seen.insert(key).inserted { out.append(key) }
+                func rank(_ group: [(hash: String, yawAbs: Double)]) {
+                    let sorted = group.sorted { abs($0.yawAbs) + 1e-9 < abs($1.yawAbs) }
+                    for (i, _) in sorted.enumerated() {
+                        let emit = i == 0 ? key : leftoverHoldHashTwinKey(hash: key, rank: i)
+                        if seen.insert(emit).inserted { out.append(emit) }
+                    }
+                }
+                rank(rows.filter { leftoverHoldBinSigned(yaw: $0.yawAbs) < 0 })
+                rank(rows.filter { leftoverHoldBinSigned(yaw: $0.yawAbs) > 0 })
+                let front = rows.filter { leftoverHoldBinSigned(yaw: $0.yawAbs) == 0 }
+                for (i, _) in front.enumerated() {
+                    let emit = leftoverHoldHashTwinKey(hash: key, rank: i + 1)
+                    if seen.insert(emit).inserted { out.append(emit) }
+                }
                 continue
             }
             let sorted = rows.sorted { abs($0.yawAbs) + 1e-9 < abs($1.yawAbs) }
@@ -3063,10 +3092,18 @@ enum MatchMath {
         return occupied
     }
 
-    static func leftoverHashTwinChip(x: Double, others: [Double]) -> String? {
+    static func leftoverHashTwinChip(x: Double, others: [Double], yawAbs: Double = 0, otherYaws: [Double] = []) -> String? {
         guard !others.isEmpty else { return nil }
         if others.count == 1 {
+            if otherYaws.count == 1, !leftoverOccupiedSamePose(a: yawAbs, b: otherYaws[0]) {
+                let s = leftoverHoldBinSigned(yaw: yawAbs)
+                if s < 0 { return "TWIN L" }
+                if s > 0 { return "TWIN R" }
+            }
             return leftoverHashTwinLeft(x: x, others: others) ? "TWIN L" : "TWIN R"
+        }
+        if otherYaws.count == others.count {
+            return "TWIN \(leftoverHashTwinRank(x: x, others: others, yawAbs: yawAbs, otherYaws: otherYaws) + 1)"
         }
         return "TWIN \(leftoverHashTwinRank(x: x, others: others) + 1)"
     }
@@ -4237,6 +4274,12 @@ enum MatchMath {
     static func leftoverOccupiedYaw(key: String, yawOf: (UUID) -> Double) -> Double {
         guard let id = UUID(uuidString: key) else { return 0 }
         return yawOf(id)
+    }
+
+    /// live nil = erster Frame / Ghost. 0 ist frontal, nicht missing.
+    static func leftoverOccupiedYawLive(live: Double?, printed: Double?) -> Double {
+        if let live { return live }
+        return printed ?? 0
     }
 
 
@@ -8105,7 +8148,7 @@ enum MatchMath {
         !liveIds.isEmpty && liveIds.allSatisfy { skipIds.contains($0) }
     }
 
-    static func leftoverPrintSkipHits(face: FaceBox, skipBoxes: [FaceBox], iou: Double = printBudgetIoU, palm: FaceBox? = nil, palmIou: Double = 0.18) -> Bool {
+    static func leftoverPrintSkipHits(face: FaceBox, skipBoxes: [FaceBox], iou: Double = printBudgetIoU, palm: FaceBox? = nil, palms: [FaceBox] = [], palmIou: Double = 0.18) -> Bool {
         if skipBoxes.contains {
             boxIoU(
                 ax: face.x, ay: face.y, aw: face.width, ah: face.height,
@@ -8114,11 +8157,17 @@ enum MatchMath {
         } {
             return true
         }
-        guard let palm else { return false }
-        return boxIoU(
-            ax: face.x, ay: face.y, aw: face.width, ah: face.height,
-            bx: palm.x, by: palm.y, bw: palm.width, bh: palm.height
-        ) + 1e-9 >= palmIou
+        var all = palms
+        if let palm { all.insert(palm, at: 0) }
+        for p in all {
+            if boxIoU(
+                ax: face.x, ay: face.y, aw: face.width, ah: face.height,
+                bx: p.x, by: p.y, bw: p.width, bh: p.height
+            ) + 1e-9 >= palmIou {
+                return true
+            }
+        }
+        return false
     }
 
     static func leftoverPrintSkipBoxes(

@@ -6014,6 +6014,43 @@ enum MatchMathTests {
             raw: 0.91, prev: 0.70, trail: [0.70, 0.72], yawAbs: 0.05
         ) ?? -1
         ok(abs(frontMed - 0.72) < 0.05, "HoldSmooth frontal UUID-Trail")
+        let twoL1R = MatchMath.leftoverOccupiedMergeYaw(
+            stored: [],
+            live: [
+                (hash: "5.5.4.6", yawAbs: -0.40),
+                (hash: "5.5.4.6", yawAbs: -0.55),
+                (hash: "5.5.4.6", yawAbs: 0.40)
+            ]
+        )
+        ok(twoL1R.contains("5.5.4.6") && twoL1R.contains("5.5.4.6#101"), "Occupied 2L+1R Rank extra L")
+        ok(
+            MatchMath.leftoverHashTwinChip(x: 0.70, others: [0.20], yawAbs: -0.50, otherYaws: [0.50]) == "TWIN L",
+            "Chip Profil L nicht x-R"
+        )
+        ok(
+            MatchMath.leftoverHashTwinChip(x: 0.20, others: [0.70]) == "TWIN L",
+            "Chip ohne Yaw bleibt x"
+        )
+        ok(MatchMath.leftoverOccupiedYawLive(live: nil, printed: -0.40) == -0.40, "Yaw nil → Print")
+        ok(MatchMath.leftoverOccupiedYawLive(live: 0, printed: -0.40) == 0, "Yaw 0 bleibt frontal")
+        ok(MatchMath.leftoverOccupiedYawLive(live: 0.35, printed: -0.40) == 0.35, "Live vor Print")
+        let twoPalm = MatchMath.cameraMutexLine(
+            owner: "helios", pid: 1, now: 100, gen: 1, pts: 1.5,
+            palms: [(0.20, 0.40, 0.10), (0.70, 0.50, 0.12)]
+        )
+        ok(MatchMath.cameraMutexPalms(twoPalm).count == 2, "Mutex zwei Palmen")
+        ok(abs(Double(MatchMath.cameraMutexPalm(twoPalm)?.x ?? -1) - 0.20) < 1e-6, "Mutex erste Palme")
+        let p0 = MatchMath.cameraMutexPalmBox((0.20, 0.40, 0.10), imageW: 1, imageH: 1)
+        let p1 = MatchMath.cameraMutexPalmBox((0.90, 0.90, 0.08), imageW: 1, imageH: 1)
+        let faceMid = FaceBox(x: 0.85, y: 0.85, width: 0.12, height: 0.12)
+        ok(
+            MatchMath.leftoverPrintSkipHits(face: faceMid, skipBoxes: [], palms: [p0, p1]),
+            "skipPrint zweite Palme"
+        )
+        ok(
+            !MatchMath.leftoverPrintSkipHits(face: faceMid, skipBoxes: [], palms: [p0]),
+            "skipPrint nur erste Palme tot"
+        )
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)
