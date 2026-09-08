@@ -1,3 +1,20 @@
+# Aegis 2.1.217 — Temporal Vote, Capture-Quality Skip, People-Dup, Enroll-Meter
+
+Aegis **2.1.217 alpha** (Build 242). Helios **1.6.55** (Build 88). Nur `main`. `bugfix` mergen: nein.
+
+## Was 2.1.217 ändert
+
+2.1.216: Track lost Detect, People Yaw, limited-auth, FA Matrix. Name flackerte nach 3 Continuity-Ticks (`nameAgreeNeed` dt=3). `qualityRejects` ließ große unscharfe Gesichter durch (capture < 0,35 **und** size < 0,16). People-Seed prüfte nur den Namen. Enroll ohne Qualitätsanzeige.
+
+| # | Bug | Fix |
+|---|---|---|
+| 1 | 3 Ticks taufen | nameTemporalVote Floor 5 |
+| 2 | Groß+unscharf = Print | printCaptureQualitySkip unabhängig von Size |
+| 3 | People-Duplikat | duplicateOf + cosine ≥ 0,89 |
+| 4 | Enroll blind | enrollQualityMeter Chip |
+
+Nicht: CameraBroker, HNSW, LiveCapture off MainActor, Overlay-Metal.
+
 # Aegis 2.1.216 — Track lost Detect, People Yaw, limited-auth, FA Matrix
 
 Aegis **2.1.216 alpha** (Build 241). Helios **1.6.54** (Build 87). Nur `main`. `bugfix` mergen: nein.

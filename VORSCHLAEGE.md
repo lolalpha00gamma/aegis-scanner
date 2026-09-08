@@ -1,3 +1,46 @@
+# 2.1.217 — Temporal Vote, Capture-Quality Skip, People-Dup, Enroll-Meter.
+
+## In 2.1.217 wirklich im Code
+
+2.1.216 Track lost Detect, People Yaw, limited-auth, FA Matrix. Name flackerte nach 3 Continuity-Ticks. `qualityRejects` ließ große unscharfe Gesichter durch (size ≥ 0,16). People-Seed prüfte nur den Namen, nicht den Print. Enroll ohne Qualitätsanzeige.
+
+1. **Temporal Majority-Vote 5 Frames.** `nameTemporalVote` / `nameTemporalNeed`. Floor 5, nicht dt=3.
+2. **VNDetectFaceCaptureQuality Print-Skip.** Capture < 0,35 in `stampPrints`.
+3. **Duplicate-Identity Detector** People-Seed Cosine ≥ 0,89.
+4. **Enrollment-Quality-Meter** live `Q n`.
+5. Tests + VERSION = Models = MARKETING 2.1.217 (Build 242). Schema 15 bleibt.
+
+## Erweiterung (neu, 2.1.217)
+
+1. **CameraBroker XPC + IOSurface** mit Helios. Eine TCC. P0.
+2. **gallery ANN / HNSW** nach Print-Index.
+3. **Identity-Merge-Wizard** Cosine 0,89–0,94 + Pairwise-Heatmap.
+4. **Softmax-Temperature** weiter nach Capture-Luma.
+5. **Cluster-Merge** mit 3 Stills bestätigen.
+6. **P-Slot Maske/Schal**, Brille Twin-Veto.
+7. **ReID-Graph** Hold-Trail.
+8. **Stereo Built-in + Continuity** Disparität als Yaw-Prior.
+9. **Overlay CAMetalLayer 60 Hz.**
+10. **Gemeinsamer CVPixelBuffer** Detect+Print.
+11. **LiveCapture nicht @MainActor.**
+12. **Drop-in `.mlmodel`** Print-Backbone.
+13. **gallery.json.bak Rotate 3.**
+14. **mmap leftover-Boxen** Helios↔Aegis Palm-Occlusion.
+15. **Print-Cache persist** auf Disk (RAM tot nach Restart).
+16. **Lookalike Negative-Embed** gegen Twin-False-Accept.
+17. **Night/IR Continuity** Luma-Gate vor Print.
+18. **Face-Print Versioning** nach Vision-Modellwechsel.
+19. **RAW/HEIC Watch-Folder** ohne JPEG-Probe.
+20. **Export Embeddings** JSONL für Offline-HNSW.
+21. **UMAP Cluster-View** der Galerie.
+22. **Guest-TTL** Auto-Forget nach 30 s ohne Print.
+23. **Merge-Undo 30 s** nach People-Dup Skip.
+24. **Capture-Quality Spark** an der Overlay-Box.
+25. **Photos Hidden-Album** nie seeden.
+26. **Video-Cut ReID** über Szenenwechsel.
+
+P0 CameraBroker. Kein neues leftover*-Flag.
+
 # 2.1.216 — Track lost Detect, People Yaw, limited-auth, FA Matrix.
 
 ## In 2.1.216 wirklich im Code

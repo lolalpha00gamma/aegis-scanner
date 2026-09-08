@@ -1,3 +1,29 @@
+# Aegis Vorschläge — 2026-09-08 (Pass 18, 2.1.217)
+
+Stand 2.1.217 alpha. Temporal Vote, Capture-Skip, People-Dup, Enroll-Meter.
+
+## Gelandet in 2.1.217
+
+- nameTemporalVote / nameTemporalNeed Floor 5
+- printCaptureQualitySkip in stampPrints
+- peopleAlbumDuplicate Cosine 0,89
+- enrollQualityMeter Chip
+
+## Erweiterung (neu)
+
+171. **Lookalike Negative-Embed.**
+172. **Night/IR Continuity** Luma-Gate.
+173. **Face-Print Versioning.**
+174. **RAW/HEIC Watch-Folder.**
+175. **Export Embeddings** JSONL.
+176. **UMAP Cluster-View.**
+177. **Guest-TTL** Auto-Forget.
+178. **Merge-Undo 30 s.**
+179. **Capture-Quality Spark** Overlay-Box.
+180. **Photos Hidden-Album** skip.
+
+P0: CameraBroker. Kein neues leftover*-Flag.
+
 # Aegis Vorschläge — 2026-09-08 (Pass 17, 2.1.216)
 
 Stand 2.1.216 alpha. Track lost Detect, People Yaw, limited-auth, FA Matrix.

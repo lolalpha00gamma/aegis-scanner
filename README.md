@@ -1,4 +1,4 @@
-# Aegis **2.1.216 alpha**
+# Aegis **2.1.217 alpha**
 
 
 
@@ -14,6 +14,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.217 alpha
+
+2.1.216 Track-lost Detect, People Yaw, limited-auth, FA Matrix. Name flackerte nach 3 Continuity-Ticks. Unscharfe große Gesichter vergifteten die Galerie. People legte Duplikate an. Enroll ohne Qualitätsanzeige.
+
+- **Temporal Majority-Vote 5 Frames.** 3 Ticks taufen nicht.
+- **VNDetectFaceCaptureQuality Print-Skip.** Capture < 0,35, unabhängig von Size.
+- **Duplicate-Identity Detector** People-Seed Cosine ≥ 0,89.
+- **Enrollment-Quality-Meter** live `Q n · schwach/gut`.
+- Tests + VERSION = Models = MARKETING 2.1.217 (Build 242). Schema 15 bleibt.
 
 ## Neu in 2.1.216 alpha
 

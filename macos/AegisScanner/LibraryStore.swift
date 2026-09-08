@@ -54,6 +54,7 @@ final class LibraryStore: ObservableObject {
     @Published var mutexChip: String = "—"
     @Published var yawCoverageChip: String = "YAW —"
     @Published var enrollSMChip: String = "ENROLL —"
+    @Published var enrollQualityChip: String = "Q —"
     @Published var faReplayChip: String = "FA —"
     @Published var faReplayMatrix: String = "FA —"
     @Published var overlayBeat: TimeInterval = 0
@@ -1278,13 +1279,14 @@ final class LibraryStore: ObservableObject {
                 second: vs.dropFirst().first?.percent,
                 pairCosine: hit.pairCosine
             )
-            let need = MatchMath.nameAgreeNeed(family: close, dt: dt)
+            let need = MatchMath.nameTemporalNeed(family: close, dt: dt)
             let cap = MatchMath.nameHistCap(need: need, dt: dt)
             let hist = MatchMath.nameHistAppend(liveNameHist[fid] ?? [], token: token, cap: cap)
             liveNameHist[fid] = hist
             let voted = MatchMath.leftoverLiveNameAnd(
-                voted: MatchMath.nameMajorityAgreeing(hist, window: cap, need: need),
+                voted: MatchMath.nameTemporalVote(hist, dt: dt, family: close),
                 hist: hist,
+                need: need,
                 locked: MatchMath.leftoverNameLockBlocks(until: leftoverNameLockUntil[fid], now: frameNow),
                 held: liveNameLock[fid]?.uuidString
             )
@@ -1757,14 +1759,14 @@ final class LibraryStore: ObservableObject {
     /// Peak-Hold 3 Frames über Remint-UUID — SwiftUI-Body mutiert nicht.
     func leftoverOverlayGuestRaw(for id: UUID) -> String {
         let hist = liveNameHist[id] ?? []
-        let need = 3
+        let need = MatchMath.nameTemporalNeed(family: false, dt: 0.125)
         return MatchMath.leftoverOverlayGuestOf(
             storeName: MatchMath.leftoverOverlayFirmName(
                 storeName: leftoverStoreName(for: id),
                 cosine: leftoverHold[id],
                 continuity: liveCapture.isContinuity
             ),
-            voted: MatchMath.nameMajorityAgreeing(hist, window: max(need, hist.count), need: need),
+            voted: MatchMath.nameTemporalVote(hist, dt: 0.125, family: false),
             hist: hist,
             need: need,
             guest: guestName(for: id),
@@ -2326,6 +2328,7 @@ final class LibraryStore: ObservableObject {
         leftoverPrintCache = []
         yawCoverageChip = "YAW —"
         enrollSMChip = "ENROLL —"
+        enrollQualityChip = "Q —"
         faReplayChip = "FA —"
         faReplayMatrix = "FA —"
         faLogLastDecided = [:]
@@ -3932,6 +3935,13 @@ final class LibraryStore: ObservableObject {
                     }
                     let blink = adopted.contains { leftoverBlinkSeen(faceId: $0.id) }
                     enrollSMChip = MatchMath.enrollSMFromBins(bins, haveBlink: blink)
+                    let capQ = adopted.map(\.quality.capture).max() ?? 0
+                    let sharpQ = adopted.map(\.quality.sharpness).max() ?? 0
+                    enrollQualityChip = MatchMath.enrollQualityMeter(
+                        capture: capQ,
+                        sharpness: sharpQ,
+                        yawCoverage: MatchMath.printYawCoverageBest(cached: leftoverPrintCache)
+                    )
                 }
                 let from = leftoverLastHash[face.id]
                 if let from, !ranked.isEmpty, from != ranked {
@@ -5219,12 +5229,23 @@ final class LibraryStore: ObservableObject {
                         let mid = UUID()
                         let found = (try? FaceEngine.detect(in: cg, mediaId: mid, tiles: false, live: false)) ?? []
                         guard let face = found.max(by: { $0.box.width * $0.box.height < $1.box.width * $1.box.height }) else { continue }
+                        if MatchMath.printCaptureQualitySkip(face.quality.capture) { continue }
                         var copy = face
                         copy.enrolledAt = Date()
                         detected.append((cg: cg, face: copy))
                     }
                     let bins = detected.map { MatchMath.peopleAlbumYawBin($0.face.quality.yaw) }
                     let keep = MatchMath.peopleAlbumYawPick(bins: bins, cap: cap)
+                    if let i = keep.first {
+                        let probe = detected[i].face
+                        if let hit = FaceEngine.duplicateOf(
+                            face: probe,
+                            identities: self.identities,
+                            faces: self.faces
+                        ), MatchMath.peopleAlbumDuplicate(cosine: hit.1) {
+                            return
+                        }
+                    }
                     var faceIds: [UUID] = []
                     for i in keep {
                         let row = detected[i]

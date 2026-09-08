@@ -2097,6 +2097,45 @@ enum MatchMath {
         return limited ? "People-Album eingeschränkt — keine sichtbaren Alben" : "People-Album leer oder schon in der Galerie"
     }
 
+    /// 5-Frame Majority. 8 fps Burst von 3 Ticks tauft nicht.
+    static func nameTemporalNeed(family: Bool = false, dt: TimeInterval = 0.125) -> Int {
+        max(nameVoteFrames, nameAgreeNeed(family: family, dt: dt))
+    }
+
+    static func nameTemporalVote(
+        _ history: [String],
+        dt: TimeInterval = 0.125,
+        family: Bool = false
+    ) -> String? {
+        let need = nameTemporalNeed(family: family, dt: dt)
+        return nameMajorityAgreeing(history, window: max(nameVoteFrames, need), need: need)
+    }
+
+    /// VNDetectFaceCaptureQuality. Groß+unscharf hat qualityRejects umgangen (size ≥ 0,16).
+    static let printCaptureQualityFloor = 0.35
+    static func printCaptureQualitySkip(
+        _ quality: Double,
+        floor: Double = printCaptureQualityFloor
+    ) -> Bool {
+        quality < floor
+    }
+
+    /// People-Seed: Cosine ≥ 0,89 gegen bestehende Identität = Duplikat, nicht neue ID.
+    static func peopleAlbumDuplicate(cosine: Double, floor: Double = 0.89) -> Bool {
+        cosine >= floor
+    }
+
+    /// Live-Meter: Capture × Schärfe × Yaw-Coverage.
+    static func enrollQualityMeter(capture: Double, sharpness: Double, yawCoverage: Double) -> String {
+        let c = max(0, min(1, capture))
+        let s = max(0, min(1, sharpness))
+        let y = max(0, min(1, yawCoverage))
+        let q = Int(((c * 0.45 + s * 0.35 + y * 0.20) * 100).rounded())
+        if q < 40 { return "Q \(q) · schwach" }
+        if q < 70 { return "Q \(q)" }
+        return "Q \(q) · gut"
+    }
+
     /// authorized = 3, limited = 4. Restricted/denied tot.
     static func peopleAlbumAuthOk(_ raw: Int) -> Bool { raw == 3 || raw == 4 }
 

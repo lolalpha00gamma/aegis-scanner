@@ -1683,6 +1683,7 @@ enum FaceEngine {
         let needPrint = faces.contains { face in
             !MatchMath.leftoverPrintSkipHits(face: face.box, skipBoxes: skipPrintBoxes)
                 && !MatchMath.skipPrint(sharpness: face.quality.sharpness, continuity: continuity, yaw: face.quality.yaw)
+                && !MatchMath.printCaptureQualitySkip(face.quality.capture)
                 && face.quality.sharpness >= minSharpness
         }
         let found = needPrint ? facePrintsInImage(image, orientation: orientation) : []
@@ -1691,6 +1692,7 @@ enum FaceEngine {
             var next = face
             if MatchMath.leftoverPrintSkipHits(face: face.box, skipBoxes: skipPrintBoxes)
                 || MatchMath.skipPrint(sharpness: face.quality.sharpness, continuity: continuity, yaw: face.quality.yaw)
+                || MatchMath.printCaptureQualitySkip(face.quality.capture)
             {
                 next.featurePrint = Data()
                 next.printVec = []

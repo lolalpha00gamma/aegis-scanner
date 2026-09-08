@@ -90,6 +90,12 @@ struct ContentView: View {
                     .foregroundStyle(store.enrollSMChip == "ENROLL ●●●●" ? .green : .orange)
                     .help("Enroll-Schritte Front → ¾L → ¾R → Blink. Chip treibt den nächsten Schritt.")
             }
+            if store.liveActive, store.enrollQualityChip != "Q —" {
+                Text(store.enrollQualityChip)
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(store.enrollQualityChip.contains("schwach") ? .orange : .mint)
+                    .help("Enrollment-Qualität: Capture × Schärfe × Yaw-Coverage. Schwach = kein Print.")
+            }
             if store.faReplayChip != "FA —" {
                 Text(store.faReplayChip)
                     .font(.system(.caption, design: .monospaced))
