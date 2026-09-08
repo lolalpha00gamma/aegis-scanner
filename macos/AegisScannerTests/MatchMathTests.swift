@@ -5498,7 +5498,18 @@ enum MatchMathTests {
         ok(!MatchMath.leftoverPrintCacheHits(hash: "6.6.4.6", yaw: nil, cached: printCache), "Print-Cache Yaw nil tot")
         ok(MatchMath.liveHungSpawnOk(inflight: 1), "Hung spawn bei 1")
         ok(!MatchMath.liveHungSpawnOk(inflight: 2), "Hung spawn cap 2")
-        ok(!MatchMath.liveHungSpawnOk(inflight: 0), "Hung spawn ohne inflight tot")
+        ok(MatchMath.liveHungSpawnOk(inflight: 0), "Hung spawn bei inflight 0 rettet klebenden liveBusy")
+        ok(MatchMath.liveHungCoastOverlay(), "Hung Overlay coast")
+        ok(MatchMath.liveRecoversOnWake(), "Wake-Recovery an")
+        ok(MatchMath.cameraNameBare("iPhone von Ada · Tiefe") == "iPhone von Ada", "Name strip Tiefe")
+        ok(
+            MatchMath.cameraUniqueIDSticky(
+                prevID: "A", nextID: "B",
+                prevName: "iPhone von Ada", nextName: "iPhone von Ada · Tiefe",
+                prevRole: "phone", nextRole: "phone"
+            ),
+            "Continuity sticky trotz Tiefe-Suffix"
+        )
         ok(MatchMath.liveHungGenDrops(resultGen: 1, liveGen: 2), "Hung Gen stale")
         ok(!MatchMath.liveHungGenDrops(resultGen: 3, liveGen: 3), "Hung Gen aktuell")
         ok(

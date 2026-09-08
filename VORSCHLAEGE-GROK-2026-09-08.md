@@ -1,3 +1,25 @@
+# Aegis Vorschläge — 2026-09-08 (Pass 11, 2.1.210)
+
+Stand 2.1.210 alpha. Hung coast, inflight 0, Name-Strip, Wake.
+
+## Gelandet in 2.1.210
+
+- liveHungCoastOverlay Kalman
+- liveHungSpawnOk inflight 0
+- cameraNameBare sticky
+- recoverAfterWake
+
+## Erweiterung (neu)
+
+96. **PhotoKit People-Album** Enroll-Seed.
+97. **Box-Track 60 Hz** unabhängig von Detect.
+98. **False-Accept JSONL Replay-UI.**
+99. **Softmax-Temperature × Gallery-Größe.**
+100. **Cluster-Merge** 3 Stills.
+101. **Print-Budget Yaw-Coverage-Meter.**
+
+P0: CameraBroker. Kein neues leftover*-Flag.
+
 # Aegis Vorschläge — 2026-09-08 (Pass 10b, 2.1.209)
 
 Stand 2.1.209 alpha. uniqueID sticky, Hung spawn cap, Print-Cache yaw nil.

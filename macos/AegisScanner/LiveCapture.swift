@@ -730,6 +730,15 @@ final class LiveCapture: NSObject {
         applyBestFormat(device)
     }
 
+    func recoverAfterWake() {
+        applyCenterStage(force: true)
+        if let s = session, !s.isRunning {
+            outputQueue.async { s.startRunning() }
+        }
+        reselectFormat()
+        tap?.markConsumed()
+    }
+
     private static func bestFormat(on device: AVCaptureDevice) -> AVCaptureDevice.Format? {
         var best: AVCaptureDevice.Format?
         var bestScore = -1.0

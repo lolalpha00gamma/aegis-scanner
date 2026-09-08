@@ -1,3 +1,40 @@
+# 2.1.210 — Hung Overlay coast, inflight 0, Name-Strip, Wake.
+
+## In 2.1.210 wirklich im Code
+
+2.1.209 uniqueID sticky, Hung spawn cap, yaw nil. Overlay freeze 1 s+. liveBusy tot bei inflight 0. Name exakt. Sleep tot.
+
+1. **liveHungCoastOverlay.** Kalman-Coast, dann Spawn.
+2. **liveHungSpawnOk inflight 0.**
+3. **cameraNameBare** in uniqueID sticky.
+4. **liveRecoversOnWake + recoverAfterWake.**
+5. Tests + VERSION = Models = MARKETING 2.1.210 (Build 235). Schema 15 bleibt.
+
+## Erweiterung (neu, 2.1.210)
+
+1. **CameraBroker XPC + IOSurface** mit Helios. Eine TCC. P0.
+2. **gallery ANN / HNSW** nach Print-Index.
+3. **Identity-Merge-Wizard** Cosine 0,89–0,94 + Pairwise-Heatmap.
+4. **PhotoKit People-Album** als Enroll-Seed.
+5. **Box-Track 60 Hz** CADisplayLink unabhängig von Detect 8–24.
+6. **False-Accept JSONL Replay-UI.**
+7. **Softmax-Temperature × Gallery-Größe.**
+8. **Cluster-Merge** mit 3 Stills bestätigen.
+9. **Print-Budget Yaw-Coverage-Meter** je Identität.
+10. **P-Slot Maske/Schal**, Brille Twin-Veto.
+11. **ReID-Graph** Hold-Trail.
+12. **Stereo Built-in + Continuity** Disparität als Yaw-Prior.
+13. **Overlay CAMetalLayer 60 Hz.**
+14. **Gemeinsamer CVPixelBuffer** Detect+Print.
+15. **VNTrackObjectRequest** Box zwischen Detect-Ticks.
+16. **LiveCapture nicht @MainActor.**
+17. **Drop-in `.mlmodel`** Print-Backbone.
+18. **Enroll-SM** Front → ¾L → ¾R → Blink.
+19. **gallery.json.bak Rotate 3.**
+20. **Osmo als CameraChoice.**
+
+Kein 2.1.211-Flag ohne CameraBroker. Kein neues leftover*-Flag.
+
 # 2.1.209 — uniqueID sticky, Hung spawn cap, Print-Cache yaw nil.
 
 ## In 2.1.209 wirklich im Code

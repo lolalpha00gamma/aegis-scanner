@@ -1,3 +1,19 @@
+# Aegis 2.1.210 — Hung Overlay coast, inflight 0, Name-Strip, Wake
+
+Aegis **2.1.210 alpha** (Build 235). Helios **1.6.48** (Build 81). Nur `main`. `bugfix` mergen: nein.
+
+## Was 2.1.210 ändert
+
+2.1.209: uniqueID sticky, Hung spawn cap, yaw nil. Overlay freeze während Hung. inflight 0 klebt. Name ohne strip. Sleep tot.
+
+1. **liveHungCoastOverlay.** Kalman-Coast sofort, Spawn wenn Cap frei.
+2. **liveHungSpawnOk(inflight: 0).** klebender liveBusy recovered.
+3. **cameraNameBare.** sticky trotz ` · Tiefe`.
+4. **recoverAfterWake.** Session neu, Kalman bleibt.
+5. Tests + VERSION = Models = MARKETING 2.1.210 (Build 235). Schema 15 bleibt.
+
+Nicht: CameraBroker, HNSW, Overlay-Metal, LiveCapture off MainActor.
+
 # Aegis 2.1.209 — uniqueID sticky, Hung spawn cap, Print-Cache yaw nil
 
 Aegis **2.1.209 alpha** (Build 234). Helios **1.6.47** (Build 80). Nur `main`. `bugfix` mergen: nein.

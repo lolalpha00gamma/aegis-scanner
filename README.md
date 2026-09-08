@@ -1,4 +1,4 @@
-# Aegis **2.1.209 alpha**
+# Aegis **2.1.210 alpha**
 
 
 Direkt laden:
@@ -14,6 +14,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.210 alpha
+
+2.1.209 uniqueID sticky, Hung spawn cap, Print-Cache yaw nil. Hung ließ Overlay 1 s+ stehen. inflight 0 klebte liveBusy. Name ohne strip. Sleep ließ die Session tot.
+
+- **Hung Overlay coast.** Kalman-Boxen laufen weiter, dann Spawn.
+- **Hung spawn inflight 0.** klebender liveBusy recovered.
+- **cameraNameBare.** sticky trotz ` · Tiefe`.
+- **Wake-Recovery.** Session startet, Kalman bleibt.
+- Tests + VERSION = Models = MARKETING 2.1.210 (Build 235). Schema 15 bleibt.
 
 ## Neu in 2.1.209 alpha
 

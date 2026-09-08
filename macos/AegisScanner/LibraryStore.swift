@@ -2033,9 +2033,14 @@ final class LibraryStore: ObservableObject {
     }
 
     func noteDidWake() {
-        guard MatchMath.liveRoiSkipOnWake() else { return }
         liveRoiSkipOnce = true
         livePending = nil
+        guard MatchMath.liveRecoversOnWake(), liveActive else { return }
+        liveDetectGen &+= 1
+        liveBusy = false
+        liveBusySince = 0
+        liveDetectInflight = 0
+        liveCapture.recoverAfterWake()
     }
 
     func leftoverAdoptProgress(faceId: UUID) -> String? {
@@ -2387,13 +2392,31 @@ final class LibraryStore: ObservableObject {
         if liveBusy {
             livePending = (image, mediaId, stamp)
             let busyFor = liveBusySince > 0 ? now - liveBusySince : 0
-            if MatchMath.liveEmitHungCancel(busy: true, busyFor: busyFor),
-               MatchMath.liveHungSpawnOk(inflight: liveDetectInflight) {
-                liveDetectGen &+= 1
-                liveBusySince = now
-                livePending = nil
-                liveCapture.markFrameConsumed()
-                runLiveDetect(image, mediaId: mediaId, stamp: stamp)
+            if MatchMath.liveEmitHungCancel(busy: true, busyFor: busyFor) {
+                if MatchMath.liveHungCoastOverlay(), !boxKalman.isEmpty {
+                    let coast = boxKalman.map { (id, v) in
+                        FaceObservation.coast(
+                            id: id,
+                            mediaId: mediaId,
+                            box: FaceBox(x: v.x, y: v.y, width: v.w, height: v.h)
+                        )
+                    }
+                    applyLiveFaces(
+                        coast,
+                        image: image,
+                        mediaId: mediaId,
+                        stamp: stamp,
+                        skipDetect: true,
+                        skipPrints: true
+                    )
+                }
+                if MatchMath.liveHungSpawnOk(inflight: liveDetectInflight) {
+                    liveDetectGen &+= 1
+                    liveBusySince = now
+                    livePending = nil
+                    liveCapture.markFrameConsumed()
+                    runLiveDetect(image, mediaId: mediaId, stamp: stamp)
+                }
             }
             return
         }

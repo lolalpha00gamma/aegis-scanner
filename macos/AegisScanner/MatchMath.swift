@@ -1194,15 +1194,25 @@ enum MatchMath {
     }
 
     /// Zwei Vision parallel max — VNImageRequestHandler ist unkündbar.
+    /// inflight 0 + liveBusy klebt: Spawn muss trotzdem dürfen.
     static func liveHungSpawnOk(inflight: Int, cap: Int = 2) -> Bool {
-        inflight > 0 && inflight < cap
+        inflight >= 0 && inflight < cap
     }
+
+    /// Hung: Overlay sofort coasten, nicht 1 s+ Freeze bis Vision zurück ist.
+    static func liveHungCoastOverlay() -> Bool { true }
 
     static func liveHungGenDrops(resultGen: UInt64, liveGen: UInt64) -> Bool {
         resultGen != liveGen
     }
 
     /// Continuity uniqueID stirbt beim Reconnect. Name+Role gleich = dieselbe Cam.
+    static func cameraNameBare(_ name: String) -> String {
+        let t = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let r = t.range(of: " · ") { return String(t[..<r.lowerBound]) }
+        return t
+    }
+
     static func cameraUniqueIDSticky(
         prevID: String,
         nextID: String,
@@ -1214,10 +1224,15 @@ enum MatchMath {
         if prevID.isEmpty || nextID.isEmpty { return false }
         if prevID == nextID { return true }
         if prevRole == "mac" || nextRole == "mac" { return false }
-        let sameName = !prevName.isEmpty && prevName == nextName
+        let a = cameraNameBare(prevName)
+        let b = cameraNameBare(nextName)
+        let sameName = !a.isEmpty && a == b
         let sameRole = !prevRole.isEmpty && prevRole == nextRole
         return sameName && sameRole
     }
+
+    /// Sleep/Wake: Session neu, Kalman halten.
+    static func liveRecoversOnWake() -> Bool { true }
 
     /// Osmo ist nicht Mac — uniqueID-Reconnect sonst Kalman-Dump.
     static func cameraRoleOf(name: String, isContinuity: Bool, isExternal: Bool = false) -> String {
