@@ -1,3 +1,38 @@
+# 2.1.214 — VNTrack, People-Album, False-Accept JSONL.
+
+## In 2.1.214 wirklich im Code
+
+2.1.213 Mac 1080, Softmax×Galerie, Overlay reduced-motion. Lerp folgte tot Detect. People ungenutzt. FA unsichtbar.
+
+1. **VNTrackObjectRequest** zwischen Detect. `FaceEngine.trackBoxes` + `overlayTrackStep`.
+2. **PhotoKit People-Album** Enroll-Seed. Toolbar People.
+3. **False-Accept JSONL Replay.** expected=Lock, Cap 500. Toolbar FA-Log.
+4. Tests + VERSION = Models = MARKETING 2.1.214 (Build 239). Schema 15 bleibt.
+
+## Erweiterung (neu, 2.1.214)
+
+1. **CameraBroker XPC + IOSurface** mit Helios. Eine TCC. P0.
+2. **gallery ANN / HNSW** nach Print-Index.
+3. **Identity-Merge-Wizard** Cosine 0,89–0,94 + Pairwise-Heatmap.
+4. **Softmax-Temperature** weiter nach Capture-Luma.
+5. **Cluster-Merge** mit 3 Stills bestätigen.
+6. **P-Slot Maske/Schal**, Brille Twin-Veto.
+7. **ReID-Graph** Hold-Trail.
+8. **Stereo Built-in + Continuity** Disparität als Yaw-Prior.
+9. **Overlay CAMetalLayer 60 Hz.**
+10. **Gemeinsamer CVPixelBuffer** Detect+Print.
+11. **LiveCapture nicht @MainActor.**
+12. **Drop-in `.mlmodel`** Print-Backbone.
+13. **gallery.json.bak Rotate 3.**
+14. **mmap leftover-Boxen** Helios↔Aegis Palm-Occlusion.
+15. **People-Album lädt 3 Stills** (nicht nur Name).
+16. **FA-Replay Pair-Heatmap.**
+17. **VNTrack Observation persist** über skipDetect-Frames (nicht one-shot).
+18. **Enroll-SM skippt volle Bins** beim Capture.
+19. **Photos limited-auth** nur sichtbare Alben.
+
+P0 CameraBroker. Kein neues leftover*-Flag.
+
 # 2.1.213 — Mac 1080, Softmax×Galerie, Overlay reduced-motion.
 
 ## In 2.1.213 wirklich im Code

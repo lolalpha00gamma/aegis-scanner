@@ -1,3 +1,31 @@
+# Aegis Vorschläge — 2026-09-08 (Pass 15, 2.1.214)
+
+Stand 2.1.214 alpha. VNTrack, People-Album, False-Accept JSONL.
+
+## Gelandet in 2.1.214
+
+- overlayTrackUsesVision + FaceEngine.trackBoxes
+- overlayTrackStep IoU-Fuse
+- peopleAlbumEnrollOk + Photos Seed
+- falseAcceptJSONL Replay (Lock vs Vote, Cap 500)
+
+## Erweiterung (neu)
+
+137. **VNTrack Observation persist** über skipDetect-Frames.
+138. **Enroll-SM skippt volle Bins** beim Capture.
+139. **Photos limited-auth** nur sichtbare Alben.
+140. **People-Album lädt 3 Stills** nicht nur den Namen.
+141. **FA-Replay UI** mit Pair-Heatmap.
+142. **Cluster-Merge** 3 Stills.
+143. **mmap leftover-Boxen** Helios Palm-Occlusion.
+144. **gallery ANN / HNSW** nach Print-Index.
+145. **Identity-Merge-Wizard** Cosine 0,89–0,94.
+146. **P-Slot Maske/Schal**, Brille Twin-Veto.
+147. **LiveCapture nicht @MainActor.**
+148. **Overlay CAMetalLayer 60 Hz.**
+
+P0: CameraBroker. Kein neues leftover*-Flag.
+
 # Aegis Vorschläge — 2026-09-08 (Pass 14, 2.1.213)
 
 Stand 2.1.213 alpha. Mac 1080, Softmax×Galerie, Overlay reduced-motion.

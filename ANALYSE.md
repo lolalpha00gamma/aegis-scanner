@@ -1,3 +1,19 @@
+# Aegis 2.1.214 — VNTrack, People-Album, False-Accept JSONL
+
+Aegis **2.1.214 alpha** (Build 239). Helios **1.6.52** (Build 85). Nur `main`. `bugfix` mergen: nein.
+
+## Was 2.1.214 ändert
+
+2.1.213: Mac 1080, Softmax×Galerie, Overlay reduced-motion. Overlay-Lerp folgte der letzten Detect-Box (8 fps tot). People-Album ungenutzt. False-Accept nicht replaybar.
+
+| # | Bug | Fix |
+|---|---|---|
+| 1 | Overlay lerp = tote Detect-Box | VNTrackObjectRequest + overlayTrackStep |
+| 2 | Enroll nur Live | PhotoKit People-Album Seed |
+| 3 | FA unsichtbar / identity==decided | JSONL expected=Lock, nur Assignment-Wechsel, Cap 500 |
+
+Nicht: CameraBroker, HNSW, LiveCapture off MainActor, Overlay-Metal.
+
 # Aegis 2.1.213 — Mac 1080, Softmax×Galerie, Overlay reduced-motion
 
 Aegis **2.1.213 alpha** (Build 238). Helios **1.6.51** (Build 84). Nur `main`. `bugfix` mergen: nein.

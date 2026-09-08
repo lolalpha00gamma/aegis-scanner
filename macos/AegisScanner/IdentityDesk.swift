@@ -56,6 +56,10 @@ enum GalleryFile {
         directory.appendingPathComponent("gallery.json")
     }
 
+    static var falseAcceptURL: URL {
+        directory.appendingPathComponent("false-accept.jsonl")
+    }
+
     static var backupURL: URL {
         directory.appendingPathComponent("gallery.json.bak")
     }

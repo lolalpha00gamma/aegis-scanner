@@ -1996,6 +1996,113 @@ enum MatchMath {
 
     static func overlayTrackBeats(live: Bool) -> Bool { live }
 
+    /// VNTrackObjectRequest zwischen Detect. Lerp allein folgt der toten Detect-Box.
+    static func overlayTrackUsesVision() -> Bool { true }
+
+    static func overlayTrackIoU(_ a: CGRect, _ b: CGRect) -> Double {
+        let inter = a.intersection(b)
+        if inter.isNull || inter.isEmpty { return 0 }
+        let u = a.width * a.height + b.width * b.height - inter.width * inter.height
+        guard u > 1e-9 else { return 0 }
+        return Double(inter.width * inter.height / u)
+    }
+
+    static func overlayTrackKeeps(track: CGRect, detect: CGRect, floor: Double = 0.40) -> Bool {
+        overlayTrackIoU(track, detect) >= floor
+    }
+
+    static func overlayTrackVisionOk(confidence: Float) -> Bool { confidence >= 0.15 }
+
+    static func overlayTrackStep(prev: CGRect, detect: CGRect, dt: TimeInterval, tau: TimeInterval) -> CGRect {
+        let iou = overlayTrackIoU(prev, detect)
+        if iou < 0.12 { return detect }
+        if overlayTrackKeeps(track: prev, detect: detect) {
+            return leftoverOverlayLerp(prev: prev, next: detect, dt: dt, tau: tau * 0.55)
+        }
+        return leftoverOverlayLerp(prev: prev, next: detect, dt: dt, tau: tau * 1.6)
+    }
+
+    /// Photos People / Faces-Album. albumSyncedFaces = 202.
+    static let peopleAlbumSubtypeRaw: Int = 202
+
+    static func peopleAlbumSeedNeed() -> Int { 3 }
+
+    static func peopleAlbumEnrollOk(stills: Int, need: Int = 3) -> Bool { stills >= max(1, need) }
+
+    static func peopleAlbumPersonKey(_ name: String) -> String {
+        name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+
+    static func peopleAlbumSkipEmpty(_ name: String) -> Bool {
+        peopleAlbumPersonKey(name).isEmpty
+    }
+
+    /// Match-Log / False-Accept Replay. Eine Zeile, kein leftover*-Flag.
+    static func falseAcceptJSONLLine(
+        ts: TimeInterval,
+        hash: String,
+        identity: String,
+        cosine: Double,
+        decided: String
+    ) -> String {
+        func esc(_ s: String) -> String {
+            s.replacingOccurrences(of: "\\", with: "\\\\")
+                .replacingOccurrences(of: "\"", with: "\\\"")
+        }
+        return String(
+            format: "{\"ts\":%.3f,\"hash\":\"%@\",\"id\":\"%@\",\"cos\":%.4f,\"dec\":\"%@\"}",
+            ts, esc(hash), esc(identity), cosine, esc(decided)
+        )
+    }
+
+    static func falseAcceptJSONLParse(_ line: String) -> (ts: Double, hash: String, identity: String, cosine: Double, decided: String)? {
+        let raw = line.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard raw.hasPrefix("{"), raw.hasSuffix("}") else { return nil }
+        func field(_ key: String) -> String? {
+            let needle = "\"\(key)\":"
+            guard let r = raw.range(of: needle) else { return nil }
+            var rest = raw[r.upperBound...]
+            if rest.first == "\"" {
+                rest = rest.dropFirst()
+                guard let end = rest.firstIndex(of: "\"") else { return nil }
+                return String(rest[..<end])
+            }
+            let cut = rest.prefix { $0 != "," && $0 != "}" }
+            return String(cut)
+        }
+        guard let ts = Double(field("ts") ?? ""),
+              let hash = field("hash"),
+              let id = field("id"),
+              let cos = Double(field("cos") ?? ""),
+              let dec = field("dec")
+        else { return nil }
+        return (ts, hash, id, cos, dec)
+    }
+
+    static func falseAcceptJSONLHits(cosine: Double, floor: Double, decided: String, expected: String) -> Bool {
+        cosine + 1e-9 >= floor && !decided.isEmpty && !expected.isEmpty && decided != expected
+    }
+
+    static func falseAcceptJSONLShouldLog(prevDecided: String?, decided: String) -> Bool {
+        !decided.isEmpty && decided != (prevDecided ?? "")
+    }
+
+    /// leftoverHold ist Cosine 0–1, liveScoreEma ist Prozent.
+    static func falseAcceptJSONLCosine(hold: Double?, emaPercent: Double?) -> Double {
+        if let hold { return hold }
+        guard let ema = emaPercent else { return 0 }
+        return ema > 1.5 ? ema / 100 : ema
+    }
+
+    static func falseAcceptJSONLCap() -> Int { 500 }
+
+    static func falseAcceptJSONLTrim(_ text: String, cap: Int = 500) -> String {
+        let lines = text.split(whereSeparator: \.isNewline, omittingEmptySubsequences: true).map(String.init)
+        let keep = lines.suffix(max(1, cap))
+        if keep.isEmpty { return "" }
+        return keep.joined(separator: "\n") + "\n"
+    }
+
     /// Front → ¾L → ¾R → Blink. Chip treibt den Schritt, nicht nur Coach-Text.
     static func enrollSMChip(haveFrontal: Bool, haveLeft: Bool, haveRight: Bool, haveBlink: Bool) -> String {
         if haveFrontal && haveLeft && haveRight && haveBlink { return "ENROLL ●●●●" }

@@ -1,6 +1,7 @@
 import AppKit
 import Combine
 import Foundation
+import Photos
 import UniformTypeIdentifiers
 
 private final class AegisScanFlag: @unchecked Sendable {
@@ -53,6 +54,7 @@ final class LibraryStore: ObservableObject {
     @Published var mutexChip: String = "—"
     @Published var yawCoverageChip: String = "YAW —"
     @Published var enrollSMChip: String = "ENROLL —"
+    @Published var faReplayChip: String = "FA —"
     @Published var overlayBeat: TimeInterval = 0
     @Published var yieldAutoReturn = true
     @Published var yieldGrace: Double = 4
@@ -64,6 +66,8 @@ final class LibraryStore: ObservableObject {
 
     private let liveCapture = LiveCapture()
     private var overlayTrack: Timer?
+    private var faLogLastDecided: [String: String] = [:]
+    private var faLogLines: Int = 0
     private var liveMediaId: UUID?
     private var leftoverStreak: [UUID: Int] = [:]
     private var leftoverStreakBox: [UUID: FaceBox] = [:]
@@ -1285,6 +1289,13 @@ final class LibraryStore: ObservableObject {
             )
             if let voted, !voted.isEmpty {
                 liveNameVoteAt[fid] = frameNow
+                let hash = leftoverLastHash[fid] ?? fid.uuidString
+                let expected = liveNameLock[fid]?.uuidString ?? ""
+                let cos = MatchMath.falseAcceptJSONLCosine(
+                    hold: leftoverHoldNow(faceId: fid),
+                    emaPercent: liveScoreEma[fid]
+                )
+                appendFalseAcceptLog(hash: hash, identity: expected, cosine: cos, decided: voted)
             }
             let holding = leftoverHold[fid] != nil
             let lockedId = liveNameLock[fid]
@@ -2314,6 +2325,9 @@ final class LibraryStore: ObservableObject {
         leftoverPrintCache = []
         yawCoverageChip = "YAW —"
         enrollSMChip = "ENROLL —"
+        faReplayChip = "FA —"
+        faLogLastDecided = [:]
+        faLogLines = 0
         overlayTrack?.invalidate()
         overlayTrack = nil
         overlayBeat = 0
@@ -2531,12 +2545,12 @@ final class LibraryStore: ObservableObject {
             var roi = skipRoi ? nil : roiTuple.map { FaceBox(x: $0.x, y: $0.y, width: $0.w, height: $0.h) }
             var found: [FaceObservation]
             if MatchMath.leftoverDetectSkipVision(skipDetect: skipDetect) {
-                found = kalmanSnap.map {
-                    FaceObservation.coast(
-                        id: $0.id,
-                        mediaId: mediaId,
-                        box: FaceBox(x: $0.x, y: $0.y, width: $0.w, height: $0.h)
-                    )
+                var boxes = kalmanSnap.map { FaceBox(x: $0.x, y: $0.y, width: $0.w, height: $0.h) }
+                if MatchMath.overlayTrackUsesVision() {
+                    boxes = FaceEngine.trackBoxes(in: image, boxes: boxes)
+                }
+                found = zip(kalmanSnap, boxes).map { k, b in
+                    FaceObservation.coast(id: k.id, mediaId: mediaId, box: b)
                 }
             } else {
                 found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true, skipPrints: skipPrints, roi: roi, skipPrintBoxes: skipPrintBoxes)) ?? []
@@ -5067,5 +5081,99 @@ final class LibraryStore: ObservableObject {
         self.matches = matches
         self.selectedMediaId = selectedMediaId
         self.selectedFaceId = selectedFaceId
+    }
+
+    private func appendFalseAcceptLog(hash: String, identity: String, cosine: Double, decided: String) {
+        guard MatchMath.falseAcceptJSONLShouldLog(
+            prevDecided: faLogLastDecided[hash], decided: decided
+        ) else { return }
+        faLogLastDecided[hash] = decided
+        let line = MatchMath.falseAcceptJSONLLine(
+            ts: Date().timeIntervalSince1970,
+            hash: hash,
+            identity: identity,
+            cosine: cosine,
+            decided: decided
+        ) + "\n"
+        let url = GalleryFile.falseAcceptURL
+        guard let data = line.data(using: .utf8) else { return }
+        if FileManager.default.fileExists(atPath: url.path) {
+            if let handle = try? FileHandle(forWritingTo: url) {
+                defer { try? handle.close() }
+                _ = try? handle.seekToEnd()
+                try? handle.write(contentsOf: data)
+            }
+        } else {
+            try? data.write(to: url)
+        }
+        faLogLines += 1
+        let cap = MatchMath.falseAcceptJSONLCap()
+        if faLogLines > cap, let text = try? String(contentsOf: url, encoding: .utf8) {
+            let trimmed = MatchMath.falseAcceptJSONLTrim(text, cap: cap)
+            if let blob = trimmed.data(using: .utf8) {
+                try? blob.write(to: url)
+            }
+            faLogLines = cap
+        }
+    }
+
+    func replayFalseAccept() {
+        let url = GalleryFile.falseAcceptURL
+        guard let text = try? String(contentsOf: url, encoding: .utf8) else {
+            faReplayChip = "FA —"
+            status = "Kein False-Accept-Log"
+            return
+        }
+        let lines = text.split(whereSeparator: \.isNewline).suffix(20)
+        var hits = 0
+        var last = "FA —"
+        for line in lines {
+            guard let row = MatchMath.falseAcceptJSONLParse(String(line)) else { continue }
+            if MatchMath.falseAcceptJSONLHits(
+                cosine: row.cosine, floor: 0.80, decided: row.decided, expected: row.identity
+            ) {
+                hits += 1
+            }
+            last = String(format: "FA %.0f%% %@", row.cosine * 100, row.decided)
+        }
+        faReplayChip = hits > 0 ? "FA \(hits)" : last
+        status = hits > 0 ? "False-Accept Replay · \(hits) Treffer" : "Match-Log \(lines.count) Zeilen"
+    }
+
+    func seedFromPeopleAlbum() {
+        PHPhotoLibrary.requestAuthorization(for: .readWrite) { [weak self] auth in
+            Task { @MainActor in
+                guard let self else { return }
+                guard auth == .authorized || auth == .limited else {
+                    self.status = "Fotos-Zugriff fehlt — People-Album"
+                    return
+                }
+                let subtype = PHAssetCollectionSubtype(rawValue: UInt(MatchMath.peopleAlbumSubtypeRaw)) ?? .albumSyncedFaces
+                let cols = PHAssetCollection.fetchAssetCollections(with: .album, subtype: subtype, options: nil)
+                var seeded = 0
+                cols.enumerateObjects { col, _, stop in
+                    if seeded >= 8 { stop.pointee = true; return }
+                    let name = col.localizedTitle ?? ""
+                    if MatchMath.peopleAlbumSkipEmpty(name) { return }
+                    if self.identities.contains(where: {
+                        MatchMath.peopleAlbumPersonKey($0.name) == MatchMath.peopleAlbumPersonKey(name)
+                    }) { return }
+                    let assets = PHAsset.fetchAssets(in: col, options: nil)
+                    var stills = 0
+                    assets.enumerateObjects { _, _, halt in
+                        if stills >= MatchMath.peopleAlbumSeedNeed() { halt.pointee = true; return }
+                        stills += 1
+                    }
+                    if MatchMath.peopleAlbumEnrollOk(stills: stills) {
+                        self.identities.append(Identity(id: UUID(), name: name, faceIds: []))
+                        seeded += 1
+                    }
+                }
+                if seeded > 0 { self.persist() }
+                self.status = seeded > 0
+                    ? "People-Album · \(seeded) Personen angelegt"
+                    : "People-Album leer oder schon in der Galerie"
+            }
+        }
     }
 }

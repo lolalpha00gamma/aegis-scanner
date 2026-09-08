@@ -1,4 +1,4 @@
-# Aegis **2.1.213 alpha**
+# Aegis **2.1.214 alpha**
 
 
 
@@ -14,6 +14,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.214 alpha
+
+2.1.213 Mac 1080, Softmax×Galerie, Overlay reduced-motion. Lerp folgte tot Detect. People ungenutzt. FA unsichtbar.
+
+- **VNTrackObjectRequest.** Box folgt Pixel zwischen Detect. `overlayTrackStep` IoU-Fuse. Handler pro Frame.
+- **People-Album Seed.** Photos Faces-Album legt Identitäten an. Toolbar People.
+- **False-Accept JSONL.** expected=Lock, nur Assignment-Wechsel, Cap 500. Toolbar FA-Log.
+- Tests + VERSION = Models = MARKETING 2.1.214 (Build 239). Schema 15 bleibt.
 
 ## Neu in 2.1.213 alpha
 
@@ -23,24 +32,6 @@ macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos
 - **Softmax × Galerie.** 8 Identitäten weicher.
 - **Overlay reduced-motion.** Snap statt 60 Hz.
 - Tests + VERSION = Models = MARKETING 2.1.213 (Build 238). Schema 15 bleibt.
-
-## Neu in 2.1.212 alpha
-
-
-
-Direkt laden:
-- [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
-- [Releases](https://github.com/lolalpha00gamma/aegis-scanner/releases)
-
-Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
-
-## Installieren
-
-1. [Aegis.dmg](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg) öffnen
-2. **Aegis** in den Ordner Programme ziehen
-3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
-
-macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
 
 ## Neu in 2.1.212 alpha
 

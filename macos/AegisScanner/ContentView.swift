@@ -90,6 +90,16 @@ struct ContentView: View {
                     .foregroundStyle(store.enrollSMChip == "ENROLL ●●●●" ? .green : .orange)
                     .help("Enroll-Schritte Front → ¾L → ¾R → Blink. Chip treibt den nächsten Schritt.")
             }
+            if store.faReplayChip != "FA —" {
+                Text(store.faReplayChip)
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(.pink)
+                    .help("False-Accept JSONL Replay. Letzte Match-Zeilen.")
+            }
+            Button("People") { store.seedFromPeopleAlbum() }
+                .help("Photos People-/Faces-Album als Enroll-Seed.")
+            Button("FA-Log") { store.replayFalseAccept() }
+                .help("False-Accept JSONL Replay.")
             if store.mutexChip != "—" && !store.mutexChip.isEmpty {
                 Text(store.mutexChip.uppercased())
                     .font(.system(.caption, design: .monospaced))
@@ -884,9 +894,9 @@ struct FaceOverlay: View {
                     let kind = MatchMath.overlayBoxKind(selected: selected, pinned: pinned, leftover: leftover, ghost: ghost)
                     let rawBox = CGRect(x: face.box.x, y: face.box.y, width: face.box.width, height: face.box.height)
                     let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
-                    let shown = MatchMath.leftoverOverlayLerp(
+                    let shown = MatchMath.overlayTrackStep(
                         prev: overlayPrev[row.row] ?? rawBox,
-                        next: rawBox,
+                        detect: rawBox,
                         dt: MatchMath.overlayTrackDt(reduceMotion: reduceMotion),
                         tau: MatchMath.overlayTrackTau(reduceMotion: reduceMotion)
                     )
@@ -1095,9 +1105,9 @@ struct FaceOverlay: View {
                     )
                     .onChange(of: rawBox) { _, next in
                         let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
-                        overlayPrev[row.row] = MatchMath.leftoverOverlayLerp(
+                        overlayPrev[row.row] = MatchMath.overlayTrackStep(
                             prev: overlayPrev[row.row] ?? next,
-                            next: next,
+                            detect: next,
                             dt: MatchMath.overlayTrackDt(reduceMotion: reduceMotion),
                             tau: MatchMath.overlayTrackTau(reduceMotion: reduceMotion)
                         )

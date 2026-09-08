@@ -2948,4 +2948,41 @@ enum FaceEngine {
         }
         return fused.map { $0 * 100 }
     }
+
+    private static let trackLock = NSLock()
+
+    /// VNTrackObjectRequest auf der letzten Box. Detect 8 Hz, Track folgt Pixel.
+    /// Handler pro Aufruf — ein Prozess-weiter Sequence-Handler vermischt Gesichter.
+    static func trackBoxes(in image: CGImage, boxes: [FaceBox]) -> [FaceBox] {
+        let w = Double(image.width)
+        let h = Double(image.height)
+        guard w > 8, h > 8, !boxes.isEmpty else { return boxes }
+        var out: [FaceBox] = []
+        out.reserveCapacity(boxes.count)
+        trackLock.lock()
+        defer { trackLock.unlock() }
+        let handler = VNSequenceRequestHandler()
+        for box in boxes {
+            let vn = CGRect(
+                x: box.x / w,
+                y: 1 - (box.y + box.height) / h,
+                width: box.width / w,
+                height: box.height / h
+            )
+            let obs = VNDetectedObjectObservation(boundingBox: vn)
+            let req = VNTrackObjectRequest(detectedObjectObservation: obs)
+            req.trackingLevel = .fast
+            do {
+                try handler.perform([req], on: image)
+                if let r = req.results?.first, MatchMath.overlayTrackVisionOk(confidence: r.confidence) {
+                    out.append(vnToPixels(r.boundingBox, width: w, height: h))
+                } else {
+                    out.append(box)
+                }
+            } catch {
+                out.append(box)
+            }
+        }
+        return out
+    }
 }
