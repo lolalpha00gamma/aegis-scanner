@@ -1,3 +1,36 @@
+# Aegis Vorschläge — 2026-09-08 (Pass 10b, 2.1.209)
+
+Stand 2.1.209 alpha. uniqueID sticky, Hung spawn cap, Print-Cache yaw nil.
+
+## Gelandet in 2.1.209
+
+- cameraUniqueIDSticky + cameraRoleOf (Osmo ≠ Mac)
+- liveHungSpawnOk cap 2 + liveHungGenDrops drain
+- leftoverPrintCacheHits yaw Optional
+
+## Erweiterung (neu)
+
+73. **CameraBroker XPC + IOSurface** mit Helios. Eine TCC. P0.
+74. **gallery ANN / HNSW** nach Print-Index.
+75. **Identity-Merge-Wizard** Cosine 0,89–0,94 + Pairwise-Heatmap.
+76. **Watch-Folder PhotoKit** + Export `.aegis` verschlüsselt.
+77. **P-Slot Maske/Schal**, Brille Twin-Veto.
+78. **ReID-Graph** Hold-Trail.
+79. **Stereo Built-in + Continuity** Disparität als Yaw-Prior.
+80. **Overlay CAMetalLayer 60 Hz**, Detect 8–24.
+81. **Gemeinsamer CVPixelBuffer** Detect+Print.
+82. **VNTrackObjectRequest** Box zwischen Detect-Ticks.
+83. **LiveCapture nicht @MainActor.**
+84. **Hung-Vision Timeout-Token.**
+85. **Osmo als CameraChoice.**
+86. **Match-Log JSONL** für False-Accept Replay.
+87. **Drop-in `.mlmodel`** Print-Backbone.
+88. **Temperature Cosine** statt hart 0,80.
+89. **Enroll-SM** Front → ¾L → ¾R → Blink.
+90. **gallery.json.bak Rotate 3**.
+
+Kein 2.1.210-Flag ohne CameraBroker.
+
 # Aegis Vorschläge — 2026-09-08 (Pass 10, 2.1.208)
 
 Stand 2.1.208 alpha. Hung-Detect, Print-Cache Yaw-Bin, JPEG-Bin, Blink-Assign.

@@ -217,6 +217,9 @@ final class LibraryStore: ObservableObject {
     private var guestOrder: [UUID] = []
     private var guestSeenAt: [UUID: TimeInterval] = [:]
     private var lastCameraUniqueID: String = ""
+    private var lastCameraName: String = ""
+    private var lastCameraRole: String = ""
+    private var liveDetectInflight: Int = 0
     private var pendingRenameId: UUID?
     private var pendingRenameName: String?
     private var pendingRenameAt: TimeInterval?
@@ -2219,6 +2222,7 @@ final class LibraryStore: ObservableObject {
         livePending = nil
         liveBusy = false
         liveBusySince = 0
+        liveDetectInflight = 0
         liveCapture.markFrameConsumed()
         liveRoiTick = 0
         liveRoiSkipOnce = false
@@ -2331,7 +2335,15 @@ final class LibraryStore: ObservableObject {
             guard let self else { return }
             self.status = "Live"
             let uid = self.liveCapture.cameraUniqueID
-            if !self.lastCameraUniqueID.isEmpty, uid != self.lastCameraUniqueID {
+            let sticky = MatchMath.cameraUniqueIDSticky(
+                prevID: self.lastCameraUniqueID,
+                nextID: uid,
+                prevName: self.lastCameraName,
+                nextName: self.liveCapture.cameraName,
+                prevRole: self.lastCameraRole,
+                nextRole: self.liveCapture.cameraRole
+            )
+            if !self.lastCameraUniqueID.isEmpty, uid != self.lastCameraUniqueID, !sticky {
                 self.boxEuro.removeAll()
                 self.boxKalman.removeAll()
                 self.boxKalmanV.removeAll()
@@ -2347,6 +2359,8 @@ final class LibraryStore: ObservableObject {
                 self.liveDetectGen &+= 1
             }
             self.lastCameraUniqueID = uid
+            self.lastCameraName = self.liveCapture.cameraName
+            self.lastCameraRole = self.liveCapture.cameraRole
             self.cameraUniqueID = uid
             self.cameraOrient = self.liveCapture.orientOverride
         }
@@ -2373,7 +2387,8 @@ final class LibraryStore: ObservableObject {
         if liveBusy {
             livePending = (image, mediaId, stamp)
             let busyFor = liveBusySince > 0 ? now - liveBusySince : 0
-            if MatchMath.liveEmitHungCancel(busy: true, busyFor: busyFor) {
+            if MatchMath.liveEmitHungCancel(busy: true, busyFor: busyFor),
+               MatchMath.liveHungSpawnOk(inflight: liveDetectInflight) {
                 liveDetectGen &+= 1
                 liveBusySince = now
                 livePending = nil
@@ -2388,6 +2403,7 @@ final class LibraryStore: ObservableObject {
     }
 
     private func runLiveDetect(_ image: CGImage, mediaId: UUID, stamp: TimeInterval) {
+        liveDetectInflight += 1
         let cont = liveCapture.isContinuity
         let dt = liveDt
         let vis = lastLiveVisMs
@@ -2406,7 +2422,7 @@ final class LibraryStore: ObservableObject {
             continuity: cont
         )
         let skipPrintCached: Set<UUID> = Set(kalmanSnap.compactMap { row in
-            let yaw = liveYaw[row.id] ?? 0
+            guard let yaw = liveYaw[row.id] else { return nil }
             let hash = leftoverLiveHashTick[row.id] ?? leftoverLastHash[row.id]
             guard MatchMath.leftoverPrintCacheHits(hash: hash, yaw: yaw, cached: leftoverPrintCache) else {
                 return nil
@@ -2484,7 +2500,21 @@ final class LibraryStore: ObservableObject {
             let visMs = (CFAbsoluteTimeGetCurrent() - t0) * 1000
             await MainActor.run { [weak self] in
                 guard let self else { return }
-                guard self.liveDetectGen == gen else { return }
+                self.liveDetectInflight = max(0, self.liveDetectInflight - 1)
+                if MatchMath.liveHungGenDrops(resultGen: gen, liveGen: self.liveDetectGen) {
+                    if self.liveDetectInflight == 0 {
+                        if let pending = self.livePending {
+                            self.livePending = nil
+                            self.liveBusySince = CACurrentMediaTime()
+                            self.runLiveDetect(pending.image, mediaId: pending.mediaId, stamp: pending.stamp)
+                        } else {
+                            self.liveBusy = false
+                            self.liveBusySince = 0
+                            self.liveCapture.markFrameConsumed()
+                        }
+                    }
+                    return
+                }
                 self.lastLiveVisMs = visMs
                 self.liveCapture.setVisionBudget(ms: visMs)
                 self.liveFormatChip = self.liveCapture.formatChip

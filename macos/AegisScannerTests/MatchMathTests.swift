@@ -5495,6 +5495,47 @@ enum MatchMathTests {
         ok(MatchMath.leftoverPrintCacheHits(hash: "6.6.4.6", yaw: 0, cached: printCache), "Print-Cache Hit frontal")
         ok(!MatchMath.leftoverPrintCacheHits(hash: "6.6.4.6", yaw: 0.50, cached: printCache), "Print-Cache Profil kein Frontal")
         ok(!MatchMath.leftoverPrintCacheHits(hash: "5.5.4.6", yaw: 0, cached: printCache), "Print-Cache Twin tot")
+        ok(!MatchMath.leftoverPrintCacheHits(hash: "6.6.4.6", yaw: nil, cached: printCache), "Print-Cache Yaw nil tot")
+        ok(MatchMath.liveHungSpawnOk(inflight: 1), "Hung spawn bei 1")
+        ok(!MatchMath.liveHungSpawnOk(inflight: 2), "Hung spawn cap 2")
+        ok(!MatchMath.liveHungSpawnOk(inflight: 0), "Hung spawn ohne inflight tot")
+        ok(MatchMath.liveHungGenDrops(resultGen: 1, liveGen: 2), "Hung Gen stale")
+        ok(!MatchMath.liveHungGenDrops(resultGen: 3, liveGen: 3), "Hung Gen aktuell")
+        ok(
+            MatchMath.cameraUniqueIDSticky(
+                prevID: "A", nextID: "B",
+                prevName: "iPhone von Ada", nextName: "iPhone von Ada",
+                prevRole: "phone", nextRole: "phone"
+            ),
+            "Continuity Reconnect sticky"
+        )
+        ok(
+            !MatchMath.cameraUniqueIDSticky(
+                prevID: "A", nextID: "B",
+                prevName: "iPhone von Ada", nextName: "iPhone von Bob",
+                prevRole: "phone", nextRole: "phone"
+            ),
+            "anderes iPhone nicht sticky"
+        )
+        ok(
+            !MatchMath.cameraUniqueIDSticky(
+                prevID: "M1", nextID: "M2",
+                prevName: "FaceTime HD", nextName: "FaceTime HD",
+                prevRole: "mac", nextRole: "mac"
+            ),
+            "Mac-ID Wechsel nicht sticky"
+        )
+        ok(
+            MatchMath.cameraUniqueIDSticky(
+                prevID: "O1", nextID: "O2",
+                prevName: "Osmo Pocket", nextName: "Osmo Pocket",
+                prevRole: "osmo", nextRole: "osmo"
+            ),
+            "Osmo Reconnect sticky"
+        )
+        ok(MatchMath.cameraRoleOf(name: "Osmo Pocket", isContinuity: false, isExternal: true) == "osmo", "Osmo Role")
+        ok(MatchMath.cameraRoleOf(name: "iPhone von Ada", isContinuity: true) == "phone", "iPhone Role")
+        ok(MatchMath.cameraRoleOf(name: "FaceTime HD Camera", isContinuity: false) == "mac", "Mac Role")
         printCache = MatchMath.leftoverPrintCachePut(cached: printCache, hash: "6.6.4.6", yaw: 0.50)
         ok(MatchMath.leftoverPrintCacheHits(hash: "6.6.4.6", yaw: 0.50, cached: printCache), "Print-Cache Profil nach Put")
         var jpegBin: [String: (delta: Double, at: TimeInterval, cosine: Double)] = [:]

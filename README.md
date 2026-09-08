@@ -1,4 +1,4 @@
-# Aegis **2.1.208 alpha**
+# Aegis **2.1.209 alpha**
 
 
 Direkt laden:
@@ -14,6 +14,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.209 alpha
+
+2.1.208 Hung-Detect, Print-Cache Yaw-Bin, JPEG-Bin, Blink-Assign. Continuity-Reconnect wischte Kalman. Hung-Spawn unbegrenzt. Fehlendes Yaw = Frontal-Cache.
+
+- **uniqueID sticky.** Name+Role, Mac nie. Osmo ≠ Mac. onReady wischt Kalman nur bei echtem Wechsel.
+- **Hung spawn cap 2.** Stale-Gen drain pending. VNImageRequestHandler unkündbar.
+- **Print-Cache yaw nil tot.** `leftoverPrintCacheHits(yaw:)` Optional.
+- Tests + VERSION = Models = MARKETING 2.1.209 (Build 234). Schema 15 bleibt.
 
 ## Neu in 2.1.208 alpha
 

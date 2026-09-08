@@ -852,7 +852,8 @@ enum MatchMath {
         return leftoverHoldHashKey(hash: spatial, bin: leftoverHoldBinSigned(yaw: yaw))
     }
 
-    static func leftoverPrintCacheHits(hash: String?, yaw: Double, cached: Set<String>) -> Bool {
+    static func leftoverPrintCacheHits(hash: String?, yaw: Double?, cached: Set<String>) -> Bool {
+        guard let yaw else { return false }
         guard let key = leftoverLastHashBinKey(hash: hash, yaw: yaw) else { return false }
         return cached.contains(key)
     }
@@ -1190,6 +1191,41 @@ enum MatchMath {
     /// Hung-Detect: busy ≥ 1 s → Cancel, nicht zweiten Detect stapeln.
     static func liveEmitHungCancel(busy: Bool, busyFor: TimeInterval, hungAfter: TimeInterval = 1.0) -> Bool {
         busy && busyFor + 1e-12 >= hungAfter
+    }
+
+    /// Zwei Vision parallel max — VNImageRequestHandler ist unkündbar.
+    static func liveHungSpawnOk(inflight: Int, cap: Int = 2) -> Bool {
+        inflight > 0 && inflight < cap
+    }
+
+    static func liveHungGenDrops(resultGen: UInt64, liveGen: UInt64) -> Bool {
+        resultGen != liveGen
+    }
+
+    /// Continuity uniqueID stirbt beim Reconnect. Name+Role gleich = dieselbe Cam.
+    static func cameraUniqueIDSticky(
+        prevID: String,
+        nextID: String,
+        prevName: String = "",
+        nextName: String = "",
+        prevRole: String = "",
+        nextRole: String = ""
+    ) -> Bool {
+        if prevID.isEmpty || nextID.isEmpty { return false }
+        if prevID == nextID { return true }
+        if prevRole == "mac" || nextRole == "mac" { return false }
+        let sameName = !prevName.isEmpty && prevName == nextName
+        let sameRole = !prevRole.isEmpty && prevRole == nextRole
+        return sameName && sameRole
+    }
+
+    /// Osmo ist nicht Mac — uniqueID-Reconnect sonst Kalman-Dump.
+    static func cameraRoleOf(name: String, isContinuity: Bool, isExternal: Bool = false) -> String {
+        let n = name.lowercased()
+        if n.contains("osmo") || n.contains("dji") { return "osmo" }
+        if n.contains("iphone") || n.contains("continuity") || isContinuity { return "phone" }
+        if isExternal { return "osmo" }
+        return "mac"
     }
 
     /// Detect busy: neuestes Frame in livePending, nicht Drop-new am Tap.

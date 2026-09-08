@@ -1,3 +1,39 @@
+# 2.1.209 — uniqueID sticky, Hung spawn cap, Print-Cache yaw nil.
+
+## In 2.1.209 wirklich im Code
+
+2.1.208 Hung-Detect, Print-Cache Yaw-Bin, JPEG-Bin, Blink-Assign. Continuity-Reconnect dumpte Kalman. Hung-Spawn unbegrenzt. yaw ?? 0 Frontal-Skip.
+
+1. **cameraUniqueIDSticky + cameraRoleOf.** Name+Role, Mac nie. Osmo reconnect hält Kalman.
+2. **liveHungSpawnOk cap 2 + liveHungGenDrops drain.**
+3. **leftoverPrintCacheHits yaw Optional.** nil tot.
+4. Tests + VERSION = Models = MARKETING 2.1.209 (Build 234). Schema 15 bleibt.
+
+## Erweiterung (neu, 2.1.209)
+
+1. **CameraBroker XPC + IOSurface** mit Helios. Eine TCC. P0.
+2. **gallery ANN / HNSW** nach Print-Index.
+3. **Identity-Merge-Wizard** Cosine 0,89–0,94 + Pairwise-Heatmap.
+4. **Watch-Folder PhotoKit** + Export `.aegis` verschlüsselt.
+5. **P-Slot Maske/Schal**, Brille Twin-Veto.
+6. **ReID-Graph** Hold-Trail.
+7. **Stereo Built-in + Continuity** Disparität als Yaw-Prior.
+8. **Overlay CAMetalLayer 60 Hz**, Detect 8–24.
+9. **Gemeinsamer CVPixelBuffer** Detect+Print, JPEG nur Export.
+10. **VNTrackObjectRequest** Box zwischen Detect-Ticks.
+11. **LiveCapture nicht @MainActor.**
+12. **420f vs 420v** Color-Space Continuity/Built-in.
+13. **Eine Fixture Restart+Twin+AssignLive** statt 40 Bool-Orakel.
+14. **Hung-Vision Timeout-Token** — Gen-Bump tötet VN nicht.
+15. **Osmo als CameraChoice.**
+16. **Match-Log JSONL** für False-Accept Replay.
+17. **Drop-in `.mlmodel`** Print-Backbone ohne MatchMath-Rewrite.
+18. **Temperature Cosine** statt hart 0,80.
+19. **Enroll-SM** Front → ¾L → ¾R → Blink.
+20. **gallery.json.bak Rotate 3**.
+
+Kein 2.1.210-Flag ohne CameraBroker. uniqueID sticky gelandet.
+
 # 2.1.208 — Hung-Detect Cancel, Print-Cache Yaw-Bin, JPEG-Bin, Blink-Assign.
 
 ## In 2.1.208 wirklich im Code

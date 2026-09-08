@@ -51,6 +51,8 @@ final class LiveCapture: NSObject {
     /// Live-Tap: Hunt 8/10 fps, Lock 12/15. 5 fps ließ leftoverAdopt sterben.
     private(set) var facesPresent = false
     private(set) var cameraUniqueID: String = ""
+    private(set) var cameraName: String = ""
+    private(set) var cameraRole: String = ""
     private(set) var orientOverride: String = "auto"
     private(set) var isContinuity = false
     private(set) var formatChip = ""
@@ -132,6 +134,8 @@ final class LiveCapture: NSObject {
         isContinuity = false
         facesPresent = false
         cameraUniqueID = ""
+        cameraName = ""
+        cameraRole = ""
         sessionPauseWork?.cancel()
         sessionPauseWork = nil
         sessionPauseUntil = 0
@@ -183,11 +187,17 @@ final class LiveCapture: NSObject {
             return
         }
         cameraUniqueID = device.uniqueID
+        cameraName = device.localizedName
         if #available(macOS 14.0, *) {
             isContinuity = device.deviceType == .continuityCamera || device.deviceType == .deskViewCamera
         } else {
             isContinuity = device.deviceType == .continuityCamera
         }
+        cameraRole = MatchMath.cameraRoleOf(
+            name: device.localizedName,
+            isContinuity: isContinuity,
+            isExternal: device.deviceType == .external
+        )
         if !MatchMath.sessionPresetClampsContinuity(isContinuity) {
             session.sessionPreset = .hd1280x720
         }

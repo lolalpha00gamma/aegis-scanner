@@ -1,3 +1,18 @@
+# Aegis 2.1.209 — uniqueID sticky, Hung spawn cap, Print-Cache yaw nil
+
+Aegis **2.1.209 alpha** (Build 234). Helios **1.6.47** (Build 80). Nur `main`. `bugfix` mergen: nein.
+
+## Was 2.1.209 ändert
+
+2.1.208: Hung-Detect, Print-Cache Yaw-Bin, JPEG-Bin, Blink-Assign. uniqueID-Wechsel dumpte Kalman. Hung startete Vision unbegrenzt. yaw ?? 0 = Frontal-Skip.
+
+1. **cameraUniqueIDSticky + cameraRoleOf.** Name+Role, Mac nie, Osmo reconnect hält Kalman.
+2. **liveHungSpawnOk cap 2 + liveHungGenDrops drain.**
+3. **leftoverPrintCacheHits yaw: Double?** nil tot.
+4. Tests + VERSION = Models = MARKETING 2.1.209 (Build 234). Schema 15 bleibt.
+
+Nicht: CameraBroker, HNSW, Overlay-Metal, LiveCapture off MainActor.
+
 # Aegis 2.1.208 — Hung-Detect Cancel, Print-Cache Yaw-Bin, JPEG-Bin, Blink-Assign
 
 Aegis **2.1.208 alpha** (Build 233). Helios **1.6.46** (Build 79). Nur `main`. `bugfix` mergen: nein.
