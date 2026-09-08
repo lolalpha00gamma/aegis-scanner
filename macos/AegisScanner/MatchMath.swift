@@ -551,6 +551,15 @@ enum MatchMath {
         return out
     }
 
+    /// Restart sonst SameBin tot — Yaw liegt nur im RAM.
+    static func leftoverPrintYawEncode(_ yaw: [UUID: Double]) -> [String: Double] {
+        leftoverStreakSinceEncode(yaw)
+    }
+
+    static func leftoverPrintYawDecode(_ raw: [String: Double]?) -> [UUID: Double] {
+        leftoverStreakSinceDecode(raw)
+    }
+
     static func leftoverCoastPrintMerge(
         stored: [UUID: [Double]],
         live: [UUID: [Double]],
@@ -2719,6 +2728,27 @@ enum MatchMath {
         return tick % every != 0
     }
 
+    /// Detect 8–12 Hz, Print nur nach Still. Gleicher Tick sonst Burst + Continuity-Last.
+    static func leftoverDetectInterval(dt: TimeInterval) -> TimeInterval {
+        max(0.08, min(0.16, max(0.008, dt)))
+    }
+
+    static func leftoverPrintInterval(dt: TimeInterval, still: Bool) -> TimeInterval {
+        still ? max(0.40, max(0.008, dt) * 3.2) : max(0.12, max(0.008, dt) * 2)
+    }
+
+    static func leftoverDetectPrintSplit(
+        now: TimeInterval,
+        lastDetect: TimeInterval,
+        lastPrint: TimeInterval,
+        dt: TimeInterval,
+        still: Bool
+    ) -> (skipDetect: Bool, skipPrint: Bool) {
+        let skipD = lastDetect > 0 && now - lastDetect < leftoverDetectInterval(dt: dt)
+        let skipP = lastPrint > 0 && now - lastPrint < leftoverPrintInterval(dt: dt, still: still)
+        return (skipD, skipP)
+    }
+
     /// skipDetect: VNDetect tot, Kalman-Coast. skipPrints allein ließ detectOnce laufen.
     static func leftoverDetectSkipVision(skipDetect: Bool) -> Bool { skipDetect }
 
@@ -4773,6 +4803,13 @@ enum MatchMath {
         return (n >= need, n)
     }
 
+    /// Blink-Liveness auf Assign, nicht nur Enroll. Schon getauft hält ohne Lid.
+    static func leftoverAssignBlinkOk(printOk: Bool, blinkOk: Bool, alreadyNamed: Bool) -> Bool {
+        if !printOk { return false }
+        if alreadyNamed { return true }
+        return blinkOk
+    }
+
     /// Continuity-Reconnect schaltet Center Stage wieder an.
     static func reconnectCenterStageOff(continuity: Bool, enabled: Bool) -> Bool {
         continuity && centerStageNeedsReassert(enabled: enabled)
@@ -5735,6 +5772,25 @@ enum MatchMath {
         return 0
     }
 
+    /// Twin ¾L vs ¾R. |yaw| klebt Ada-links und Twin-rechts auf Bin 1.
+    /// −2 Profil L, −1 ¾L, 0 frontal, 1 ¾R, 2 Profil R.
+    static func leftoverHoldBinSigned(yaw: Double) -> Int {
+        let mag = leftoverHoldBin(yawAbs: yaw)
+        if mag == 0 { return 0 }
+        return yaw < 0 ? -mag : mag
+    }
+
+    static func leftoverHoldBinSignedChip(_ bin: Int) -> String {
+        switch bin {
+        case -2: return "Profil L"
+        case -1: return "¾L"
+        case 0: return "front"
+        case 1: return "¾R"
+        case 2: return "Profil R"
+        default: return leftoverHoldBinChip(abs(bin))
+        }
+    }
+
     static func leftoverHoldKey(id: UUID, bin: Int) -> String {
         "\(id.uuidString).\(bin)"
     }
@@ -5798,7 +5854,7 @@ enum MatchMath {
         facesInFrame: Int = 1,
         occupied: [String] = []
     ) -> Double? {
-        let bin = leftoverHoldBin(yawAbs: yawAbs ?? 0)
+        let bin = leftoverHoldBinSigned(yaw: yawAbs ?? 0)
         if let id, let v = leftoverHoldBinRead(bins: bins, id: id, bin: bin) {
             return v
         }
@@ -5813,7 +5869,7 @@ enum MatchMath {
 
     /// ¾ liest nicht den Frontal-UUID-Trail. Sonst trailMean 0,81 tauft den Twin.
     static func leftoverTrailNowOf(idTrail: [Double], binTrail: [Double] = [], yawAbs: Double? = nil) -> [Double] {
-        if leftoverHoldBin(yawAbs: yawAbs ?? 0) != 0 { return binTrail }
+        if leftoverHoldBinSigned(yaw: yawAbs ?? 0) != 0 { return binTrail }
         return idTrail
     }
 
@@ -5831,7 +5887,7 @@ enum MatchMath {
         captureJump: Double = 0
     ) -> [String: Double] {
         var out = bins
-        let key = leftoverHoldKey(id: id, bin: leftoverHoldBin(yawAbs: yawAbs))
+        let key = leftoverHoldKey(id: id, bin: leftoverHoldBinSigned(yaw: yawAbs))
         out[key] = leftoverHoldEMA(
             prev: prev ?? out[key],
             next: next,
@@ -7830,7 +7886,7 @@ enum MatchMath {
             table: table,
             now: now,
             ttl: ttl,
-            bin: leftoverHoldBin(yawAbs: yaw),
+            bin: leftoverHoldBinSigned(yaw: yaw),
             facesInFrame: facesInFrame,
             occupied: occupied
         )
@@ -8262,8 +8318,12 @@ enum MatchMath {
         !row.isEmpty && !seen.contains(row)
     }
 
-    /// Twin: identityId schon da → Box-Hash, nicht droppen. Unmatched: Box-Hash vor Detect (Remint).
+    /// Twin: Box-Hash vor identityId — Remint sonst unmountet die Lerp-Box.
     static func leftoverOverlayRowId(identityId: UUID?, detectId: UUID, taken: Set<String>, boxHash: String = "") -> String {
+        if leftoverOverlayLerpKeeps(assignChanged: identityId != nil),
+           leftoverOverlayKeepsRow(seen: taken, row: boxHash) {
+            return boxHash
+        }
         if identityId != nil {
             let preferred = leftoverGalleryRowId(identityId: identityId, detectId: detectId).uuidString
             if leftoverOverlayKeepsRow(seen: taken, row: preferred) { return preferred }
@@ -8339,11 +8399,11 @@ enum MatchMath {
         return leftoverPrintPruneDup(cosine: c, floor: floor)
     }
 
-    /// leftoverPrintYaw ist signed. Bin immer über |yaw|, sonst −0,50 Profil = frontal.
+    /// leftoverPrintYaw ist signed. ¾L ≠ ¾R — Twin sonst Diversity-Skip.
     /// Fehlendes Yaw ist kein Same-Bin — sonst Diversity-Skip beim ersten Print.
     static func leftoverPrintSameBin(yawA: Double?, yawB: Double?) -> Bool {
         guard let a = yawA, let b = yawB else { return false }
-        return leftoverHoldBin(yawAbs: abs(a)) == leftoverHoldBin(yawAbs: abs(b))
+        return leftoverHoldBinSigned(yaw: a) == leftoverHoldBinSigned(yaw: b)
     }
 
     /// Burst 0,98 nicht in die Bank. gallery.json sonst identische Prints.
@@ -8462,6 +8522,21 @@ enum MatchMath {
         guard let n = storeName, !n.isEmpty else { return nil }
         return n
     }
+
+    /// Overlay-Box unabhängig von Assign. Remint darf Lerp nicht resetten.
+    static func leftoverOverlayLerp(prev: CGRect, next: CGRect, dt: TimeInterval, tau: TimeInterval = 0.08) -> CGRect {
+        let t = max(0.008, dt)
+        let a = CGFloat(min(1, t / (t + max(0.02, tau))))
+        return CGRect(
+            x: prev.minX + a * (next.minX - prev.minX),
+            y: prev.minY + a * (next.minY - prev.minY),
+            width: prev.width + a * (next.width - prev.width),
+            height: prev.height + a * (next.height - prev.height)
+        )
+    }
+
+    static func leftoverOverlayLerpKeeps(assignChanged: Bool) -> Bool { true }
+
 
     /// Mehrheit vor Sticky vor Unsure. Streak 2 an Sticky = „Ada?“, nicht „??“.
     static func leftoverOverlayStickyName(held: String, streak: Int) -> String {

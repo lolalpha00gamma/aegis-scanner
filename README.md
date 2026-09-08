@@ -1,4 +1,4 @@
-# Aegis **2.1.201 alpha**
+# Aegis **2.1.202 alpha**
 
 
 Direkt laden:
@@ -14,6 +14,18 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.202 alpha
+
+2.1.201: Trail-next, Median+Anker, Blur kein Stamp, Coast nur Commit. Print-Yaw nur RAM — Restart SameBin tot. Detect=Print gleicher Tick. |yaw| klebt ¾L/¾R. Overlay-Box folgt Assign-Remint. Blink nur Enroll.
+
+- **leftoverPrintYawEncode / Decode** in gallery.json. Restart hält SameBin.
+- **leftoverDetectPrintSplit.** Detect 8–12 Hz, Print nach Still. skipPrints ≠ skipDetect.
+- **leftoverHoldBinSigned.** ¾L −1 / ¾R +1. leftoverPrintSameBin L≠R.
+- **leftoverOverlayLerp** τ 0,08, unabhängig von Assign.
+- **leftoverAssignBlinkOk.** Neu braucht Blink, Named hält.
+- Helios **1.6.40:** Kalman-Palme, AX-Cache, Palm-EMA, Gain×dt, q je Hand, Format-Nachzug.
+- Tests + VERSION = Models = MARKETING 2.1.202 (Build 227). Schema 15 bleibt.
 
 ## Neu in 2.1.201 alpha
 

@@ -101,6 +101,7 @@ final class LibraryStore: ObservableObject {
     private var liveRoll: [UUID: Double] = [:]
     private var liveLastStamp: TimeInterval = 0
     private var liveDt: TimeInterval = 0.125
+    var liveFrameDt: TimeInterval { liveDt }
     private var liveDtSamples: [TimeInterval] = []
     private var liveNameVoteAt: [UUID: TimeInterval] = [:]
     private var tapNameLockUntil: [UUID: TimeInterval] = [:]
@@ -188,6 +189,8 @@ final class LibraryStore: ObservableObject {
     private var leftoverCoastAt: [UUID: TimeInterval] = [:]
     private var leftoverUnsureTicks: [UUID: Int] = [:]
     private var leftoverPrintYaw: [UUID: Double] = [:]
+    private var leftoverDetectAt: TimeInterval = 0
+    private var leftoverPrintAt: TimeInterval = 0
     private var leftoverPrintSkipIds: Set<UUID> = []
     private var leftoverSparkChipHeld: [UUID: (chip: String, hold: Int)] = [:]
     private var leftoverSparkChipByHash: [String: String] = [:]
@@ -343,6 +346,7 @@ final class LibraryStore: ObservableObject {
             )
             leftoverCoastPrint = coast.print
             leftoverCoastPrintAt = coast.at
+            leftoverPrintYaw = MatchMath.leftoverPrintYawDecode(extra.leftoverPrintYaw)
         }
         let lockStored = UserDefaults.standard.double(forKey: "aegis.nameLockSec")
         if lockStored > 0 {
@@ -466,7 +470,8 @@ final class LibraryStore: ObservableObject {
                 vecs: leftoverCoastPrint,
                 stamped: leftoverCoastPrintAt,
                 now: Date().timeIntervalSince1970
-            )
+            ),
+            leftoverPrintYaw: MatchMath.leftoverPrintYawEncode(leftoverPrintYaw)
         )
         if !liveActive {
             refreshMergeHint()
@@ -620,6 +625,7 @@ final class LibraryStore: ObservableObject {
             )
             leftoverCoastPrint = coast.print
             leftoverCoastPrintAt = coast.at
+            leftoverPrintYaw = MatchMath.leftoverPrintYawDecode(extra.leftoverPrintYaw)
         } else {
             leftoverStreak = [:]
             leftoverPairStreak = [:]
@@ -1830,7 +1836,7 @@ final class LibraryStore: ObservableObject {
 
     /// Ohne Mutation — SwiftUI-Body darf das lesen.
     private func leftoverSparkChipNow(faceId: UUID, yawAbs: Double? = nil) -> String? {
-        let bin = MatchMath.leftoverHoldBin(yawAbs: yawAbs ?? 0)
+        let bin = MatchMath.leftoverHoldBinSigned(yaw: yawAbs ?? 0)
         let binTrail = leftoverHoldTrailBins[MatchMath.leftoverHoldKey(id: faceId, bin: bin)] ?? []
         let idTrail = leftoverHoldTrail[faceId] ?? []
         var nowChip = MatchMath.leftoverCosineSparkLabelOf(
@@ -1952,7 +1958,7 @@ final class LibraryStore: ObservableObject {
     }
 
     func leftoverHoldChip(faceId: UUID, sharpness: Double? = nil, yawAbs: Double? = nil) -> String? {
-        let bin = MatchMath.leftoverHoldBin(yawAbs: yawAbs ?? 0)
+        let bin = MatchMath.leftoverHoldBinSigned(yaw: yawAbs ?? 0)
         let binTrail = leftoverHoldTrailBins[MatchMath.leftoverHoldKey(id: faceId, bin: bin)] ?? []
         let base = MatchMath.leftoverHoldOverlayChipOf(
             hold: leftoverHoldNow(faceId: faceId, yawAbs: yawAbs),
@@ -2246,6 +2252,7 @@ final class LibraryStore: ObservableObject {
         leftoverHold = [:]
         leftoverHoldTrail = [:]
         leftoverHoldBins = [:]
+        leftoverPrintYaw = [:]
         leftoverHoldByHash = [:]
         leftoverHoldTrailByHash = [:]
         leftoverLastHash = [:]
@@ -2316,6 +2323,8 @@ final class LibraryStore: ObservableObject {
                 self.leftoverEmptySince = nil
                 self.liveRoiTick = 0
                 self.liveRoiSkipOnce = false
+                self.leftoverDetectAt = 0
+                self.leftoverPrintAt = 0
             }
             self.lastCameraUniqueID = uid
             self.cameraUniqueID = uid
@@ -2377,16 +2386,27 @@ final class LibraryStore: ObservableObject {
             stored: leftoverLastIoU,
             live: kalmanSnap.map(\.id)
         )
-        let skipDetect = MatchMath.leftoverDetectSkipTick(
+        let skipDetectTick = MatchMath.leftoverDetectSkipTick(
             skip: MatchMath.leftoverDetectSkipAll(
                 ious: liveIous,
                 need: max(1, kalmanSnap.count)
             ),
             tick: liveRoiTick
         )
+        let stillAll = !liveIds.isEmpty && skipIds.count == liveIds.count
+        let split = MatchMath.leftoverDetectPrintSplit(
+            now: stamp,
+            lastDetect: leftoverDetectAt,
+            lastPrint: leftoverPrintAt,
+            dt: dt,
+            still: stillAll
+        )
+        let skipDetect = skipDetectTick || split.skipDetect
         liveRoiTick += 1
         liveRoiSkipOnce = false
-        let skipPrints = skipDetect || MatchMath.printBudgetSkipAll(skipIds: skipIds, liveIds: liveIds)
+        let skipPrints = split.skipPrint || MatchMath.printBudgetSkipAll(skipIds: skipIds, liveIds: liveIds)
+        if !skipDetect { leftoverDetectAt = stamp }
+        if !skipPrints { leftoverPrintAt = stamp }
         let skipPrintBoxes = skipPrints ? [] : MatchMath.leftoverPrintSkipBoxes(tracks: kalmanSnap, skipIds: skipIds)
         Task.detached(priority: .userInitiated) {
             let t0 = CFAbsoluteTimeGetCurrent()
@@ -4036,8 +4056,8 @@ final class LibraryStore: ObservableObject {
                     {
                         liveCaptureHist[adopted[bestJ].id] = kept
                     }
-                    let yawNow = abs(adopted[bestJ].quality.yaw)
-                    let bin = MatchMath.leftoverHoldBin(yawAbs: yawNow)
+                    let yawNow = adopted[bestJ].quality.yaw
+                    let bin = MatchMath.leftoverHoldBinSigned(yaw: yawNow)
                     var trail = MatchMath.leftoverTrailNowOf(
                         idTrail: leftoverHoldTrail[old.id] ?? [],
                         binTrail: MatchMath.leftoverTrailLookup(
@@ -4130,7 +4150,7 @@ final class LibraryStore: ObservableObject {
                         table: leftoverHoldTrailByHash,
                         now: now,
                         ttl: leftoverHoldTTL,
-                        bin: MatchMath.leftoverHoldBin(yawAbs: abs(adopted[bestJ].quality.yaw)),
+                        bin: MatchMath.leftoverHoldBinSigned(yaw: adopted[bestJ].quality.yaw),
                         facesInFrame: adopted.count,
                         occupied: leftoverOccupiedHashes(except: old.id)
                     ),
@@ -4168,7 +4188,20 @@ final class LibraryStore: ObservableObject {
                 let nameLock = leftoverNameLockUntil[old.id]
                 var jpegDelta: Double?
                 let printReady = !adopted[bestJ].featurePrint.isEmpty
-                if MatchMath.leftoverBaptize(cosine: pinCos, continuity: liveCapture.isContinuity), printReady {
+                let namedAlready = leftoverIdentityId(of: old.id) != nil
+                    || leftoverIdentityId(of: adopted[bestJ].id) != nil
+                    || leftoverPending[old.id] != nil
+                    || leftoverPending[adopted[bestJ].id] != nil
+                    || leftoverNameLockHeld[old.id] != nil
+                let blinkOk = leftoverBlinkSeen(
+                    faceId: adopted[bestJ].id,
+                    identityId: leftoverIdentityId(of: old.id) ?? leftoverIdentityId(of: adopted[bestJ].id)
+                )
+                if MatchMath.leftoverAssignBlinkOk(
+                    printOk: MatchMath.leftoverBaptize(cosine: pinCos, continuity: liveCapture.isContinuity) && printReady,
+                    blinkOk: blinkOk,
+                    alreadyNamed: namedAlready
+                ) {
                     let probeId = adopted[bestJ].id
                     let boxHash = leftoverLastHash[probeId] ?? leftoverLastHash[old.id]
                     if let boxHash,
@@ -4266,7 +4299,7 @@ final class LibraryStore: ObservableObject {
                             cosine: cos,
                             onto: leftoverHoldByHash,
                             now: now,
-                            bin: MatchMath.leftoverHoldBin(yawAbs: abs(adopted[bestJ].quality.yaw)),
+                            bin: MatchMath.leftoverHoldBinSigned(yaw: adopted[bestJ].quality.yaw),
                             ttl: leftoverHoldTTL
                         )
                         leftoverHold[old.id] = MatchMath.leftoverHoldEMA(
@@ -4288,11 +4321,11 @@ final class LibraryStore: ObservableObject {
                         leftoverHoldBins = MatchMath.leftoverHoldBinPut(
                             bins: leftoverHoldBins,
                             id: old.id,
-                            yawAbs: abs(adopted[bestJ].quality.yaw),
+                            yawAbs: adopted[bestJ].quality.yaw,
                             next: cos,
                             prev: MatchMath.leftoverHoldPrevOf(
                                 frontal: leftoverHold[old.id] ?? holdNow,
-                                yawAbs: abs(adopted[bestJ].quality.yaw),
+                                yawAbs: adopted[bestJ].quality.yaw,
                                 bins: leftoverHoldBins,
                                 id: old.id
                             ),
@@ -4307,7 +4340,7 @@ final class LibraryStore: ObservableObject {
                             cosine: cos,
                             onto: leftoverHoldByHash,
                             now: now,
-                            bin: MatchMath.leftoverHoldBin(yawAbs: abs(adopted[bestJ].quality.yaw)),
+                            bin: MatchMath.leftoverHoldBinSigned(yaw: adopted[bestJ].quality.yaw),
                             ttl: leftoverHoldTTL
                         )
                     }
@@ -4356,7 +4389,7 @@ final class LibraryStore: ObservableObject {
                             cosine: cos,
                             onto: leftoverHoldByHash,
                             now: now,
-                            bin: MatchMath.leftoverHoldBin(yawAbs: abs(adopted[bestJ].quality.yaw)),
+                            bin: MatchMath.leftoverHoldBinSigned(yaw: adopted[bestJ].quality.yaw),
                             ttl: leftoverHoldTTL
                         )
                     }
@@ -4379,11 +4412,11 @@ final class LibraryStore: ObservableObject {
                             leftoverHoldBins = MatchMath.leftoverHoldBinPut(
                                 bins: leftoverHoldBins,
                                 id: adopted[bestJ].id,
-                                yawAbs: abs(adopted[bestJ].quality.yaw),
+                                yawAbs: adopted[bestJ].quality.yaw,
                                 next: cos,
                                 prev: MatchMath.leftoverHoldPrevOf(
                                     frontal: leftoverHold[adopted[bestJ].id] ?? leftoverHold[old.id],
-                                    yawAbs: abs(adopted[bestJ].quality.yaw),
+                                    yawAbs: adopted[bestJ].quality.yaw,
                                     bins: leftoverHoldBins,
                                     id: adopted[bestJ].id
                                 ),
@@ -4398,7 +4431,7 @@ final class LibraryStore: ObservableObject {
                                 cosine: cos,
                                 onto: leftoverHoldByHash,
                                 now: now,
-                                bin: MatchMath.leftoverHoldBin(yawAbs: abs(adopted[bestJ].quality.yaw)),
+                                bin: MatchMath.leftoverHoldBinSigned(yaw: adopted[bestJ].quality.yaw),
                                 ttl: leftoverHoldTTL
                             )
                         }

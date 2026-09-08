@@ -804,6 +804,7 @@ struct FaceOverlay: View {
     var item: MediaItem
     var faces: [FaceObservation]
     @ObservedObject var store: LibraryStore
+    @State private var overlayPrev: [String: CGRect] = [:]
 
     var body: some View {
         GeometryReader { geo in
@@ -863,10 +864,16 @@ struct FaceOverlay: View {
                     }()
                     let liveCont = store.liveContinuity && item.kind == .live
                     let hint = FaceEngine.overlayHint(face, gallery: gallery, continuity: liveCont)
-                    let leftover = store.leftoverHoldNow(faceId: face.id, yawAbs: abs(face.quality.yaw)) != nil
+                    let leftover = store.leftoverHoldNow(faceId: face.id, yawAbs: face.quality.yaw) != nil
                         && store.tapLockChip(faceId: face.id) == nil
                     let ghost = store.ghostFaceIds().contains(face.id)
                     let kind = MatchMath.overlayBoxKind(selected: selected, pinned: pinned, leftover: leftover, ghost: ghost)
+                    let rawBox = CGRect(x: face.box.x, y: face.box.y, width: face.box.width, height: face.box.height)
+                    let shown = MatchMath.leftoverOverlayLerp(
+                        prev: overlayPrev[row.row] ?? rawBox,
+                        next: rawBox,
+                        dt: store.liveFrameDt
+                    )
                     let coachDest = owner ?? (store.identities.count == 1 ? store.identities.first : ident)
                     let coach = selected ? FaceEngine.enrollmentCoach(
                         face: face,
@@ -942,10 +949,10 @@ struct FaceOverlay: View {
                         if let hold = store.leftoverHoldChip(
                             faceId: face.id,
                             sharpness: face.quality.sharpness,
-                            yawAbs: abs(face.quality.yaw)
+                            yawAbs: face.quality.yaw
                         ) {
                             var tail = "\(base) · \(hold)"
-                            if let spark = store.leftoverSparkChip(faceId: face.id, yawAbs: abs(face.quality.yaw)) {
+                            if let spark = store.leftoverSparkChip(faceId: face.id, yawAbs: face.quality.yaw) {
                                 tail += " · \(spark)"
                             }
                             if let gate = store.leftoverGateChip(faceId: face.id) {
@@ -1031,7 +1038,7 @@ struct FaceOverlay: View {
                             .overlay(alignment: .bottomLeading) {
                                 if selected || ident != nil || leftover {
                                     VStack(alignment: .leading, spacing: 2) {
-                                        Text(overlayName(faceId: face.id, pinned: pinned, owner: owner, near: near, ident: ident, pct: pct, hit: hit, yawAbs: abs(face.quality.yaw)))
+                                        Text(overlayName(faceId: face.id, pinned: pinned, owner: owner, near: near, ident: ident, pct: pct, hit: hit, yawAbs: face.quality.yaw))
                                             .font(.caption2.monospaced())
                                             .lineLimit(2)
                                         if selected, let coach {
@@ -1063,13 +1070,23 @@ struct FaceOverlay: View {
                     }
                     .buttonStyle(.plain)
                     .frame(
-                        width: CGFloat(face.box.width) * scale,
-                        height: CGFloat(face.box.height) * scale
+                        width: shown.width * scale,
+                        height: shown.height * scale
                     )
                     .offset(
-                        x: ox + CGFloat(face.box.x) * scale,
-                        y: oy + CGFloat(face.box.y) * scale
+                        x: ox + shown.minX * scale,
+                        y: oy + shown.minY * scale
                     )
+                    .onChange(of: rawBox) { _, next in
+                        overlayPrev[row.row] = MatchMath.leftoverOverlayLerp(
+                            prev: overlayPrev[row.row] ?? next,
+                            next: next,
+                            dt: store.liveFrameDt
+                        )
+                    }
+                    .onAppear {
+                        if overlayPrev[row.row] == nil { overlayPrev[row.row] = rawBox }
+                    }
                     if store.showAnatomy {
                         AnatomyMesh(face: face, scale: scale, selected: selected)
                             .offset(x: ox, y: oy)

@@ -1,3 +1,9 @@
+# Nachtrag 2026-09-08 — 2.1.202 / 1.6.40 (kein Merge von `bugfix`)
+
+Aegis `lolalpha00gamma/aegis-scanner` **2.1.202 alpha** (Build 227).
+Helios `lolalpha00gamma/Helios` **1.6.40** (Build 73).
+Nur `main`. Print-Yaw persist, Detect≠Print, Twin-Bin signed, Overlay-Lerp, Blink-Assign. Helios Kalman-Palme, AX-Cache, Palm-EMA, Gain×dt, q je Hand, Format-Nachzug.
+
 # Nachtrag 2026-09-08 — 2.1.201 / 1.6.39 (kein Merge von `bugfix`)
 
 Aegis `lolalpha00gamma/aegis-scanner` **2.1.201 alpha** (Build 226).

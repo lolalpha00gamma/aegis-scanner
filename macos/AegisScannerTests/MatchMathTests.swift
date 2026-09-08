@@ -5122,7 +5122,7 @@ enum MatchMathTests {
         ok(!MatchMath.leftoverPrintDiversitySkip(cosine: nil, sameBin: true), "Diversity nil tot")
         ok(MatchMath.leftoverPrintSameBin(yawA: 0.10, yawB: -0.10), "SameBin ±frontal")
         ok(!MatchMath.leftoverPrintSameBin(yawA: 0.10, yawB: 0.50), "SameBin frontal≠Profil")
-        ok(MatchMath.leftoverPrintSameBin(yawA: -0.50, yawB: 0.50), "SameBin |yaw| Profil")
+        ok(!MatchMath.leftoverPrintSameBin(yawA: -0.50, yawB: 0.50), "SameBin Profil L≠R")
         ok(!MatchMath.leftoverPrintSameBin(yawA: 0.10, yawB: nil), "SameBin ohne Print-Yaw tot")
         ok(!MatchMath.leftoverPrintSameBin(yawA: nil, yawB: 0.10), "SameBin ohne Live-Yaw tot")
         ok(MatchMath.leftoverAssignXFillAllows(printCos: nil), "ungemessen x-Fill Remint")
@@ -5230,6 +5230,63 @@ enum MatchMathTests {
         ok(MatchMath.leftoverPrintEmaNeed(dt: 0.125) == 2, "8 fps EMA 2")
         ok(MatchMath.leftoverPrintEmaNeed(dt: 0.04) == 3, "24 fps EMA 3")
         ok(MatchMath.leftoverPrintEmaNeed() == 3, "EMA Default 3")
+        let yawId = UUID()
+        let yawEnc = MatchMath.leftoverPrintYawEncode([yawId: -0.35])
+        let yawDec = MatchMath.leftoverPrintYawDecode(yawEnc)
+        ok(abs((yawDec[yawId] ?? 0) + 0.35) < 1e-9, "Print-Yaw persist −¾")
+        ok(MatchMath.leftoverPrintYawDecode(nil).isEmpty, "Print-Yaw nil tot")
+        ok(MatchMath.leftoverHoldBinSigned(yaw: -0.35) == -1, "¾L signed −1")
+        ok(MatchMath.leftoverHoldBinSigned(yaw: 0.35) == 1, "¾R signed +1")
+        ok(MatchMath.leftoverHoldBinSigned(yaw: -0.50) == -2, "Profil L −2")
+        ok(MatchMath.leftoverHoldBinSigned(yaw: 0.10) == 0, "frontal 0")
+        ok(MatchMath.leftoverHoldBinSignedChip(-1) == "¾L", "Chip ¾L")
+        ok(MatchMath.leftoverHoldBinSignedChip(1) == "¾R", "Chip ¾R")
+        ok(!MatchMath.leftoverPrintSameBin(yawA: -0.35, yawB: 0.35), "¾L ≠ ¾R")
+        ok(MatchMath.leftoverPrintSameBin(yawA: -0.35, yawB: -0.40), "¾L ¾L")
+        ok(MatchMath.leftoverDetectInterval(dt: 0.04) >= 0.08, "Detect 24 fps 2 Frames")
+        ok(MatchMath.leftoverDetectInterval(dt: 0.125) <= 0.16, "Detect 8 fps ≤ Frame")
+        ok(MatchMath.leftoverPrintInterval(dt: 0.125, still: true) > MatchMath.leftoverPrintInterval(dt: 0.125, still: false), "Print Still länger")
+        let splitStill = MatchMath.leftoverDetectPrintSplit(now: 1.10, lastDetect: 1.00, lastPrint: 0.90, dt: 0.125, still: true)
+        ok(splitStill.skipDetect, "Detect 8 fps skip 100 ms")
+        ok(splitStill.skipPrint, "Print still skip 0,20 s")
+        let splitMove = MatchMath.leftoverDetectPrintSplit(now: 1.50, lastDetect: 1.00, lastPrint: 1.00, dt: 0.125, still: false)
+        ok(!splitMove.skipDetect && !splitMove.skipPrint, "Bewegung Detect+Print")
+        ok(MatchMath.leftoverAssignBlinkOk(printOk: true, blinkOk: false, alreadyNamed: true), "Named ohne Blink hält")
+        ok(!MatchMath.leftoverAssignBlinkOk(printOk: true, blinkOk: false, alreadyNamed: false), "Neu ohne Blink tot")
+        ok(MatchMath.leftoverAssignBlinkOk(printOk: true, blinkOk: true, alreadyNamed: false), "Neu + Blink tauft")
+        ok(!MatchMath.leftoverAssignBlinkOk(printOk: false, blinkOk: true, alreadyNamed: false), "Blink ohne Print tot")
+        let boxA = CGRect(x: 0, y: 0, width: 10, height: 10)
+        let boxB = CGRect(x: 10, y: 0, width: 10, height: 10)
+        let lerp = MatchMath.leftoverOverlayLerp(prev: boxA, next: boxB, dt: 0.04)
+        ok(lerp.minX > 0 && lerp.minX < 10, "Overlay Lerp zwischen")
+        let lerp8 = MatchMath.leftoverOverlayLerp(prev: boxA, next: boxB, dt: 0.125)
+        ok(lerp8.minX > lerp.minX, "8 fps Lerp weiter")
+        ok(MatchMath.leftoverOverlayLerpKeeps(assignChanged: true), "Lerp unabhängig von Assign")
+        ok(
+            MatchMath.leftoverOverlayRowId(
+                identityId: adaRow,
+                detectId: detectRow,
+                taken: [],
+                boxHash: boxH
+            ) == boxH,
+            "Lerp hält BoxHash trotz Ada"
+        )
+        let poseId = UUID()
+        let leftBins = MatchMath.leftoverHoldBinPut(bins: [:], id: poseId, yawAbs: -0.35, next: 0.70)
+        let bothBins = MatchMath.leftoverHoldBinPut(bins: leftBins, id: poseId, yawAbs: 0.35, next: 0.60)
+        ok(
+            abs((MatchMath.leftoverHoldPrevOf(frontal: 0.80, yawAbs: -0.35, bins: bothBins, id: poseId) ?? 0) - 0.70) < 1e-9,
+            "Hold ¾L eigener Bin"
+        )
+        ok(
+            abs((MatchMath.leftoverHoldPrevOf(frontal: 0.80, yawAbs: 0.35, bins: bothBins, id: poseId) ?? 0) - 0.60) < 1e-9,
+            "Hold ¾R eigener Bin"
+        )
+        ok(
+            MatchMath.leftoverHoldKey(id: poseId, bin: MatchMath.leftoverHoldBinSigned(yaw: -0.35))
+                != MatchMath.leftoverHoldKey(id: poseId, bin: MatchMath.leftoverHoldBinSigned(yaw: 0.35)),
+            "Hold-Key ¾L ≠ ¾R"
+        )
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

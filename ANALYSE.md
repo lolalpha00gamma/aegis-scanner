@@ -1,3 +1,20 @@
+# Aegis 2.1.202 — Print-Yaw persist, Detect≠Print, Twin-Bin signed, Overlay-Lerp, Blink-Assign
+
+Aegis **2.1.202 alpha** (Build 227). Helios **1.6.40** (Build 73). Nur `main`. `bugfix` mergen: nein.
+
+2.1.201: Trail-next. Median+Anker. Blur kein Stamp. Coast nur Commit. Print-Yaw nur RAM. Detect=Print. |yaw| Twin. Overlay=Assign. Blink nur Enroll.
+
+## Was 2.1.202 ändert
+
+1. **leftoverPrintYawEncode / Decode** gallery.json. Restart SameBin.
+2. **leftoverDetectPrintSplit** Detect ≠ Print. skipPrints nicht mehr = skipDetect.
+3. **leftoverHoldBinSigned** −2…+2. leftoverPrintSameBin ¾L ≠ ¾R. leftoverHoldBinPut eigene Keys.
+4. **leftoverOverlayLerp** τ 0,08. leftoverOverlayRowId Box-Hash vor identityId.
+5. **leftoverAssignBlinkOk** Neu braucht Blink, Named hält.
+6. Tests + VERSION = Models = MARKETING 2.1.202 (Build 227). Schema 15 bleibt.
+
+`bugfix` mergen: nein.
+
 # Aegis 2.1.201 — Print-Trail next, Median+Anker, Blur kein Stamp
 
 Aegis **2.1.201 alpha** (Build 226). Helios **1.6.39** (Build 72). Nur `main`. `bugfix` mergen: nein.

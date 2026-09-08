@@ -1,3 +1,5 @@
+# 2.1.202 — Print-Yaw persist, Detect≠Print, Twin-Bin signed, Overlay-Lerp, Blink-Assign.
+
 # 2.1.201 — Print-Trail nur next, Median+Anker, Blur kein Stamp, Coast nur Commit.
 
 # 2.1.200 — siehe VORSCHLAEGE-NEU.md (Hold-Still × fps, Overlay-Taufe 0,80, Print-EMA × dt).

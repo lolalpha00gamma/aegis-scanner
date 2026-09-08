@@ -1,3 +1,66 @@
+# Nachtrag Grok 2026-09-08 — 2.1.202 gelandet, Rest offen
+
+Quelle: Review + Fix Aegis 2.1.202 (Build 227) auf 2.1.201 (Print-Yaw RAM, Detect=Print, |yaw| Twin, Overlay=Assign, Blink nur Enroll). Helios 1.6.40.
+Kein Binary-Lauf (Linux-Sandbox). Tests in CI. `bugfix` nicht gemergt. Nur `main`.
+
+## Warum es nach 2.1.201 weiter riss
+
+1. leftoverPrintYaw nur RAM. Restart → SameBin tot, Diversity-Skip beim ersten Print, Twin-¾ klebt.
+2. skipPrints = skipDetect. Continuity 8 fps Detect und Print derselbe Tick — Burst oder gar kein Print.
+3. leftoverPrintSameBin über |yaw|. Ada ¾L und Twin ¾R = Bin 1, Diversity-Skip stiehlt.
+4. Overlay-Box folgt Assign-UUID. Remint unmountet die Box trotz Peak-Hold.
+5. Blink nur Enroll. Gast aus dem Nichts ohne Lid-Gap.
+6. Helios Freeze-Vel 0,82 tot nach 3 Ticks. AX jeden Tick. Pointer-Gain Teleport. q nur Actor.
+
+## In 2.1.202 / 1.6.40 gelandet
+
+- leftoverPrintYaw persist gallery.json.
+- leftoverDetectPrintSplit Detect ≠ Print.
+- leftoverHoldBinSigned ¾L≠¾R.
+- leftoverOverlayLerp unabhängig von Assign.
+- leftoverAssignBlinkOk Neu+Blink.
+- Helios freezeKalman, axHitCache, palmWidthEMA×dt, pointerGainDt, qualityChips, cameraFormatRenegotiate.
+
+## Offen (nicht noch ein Slider)
+
+P0 CameraBroker IOSurface. FaceTrack einzige Store-Map.
+P1 Overlay-Metal. LiveCapture nicht @MainActor.
+P2 VNTrackObjectRequest. Replay 20 s. HeliosAegisKit.
+
+## Erweiterung (neu)
+
+1. CameraBroker Shared Memory statt flock/90 Hz.
+2. FaceTrack Debug-Dump eine Map JSON.
+3. Licht-Eimer (frontal / ¾L / ¾R / Profil) statt einem Cosine.
+4. Match-Log JSONL für Replay.
+5. Drop-in `.mlmodel` FaceEmbedder-Protokoll.
+6. Overlay-Metal 90 Hz unabhängig von 8 fps Detect.
+7. Tests splitten (MatchMathTests > 200 kB). Swift Testing.
+8. Helios liest leftover-Boxen als Palm-Occlusion. Aegis-Yaw als Click-Lock.
+9. leftoverBaptize Temperatur je Bin — 0,80 hart tauft im ¾ falsch.
+10. gallery ANN (HNSW) ab n>50.
+11. CVPixelBuffer bis Detect, kein CGImage-Hop.
+12. Name-Lock nur nach Blink + 3 Frames gleicher ID.
+13. P-Slot Maske/Schal, Brille-Slot als Twin-Veto.
+14. Continuity 720p@24 Format-Lock analog Helios cameraFormatScore.
+15. DisplayLink 90 Hz HUD unabhängig von Detect.
+16. Wrist-IMU Watch für Pinch-Confirm / Blink-Confirm.
+17. PrintQuality als Hungarian-Gewicht (unscharf 0,22 drückt Cost).
+18. leftoverOverlayLerp in ContentView CALayer, nicht nur Math.
+19. Face-print PCA 64→24 für gallery.json Größe.
+20. PhotoKit Live-Photos Schlüsselbild statt erstem Frame.
+21. Soft-Biometrie (Brille/Bart) nur Twin-Veto, nie Identity.
+22. Session-Replay Ring 20 s, JSONL Export.
+23. HeliosAegisKit Shared Package Mutex v2 + PTS + SlotKind.
+24. Kalman-Q an fps (Helios Freeze + Aegis Box).
+25. Gesture-Macros 2 s (Helios). Pose-Meter ¾L/¾R HUD (Aegis, Chip ist da).
+
+## Bugfix-Skill
+
+Pass 1: Print-Yaw RAM, Detect=Print, |yaw| Twin, Overlay=Assign, Blink nur Enroll, Helios Decay/AX/Gain/q.
+Pass 2: 2.1.202 / 1.6.40 auf main.
+Pass 3: CI muss failen dürfen. SameBin ¾L≠¾R. Detect≠Print. Yaw persist. Kalman P. Gain×dt.
+
 # Nachtrag Grok 2026-09-08 — 2.1.201 gelandet, Rest offen
 
 Quelle: Review + Fix Aegis 2.1.201 (Build 226) auf 2.1.200 (Trail prev, Coast ohne Commit, Blur-Yaw). Helios 1.6.39.

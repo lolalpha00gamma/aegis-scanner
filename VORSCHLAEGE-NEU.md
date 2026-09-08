@@ -1,3 +1,18 @@
+# Aegis Nachtrag 2.1.202 — 2026-09-08
+
+Binary **2.1.202 alpha Build 227**. Print-Yaw persist. Detect≠Print. Twin-Bin signed. Overlay-Lerp. Blink-Assign. Helios 1.6.40.
+
+## In 2.1.202 gelandet
+
+1. leftoverPrintYawEncode / Decode — gallery.json. Restart SameBin.
+2. leftoverDetectPrintSplit — Detect-Interval ≠ Print-Interval. skipPrints nicht mehr = skipDetect.
+3. leftoverHoldBinSigned −2…+2. leftoverPrintSameBin ¾L ≠ ¾R. Chip ¾L/¾R. leftoverHoldBinPut eigene Keys L≠R.
+4. leftoverOverlayLerp τ 0,08. leftoverOverlayRowId Box-Hash vor identityId. ContentView Lerp.
+5. leftoverAssignBlinkOk — Neu braucht Blink-Streak, Named hält. LibraryStore Taufe.
+6. Tests + VERSION = Models = MARKETING 2.1.202 (Build 227). Schema 15 bleibt.
+
+Rest: CameraBroker, FaceTrack einzige Map, Overlay-Metal. Siehe VORSCHLAEGE-GROK.md.
+
 # Aegis Nachtrag 2.1.201 — 2026-09-08
 
 Binary **2.1.201 alpha Build 226**. Trail nur Live-next. Median + Gallery-Anker. Blur-Skip ohne Yaw-Stempel. Coast nur Commit. Helios 1.6.39.
