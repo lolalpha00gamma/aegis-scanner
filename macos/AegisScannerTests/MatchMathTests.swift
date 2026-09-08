@@ -5957,6 +5957,63 @@ enum MatchMathTests {
             MatchMath.leftoverTrailNowOf(idTrail: [0.91, 0.88], binTrail: [0.66], yawAbs: -0.40) == [0.66],
             "Pick-Trail ¾L nicht Frontal"
         )
+        ok(MatchMath.leftoverOccupiedSamePose(a: -0.40, b: 0.40) == false, "Occupied L/R nicht dieselbe Pose")
+        ok(MatchMath.leftoverOccupiedSamePose(a: -0.40, b: -0.55), "Occupied ¾L/Profil L dieselbe Seite")
+        ok(MatchMath.leftoverOccupiedSamePose(a: 0.10, b: 0.40), "Occupied frontal vs ¾R konkurriert")
+        let lrOcc = MatchMath.leftoverOccupiedMergeYaw(
+            stored: [],
+            live: [(hash: "5.5.4.6", yawAbs: -0.40), (hash: "5.5.4.6", yawAbs: 0.40)]
+        )
+        ok(lrOcc.contains("5.5.4.6") && !lrOcc.contains("5.5.4.6#101"), "Occupied L/R kein Steal #101")
+        let sameSideOcc = MatchMath.leftoverOccupiedMergeYaw(
+            stored: [],
+            live: [(hash: "5.5.4.6", yawAbs: 0.10), (hash: "5.5.4.6", yawAbs: 0.30)]
+        )
+        ok(sameSideOcc.contains("5.5.4.6") && sameSideOcc.contains("5.5.4.6#101"), "Occupied same-sign Exact+#101")
+        let lrTwin = MatchMath.leftoverHashTwinOccupied(
+            occupied: ["5.5.4.6"],
+            hash: "5.5.4.6",
+            x: 0.20,
+            others: [(hash: "5.5.4.6", x: 0.80)],
+            yawAbs: -0.40,
+            otherYaws: [0.40]
+        )
+        ok(!lrTwin.contains("5.5.4.6"), "Occupied L/R beide Exact")
+        let rankedLR = MatchMath.leftoverHashTwinRanked(
+            hash: "5.5.4.6",
+            x: 0.20,
+            others: [(hash: "5.5.4.6", x: 0.80)],
+            yawAbs: -0.40,
+            otherYaws: [0.40]
+        )
+        ok(rankedLR == "5.5.4.6", "Ranked L/R beide Exact")
+        let tieLive = MatchMath.leftoverHashTwinOccupied(
+            occupied: ["5.5.4.6"],
+            hash: "5.5.4.6",
+            x: 0.50,
+            others: [(hash: "5.5.4.6", x: 0.50), (hash: "5.5.4.6", x: 0.80)],
+            yawAbs: -0.40,
+            otherYaws: [-0.40, 0.40],
+            tieKey: "A",
+            otherTieKeys: ["B", "C"]
+        )
+        ok(!tieLive.contains("5.5.4.6"), "x-Tie L vs L, R ignoriert, A < B Exact")
+        let fifo = MatchMath.leftoverPrintCachePut(
+            cached: (0..<MatchMath.leftoverHashHoldCapN).map { "6.6.4.\($0)#0" },
+            hash: "9.9.9.9",
+            yaw: 0
+        )
+        ok(fifo.contains("9.9.9.9#0"), "Print-Cache FIFO hält neuen Key")
+        ok(!fifo.contains("6.6.4.0#0"), "Print-Cache FIFO drop ältesten")
+        ok(fifo.count == MatchMath.leftoverHashHoldCapN, "Print-Cache FIFO Cap")
+        let med = MatchMath.leftoverHoldSmooth(
+            raw: 0.91, prev: 0.70, trail: [0.91, 0.88], binTrail: [0.66, 0.64], yawAbs: 0.40
+        ) ?? -1
+        ok(abs(med - 0.66) < 0.02, "HoldSmooth intern Bin-Trail nicht Frontal-Median")
+        let frontMed = MatchMath.leftoverHoldSmooth(
+            raw: 0.91, prev: 0.70, trail: [0.70, 0.72], yawAbs: 0.05
+        ) ?? -1
+        ok(abs(frontMed - 0.72) < 0.05, "HoldSmooth frontal UUID-Trail")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

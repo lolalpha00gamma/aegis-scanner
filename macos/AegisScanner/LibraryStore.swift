@@ -97,7 +97,7 @@ final class LibraryStore: ObservableObject {
     private var liveDetectGen: UInt64 = 0
     private var liveBusySince: TimeInterval = 0
     private var liveCoastAt: TimeInterval = 0
-    private var leftoverPrintCache: Set<String> = []
+    private var leftoverPrintCache: [String] = []
     private var liveRoiTick = 0
     private var liveRoiSkipOnce = false
     private var maskHoldSince: [UUID: TimeInterval] = [:]
@@ -161,7 +161,7 @@ final class LibraryStore: ObservableObject {
     private func leftoverOccupiedHashes(except id: UUID? = nil) -> [String] {
         let liveYawRows: [(hash: String, yawAbs: Double)] = leftoverLiveHashTick.compactMap { key, value in
             if key == id { return nil }
-            let yaw = abs(liveYaw[key] ?? faces.first(where: { $0.id == key })?.quality.yaw ?? 0)
+            let yaw = liveYaw[key] ?? faces.first(where: { $0.id == key })?.quality.yaw ?? 0
             return (hash: value, yawAbs: yaw)
         }
         let storedRowsAll: [(id: UUID, hash: String)] = leftoverLastHash.compactMap { key, value in
@@ -189,7 +189,7 @@ final class LibraryStore: ObservableObject {
         let others = MatchMath.leftoverOccupiedOthers(live: liveRows, stored: storedRows, except: id)
         let rows = MatchMath.leftoverOccupiedOtherRows(live: liveRows, stored: storedRows, except: id)
         let yawOf: (UUID) -> Double = { fid in
-            abs(self.liveYaw[fid] ?? self.faces.first(where: { $0.id == fid })?.quality.yaw ?? 0)
+            self.liveYaw[fid] ?? self.faces.first(where: { $0.id == fid })?.quality.yaw ?? 0
         }
         let otherYaws: [Double] = rows.map { row in
             MatchMath.leftoverOccupiedYaw(key: row.key, yawOf: yawOf)
@@ -384,7 +384,7 @@ final class LibraryStore: ObservableObject {
             leftoverCoastPrint = coast.print
             leftoverCoastPrintAt = coast.at
             leftoverPrintYaw = MatchMath.leftoverPrintYawDecode(extra.leftoverPrintYaw)
-            leftoverPrintCache = MatchMath.leftoverPrintCacheDecode(extra.leftoverPrintCache)
+            leftoverPrintCache = MatchMath.leftoverPrintCacheDecodeOrder(extra.leftoverPrintCache)
         }
         let lockStored = UserDefaults.standard.double(forKey: "aegis.nameLockSec")
         if lockStored > 0 {
@@ -695,7 +695,7 @@ final class LibraryStore: ObservableObject {
             leftoverCoastPrint = coast.print
             leftoverCoastPrintAt = coast.at
             leftoverPrintYaw = MatchMath.leftoverPrintYawDecode(extra.leftoverPrintYaw)
-            leftoverPrintCache = MatchMath.leftoverPrintCacheDecode(extra.leftoverPrintCache)
+            leftoverPrintCache = MatchMath.leftoverPrintCacheDecodeOrder(extra.leftoverPrintCache)
         } else {
             leftoverStreak = [:]
             leftoverPairStreak = [:]
@@ -2549,7 +2549,7 @@ final class LibraryStore: ObservableObject {
             guard let yaw = liveYaw[id] else { continue }
             let hash = leftoverLiveHashTick[id] ?? leftoverLastHash[id]
             guard let hash, !hash.isEmpty else { continue }
-            let personBins = MatchMath.leftoverPrintCacheBins(leftoverPrintCache, hash: hash)
+            let personBins = MatchMath.leftoverPrintCacheBins(Set(leftoverPrintCache), hash: hash)
             if MatchMath.enrollSMSkipCapture(
                 yaw: yaw,
                 haveFrontal: personBins.contains(0),
@@ -2563,7 +2563,7 @@ final class LibraryStore: ObservableObject {
         let skipPrintCached: Set<UUID> = Set(kalmanSnap.compactMap { row in
             guard let yaw = liveYaw[row.id] else { return nil }
             let hash = leftoverLiveHashTick[row.id] ?? leftoverLastHash[row.id]
-            guard MatchMath.leftoverPrintCacheHits(hash: hash, yaw: yaw, cached: leftoverPrintCache, cam: cameraUniqueID) else {
+            guard MatchMath.leftoverPrintCacheHits(hash: hash, yaw: yaw, cached: Set(leftoverPrintCache), cam: cameraUniqueID) else {
                 return nil
             }
             return row.id
@@ -3947,14 +3947,14 @@ final class LibraryStore: ObservableObject {
                     return (
                         hash: value,
                         x: liveXs[key] ?? 0,
-                        yaw: abs(liveYaw[key] ?? adopted.first(where: { $0.id == key })?.yaw ?? 0)
+                        yaw: liveYaw[key] ?? adopted.first(where: { $0.id == key })?.yaw ?? 0
                     )
                 }
                 leftoverLiveHashTick[face.id] = MatchMath.leftoverHashTwinRanked(
                     hash: hash,
                     x: liveXs[face.id] ?? 0,
                     others: rows.map { (hash: $0.hash, x: $0.x) },
-                    yawAbs: abs(liveYaw[face.id] ?? face.yaw),
+                    yawAbs: liveYaw[face.id] ?? face.yaw,
                     otherYaws: rows.map(\.yaw)
                 )
                 let ranked = leftoverLiveHashTick[face.id] ?? ""
@@ -3966,12 +3966,12 @@ final class LibraryStore: ObservableObject {
                         cam: cameraUniqueID
                     )
                     yawCoverageChip = MatchMath.printYawCoverageChip(
-                        MatchMath.printYawCoverageBest(cached: leftoverPrintCache)
+                        MatchMath.printYawCoverageBest(cached: Set(leftoverPrintCache))
                     )
                     let liveHashes = adopted.compactMap {
                         leftoverLiveHashTick[$0.id] ?? leftoverLastHash[$0.id]
                     }
-                    var bins = MatchMath.enrollSMCacheBins(cache: leftoverPrintCache, liveHashes: liveHashes)
+                    var bins = MatchMath.enrollSMCacheBins(cache: Set(leftoverPrintCache), liveHashes: liveHashes)
                     for face in adopted {
                         let slots = MatchMath.leftoverEnrollSlotHave(
                             yaw: face.quality.yaw,
@@ -3995,7 +3995,7 @@ final class LibraryStore: ObservableObject {
                     enrollQualityChip = MatchMath.enrollQualityMeter(
                         capture: capQ,
                         sharpness: sharpQ,
-                        yawCoverage: MatchMath.printYawCoverageBest(cached: leftoverPrintCache)
+                        yawCoverage: MatchMath.printYawCoverageBest(cached: Set(leftoverPrintCache))
                     )
                     captureSparkChip = MatchMath.captureQualitySpark(capQ)
                 }
@@ -4242,14 +4242,11 @@ final class LibraryStore: ObservableObject {
                     holdOnlyUnsure: holdUnsure,
                     gallery: identities.count,
                     iouOnly: iouOnly,
-                    holdTrail: MatchMath.leftoverTrailNowOf(
-                        idTrail: leftoverHoldTrail[old.id] ?? [],
-                        binTrail: leftoverHoldTrailBins[MatchMath.leftoverHoldKey(
-                            id: old.id,
-                            bin: MatchMath.leftoverHoldBinSigned(yaw: old.quality.yaw)
-                        )] ?? [],
-                        yawAbs: old.quality.yaw
-                    ),
+                    holdTrail: leftoverHoldTrail[old.id] ?? [],
+                    holdBinTrail: leftoverHoldTrailBins[MatchMath.leftoverHoldKey(
+                        id: old.id,
+                        bin: MatchMath.leftoverHoldBinSigned(yaw: old.quality.yaw)
+                    )] ?? [],
                     probeMasked: FaceEngine.lowerFaceOccluded(old),
                     refMasked: Dictionary(uniqueKeysWithValues: remaining.map {
                         ($0.index, FaceEngine.lowerFaceOccluded(adopted[$0.index]))

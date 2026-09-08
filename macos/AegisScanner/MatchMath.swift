@@ -289,6 +289,7 @@ enum MatchMath {
         gallery: Int = 0,
         iouOnly: Bool = false,
         holdTrail: [Double] = [],
+        holdBinTrail: [Double] = [],
         probeMasked: Bool = false,
         refMasked: [Int: Bool] = [:],
         twinSplits: Set<String> = [],
@@ -351,7 +352,9 @@ enum MatchMath {
                     prev: holdOf($0.index),
                     dt: dt,
                     captureJump: leftoverCaptureJump(prev: session, next: liveCap($0.index)),
-                    trail: holdTrail
+                    trail: holdTrail,
+                    binTrail: holdBinTrail,
+                    yawAbs: yawAbs[$0.index] ?? lookawayYaw
                 )
             )
         }
@@ -929,23 +932,38 @@ enum MatchMath {
         return false
     }
 
-    static func leftoverPrintCachePut(cached: Set<String>, hash: String?, yaw: Double, cam: String? = nil) -> Set<String> {
+    static func leftoverPrintCachePut(cached: [String], hash: String?, yaw: Double, cam: String? = nil) -> [String] {
         guard let key = leftoverLastHashBinKey(hash: hash, yaw: yaw, cam: cam) else { return cached }
-        var out = cached
-        out.insert(key)
-        if out.count > leftoverHashHoldCapN {
-            return Set(out.prefix(leftoverHashHoldCapN))
+        var order = cached.filter { !$0.isEmpty && $0 != key }
+        order.append(key)
+        if order.count > leftoverHashHoldCapN {
+            order.removeFirst(order.count - leftoverHashHoldCapN)
         }
-        return out
+        return order
     }
 
-    /// RAM-Cache stirbt nach Restart. JSON-Array, Schema 15 optional.
+    static func leftoverPrintCachePut(cached: Set<String>, hash: String?, yaw: Double, cam: String? = nil) -> Set<String> {
+        Set(leftoverPrintCachePut(cached: leftoverPrintCacheEncode(cached), hash: hash, yaw: yaw, cam: cam))
+    }
+
+    /// RAM-Cache stirbt nach Restart. JSON-Array, Schema 15 optional. Insertion-Order, nicht sortiert.
+    static func leftoverPrintCacheEncode(_ cached: [String]) -> [String] {
+        cached.filter { !$0.isEmpty }
+    }
+
     static func leftoverPrintCacheEncode(_ cached: Set<String>) -> [String] {
-        Array(cached.filter { !$0.isEmpty }).sorted()
+        leftoverPrintCacheEncode(Array(cached.filter { !$0.isEmpty })).sorted()
+    }
+
+    static func leftoverPrintCacheDecodeOrder(_ raw: [String]?, cap: Int = leftoverHashHoldCapN) -> [String] {
+        let cleaned = (raw ?? []).filter { !$0.isEmpty }
+        let n = max(1, cap)
+        if cleaned.count <= n { return cleaned }
+        return Array(cleaned.suffix(n))
     }
 
     static func leftoverPrintCacheDecode(_ raw: [String]?, cap: Int = leftoverHashHoldCapN) -> Set<String> {
-        Set((raw ?? []).filter { !$0.isEmpty }.prefix(max(1, cap)))
+        Set(leftoverPrintCacheDecodeOrder(raw, cap: cap))
     }
 
     static func leftoverJpegProbeKeyBin(_ hash: String, yaw: Double) -> String {
@@ -2884,6 +2902,14 @@ enum MatchMath {
         storedRanked && liveOfSpatial == 1
     }
 
+    /// ¾L und ¾R sind nicht dieselbe Occupancy. Frontal konkurriert mit beiden.
+    static func leftoverOccupiedSamePose(a: Double, b: Double) -> Bool {
+        let ba = leftoverHoldBinSigned(yaw: a)
+        let bb = leftoverHoldBinSigned(yaw: b)
+        if ba == 0 || bb == 0 { return true }
+        return (ba < 0) == (bb < 0)
+    }
+
     static func leftoverOccupiedMergeYaw(
         stored: [String],
         live: [(hash: String, yawAbs: Double)]
@@ -2899,12 +2925,20 @@ enum MatchMath {
         var seen = Set<String>()
         var out: [String] = []
         for key in order {
-            let rows = (groups[key] ?? []).sorted { $0.yawAbs + 1e-9 < $1.yawAbs }
-            if rows.count <= 1 {
+            let rows = groups[key] ?? []
+            let signed = rows.map { leftoverHoldBinSigned(yaw: $0.yawAbs) }
+            let hasL = signed.contains { $0 < 0 }
+            let hasR = signed.contains { $0 > 0 }
+            if hasL && hasR {
                 if seen.insert(key).inserted { out.append(key) }
                 continue
             }
-            for (i, _) in rows.enumerated() {
+            let sorted = rows.sorted { abs($0.yawAbs) + 1e-9 < abs($1.yawAbs) }
+            if sorted.count <= 1 {
+                if seen.insert(key).inserted { out.append(key) }
+                continue
+            }
+            for (i, _) in sorted.enumerated() {
                 let emit = i == 0 ? key : leftoverHoldHashTwinKey(hash: key, rank: i)
                 if seen.insert(emit).inserted { out.append(emit) }
             }
@@ -2945,10 +2979,9 @@ enum MatchMath {
             let tied = zip(others, otherYaws).compactMap { ox, oy -> Double? in
                 abs(ox - x) <= 1e-9 ? oy : nil
             }
-            if !tied.isEmpty && tied.allSatisfy({ yawAbs + 1e-9 < $0 }) { return true }
-            if !tied.isEmpty && tied.contains(where: { $0 + 1e-9 < yawAbs }) { return false }
-            // Dritter mit größerem Yaw darf tieKey der Frontalen nicht vergiften.
-            if !tied.isEmpty && !tied.allSatisfy({ abs(yawAbs - $0) <= 1e-9 }) { return false }
+            if !tied.isEmpty && tied.allSatisfy({ abs(yawAbs) + 1e-9 < abs($0) }) { return true }
+            if !tied.isEmpty && tied.contains(where: { abs($0) + 1e-9 < abs(yawAbs) }) { return false }
+            if !tied.isEmpty && !tied.allSatisfy({ abs(abs(yawAbs) - abs($0)) <= 1e-9 }) { return false }
         }
         if otherTieKeys.count == others.count, !tieKey.isEmpty {
             let keys = zip(others, otherTieKeys).compactMap { ox, k -> String? in
@@ -2980,6 +3013,34 @@ enum MatchMath {
             }
         } else {
             twinYaws = []
+        }
+        if !twinYaws.isEmpty && twinYaws.count == twins.count {
+            let competing = zip(twins, twinYaws).filter { leftoverOccupiedSamePose(a: yawAbs, b: $0.1) }
+            if competing.isEmpty {
+                return occupied.filter { leftoverHoldHashBare($0) != bare }
+            }
+            let twinKeys: [String]
+            if otherTieKeys.count == others.count, otherYaws.count == others.count {
+                twinKeys = zip(zip(others, otherYaws), otherTieKeys).compactMap { pair, key in
+                    let (row, oy) = pair
+                    guard leftoverHoldHashBare(row.hash) == bare else { return nil }
+                    guard leftoverOccupiedSamePose(a: yawAbs, b: oy) else { return nil }
+                    return key
+                }
+            } else {
+                twinKeys = []
+            }
+            if leftoverHashTwinLeft(
+                x: x,
+                others: competing.map { $0.0.x },
+                yawAbs: yawAbs,
+                otherYaws: competing.map(\.1),
+                tieKey: tieKey,
+                otherTieKeys: twinKeys
+            ) {
+                return occupied.filter { leftoverHoldHashBare($0) != bare }
+            }
+            return occupied
         }
         let twinKeys: [String]
         if otherTieKeys.count == others.count {
@@ -3016,8 +3077,10 @@ enum MatchMath {
     static func leftoverHashTwinRank(x: Double, others: [Double], yawAbs: Double = 0, otherYaws: [Double] = []) -> Int {
         let left = others.filter { $0 < x - 1e-9 }.count
         guard otherYaws.count == others.count else { return left }
-        let tied = zip(others, otherYaws).filter { abs($0.0 - x) <= 1e-9 }
-        return left + tied.filter { $0.1 < yawAbs - 1e-9 }.count
+        let tied = zip(others, otherYaws).filter { ox, oy in
+            abs(ox - x) <= 1e-9 && leftoverOccupiedSamePose(a: yawAbs, b: oy)
+        }
+        return left + tied.filter { abs($0.1) + 1e-9 < abs(yawAbs) }.count
     }
 
     static func leftoverHoldHashTwinKey(hash: String, rank: Int) -> String {
@@ -3044,6 +3107,19 @@ enum MatchMath {
             }
         } else {
             twinYaws = []
+        }
+        if !twinYaws.isEmpty && twinYaws.count == twins.count {
+            let competing = zip(twins, twinYaws).filter { leftoverOccupiedSamePose(a: yawAbs, b: $0.1) }
+            if competing.isEmpty { return hash }
+            return leftoverHoldHashTwinKey(
+                hash: bare,
+                rank: leftoverHashTwinRank(
+                    x: x,
+                    others: competing.map { $0.0.x },
+                    yawAbs: yawAbs,
+                    otherYaws: competing.map(\.1)
+                )
+            )
         }
         return leftoverHoldHashTwinKey(
             hash: bare,
@@ -7830,10 +7906,12 @@ enum MatchMath {
 
     /// Glättung vor leftoverPick. Roh 0,70 / Hold 0,64 → 0,66, nicht 0,70.
     /// AE-Sprung: α 0,08, sonst Hold in einem Tick umgeschrieben.
-    static func leftoverHoldSmooth(raw: Double?, prev: Double?, dt: TimeInterval = 0.016, captureJump: Double = 0, trail: [Double] = []) -> Double? {
+    /// ¾ intern leftoverTrailNowOf — Call-Site darf UUID-Trail + Bin-Trail roh lassen.
+    static func leftoverHoldSmooth(raw: Double?, prev: Double?, dt: TimeInterval = 0.016, captureJump: Double = 0, trail: [Double] = [], binTrail: [Double] = [], yawAbs: Double? = nil) -> Double? {
         guard let raw else { return nil }
-        if trail.count >= 2 {
-            let ticks = leftoverHoldTrailCap(trail + [raw], cap: cosineTickMedianNeed())
+        let now = leftoverTrailNowOf(idTrail: trail, binTrail: binTrail, yawAbs: yawAbs)
+        if now.count >= 2 {
+            let ticks = leftoverHoldTrailCap(now + [raw], cap: cosineTickMedianNeed())
             if let med = cosineTickMedian(ticks) { return med }
         }
         return leftoverHoldEMA(prev: prev, next: raw, alpha: leftoverHoldAlpha(dt: dt, captureJump: captureJump))

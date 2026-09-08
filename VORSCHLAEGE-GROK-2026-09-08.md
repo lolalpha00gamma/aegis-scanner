@@ -1,3 +1,43 @@
+# Aegis Vorschläge — 2026-09-08 (Pass 28, 2.1.227)
+
+Stand 2.1.227 alpha. Occupied signed Yaw, Twin Gegenpose beide Exact, Print-Cache FIFO, HoldSmooth intern Bin-Trail.
+
+## Gelandet in 2.1.227
+
+- leftoverOccupiedHashes signed Yaw, leftoverOccupiedSamePose
+- leftoverOccupiedMergeYaw L+R kein Steal `#101`
+- leftoverHashTwinOccupied / Ranked skip opposite-pose, x-Tie competing
+- leftoverPrintCache `[String]` FIFO
+- leftoverHoldSmooth intern leftoverTrailNowOf
+
+## Erweiterung (neu)
+
+312. **leftoverOccupiedMergeYaw per-sign Rank** wenn 2L+1R. Shortcut emittiert nur Exact — zwei ¾L teilen sich den Slot bis TwinOccupied. P1.
+313. **LiveCapture off MainActor.** Detect+Print blockiert die UI. P0 nach CameraBroker.
+314. **HNSW Gallery.** Linear-Scan O(n) jede Frame.
+315. **CameraBroker XPC + IOSurface** mit Helios. Eine TCC. P0.
+316. **Overlay CAMetalLayer 60 Hz.**
+317. **leftoverHoldTrail Disk persist.** Restart sonst Frontal-Median 1 Tick.
+318. **Glasses On/Off Templates.**
+319. **Face-Print Versioning.**
+320. **Export Embeddings JSONL.**
+321. **UMAP Cluster-View.**
+322. **Identity-Merge-Wizard.**
+323. **Blink-Liveness EAR**, nicht nur SM-Chip.
+324. **Profil-Hold nicht in Frontal-EMA.** leftoverHold Bin 0 bleibt Front.
+325. **Continuity Night-IR eigene Galerie.**
+326. **Per-Camera WB-Lock** Osmo vs Phone.
+327. **Mutex-PTS pro Frame** von Helios (Heartbeat wenn LOCK_SH Helios-EX blockt).
+328. **EAR + SM AND** für Taufe — Chip allein lässt 1 Frontal+Fake-Blink.
+329. **False-Accept JSONL → Twin-Split Auto** nach Restart ohne FA-Heat.
+330. **leftoverHoldWriteOk** bleibt abs (`y >= lookaway`). Signed ließe ¾L in Frontal-Hold. Call-Sites abs lassen, Helper umbenennen.
+331. **leftoverHashTwinChip signed Yaw.** Chip ist x-only — Profil-gegen-Profil zeigt TWIN L/R falsch.
+332. **leftoverOccupiedYaw aus leftoverPrintYaw** wenn liveYaw 0 — erster Frame Occupancy frontal.
+333. **Print-Cache FIFO nach Restart.** Altes JSON war sortiert, ein Tick Suffix bis neue Puts.
+334. **Zwei Palmen skipPrint** sobald Helios beide UV schreibt.
+
+P0: CameraBroker. Kein neues leftover*-Flag. Branch `bugfix` (2.1.15) nicht mergen.
+
 # Aegis Vorschläge — 2026-09-08 (Pass 27, 2.1.226)
 
 Stand 2.1.226 alpha. Pick-Trail Yaw-Bin, Enroll-SM nur Live-Hashes, Skip-Capture per Person.

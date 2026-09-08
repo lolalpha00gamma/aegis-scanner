@@ -1,4 +1,4 @@
-# Aegis **2.1.226 alpha**
+# Aegis **2.1.227 alpha**
 
 
 
@@ -14,6 +14,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.227 alpha
+
+Warum Twins weiter Exact stahlen: `leftoverOccupiedHashes` nahm `abs(yaw)` — Ada ¾L war Ben ¾R Occupancy. Print-Cache `Set.prefix` war lex, nicht FIFO. leftoverHoldSmooth las den UUID-Trail wenn die Call-Site roh blieb.
+
+- **Occupied signed Yaw.** ¾L/¾R nicht dieselbe Pose. Merge L+R kein Steal `#101`.
+- **Twin opposite-pose beide Exact.** `leftoverHashTwinOccupied` / Ranked skippt Gegenpose. x-Tie-Keys nur competing.
+- **Print-Cache FIFO.** Array-Order, älteste Pose fliegt, neuer Key bleibt.
+- **HoldSmooth intern leftoverTrailNowOf.** ¾ nicht Frontal-Median, auch wenn Pick UUID+Bin roh reicht.
+- Tests + VERSION = Models = MARKETING 2.1.227 (Build 252). Schema 15 bleibt.
 
 ## Neu in 2.1.226 alpha
 
