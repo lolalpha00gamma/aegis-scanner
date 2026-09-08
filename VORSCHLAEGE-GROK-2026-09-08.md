@@ -1,4 +1,37 @@
+# Aegis Vorschläge — 2026-09-08 (Pass 23, 2.1.222)
+
+Stand 2.1.222 alpha. Still-Dedup, Name-Suffix, Compact, Burst, AE-Lock, PhotoKit-Debounce.
+
+## Gelandet in 2.1.222
+
+- peopleAlbumStillDup Yaw-Bin + Capture
+- displayNameSuffix Ada → Ada 2
+- galleryCompactDrops capture < 0,35, letzter Still hält
+- burstRejectTick 3 / 200 ms
+- captureLocksAE Continuity
+- photoKitDebounce 1,2 s
+
+## Erweiterung (neu)
+
+221. **LiveCapture off MainActor.** Detect+Print blockiert die UI.
+222. **HNSW Gallery.** Linear-Scan O(n) jede Frame.
+223. **Live Enroll Yaw-Kompass.** Chip treibt die Pose.
+224. **Helios Palm-Box Occlusion-Skip** via Mutex-Zeile.
+225. **leftoverHoldTrail Disk persist.**
+226. **Glasses On/Off Templates.**
+227. **Face-Print Versioning.**
+228. **Export Embeddings JSONL.**
+229. **UMAP Cluster-View.**
+230. **Identity-Merge-Wizard.**
+231. **P-Slot wirklich schreiben.**
+232. **Overlay CAMetalLayer 60 Hz.**
+233. **Twin-Split IDs wirklich trennen** in gallery.json.
+234. **CameraBroker XPC + IOSurface** mit Helios.
+
+P0: CameraBroker. Kein neues leftover*-Flag. Branch `bugfix` (2.1.15) nicht mergen.
+
 # Aegis Vorschläge — 2026-09-08 (Pass 22, 2.1.221)
+
 
 Stand 2.1.221 alpha. PickFloor, People-Seed 3.
 

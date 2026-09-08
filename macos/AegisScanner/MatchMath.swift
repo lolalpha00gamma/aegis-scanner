@@ -2066,6 +2066,52 @@ enum MatchMath {
 
     static func peopleAlbumEnrollOk(stills: Int, need: Int = 3) -> Bool { stills >= max(1, need) }
 
+    /// Burst/People: gleiche Pose (Yaw-Bin + Capture) = Duplikat, nicht 3 Frontals.
+    static func peopleAlbumStillDup(yawA: Double, yawB: Double, captureA: Double, captureB: Double) -> Bool {
+        peopleAlbumYawBin(yawA) == peopleAlbumYawBin(yawB) && abs(captureA - captureB) < 0.06
+    }
+
+    /// Ada existiert → Ada 2. Nicht still überschreiben.
+    static func displayNameSuffix(base: String, taken: [String]) -> String {
+        let trimmed = base.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty { return trimmed }
+        let takenKeys = Set(taken.map { peopleAlbumPersonKey($0) })
+        if !takenKeys.contains(peopleAlbumPersonKey(trimmed)) { return trimmed }
+        var i = 2
+        while takenKeys.contains(peopleAlbumPersonKey("\(trimmed) \(i)")) {
+            i += 1
+        }
+        return "\(trimmed) \(i)"
+    }
+
+    static func galleryCompactDrops(capture: Double, remaining: Int = 2) -> Bool {
+        remaining > 1 && printCaptureQualitySkip(capture)
+    }
+
+    /// 3 gleiche Box-Hashes in 200 ms = Burst-Frame, Print skippen.
+    static func burstRejectTick(
+        hash: String,
+        prevHash: String?,
+        streak: Int,
+        dtMs: Double,
+        windowMs: Double = 200,
+        need: Int = 3
+    ) -> (streak: Int, reject: Bool) {
+        if hash.isEmpty { return (0, false) }
+        if let prev = prevHash, leftoverBoxHashDistance(prev, hash) <= 1, dtMs <= windowMs {
+            let n = streak + 1
+            return (n, n >= need)
+        }
+        return (1, false)
+    }
+
+    static func captureLocksAE(continuity: Bool) -> Bool { continuity }
+
+    static let photoKitDebounceSec: TimeInterval = 1.2
+    static func photoKitDebounceAllows(last: TimeInterval, now: TimeInterval) -> Bool {
+        last <= 0 || now - last >= photoKitDebounceSec
+    }
+
     static func peopleAlbumPersonKey(_ name: String) -> String {
         name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     }

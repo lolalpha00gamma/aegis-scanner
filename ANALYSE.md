@@ -1,4 +1,24 @@
+# Aegis 2.1.222 — Still-Dedup, Name-Suffix, Compact, Burst, AE-Lock
+
+Aegis **2.1.222 alpha** (Build 247). Helios **1.6.61** (Build 94). Nur `main`. `bugfix` mergen: nein.
+
+## Was 2.1.222 ändert
+
+2.1.221: PickFloor, People-Seed 3. Danach seeden 3 Burst-Frontals dieselbe Pose, Ada/Ada kollidiert, Capture 0,20 bleibt im Centroid, Continuity-AE jagt den Print, PhotoKit doppelklickt Seed.
+
+| # | Bug | Fix |
+|---|---|---|
+| 1 | 3× gleiche Pose | `peopleAlbumStillDup` |
+| 2 | Ada/Ada | `displayNameSuffix` |
+| 3 | Unschärfe im Centroid | `galleryCompactDrops` |
+| 4 | Video-Burst tauft | `burstRejectTick` |
+| 5 | AE-Jagd = Print-Drift | `captureLocksAE` |
+| 6 | PhotoKit doppelt | `photoKitDebounce` |
+
+Nicht: CameraBroker, HNSW, LiveCapture off MainActor, Overlay-Metal.
+
 # Aegis 2.1.221 — PickFloor, People-Seed 3
+
 
 Aegis **2.1.221 alpha** (Build 246). Helios **1.6.59** (Build 92). Nur `main`. `bugfix` mergen: nein.
 

@@ -1,4 +1,34 @@
+# Aegis **2.1.222 alpha**
+
+
+
+Direkt laden:
+- [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
+- [Releases](https://github.com/lolalpha00gamma/aegis-scanner/releases)
+
+Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
+## Installieren
+
+1. [Aegis.dmg](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg) öffnen
+2. **Aegis** in den Ordner Programme ziehen
+3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
+
+macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.222 alpha
+
+Warum Names flackerten und die Galerie giftig blieb: People-Seed lud drei Fast-identische Burst-Stills, Ada/Ada kollidierte, Capture < 0,35 blieb im Centroid, Continuity-AE jagte den Print, PhotoKit feuerte doppelt.
+
+- **peopleAlbumStillDup.** Gleiche Yaw-Bin + Capture → Skip. Kein 3× Frontal.
+- **displayNameSuffix.** Ada existiert → Ada 2.
+- **galleryCompactDrops.** Capture < 0,35 raus, letzter Still bleibt.
+- **burstRejectTick.** 3 same-hash / 200 ms → Print-Skip.
+- **captureLocksAE.** Continuity Exposure/WB locked.
+- **photoKitDebounce** 1,2 s.
+- Tests + VERSION = Models = MARKETING 2.1.222 (Build 247). Schema 15 bleibt.
+
 # Aegis **2.1.221 alpha**
+
 
 
 

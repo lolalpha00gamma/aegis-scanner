@@ -48,6 +48,7 @@ final class LibraryStore: ObservableObject {
     @Published var liveHeldIds: Set<UUID> = []
     @Published var leftoverHold: [UUID: Double] = [:]
     private var leftoverHoldBins: [String: Double] = [:]
+    private var peopleAlbumSeedAt: TimeInterval = 0
     @Published var leftoverPending: [UUID: String] = [:]
     @Published var cameraChoice: CameraChoice = .builtIn
     @Published var liveFormatChip: String = ""
@@ -5226,6 +5227,12 @@ final class LibraryStore: ObservableObject {
     }
 
     func seedFromPeopleAlbum() {
+        let now = Date().timeIntervalSince1970
+        guard MatchMath.photoKitDebounceAllows(last: peopleAlbumSeedAt, now: now) else {
+            status = "People-Album · warte"
+            return
+        }
+        peopleAlbumSeedAt = now
         PHPhotoLibrary.requestAuthorization(for: .readWrite) { [weak self] auth in
             Task { @MainActor in
                 guard let self else { return }
@@ -5247,16 +5254,13 @@ final class LibraryStore: ObservableObject {
                 let scan = MatchMath.peopleAlbumScanCap()
                 cols.enumerateObjects { col, _, stop in
                     if seeded >= 8 { stop.pointee = true; return }
-                    let name = col.localizedTitle ?? ""
-                    if MatchMath.peopleAlbumSkipEmpty(name) { return }
+                    let nameBase = col.localizedTitle ?? ""
+                    if MatchMath.peopleAlbumSkipEmpty(nameBase) { return }
                     if MatchMath.peopleAlbumSkipHidden(
-                        title: name,
+                        title: nameBase,
                         subtypeRaw: Int(col.assetCollectionSubtype.rawValue),
                         isHidden: false
                     ) { return }
-                    if self.identities.contains(where: {
-                        MatchMath.peopleAlbumPersonKey($0.name) == MatchMath.peopleAlbumPersonKey(name)
-                    }) { return }
                     let assets = PHAsset.fetchAssets(in: col, options: nil)
                     var picked: [PHAsset] = []
                     assets.enumerateObjects { asset, _, halt in
@@ -5271,6 +5275,12 @@ final class LibraryStore: ObservableObject {
                         let found = (try? FaceEngine.detect(in: cg, mediaId: mid, tiles: false, live: false)) ?? []
                         guard let face = found.max(by: { $0.box.width * $0.box.height < $1.box.width * $1.box.height }) else { continue }
                         if MatchMath.printCaptureQualitySkip(face.quality.capture) { continue }
+                        if detected.contains(where: {
+                            MatchMath.peopleAlbumStillDup(
+                                yawA: $0.face.quality.yaw, yawB: face.quality.yaw,
+                                captureA: $0.face.quality.capture, captureB: face.quality.capture
+                            )
+                        }) { continue }
                         var copy = face
                         copy.enrolledAt = Date()
                         detected.append((cg: cg, face: copy))
@@ -5279,6 +5289,9 @@ final class LibraryStore: ObservableObject {
                     let keep = MatchMath.peopleAlbumYawPick(bins: bins, cap: cap)
                     let keepBins = keep.map { bins[$0] }
                     if MatchMath.peopleAlbumSMBlocksSeed(bins: keepBins) { return }
+                    let name = MatchMath.displayNameSuffix(
+                        base: nameBase, taken: self.identities.map(\.name)
+                    )
                     if let i = keep.first {
                         let probe = detected[i].face
                         if let hit = FaceEngine.duplicateOf(
@@ -5321,13 +5334,35 @@ final class LibraryStore: ObservableObject {
                     seeded += 1
                     stillCount += faceIds.count
                 }
-                if seeded > 0 { self.persist() }
+                if seeded > 0 {
+                    self.compactLowQualityPrints()
+                    self.persist()
+                }
                 self.status = seeded > 0
                     ? (limited
                         ? "People-Album (eingeschränkt) · \(seeded) Personen · \(stillCount) Stills"
                         : "People-Album · \(seeded) Personen · \(stillCount) Stills")
                     : MatchMath.peopleAlbumLimitedStatus(seeded: 0, limited: limited)
             }
+        }
+    }
+
+    /// Capture < 0,35 Gift im Centroid. Nur droppen wenn die Person noch andere Stills hat.
+    func compactLowQualityPrints() {
+        var drop: Set<UUID> = []
+        for idn in identities {
+            let owned = faces.filter { idn.faceIds.contains($0.id) }
+            let remain = owned.filter { !MatchMath.printCaptureQualitySkip($0.quality.capture) }.count
+            for f in owned where MatchMath.galleryCompactDrops(capture: f.quality.capture, remaining: remain + (MatchMath.printCaptureQualitySkip(f.quality.capture) ? 1 : 0)) {
+                if remain >= 1 { drop.insert(f.id) }
+            }
+        }
+        guard !drop.isEmpty else { return }
+        faces.removeAll { drop.contains($0.id) }
+        identities = identities.map { idn in
+            var n = idn
+            n.faceIds.removeAll { drop.contains($0) }
+            return n
         }
     }
 

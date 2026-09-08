@@ -6,9 +6,25 @@ import Vision
 enum FaceEngine {
     private static let nmsLock = NSLock()
     private static var _dropped: [FaceBox] = []
+    private static var burstPrev: String?
+    private static var burstAt: TimeInterval = 0
+    private static var burstStreak: Int = 0
     static var lastNMSDropped: [FaceBox] {
         nmsLock.lock(); defer { nmsLock.unlock() }
         return _dropped
+    }
+
+    private static func burstRejects(_ box: FaceBox, imageW: Double, imageH: Double) -> Bool {
+        let h = MatchMath.leftoverBoxHash(box, imageW: imageW, imageH: imageH)
+        let now = CFAbsoluteTimeGetCurrent()
+        let dtMs = burstAt == 0 ? 9_999 : (now - burstAt) * 1_000
+        let tick = MatchMath.burstRejectTick(
+            hash: h, prevHash: burstPrev, streak: burstStreak, dtMs: dtMs
+        )
+        burstPrev = h
+        burstAt = now
+        burstStreak = tick.streak
+        return tick.reject
     }
 
     static func detect(in image: CGImage, mediaId: UUID, tiles: Bool = true, orientation: CGImagePropertyOrientation = .up, minSharpness: Double = MatchMath.sharpnessFloor, continuity: Bool = false, cheapGraph: Bool = false, live: Bool = false, skipPrints: Bool = false, roi: FaceBox? = nil, skipPrintBoxes: [FaceBox] = []) throws -> [FaceObservation] {
@@ -1704,6 +1720,7 @@ enum FaceEngine {
             if MatchMath.leftoverPrintSkipHits(face: face.box, skipBoxes: skipPrintBoxes)
                 || MatchMath.skipPrint(sharpness: face.quality.sharpness, continuity: continuity, yaw: face.quality.yaw)
                 || MatchMath.printCaptureQualitySkip(face.quality.capture)
+                || burstRejects(face.box, imageW: Double(image.width), imageH: Double(image.height))
             {
                 next.featurePrint = Data()
                 next.printVec = []

@@ -718,6 +718,14 @@ final class LiveCapture: NSObject {
                 let chip = MatchMath.captureBandChip(osType: osType, lo: lo, hi: hi)
                 Task { @MainActor in self.formatChip = chip }
             }
+            if MatchMath.captureLocksAE(continuity: self.isContinuity) {
+                if device.isExposureModeSupported(.locked) {
+                    device.exposureMode = .locked
+                }
+                if device.isWhiteBalanceModeSupported(.locked) {
+                    device.whiteBalanceMode = .locked
+                }
+            }
             device.unlockForConfiguration()
         } catch { }
     }
