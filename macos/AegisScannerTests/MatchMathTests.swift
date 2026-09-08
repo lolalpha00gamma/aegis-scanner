@@ -5792,6 +5792,13 @@ enum MatchMathTests {
         ok(!MatchMath.maskTwinVeto(probeMasked: true, refMasked: true, cosine: 0.64), "Mask=Mask kein Veto")
         ok(!MatchMath.maskTwinVeto(probeMasked: false, refMasked: false, cosine: 0.64), "voll=voll kein Veto")
         ok(MatchMath.maskTwinFloor() == 0.78, "Mask Floor 0,78")
+        ok(MatchMath.leftoverPickFloor(raw: 0.91, smoothed: 0.72) == 0.72, "PickFloor Median klemmt Spike")
+        ok(MatchMath.leftoverPickFloor(raw: 0.91, smoothed: 0.91) == 0.91, "PickFloor genuine")
+        ok(MatchMath.leftoverPickFloor(raw: 0.50, smoothed: 0.70) == 0.50, "PickFloor roh niedriger")
+        ok(MatchMath.leftoverPickFloor(raw: nil, smoothed: 0.70) == 0.70, "PickFloor Coast")
+        ok(MatchMath.leftoverPickFloor(raw: -1, smoothed: 0.70) == 0.70, "PickFloor -1 Coast")
+        ok(MatchMath.peopleAlbumEnrollOk(stills: 1, need: MatchMath.peopleAlbumSeedNeed()) == false, "People 1 Still tot")
+        ok(MatchMath.peopleAlbumEnrollOk(stills: 3, need: MatchMath.peopleAlbumSeedNeed()), "People 3 Stills")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

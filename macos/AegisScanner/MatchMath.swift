@@ -450,7 +450,9 @@ enum MatchMath {
         let origRaw = Dictionary(uniqueKeysWithValues: candidates.map {
             ($0.index, leftoverPickPrint(raw: $0.cosine, smoothed: holdOf($0.index), holdOnlyUnsure: holdOnlyUnsure) ?? -1.0)
         })
-        let floorRaw = pool.map { origRaw[$0.index] ?? ($0.cosine ?? -1) }
+        let floorRaw = pool.map {
+            leftoverPickFloor(raw: origRaw[$0.index], smoothed: $0.cosine)
+        }
         if leftoverAmbiguousBlocks(raw: floorRaw, scored: scored) { return nil }
         if leftoverSoftmaxBlocks(leftoverScoreSoftmax(scored, gallery: gallery), capture: session) { return nil }
         if lookalikeNegativeScores(floorRaw) { return nil }
@@ -7613,6 +7615,16 @@ enum MatchMath {
     static func leftoverPickPrint(raw: Double?, smoothed: Double?, holdOnlyUnsure: Bool = false) -> Double? {
         if holdOnlyUnsure { return raw }
         return raw ?? smoothed
+    }
+
+    /// Argmax/Lookalike: Median/Smooth klemmt den Spike. leftoverPickPrint bleibt roh für Detect-Skip.
+    static func leftoverPickFloor(raw: Double?, smoothed: Double?) -> Double {
+        let r = raw ?? -1
+        let s = smoothed ?? r
+        if r < 0 && s < 0 { return -1 }
+        if r < 0 { return s }
+        if s < 0 { return r }
+        return min(r, s)
     }
 
     /// Nacht-Hold 0,61 → 0,66 ist Erholung, kein Twin-Spike.

@@ -1,3 +1,28 @@
+# Aegis **2.1.221 alpha**
+
+
+
+Direkt laden:
+- [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
+- [Releases](https://github.com/lolalpha00gamma/aegis-scanner/releases)
+
+Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
+## Installieren
+
+1. [Aegis.dmg](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg) öffnen
+2. **Aegis** in den Ordner Programme ziehen
+3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
+
+macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.221 alpha
+
+2.1.220 Print-Cache Disk, People-SM-Gate, Twin-Split, Mask-Veto. leftoverPick-Argmax nahm den Spike roh (0,91), Median klemmte nur den Hold. People-Seed `need: 1` lud 1-Still-Alben bevor das Yaw-Gate greift.
+
+- **leftoverPickFloor.** Argmax/Lookalike = min(roh, Median). Spike 0,91/0,72 → 0,72. leftoverPickPrint bleibt roh für Detect-Skip.
+- **People-Seed need = 3.** `peopleAlbumSeedNeed()`, nicht hart 1.
+- Tests + VERSION = Models = MARKETING 2.1.221 (Build 246). Schema 15 bleibt.
+
 # Aegis **2.1.220 alpha**
 
 

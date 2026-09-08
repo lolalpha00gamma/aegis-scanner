@@ -1,3 +1,38 @@
+# 2.1.221 — PickFloor, People-Seed 3.
+
+## In 2.1.221 wirklich im Code
+
+2.1.220 Print-Cache, People-SM, Twin-Split, Mask-Veto. Argmax nahm Spike roh. People `need: 1`.
+
+1. **leftoverPickFloor.** min(roh, Median) in leftoverPick Argmax/Lookalike/Ambiguous. Coast -1 → Hold.
+2. **People-Seed need 3.** `peopleAlbumEnrollOk(..., need: peopleAlbumSeedNeed())`.
+3. Tests + VERSION = Models = MARKETING 2.1.221 (Build 246). Schema 15 bleibt.
+
+## Erweiterung (neu, 2.1.221)
+
+1. **CameraBroker XPC + IOSurface** mit Helios. Eine TCC. P0.
+2. **gallery ANN / HNSW** nach Print-Index.
+3. **LiveCapture nicht @MainActor.**
+4. **Face-Print Versioning.**
+5. **Glasses On/Off Twin-Templates.**
+6. **Per-Camera WB-Lock.**
+7. **Twin-Split IDs wirklich trennen.**
+8. **Export Embeddings** JSONL.
+9. **UMAP Cluster-View.**
+10. **Overlay CAMetalLayer 60 Hz.**
+11. **mmap leftover-Boxen** Helios↔Aegis Palm-Occlusion.
+12. **People still-dedup** perceptual-hash vor Seed.
+13. **Burst-Reject** 3 same-hash in 200 ms = 1 Print.
+14. **Display-Name-Suffix** bei Kollision (Ada, Ada 2).
+15. **Live Enroll Yaw-Kompass** HUD.
+16. **Gallery compact** drop captureQuality < 0,35 on load.
+17. **Helios Palm-Box Occlusion-Skip.**
+18. **PhotoKit Change-Observer Debounce** 1,5 s.
+19. **Continuity AE-Lock** geteilt mit Helios.
+20. **leftoverHoldTrail Disk persist.**
+
+P0 CameraBroker. Kein neues leftover*-Flag.
+
 # 2.1.220 — Print-Cache Disk, People-SM-Gate, Twin-Split, Mask-Veto.
 
 ## In 2.1.220 wirklich im Code

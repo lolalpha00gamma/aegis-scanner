@@ -1,3 +1,18 @@
+# Aegis 2.1.221 — PickFloor, People-Seed 3
+
+Aegis **2.1.221 alpha** (Build 246). Helios **1.6.59** (Build 92). Nur `main`. `bugfix` mergen: nein.
+
+## Was 2.1.221 ändert
+
+2.1.220: Print-Cache Disk, People-SM-Gate, Twin-Split, Mask-Veto. Danach klemmte der Median nur den Hold — leftoverPick-Argmax nahm `leftoverPickPrint` roh (Spike 0,91 gewinnt). People-Seed rief `need: 1` statt `peopleAlbumSeedNeed()` (3) und lud 1-Still-Alben.
+
+| # | Bug | Fix |
+|---|---|---|
+| 1 | Argmax = Spike roh | `leftoverPickFloor` min(roh, Median) |
+| 2 | People 1 Still lädt | `peopleAlbumSeedNeed()` = 3 |
+
+Nicht: CameraBroker, HNSW, LiveCapture off MainActor, Overlay-Metal.
+
 # Aegis 2.1.220 — Print-Cache Disk, People-SM-Gate, Twin-Split, Mask-Veto
 
 Aegis **2.1.220 alpha** (Build 245). Helios **1.6.58** (Build 91). Nur `main`. `bugfix` mergen: nein.

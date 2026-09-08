@@ -1,3 +1,27 @@
+# Aegis Vorschläge — 2026-09-08 (Pass 22, 2.1.221)
+
+Stand 2.1.221 alpha. PickFloor, People-Seed 3.
+
+## Gelandet in 2.1.221
+
+- leftoverPickFloor min(roh, Median) in leftoverPick
+- peopleAlbumEnrollOk need: peopleAlbumSeedNeed() (3, nicht 1)
+
+## Erweiterung (neu)
+
+211. **People still-dedup** perceptual-hash vor Seed.
+212. **Burst-Reject** 3 same-hash / 200 ms.
+213. **Display-Name-Suffix** Kollision Ada/Ada 2.
+214. **Live Enroll Yaw-Kompass.**
+215. **Gallery compact** captureQuality < 0,35.
+216. **Helios Palm-Box Occlusion-Skip.**
+217. **PhotoKit Change-Observer Debounce.**
+218. **leftoverHoldTrail Disk persist.**
+219. **Continuity AE-Lock** geteilt mit Helios.
+220. **HNSW Gallery.**
+
+P0: CameraBroker. Kein neues leftover*-Flag.
+
 # Aegis Vorschläge — 2026-09-08 (Pass 21, 2.1.220)
 
 Stand 2.1.220 alpha. Print-Cache Disk, People-SM-Gate, Twin-Split, Mask-Veto.

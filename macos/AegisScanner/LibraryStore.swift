@@ -5263,7 +5263,7 @@ final class LibraryStore: ObservableObject {
                         if picked.count >= scan { halt.pointee = true; return }
                         if asset.mediaType == .image { picked.append(asset) }
                     }
-                    guard MatchMath.peopleAlbumEnrollOk(stills: picked.count, need: 1) else { return }
+                    guard MatchMath.peopleAlbumEnrollOk(stills: picked.count, need: MatchMath.peopleAlbumSeedNeed()) else { return }
                     let images = self.peopleAlbumLoadStills(picked)
                     var detected: [(cg: CGImage, face: FaceObservation)] = []
                     for cg in images {
