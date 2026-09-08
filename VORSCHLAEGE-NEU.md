@@ -1,3 +1,17 @@
+# Aegis Nachtrag 2.1.200 — 2026-09-08
+
+Binary **2.1.200 alpha Build 225**. Hold-Still × fps. Overlay-Taufe 0,80. Print-EMA × dt. Helios 1.6.38.
+
+## In 2.1.200 gelandet
+
+1. holdStillSkipIoU(dt) 8 fps 0,50. holdStillNeedOf 8 fps ≥ 1,06 s.
+2. leftoverOverlayFirmName — Store/Sticky erst ab leftoverAssignPrintOk 0,80.
+3. holdStillRingWidth(dt) Overlay-Ring.
+4. leftoverPrintEmaNeed(dt) 8 fps 2 / 24 fps 3. leftoverPrintBlend(dt).
+5. Tests + VERSION = Models = MARKETING 2.1.200 (Build 225). Schema 15 bleibt.
+
+Rest: CameraBroker, FaceTrack einzige Map, Overlay-Metal. Siehe VORSCHLAEGE-GROK.md.
+
 # Aegis Nachtrag 2.1.199 — 2026-09-08
 
 Binary **2.1.199 alpha Build 224**. leftoverPrintYaw Stamp. EMA Gleichgewicht. Helios 1.6.37.

@@ -1,4 +1,22 @@
+# Nachtrag Grok 2026-09-08 — 2.1.200 gelandet, Rest offen
+
+Quelle: Review + Fix Aegis 2.1.200 (Build 225) auf 2.1.199 (Hold-Still IoU 0,70 bei 8 fps, Overlay Firm 0,64, EMA 3 Ticks). Helios 1.6.38.
+Kein Binary-Lauf (Linux-Sandbox). Tests in CI. `bugfix` nicht gemergt. Nur `main`.
+
+## Warum es nach 2.1.199 weiter riss
+
+1. holdStillSkip IoU 0,70. Continuity-Jitter reset stillFor, Print nie.
+2. leftoverOverlayGuestOf StoreName bei leftoverHold 0,64 — „Ada“ auf leftover-Kiste.
+3. leftoverPrintEmaNeed 3 Frames = 375 ms bei 8 fps.
+4. Helios Freeze nur Actor, Clutch weckt Geist, Predict unsichtbar, lastZ bei Occlusion.
+
+## In 2.1.200 / 1.6.38 gelandet
+
+- holdStillSkipIoU / holdStillNeedOf / leftoverOverlayFirmName / holdStillRingWidth / leftoverPrintEmaNeed(dt).
+- Helios freezePalmsPredict, clutchIgnoresFreeze, freezeVelChip, liftSignKeepsPrevious.
+
 # Nachtrag Grok 2026-09-08 — 2.1.199 gelandet, Rest offen
+
 
 Quelle: Review + Fix Aegis 2.1.199 (Build 224) auf 2.1.198 (Merge überschrieb Print-Yaw, Recency-EMA Glücks-Frame). Helios 1.6.37.
 Kein Binary-Lauf (Linux-Sandbox). Tests in CI. `bugfix` nicht gemergt. Nur `main`.

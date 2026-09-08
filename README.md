@@ -1,4 +1,5 @@
-# Aegis **2.1.199 alpha**
+# Aegis **2.1.200 alpha**
+
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +14,17 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.200 alpha
+
+2.1.199: Print-Yaw Stamp, EMA Gleichgewicht. Hold-Still IoU 0,70 bei 8 fps reset. Overlay Firm-Name bei leftover 0,64. EMA 3 Ticks = 375 ms Continuity.
+
+- **holdStillSkipIoU(dt)** 8 fps 0,50 / 24 fps 0,70.
+- **holdStillNeedOf(dt)** 8 fps ≥ 1,06 s. **holdStillRingWidth** Overlay-Ring.
+- **leftoverOverlayFirmName** Store/Sticky erst ab Taufe 0,80.
+- **leftoverPrintEmaNeed(dt)** 8 fps 2 / 24 fps 3.
+- Helios **1.6.38:** Zwei-Hand-Freeze, Clutch-Freeze, Vel-Chip, lastZ-Gate.
+- Tests + VERSION = Models = MARKETING 2.1.200 (Build 225). Schema 15 bleibt.
 
 ## Neu in 2.1.199 alpha
 

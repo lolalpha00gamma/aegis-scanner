@@ -4788,14 +4788,25 @@ enum MatchMath {
     }
 
     /// Bewegung + Unschärfe: neuen Print nicht übernehmen. Scharfes Nicken (IoU 0,75) darf.
-    static func holdStillSkip(iou: Double, sharpness: Double? = nil, floor: Double = holdStillIoU) -> Bool {
+    /// 8 fps: Box-Jitter unter 0,70 setzt stillFor sonst jedes Tick zurück.
+    static func holdStillSkip(iou: Double, sharpness: Double? = nil, floor: Double = holdStillIoU, dt: TimeInterval = 0.04) -> Bool {
+        let f = min(floor, holdStillSkipIoU(dt: dt))
         if iou >= 0.82 { return false }
         if let s = sharpness {
             if s < holdStillSharp { return true }
-            if iou < floor { return s < 0.28 }
+            if iou < f { return s < 0.28 }
             return false
         }
-        return iou < floor
+        return iou < f
+    }
+
+    /// 24 fps 0,70. Continuity 8 fps 0,50 — Landmark-Jitter ist kein Gang.
+    static func holdStillSkipIoU(dt: TimeInterval, at8: Double = 0.50, at24: Double = 0.70) -> Double {
+        let fps = dt > 1e-9 ? 1 / max(0.008, dt) : 24
+        if fps <= 8 { return at8 }
+        if fps >= 24 { return at24 }
+        let t = (fps - 8) / 16
+        return at8 + (at24 - at8) * t
     }
 
     /// Yaw-Skip hat ein Geo-Veto verhindert — Overlay/Labor sollen das sehen.
@@ -4862,6 +4873,11 @@ enum MatchMath {
     /// Hold-Still 0,8 s bevor ein neuer Print rausgeht. Overlay-Ring 0…1.
     static let holdStillNeed: TimeInterval = 0.80
 
+    /// 24 fps 0,80 s. 8 fps sonst 6 Frames — Jitter wischt stillFor.
+    static func holdStillNeedOf(dt: TimeInterval) -> TimeInterval {
+        max(holdStillNeed, min(1.20, max(0.008, dt) * 8.5))
+    }
+
     static func holdStillProgress(stillFor: TimeInterval, need: TimeInterval = holdStillNeed) -> Double {
         guard need > 0 else { return 1 }
         return min(1, max(0, stillFor / need))
@@ -4869,6 +4885,12 @@ enum MatchMath {
 
     static func holdStillReady(stillFor: TimeInterval, need: TimeInterval = holdStillNeed) -> Bool {
         stillFor >= need
+    }
+
+    /// Overlay-Ring analog Ampel. 8 fps dicker, sonst 1 Frame unsichtbar.
+    static func holdStillRingWidth(dt: TimeInterval) -> CGFloat {
+        let base: CGFloat = 4
+        return max(base, min(12, base + CGFloat(max(0, dt - 0.04) * 48)))
     }
 
     /// SHA-256 der Galerie, 12 Hex. Sidecar, nicht im JSON (Henne-Ei).
@@ -6307,7 +6329,11 @@ enum MatchMath {
     }
 
     /// 3-Frame-Mittel vor Gallery-Commit. Recency-EMA (α 0,45) kippte auf den letzten Glücks-Frame.
-    static func leftoverPrintEmaNeed() -> Int { 3 }
+    /// 24 fps 3. 8 fps 2 — 0,12 s Fenster, nicht 3 Continuity-Ticks = 375 ms.
+    static func leftoverPrintEmaNeed(dt: TimeInterval = 0.04) -> Int {
+        let step = max(0.04, min(0.20, dt <= 0 ? 0.04 : dt))
+        return max(2, min(3, Int(ceil(0.12 / step))))
+    }
 
     static func leftoverPrintEma(_ vectors: [[Double]], alpha: Double = 0.45) -> [Double] {
         _ = alpha
@@ -6328,8 +6354,8 @@ enum MatchMath {
         return l2normalize(acc)
     }
 
-    static func leftoverPrintBlend(_ vectors: [[Double]]) -> [Double] {
-        if vectors.filter({ $0.count >= 32 }).count >= leftoverPrintEmaNeed() {
+    static func leftoverPrintBlend(_ vectors: [[Double]], dt: TimeInterval = 0.04) -> [Double] {
+        if vectors.filter({ $0.count >= 32 }).count >= leftoverPrintEmaNeed(dt: dt) {
             return leftoverPrintEma(vectors)
         }
         return medianBlend(vectors)
@@ -8402,6 +8428,17 @@ enum MatchMath {
         let t = FaceTrack(hold: hold, nameHeld: nameHeld, nameUntil: nameUntil, poseAt: poseAt)
         guard leftoverFaceTrackHolds(track: t, now: now), !nameHeld.isEmpty else { return nil }
         return nameHeld
+    }
+
+    /// Overlay Firm-Name erst ab Taufe 0,80. leftoverPrintOk 0,64 sonst „Ada“ auf leftover-Kiste.
+    static func leftoverOverlayFirmName(
+        storeName: String?,
+        cosine: Double?,
+        continuity: Bool = false
+    ) -> String? {
+        guard leftoverAssignPrintOk(cosine: cosine, continuity: continuity) else { return nil }
+        guard let n = storeName, !n.isEmpty else { return nil }
+        return n
     }
 
     /// Mehrheit vor Sticky vor Unsure. Streak 2 an Sticky = „Ada?“, nicht „??“.

@@ -986,6 +986,21 @@ struct FaceOverlay: View {
                                     dash: MatchMath.overlayBoxDash(kind)
                                 )
                             )
+                            .overlay {
+                                if let still = store.stillProgress(faceId: face.id) {
+                                    Circle()
+                                        .trim(from: 0, to: max(0.02, still))
+                                        .stroke(
+                                            Color.orange,
+                                            style: StrokeStyle(
+                                                lineWidth: store.stillRingWidth(),
+                                                lineCap: .round
+                                            )
+                                        )
+                                        .rotationEffect(.degrees(-90))
+                                        .padding(6)
+                                }
+                            }
                             .overlay(alignment: .topLeading) {
                                 Text(MatchMath.trackLabel(face.trackId ?? face.id))
                                     .font(.caption2.monospacedDigit())

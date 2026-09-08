@@ -1,3 +1,20 @@
+# Aegis 2.1.200 — Hold-Still × fps, Overlay-Taufe, Print-EMA × dt
+
+Aegis **2.1.200 alpha** (Build 225). Helios **1.6.38** (Build 71). Nur `main`. `bugfix` mergen: nein.
+
+2.1.199: Print-Yaw Stamp, EMA Gleichgewicht. Hold-Still IoU 0,70 bei 8 fps reset. Overlay Firm-Name bei leftover 0,64. EMA 3 Ticks = 375 ms Continuity.
+
+## Was 2.1.200 ändert
+
+1. **holdStillSkipIoU(dt)** 8 fps 0,50 / 24 fps 0,70.
+2. **holdStillNeedOf(dt)** 8 fps ≥ 1,06 s.
+3. **leftoverOverlayFirmName** Store/Sticky erst ab leftoverAssignPrintOk 0,80.
+4. **holdStillRingWidth(dt)** Overlay-Ring × fps.
+5. **leftoverPrintEmaNeed(dt)** 8 fps 2, 24 fps 3.
+6. Tests + VERSION = Models = MARKETING 2.1.200 (Build 225). Schema 15 bleibt.
+
+`bugfix` mergen: nein.
+
 # Aegis 2.1.199 — Print-Yaw Stamp, EMA Gleichgewicht
 
 Aegis **2.1.199 alpha** (Build 224). Helios **1.6.37** (Build 70). Nur `main`. `bugfix` mergen: nein.

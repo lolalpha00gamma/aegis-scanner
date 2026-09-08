@@ -1,3 +1,41 @@
+# Nachtrag 2026-09-08 — 2.1.200 / 1.6.38 (kein Merge von `bugfix`)
+
+Aegis `lolalpha00gamma/aegis-scanner` **2.1.200 alpha** (Build 225).
+Helios `lolalpha00gamma/Helios` **1.6.38** (Build 71).
+Nur `main`. Hold-Still × fps, Overlay-Taufe 0,80, Print-EMA × dt. Helios Zwei-Hand-Freeze / Clutch-Freeze / Vel-Chip / lastZ-Gate.
+
+## Warum es schlecht wirkte (dieser Pass)
+
+1. **holdStillSkip IoU 0,70** bei Continuity 8 fps: Box-Jitter reset stillFor, Print nie.
+2. **leftoverOverlayGuestOf** StoreName bei leftoverHold 0,64 — „Ada“ auf leftover-Kiste.
+3. **leftoverPrintEmaNeed 3 Frames** = 375 ms bei 8 fps.
+4. Helios **Freeze-Δ nur Actor.** Jiggler weckt Geist. Predict unsichtbar. lastZ bei Occlusion weitergeschrieben.
+5. **Zwei Sessions.** Mutex+TERM Pflaster. Ohne CameraBroker zwei Vision, zwei TCC.
+6. Von `bugfix` bewusst nicht gemergt: IOHID Event-Tap, AX SetPosition/Frame, Per-App-Gain, JSONL.
+
+## In 2.1.200 / 1.6.38 gelandet
+
+- holdStillSkipIoU / holdStillNeedOf / leftoverOverlayFirmName / holdStillRingWidth / leftoverPrintEmaNeed(dt).
+- Helios freezePalmsPredict, freezeGhostDeltas, clutchIgnoresFreeze, freezeVelChip, liftSignKeepsPrevious.
+- Tests + VERSION = Models = MARKETING 2.1.200 (Build 225). Schema 15 bleibt.
+
+Pass 33: Hold-Still × fps, Overlay-Taufe, Zwei-Hand-Freeze — 2.1.200 / 1.6.38.
+
+## Erweiterungen (neu, oben)
+
+1. **CameraBroker-XPC** — eine TCC, IOSurface an beide. P0.
+2. **FaceTrack `[UUID: FaceTrack]` als einziges leftover-Dict.**
+3. **Overlay Metal 90 Hz** unabhängig von 8 fps Kamera.
+4. **VNSequenceRequestHandler auf Capture-Queue.** FrameTap CVPixelBuffer.
+5. **IOHID Event-Tap / AX SetPosition / Per-App Gain** (`bugfix`, opt-in).
+6. **JSONL Session-Replay.** Tests splitten. Swift Testing.
+7. **Gallery-on-disk mmap.** Print-Bank PCA. Face-Print ONNX sidecar.
+8. **Helios leftover-Boxen als Palm-Occlusion.** Aegis-Yaw als Click-Lock.
+9. **Kalman-Palme während Freeze.** AX-Hit-Cache. Per-Finger Kontakt.
+10. **MediaPipe Hands Sidecar.** LiDAR-Pinch. DepthCapture ist Stub.
+11. **Zwei-Pinzetten Freeze-Span.** Pointer-Gain × dt. Palm-Scale EMA.
+12. **App-Group `group.helios.aegis`.** Speaker-Diarization. Negativ-Galerie.
+
 # Nachtrag 2026-09-08 — 2.1.199 / 1.6.37 (kein Merge von `bugfix`)
 
 Aegis `lolalpha00gamma/aegis-scanner` **2.1.199 alpha** (Build 224).

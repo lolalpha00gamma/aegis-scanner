@@ -1719,13 +1719,21 @@ final class LibraryStore: ObservableObject {
         let hist = liveNameHist[id] ?? []
         let need = 3
         return MatchMath.leftoverOverlayGuestOf(
-            storeName: leftoverStoreName(for: id),
+            storeName: MatchMath.leftoverOverlayFirmName(
+                storeName: leftoverStoreName(for: id),
+                cosine: leftoverHold[id],
+                continuity: liveCapture.isContinuity
+            ),
             voted: MatchMath.nameMajorityAgreeing(hist, window: max(need, hist.count), need: need),
             hist: hist,
             need: need,
             guest: guestName(for: id),
             streak: leftoverUnsureTicks[id] ?? 0,
-            sticky: leftoverNameLockHeld[id]
+            sticky: MatchMath.leftoverOverlayFirmName(
+                storeName: leftoverNameLockHeld[id],
+                cosine: leftoverHold[id],
+                continuity: liveCapture.isContinuity
+            )
         )
     }
 
@@ -2082,8 +2090,12 @@ final class LibraryStore: ObservableObject {
     func stillProgress(faceId: UUID) -> Double? {
         let t = liveStillFor[faceId] ?? 0
         guard t > 0 else { return nil }
-        let p = MatchMath.holdStillProgress(stillFor: t)
+        let p = MatchMath.holdStillProgress(stillFor: t, need: MatchMath.holdStillNeedOf(dt: liveDt))
         return p < 1 ? p : nil
+    }
+
+    func stillRingWidth() -> CGFloat {
+        MatchMath.holdStillRingWidth(dt: liveDt)
     }
 
     func printDriftSpark(faceId: UUID) -> String {
@@ -2917,7 +2929,7 @@ final class LibraryStore: ObservableObject {
                             next: face.quality.capture,
                             enrolled: enrolledPin
                         )
-                        || MatchMath.holdStillSkip(iou: bestIoU, sharpness: face.quality.sharpness)
+                        || MatchMath.holdStillSkip(iou: bestIoU, sharpness: face.quality.sharpness, dt: liveDt)
                         || MatchMath.skipPrint(sharpness: face.quality.sharpness, continuity: liveCapture.isContinuity, yaw: face.quality.yaw)
                         || MatchMath.leftoverPrintDiversitySkip(
                             cosine: MatchMath.leftoverCoastPrintCosine(
@@ -2938,7 +2950,10 @@ final class LibraryStore: ObservableObject {
                     } else {
                         liveStillFor[old.id] = (liveStillFor[old.id] ?? 0) + liveDt
                     }
-                    if skip || !MatchMath.holdStillReady(stillFor: liveStillFor[old.id] ?? 0) {
+                    if skip || !MatchMath.holdStillReady(
+                        stillFor: liveStillFor[old.id] ?? 0,
+                        need: MatchMath.holdStillNeedOf(dt: liveDt)
+                    ) {
                         face.featurePrint = old.featurePrint
                         face.printVec = old.printVec.isEmpty ? FaceEngine.embedding(of: old) : old.printVec
                     } else {
@@ -2956,7 +2971,7 @@ final class LibraryStore: ObservableObject {
                     }
                     if trail.count > 5 { trail.removeFirst(trail.count - 5) }
                     livePrintTrail[old.id] = trail
-                    let median = MatchMath.leftoverPrintBlend(trail)
+                    let median = MatchMath.leftoverPrintBlend(trail, dt: liveDt)
                     face.printVec = median.isEmpty ? FaceEngine.blendEmbeddings(prev, next, alpha: blend) : median
                     leftoverPrintYaw = MatchMath.leftoverPrintYawStamp(
                         printed: leftoverPrintYaw,
