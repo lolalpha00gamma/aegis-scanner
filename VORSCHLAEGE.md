@@ -1,3 +1,5 @@
+# 2.1.197 — siehe VORSCHLAEGE-NEU.md (PrintCell 0≠nil, x-Fill skip, SameBin ohne Yaw).
+
 # 2.1.196 — siehe VORSCHLAEGE-NEU.md (leftover Taufe 0,80, Twin-Yaw-Cull, Print-Diversity).
 
 # 2.1.195 — siehe VORSCHLAEGE-NEU.md (Blink identity-weit, Twin Box-Hash).

@@ -1,3 +1,20 @@
+# Aegis 2.1.197 — PrintCell 0≠nil, x-Fill, SameBin
+
+Aegis **2.1.197 alpha** (Build 222). Helios **1.6.35** (Build 68). Nur `main`. `bugfix` mergen: nein.
+
+2.1.196: leftoverAssignPrintOk 0,80. leftoverAssignLive nillte schwache Scores — HungarianX las nil als Remint. leftoverPrintYaw nil defaultete auf Live-Yaw. Print-Steal 0,64.
+
+## Was 2.1.197 ändert
+
+1. **leftoverAssignPrintCell** Taufe Cosine / gemessen `0` / ungemessen `nil`.
+2. **leftoverAssignXFillAllows** + **leftoverAssignHungarianXPairOk** — `0` kein UUID-Diebstahl. Rec/Greedy/Kuhn/2/3/4-opt skip. **DropForbidden** nach Steal.
+3. **leftoverAssignPrintRank** 2-opt/3-Zyklus: 0/nil = −1.
+4. **leftoverPrintSameBin(yawA/B optional)** nil ≠ Same-Bin. Kein Live-Yaw-Fallback.
+5. **leftoverAssignPrintSteals** leftoverAssignPrintOk 0,80.
+6. Tests + VERSION = Models = MARKETING 2.1.197 (Build 222). Schema 15 bleibt.
+
+`bugfix` mergen: nein.
+
 # Aegis 2.1.196 — leftover Taufe, Twin-Yaw, Print-Diversity
 
 Aegis **2.1.196 alpha** (Build 221). Helios **1.6.34** (Build 67). Nur `main`. `bugfix` mergen: nein.

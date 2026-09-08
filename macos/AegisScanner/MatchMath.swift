@@ -1460,6 +1460,31 @@ enum MatchMath {
             && leftoverBaptizeQuality(sharpness: sharpness, yawAbs: yawAbs, continuity: continuity)
     }
 
+    /// Score-Zelle: Taufe bleibt Cosine. Gemessen unter Taufe = 0. nil = kein Vec (Remint).
+    static func leftoverAssignPrintCell(
+        cosine: Double?,
+        sharpness: Double? = nil,
+        yawAbs: Double? = nil,
+        continuity: Bool = false
+    ) -> Double? {
+        guard let cosine else { return nil }
+        return leftoverAssignPrintOk(
+            cosine: cosine, sharpness: sharpness, yawAbs: yawAbs, continuity: continuity
+        ) ? cosine : 0
+    }
+
+    /// nil = ungemessen, x-Fill (Vision-Restart). 0 = gemessen unter Taufe, kein UUID-Diebstahl.
+    static func leftoverAssignXFillAllows(printCos: Double?) -> Bool {
+        guard let c = printCos else { return true }
+        return c > 0
+    }
+
+    /// Print-Hungarian 2-opt/3-Zyklus: 0 und nil sind Miss (−1), sonst Cosine.
+    static func leftoverAssignPrintRank(_ s: Double?) -> Double {
+        guard let s, s > 0 else { return -1 }
+        return s
+    }
+
     /// Twin 0,80 nach Hold 0,64: Spike, kein Steal. 0,80 nach 0,80 bleibt Taufe.
     static func leftoverBaptizeSpike(
         raw: Double?,
@@ -2314,6 +2339,7 @@ enum MatchMath {
             for c in cols where !taken.contains(c) {
                 let d = abs(liveX[c] - holdX[r])
                 if d > pad { continue }
+                if !leftoverAssignHungarianXPairOk(row: r, col: c, scores: scores) { continue }
                 var nxt = cur
                 nxt[r] = c
                 rec(i + 1, taken.union([c]), cost + leftoverAssignHungarianXStep(
@@ -2351,6 +2377,7 @@ enum MatchMath {
             for c in 0..<liveX.count where !used.contains(c) {
                 let d = abs(liveX[c] - holdX[r])
                 if d > pad { continue }
+                if !leftoverAssignHungarianXPairOk(row: r, col: c, scores: scores) { continue }
                 let cost = leftoverAssignHungarianXStep(dx: d, pad: pad, row: r, col: c, scores: scores)
                 pairs.append((cost, r, c))
             }
@@ -2396,6 +2423,8 @@ enum MatchMath {
                     let d12 = abs(liveX[c2] - holdX[i])
                     let d21 = abs(liveX[c1] - holdX[j])
                     if d12 > pad || d21 > pad { continue }
+                    if !leftoverAssignHungarianXPairOk(row: i, col: c2, scores: scores) { continue }
+                    if !leftoverAssignHungarianXPairOk(row: j, col: c1, scores: scores) { continue }
                     let cur = leftoverAssignHungarianXStep(dx: d11, pad: pad, row: i, col: c1, scores: scores)
                         + leftoverAssignHungarianXStep(dx: d22, pad: pad, row: j, col: c2, scores: scores)
                     let sw = leftoverAssignHungarianXStep(dx: d12, pad: pad, row: i, col: c2, scores: scores)
@@ -2534,6 +2563,7 @@ enum MatchMath {
             guard c < liveX.count, r < holdX.count else { return nil }
             let d = abs(liveX[c] - holdX[r])
             if d > pad { return nil }
+            if !leftoverAssignHungarianXPairOk(row: r, col: c, scores: scores) { return nil }
             s += leftoverAssignHungarianXStep(dx: d, pad: pad, row: r, col: c, scores: scores)
         }
         return s
@@ -2569,7 +2599,7 @@ enum MatchMath {
                 for j in 0..<C {
                     let c = cols[j]
                     let d = abs(liveX[c] - holdX[r])
-                    if d > pad {
+                    if d > pad || !leftoverAssignHungarianXPairOk(row: r, col: c, scores: scores) {
                         cost[i][j] = inf
                     } else {
                         cost[i][j] = leftoverAssignHungarianXStep(
@@ -2791,7 +2821,10 @@ enum MatchMath {
                 scores: scores
             )
         )
-        return leftoverAssignPrintSteal2opt(assigned: assigned, printed: printed, scores: scores)
+        return leftoverAssignHungarianXDropForbidden(
+            assigned: leftoverAssignPrintSteal2opt(assigned: assigned, printed: printed, scores: scores),
+            scores: scores
+        )
     }
 
     /// HungarianX PrintW 0,8. 0,3 verliert gegen Twins mit ähnlichem X.
@@ -2815,7 +2848,34 @@ enum MatchMath {
     ) -> Double {
         guard let scores else { return dx }
         let printCos: Double? = (row < scores.count && col < scores[row].count) ? scores[row][col] : nil
+        if !leftoverAssignXFillAllows(printCos: printCos) { return abs(pad) + 1 }
         return leftoverAssignHungarianXCost(dx: dx, pad: pad, printCos: printCos)
+    }
+
+    /// Gemessen unter Taufe: Paar existiert nicht. Cost-Pad+1 würde trotzdem assignen (nAss).
+    static func leftoverAssignHungarianXPairOk(
+        row: Int,
+        col: Int,
+        scores: [[Double?]]?
+    ) -> Bool {
+        guard let scores else { return true }
+        let printCos: Double? = (row < scores.count && col < scores[row].count) ? scores[row][col] : nil
+        return leftoverAssignXFillAllows(printCos: printCos)
+    }
+
+    /// Rec/Kuhn/Steal können 0 halten. Nil-Remint bleibt, 0 fällt.
+    static func leftoverAssignHungarianXDropForbidden(
+        assigned: [Int?],
+        scores: [[Double?]]
+    ) -> [Int?] {
+        var out = assigned
+        let n = min(out.count, scores.count)
+        for r in 0..<n {
+            guard let c = out[r] else { continue }
+            let printCos: Double? = c < scores[r].count ? scores[r][c] : nil
+            if !leftoverAssignXFillAllows(printCos: printCos) { out[r] = nil }
+        }
+        return out
     }
 
     /// 1−IoU + 0,3·(1−print). X-Remint tauft Geschwister; Print darf stehlen.
@@ -2843,7 +2903,7 @@ enum MatchMath {
         if remintCol == printCol { return false }
         let p = printPrint ?? -1
         let r = remintPrint ?? -1
-        return p >= r + gap && p + 1e-12 >= leftoverPrintCosine
+        return leftoverAssignPrintOk(cosine: printPrint) && p >= r + gap
     }
 
     static func leftoverAssignPrintStealApply(
@@ -5985,7 +6045,7 @@ enum MatchMath {
         for r in 0..<n {
             guard r < scores.count, scores[r].count == m else { continue }
             for c in 0..<m {
-                if let s = scores[r][c] { pairs.append((r, c, s)) }
+                if let s = scores[r][c], s > 0 { pairs.append((r, c, s)) }
             }
         }
         pairs.sort { $0.s > $1.s }
@@ -6010,8 +6070,8 @@ enum MatchMath {
                 for j in (i + 1)..<assigned.count {
                     let a = assigned[i]
                     let b = assigned[j]
-                    let cur = (scores[a.r][a.c] ?? -1) + (scores[b.r][b.c] ?? -1)
-                    guard let swA = scores[a.r][b.c], let swB = scores[b.r][a.c] else { continue }
+                    let cur = leftoverAssignPrintRank(scores[a.r][a.c]) + leftoverAssignPrintRank(scores[b.r][b.c])
+                    guard let swA = scores[a.r][b.c], let swB = scores[b.r][a.c], swA > 0, swB > 0 else { continue }
                     if swA + swB > cur + 1e-9 {
                         result[a.r] = b.c
                         result[b.r] = a.c
@@ -6043,8 +6103,10 @@ enum MatchMath {
             for j in (i + 1)..<assigned.count {
                 for k in (j + 1)..<assigned.count {
                     let a = assigned[i], b = assigned[j], cyc = assigned[k]
-                    let cur = (score(a.r, a.c) ?? -1) + (score(b.r, b.c) ?? -1) + (score(cyc.r, cyc.c) ?? -1)
-                    if let s1 = score(a.r, b.c), let s2 = score(b.r, cyc.c), let s3 = score(cyc.r, a.c),
+                    let cur = leftoverAssignPrintRank(score(a.r, a.c))
+                        + leftoverAssignPrintRank(score(b.r, b.c))
+                        + leftoverAssignPrintRank(score(cyc.r, cyc.c))
+                    if let s1 = score(a.r, b.c), s1 > 0, let s2 = score(b.r, cyc.c), s2 > 0, let s3 = score(cyc.r, a.c), s3 > 0,
                        s1 + s2 + s3 > cur + 1e-9 {
                         result[a.r] = b.c
                         result[b.r] = cyc.c
@@ -6052,7 +6114,7 @@ enum MatchMath {
                         assigned[i] = (a.r, b.c)
                         assigned[j] = (b.r, cyc.c)
                         assigned[k] = (cyc.r, a.c)
-                    } else if let s1 = score(a.r, cyc.c), let s2 = score(cyc.r, b.c), let s3 = score(b.r, a.c),
+                    } else if let s1 = score(a.r, cyc.c), s1 > 0, let s2 = score(cyc.r, b.c), s2 > 0, let s3 = score(b.r, a.c), s3 > 0,
                               s1 + s2 + s3 > cur + 1e-9 {
                         result[a.r] = cyc.c
                         result[cyc.r] = b.c
@@ -8172,8 +8234,10 @@ enum MatchMath {
     }
 
     /// leftoverPrintYaw ist signed. Bin immer über |yaw|, sonst −0,50 Profil = frontal.
-    static func leftoverPrintSameBin(yawA: Double, yawB: Double) -> Bool {
-        leftoverHoldBin(yawAbs: abs(yawA)) == leftoverHoldBin(yawAbs: abs(yawB))
+    /// Fehlendes Yaw ist kein Same-Bin — sonst Diversity-Skip beim ersten Print.
+    static func leftoverPrintSameBin(yawA: Double?, yawB: Double?) -> Bool {
+        guard let a = yawA, let b = yawB else { return false }
+        return leftoverHoldBin(yawAbs: abs(a)) == leftoverHoldBin(yawAbs: abs(b))
     }
 
     /// Burst 0,98 nicht in die Bank. gallery.json sonst identische Prints.

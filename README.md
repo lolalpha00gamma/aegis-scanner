@@ -1,4 +1,4 @@
-# Aegis **2.1.196 alpha**
+# Aegis **2.1.197 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,18 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.197 alpha
+
+2.1.196: leftoverAssignPrintOk 0,80. leftoverAssignLive nillte schwache Scores — x-Fill las nil als Remint und stahl Adas UUID. leftoverPrintYaw nil → live-Yaw, SameBin immer true. leftoverAssignPrintSteals blieb bei Hold 0,64.
+
+- **leftoverAssignPrintCell** — Taufe bleibt Cosine. Gemessen unter Taufe = `0`. `nil` = kein Vec (Remint).
+- **leftoverAssignXFillAllows / leftoverAssignHungarianXPairOk** — `0` kein x-Fill, Rec/Greedy/Kuhn/2-opt/3-opt/4-opt skippen das Paar. Cost-Pad+1 reicht nicht (nAss).
+- **leftoverAssignHungarianXDropForbidden** — 0 fällt nach Steal. leftoverAssignPrintRank: 0/nil = −1 im 2-opt/3-Zyklus.
+- **leftoverPrintSameBin(yawA/B: Double?)** — fehlendes Yaw ≠ Same-Bin. LibraryStore ohne Live-Yaw-Fallback.
+- **leftoverAssignPrintSteals** über leftoverAssignPrintOk (0,80), nicht leftoverPrintOk (0,64).
+- Helios **1.6.35:** Closedness × Qualität, Freeze-Predict, Ampel-Ring × fps.
+- Tests + VERSION = Models = MARKETING 2.1.197 (Build 222). Schema 15 bleibt.
 
 ## Neu in 2.1.196 alpha
 

@@ -1,3 +1,9 @@
+# Nachtrag 2026-09-08 — 2.1.197 / 1.6.35 (kein Merge von `bugfix`)
+
+Aegis `lolalpha00gamma/aegis-scanner` **2.1.197 alpha** (Build 222).
+Helios `lolalpha00gamma/Helios` **1.6.35** (Build 68).
+Nur `main`. PrintCell 0≠nil, x-Fill skip, SameBin ohne Yaw. Helios Closedness×q, Freeze-Predict, Ampel-Ring.
+
 # Nachtrag 2026-09-07 — 2.1.196 / 1.6.34 (kein Merge von `bugfix`)
 
 Aegis `lolalpha00gamma/aegis-scanner` **2.1.196 alpha** (Build 221).

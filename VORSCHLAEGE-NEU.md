@@ -1,3 +1,18 @@
+# Aegis Nachtrag 2.1.197 — 2026-09-08
+
+Binary **2.1.197 alpha Build 222**. PrintCell 0≠nil. x-Fill skip gemessen. SameBin ohne Yaw tot. Helios Closedness/Freeze-Predict.
+
+## In 2.1.197 gelandet
+
+1. leftoverAssignPrintCell — Taufe Cosine, gemessen unter Taufe `0`, kein Vec `nil`.
+2. leftoverAssignXFillAllows + leftoverAssignHungarianXPairOk — Rec/Greedy/Kuhn/2/3/4-opt skippen `0`. DropForbidden nach Steal.
+3. leftoverAssignPrintRank — 2-opt/3-Zyklus zählt 0/nil als −1.
+4. leftoverPrintSameBin Optional — nil ≠ Same-Bin. LibraryStore `leftoverPrintYaw[old.id]` ohne Live-Fallback.
+5. leftoverAssignPrintSteals über leftoverAssignPrintOk 0,80.
+6. Tests + VERSION = Models = MARKETING 2.1.197 (Build 222). Schema 15 bleibt.
+
+Rest: CameraBroker, FaceTrack einzige Map, Overlay-Metal. Siehe VORSCHLAEGE-GROK.md.
+
 # Aegis Nachtrag 2.1.196 — 2026-09-07
 
 Binary **2.1.196 alpha Build 221**. leftover Taufe 0,80. Twin-Yaw-Cull. Print-Diversity. Helios Ampel/3D-Pinch.

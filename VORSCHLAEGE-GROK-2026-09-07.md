@@ -1,3 +1,54 @@
+# Nachtrag Grok 2026-09-08 — 2.1.197 gelandet, Rest offen
+
+Quelle: Review + Fix Aegis 2.1.197 (Build 222) auf 2.1.196 (PrintOk nillte 0,64 → x-Fill stahl UUID). Helios 1.6.35.
+Kein Binary-Lauf (Linux-Sandbox). Tests in CI. `bugfix` nicht gemergt. Nur `main`.
+
+## Warum es nach 2.1.196 weiter riss
+
+1. leftoverAssignPrintOk nillte schwache Cosine. leftoverAssignLive x-Fill las `nil` als Remint — Ada UUID an den Nachbarn, Taufe 0,64 über x.
+2. leftoverPrintYaw nil → Live-Yaw. leftoverPrintSameBin immer true → Diversity-Skip beim ersten Print.
+3. leftoverAssignPrintSteals blieb leftoverPrintOk 0,64.
+4. HungarianX Cost-Pad+1 für verbotene Paare — Recursion maximiert nAss, assignet trotzdem.
+5. Helios pinchStartsGrab ignorierte Landmark-q. Freeze-Geist stand. Ampel-Ring 6 px bei 8 fps.
+
+## In 2.1.197 / 1.6.35 gelandet
+
+- leftoverAssignPrintCell: Taufe Cosine, gemessen `0`, ungemessen `nil`.
+- leftoverAssignXFillAllows / leftoverAssignHungarianXPairOk / DropForbidden.
+- leftoverAssignPrintRank 2-opt/3-Zyklus.
+- leftoverPrintSameBin Optional, LibraryStore ohne Live-Fallback.
+- leftoverAssignPrintSteals über leftoverAssignPrintOk.
+- Helios pinchClosednessNeed(quality), freezePalmPredict, chromeDwellRingWidth(dt).
+
+## Offen (nicht noch ein Slider)
+
+P0 CameraBroker IOSurface. FaceTrack einzige Store-Map (`isCanonical()` ist true, LibraryStore hält ~20 Dicts).
+P1 Overlay-Metal. LiveCapture nicht @MainActor.
+P2 VNTrackObjectRequest. Replay 20 s. HeliosAegisKit.
+
+## Erweiterung (neu, oben)
+
+1. **FaceTrack `[UUID: FaceTrack]` einzige leftover-Map.** Predict/Coast/Hold/Print/Yaw in einer Struct. Dict-Desync tot.
+2. **CameraBroker XPC + IOSurface.** Eine TCC, eine Session, Aegis+Helios lesen.
+3. **Blink-Liveness auf Assign**, nicht nur Enroll. leftoverAssignPrintOk + Blink-Streak 2.
+4. **Licht-Eimer je Pose-Bin** (frontal / ¾ / Profil) statt einem Cosine-Floor.
+5. **Platt-Temperatur Cosine** je Bin — 0,80 hart tauft im ¾ falsch, frontal zu streng.
+6. **gallery ANN** (HNSW) ab n>50. Linear Cosine skaliert nicht.
+7. **Match-Log JSONL** (PTS, UUID, cosine, yaw, bin, assign-path) für Replay.
+8. **Drop-in `.mlmodel` FaceEmbedder-Protokoll** neben VNGenerateFacePrint.
+9. **Overlay CAMetalLayer 90 Hz**, Detect 8–24 fps. Box-Lerp unabhängig.
+10. **leftoverPrintYaw nur bei Commit stempeln**, nicht leftoverPrintYawMerge jedes Live-Yaw.
+11. **PrintQuality als Hungarian-Gewicht** (nicht nur 0/Cosine). Unscharf 0,22 drückt Cost.
+12. **DisplayLink 90 Hz HUD** (Helios), Kamera bleibt 8–24 fps.
+13. **HeliosAegisKit** gemeinsamer CameraBroker + Mutex-PTS.
+14. **LiDAR-Pinch** (Depth) statt nur Landmark-z.
+15. **IOHID Event-Tap / AX SetPosition / Per-App Gain** (`bugfix`, opt-in).
+16. **CVPixelBuffer bis Detect**, kein CGImage-Hop.
+17. **VNTrackObjectRequest** neben Rectangles.
+18. **Swift Testing** statt DIY `ok()`. MatchMathTests splitten.
+19. **Name-Lock nur nach Blink + 3 Frames** gleicher ID.
+20. **P-Slot Maske/Schal, Brille-Slot** als Twin-Veto.
+
 # Nachtrag Grok 2026-09-07 — 2.1.196 gelandet, Rest offen
 
 Quelle: Review + Fix Aegis 2.1.196 (Build 221) auf 2.1.195 (Assign 0,64 tauft, Twin-Detect, Print-Burst). Helios 1.6.34.

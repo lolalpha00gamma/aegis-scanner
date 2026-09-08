@@ -5103,6 +5103,40 @@ enum MatchMathTests {
         ok(MatchMath.leftoverPrintSameBin(yawA: 0.10, yawB: -0.10), "SameBin ±frontal")
         ok(!MatchMath.leftoverPrintSameBin(yawA: 0.10, yawB: 0.50), "SameBin frontal≠Profil")
         ok(MatchMath.leftoverPrintSameBin(yawA: -0.50, yawB: 0.50), "SameBin |yaw| Profil")
+        ok(!MatchMath.leftoverPrintSameBin(yawA: 0.10, yawB: nil), "SameBin ohne Print-Yaw tot")
+        ok(!MatchMath.leftoverPrintSameBin(yawA: nil, yawB: 0.10), "SameBin ohne Live-Yaw tot")
+        ok(MatchMath.leftoverAssignXFillAllows(printCos: nil), "ungemessen x-Fill Remint")
+        ok(!MatchMath.leftoverAssignXFillAllows(printCos: 0), "gemessen 0,64 x-Fill tot")
+        ok(MatchMath.leftoverAssignXFillAllows(printCos: 0.85), "Taufe x-Fill")
+        ok(MatchMath.leftoverAssignPrintCell(cosine: 0.81) == 0.81, "PrintCell Taufe Cosine")
+        ok(MatchMath.leftoverAssignPrintCell(cosine: 0.64) == 0, "PrintCell 0,64 = 0")
+        ok(MatchMath.leftoverAssignPrintCell(cosine: nil) == nil, "PrintCell ungemessen nil")
+        let weakFill = MatchMath.leftoverAssignLive(scores: [[0]], liveX: [0.21], holdX: [0.22])
+        ok(weakFill[0] == nil, "AssignLive 0 gemessen kein UUID-Diebstahl")
+        let remintFill = MatchMath.leftoverAssignLive(scores: [[nil]], liveX: [0.21], holdX: [0.22])
+        ok(remintFill[0] == 0, "AssignLive nil ungemessen x-Fill")
+        let twinWeak = MatchMath.leftoverAssignLive(
+            scores: [[0, 0], [0, 0]],
+            liveX: [0.20, 0.80],
+            holdX: [0.22, 0.78]
+        )
+        ok(twinWeak[0] == nil && twinWeak[1] == nil, "Twin 0,64 x-Fill tot")
+        ok(MatchMath.leftoverAssignPrintRank(nil) == -1, "PrintRank nil Miss")
+        ok(MatchMath.leftoverAssignPrintRank(0) == -1, "PrintRank 0 Miss")
+        ok(MatchMath.leftoverAssignPrintRank(0.85) == 0.85, "PrintRank Taufe")
+        let hunZero = MatchMath.leftoverAssignHungarian(scores: [
+            [0, 0.90, 0],
+            [0, 0, 0.90],
+            [0.90, 0, 0]
+        ])
+        ok(hunZero[0] == 1 && hunZero[1] == 2 && hunZero[2] == 0, "Hungarian 3-Zyklus 0 kein Assign")
+        let hunAll0 = MatchMath.leftoverAssignHungarian(scores: [[0, 0], [0, 0]])
+        ok(hunAll0[0] == nil && hunAll0[1] == nil, "Hungarian all-0 tot")
+        let drop0 = MatchMath.leftoverAssignHungarianXDropForbidden(
+            assigned: [0, 1],
+            scores: [[0, nil], [nil, 0.85]]
+        )
+        ok(drop0[0] == nil && drop0[1] == 1, "DropForbidden 0 fällt, Taufe hält")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

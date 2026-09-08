@@ -2926,7 +2926,7 @@ final class LibraryStore: ObservableObject {
                             ),
                             sameBin: MatchMath.leftoverPrintSameBin(
                                 yawA: face.quality.yaw,
-                                yawB: leftoverPrintYaw[old.id] ?? face.quality.yaw
+                                yawB: leftoverPrintYaw[old.id]
                             )
                         )
                         || MatchMath.motionBlurDrops(
@@ -3137,12 +3137,12 @@ final class LibraryStore: ObservableObject {
                         let v = face.printVec.count >= 32 ? face.printVec : FaceEngine.embedding(of: face)
                         if v.count >= 32, ov.count == v.count {
                             let c = MatchMath.cosine(v, ov)
-                            row.append(MatchMath.leftoverAssignPrintOk(
+                            row.append(MatchMath.leftoverAssignPrintCell(
                                 cosine: c,
                                 sharpness: face.quality.sharpness,
                                 yawAbs: abs(face.quality.yaw),
                                 continuity: liveCapture.isContinuity
-                            ) ? c : nil)
+                            ))
                         } else {
                             row.append(nil)
                         }
