@@ -656,10 +656,21 @@ enum FaceEngine {
             geoVersus.reserveCapacity(models.count)
             var modelVec: [UUID: [Double]] = [:]
             let poseW = poseWeight(face.quality)
+            let queryBin = MatchMath.leftoverHoldBinSigned(yaw: face.quality.yaw)
             for m in models {
-                let pale = MatchMath.palePrintDroppedCount(m.owned, enrolledAt: { $0.enrolledAt })
+                let gal = m.owned.map {
+                    (id: $0.id, name: m.name, bin: MatchMath.leftoverHoldBinSigned(yaw: $0.quality.yaw))
+                }
+                let cand = Set(MatchMath.leftoverPrintCandidates(
+                    gallery: gal, queryName: m.name, queryBin: queryBin
+                ))
+                let owned = {
+                    let hit = m.owned.filter { cand.contains($0.id) }
+                    return hit.isEmpty ? m.owned : hit
+                }()
+                let pale = MatchMath.palePrintDroppedCount(owned, enrolledAt: { $0.enrolledAt })
                 let key = MatchMath.liveCentroidCacheKey(
-                    ids: m.owned.map(\.id),
+                    ids: owned.map(\.id),
                     slot: probeSlot.rawValue,
                     paleDropped: pale,
                     camera: continuity ? "continuity" : "builtin"
@@ -668,7 +679,7 @@ enum FaceEngine {
                 if let hit = centroidCache[key] {
                     vec = hit
                 } else {
-                    vec = liveCentroid(m.owned, slot: probeSlot)
+                    vec = liveCentroid(owned, slot: probeSlot)
                     centroidCache[key] = vec
                 }
                 modelVec[m.id] = vec
@@ -677,7 +688,7 @@ enum FaceEngine {
                 if pv.count >= 32, vec.count == pv.count {
                     let c = cosine(pv, vec)
                     if usePartial {
-                        let pMean = meanPartialVector(m.owned)
+                        let pMean = meanPartialVector(owned)
                         if pMean.count == pv.count {
                             printPct = MatchMath.printSigmoid(cosine: cosine(pv, pMean))
                         } else {
@@ -695,8 +706,8 @@ enum FaceEngine {
                 if let hit = ratioCache[key] {
                     ratioPool = hit
                 } else {
-                    let slotOwned = m.owned.filter { poseSlot($0) == probeSlot }
-                    let poolSrc = slotOwned.isEmpty ? m.owned : slotOwned
+                    let slotOwned = owned.filter { poseSlot($0) == probeSlot }
+                    let poolSrc = slotOwned.isEmpty ? owned : slotOwned
                     ratioPool = poolSrc.map { $0.ratioSheet.filter(\.identity).map(\.value) }.filter { !$0.isEmpty }
                     ratioCache[key] = ratioPool
                 }

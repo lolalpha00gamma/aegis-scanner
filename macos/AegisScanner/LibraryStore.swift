@@ -2261,6 +2261,7 @@ final class LibraryStore: ObservableObject {
         leftoverPending = [:]
         tapGuestPending = []
         leftoverHold = [:]
+        leftoverTracks = [:]
         leftoverHoldTrail = [:]
         leftoverHoldBins = [:]
         leftoverPrintYaw = [:]
@@ -2579,6 +2580,7 @@ final class LibraryStore: ObservableObject {
         leftoverPairCommit = MatchMath.leftoverHoldMoveId(hold: leftoverPairCommit, from: from, to: to)
         leftoverPairCommitMiss = MatchMath.leftoverHoldMove(hold: leftoverPairCommitMiss, from: from, to: to)
         leftoverDisagree = MatchMath.leftoverHoldMove(hold: leftoverDisagree, from: from, to: to)
+        leftoverTracks = MatchMath.leftoverTracksMove(tracks: leftoverTracks, from: from, to: to)
         leftoverHold = MatchMath.leftoverAssignAtomic(hold: leftoverHold, from: from, to: to)
         leftoverHoldTrail = MatchMath.leftoverAssignAtomic(hold: leftoverHoldTrail, from: from, to: to)
         leftoverNameLockUntil = MatchMath.leftoverAssignAtomic(hold: leftoverNameLockUntil, from: from, to: to)
@@ -3196,7 +3198,10 @@ final class LibraryStore: ObservableObject {
                                 cosine: c,
                                 sharpness: face.quality.sharpness,
                                 yawAbs: abs(face.quality.yaw),
-                                continuity: liveCapture.isContinuity
+                                continuity: liveCapture.isContinuity,
+                                twinOtherCosine: c,
+                                twinYawDelta: abs(face.quality.yaw - old.quality.yaw),
+                                alreadyNamed: true
                             ))
                         } else {
                             row.append(nil)
@@ -3359,6 +3364,7 @@ final class LibraryStore: ObservableObject {
             tracks: leftoverTracks,
             remap: remintPlan
         )
+        let unpacked = MatchMath.leftoverTracksUnpack(leftoverTracks)
         let remintVel = MatchMath.leftoverFaceTrackVelFromKalman(boxKalmanV)
         let faceMaps = MatchMath.leftoverFaceTrackRemintDropMaps(
             hold: leftoverHold,
@@ -3389,12 +3395,12 @@ final class LibraryStore: ObservableObject {
             unsureTicks: leftoverUnsureTicks,
             remap: remintPlan
         )
-        leftoverHold = faceMaps.hold
+        leftoverHold = unpacked.peaks
         leftoverPending = faceMaps.pending
         leftoverStreak = faceMaps.streak
-        leftoverLastHash = faceMaps.lastHash
+        leftoverLastHash = unpacked.hashes
         leftoverLastIoU = faceMaps.lastIoU
-        leftoverNameLockHeld = faceMaps.nameHeld
+        leftoverNameLockHeld = unpacked.nameLock
         leftoverNameLockUntil = faceMaps.nameUntil
         leftoverMissFrames = faceMaps.miss
         leftoverStreakBox = faceMaps.streakBox.mapValues { MatchMath.leftoverFaceBox($0) }
@@ -3412,7 +3418,7 @@ final class LibraryStore: ObservableObject {
         liveNameVoteAt = faceMaps.voteAt
         leftoverCoastPrint = MatchMath.leftoverHoldRemintDrop(hold: leftoverCoastPrint, remap: remintPlan)
         leftoverCoastPrintAt = MatchMath.leftoverHoldRemintDrop(hold: leftoverCoastPrintAt, remap: remintPlan)
-        leftoverCoastAt = faceMaps.coastAt
+        leftoverCoastAt = unpacked.coastAt
         leftoverUnsureTicks = faceMaps.unsureTicks.isEmpty
             ? MatchMath.leftoverHoldRemintDrop(hold: leftoverUnsureTicks, remap: remintPlan)
             : faceMaps.unsureTicks

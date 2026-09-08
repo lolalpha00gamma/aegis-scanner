@@ -1,4 +1,4 @@
-# Aegis **2.1.205 alpha**
+# Aegis **2.1.206 alpha**
 
 
 Direkt laden:
@@ -14,6 +14,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.206 alpha
+
+2.1.205 packte leftoverTracks, schrieb Identität weiter aus 20 Maps. Print-Index und Twin-Lock nur Math.
+
+- **leftoverTracksUnpack.** Hold / Hash / NameLock / CoastAt aus einer Map nach remintPlan.
+- **leftoverTracksMove** in leftoverMirrorPending.
+- **Print-Index in FaceEngine.** Centroid aus gleichem Pose-Bin × Name.
+- **Twin-Lock PrintCell.** Cosine > 0,90 / Yaw < 15° → 0, Hungarian tauft nicht.
+- Tests + VERSION = Models = MARKETING 2.1.206 (Build 231). Schema 15 bleibt.
 
 ## Neu in 2.1.205 alpha
 

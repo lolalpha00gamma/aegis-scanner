@@ -5414,6 +5414,47 @@ enum MatchMathTests {
             "Occupied-Yaw UUID"
         )
 
+        let packedRound = MatchMath.leftoverTracksPack(
+            hashes: [adaT: "5.5.4.6"],
+            pairLast: [adaT: adaT],
+            peaks: [adaT: 0.82],
+            nameLock: [adaT: "Ada"],
+            coastAt: [bobT: 12],
+            bins: [adaT: -1]
+        )
+        let unpacked = MatchMath.leftoverTracksUnpack(packedRound)
+        ok(unpacked.hashes[adaT] == "5.5.4.6", "TracksUnpack Hash")
+        ok(unpacked.peaks[adaT] == 0.82, "TracksUnpack Peak")
+        ok(unpacked.nameLock[adaT] == "Ada", "TracksUnpack NameLock")
+        ok(unpacked.bins[adaT] == -1, "TracksUnpack Bin")
+        ok(unpacked.coastAt[bobT] == 12, "TracksUnpack Coast")
+        ok(unpacked.pairLast[adaT] == adaT, "TracksUnpack PairLast Hold")
+        let moved = MatchMath.leftoverTracksMove(tracks: packedRound, from: adaT, to: liveT)
+        ok(moved[liveT]?.nameLock == "Ada", "TracksMove NameLock")
+        ok(moved[adaT] == nil, "TracksMove alter Key tot")
+        ok(moved[bobT]?.coastAt == 12, "TracksMove Coast bleibt")
+        let twinCell = MatchMath.leftoverAssignPrintCell(
+            cosine: 0.93,
+            twinOtherCosine: 0.93,
+            twinYawDelta: 0.10,
+            alreadyNamed: true
+        )
+        ok(twinCell == 0, "PrintCell Twin-Lock 0 statt Taufe")
+        let openCell = MatchMath.leftoverAssignPrintCell(
+            cosine: 0.93,
+            twinOtherCosine: 0.93,
+            twinYawDelta: 0.10,
+            alreadyNamed: false
+        )
+        ok(openCell == 0.93, "PrintCell Unnamed darf")
+        let yawCell = MatchMath.leftoverAssignPrintCell(
+            cosine: 0.93,
+            twinOtherCosine: 0.93,
+            twinYawDelta: 0.40,
+            alreadyNamed: true
+        )
+        ok(yawCell == 0.93, "PrintCell Yaw 23° Twin frei")
+
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)
             exit(1)

@@ -1489,13 +1489,24 @@ enum MatchMath {
     }
 
     /// Score-Zelle: Taufe bleibt Cosine. Gemessen unter Taufe = 0. nil = kein Vec (Remint).
+    /// Twin-Lock: named + cosine > 0,90 + Yaw < 15° → 0, Hungarian tauft nicht.
     static func leftoverAssignPrintCell(
         cosine: Double?,
         sharpness: Double? = nil,
         yawAbs: Double? = nil,
-        continuity: Bool = false
+        continuity: Bool = false,
+        twinOtherCosine: Double? = nil,
+        twinYawDelta: Double = 0,
+        alreadyNamed: Bool = false
     ) -> Double? {
         guard let cosine else { return nil }
+        if !leftoverTwinLockBaptizeOk(
+            otherCosine: twinOtherCosine,
+            yawDelta: twinYawDelta,
+            alreadyNamed: alreadyNamed
+        ) {
+            return 0
+        }
         return leftoverAssignPrintOk(
             cosine: cosine, sharpness: sharpness, yawAbs: yawAbs, continuity: continuity
         ) ? cosine : 0
@@ -3161,6 +3172,46 @@ enum MatchMath {
             )
         }
         return out
+    }
+
+    /// Store-Identität zurück in die leftover-Maps. pairLast hier = alter Hold, nicht live-ID.
+    static func leftoverTracksUnpack(
+        _ tracks: [UUID: LeftoverTrack]
+    ) -> (
+        hashes: [UUID: String],
+        pairLast: [UUID: UUID],
+        peaks: [UUID: Double],
+        nameLock: [UUID: String],
+        coastAt: [UUID: TimeInterval],
+        bins: [UUID: Int]
+    ) {
+        var hashes: [UUID: String] = [:]
+        var pairLast: [UUID: UUID] = [:]
+        var peaks: [UUID: Double] = [:]
+        var nameLock: [UUID: String] = [:]
+        var coastAt: [UUID: TimeInterval] = [:]
+        var bins: [UUID: Int] = [:]
+        hashes.reserveCapacity(tracks.count)
+        peaks.reserveCapacity(tracks.count)
+        bins.reserveCapacity(tracks.count)
+        for (id, t) in tracks {
+            if !t.hash.isEmpty { hashes[id] = t.hash }
+            if let p = t.pairLast { pairLast[id] = p }
+            peaks[id] = t.peak
+            if let n = t.nameLock, !n.isEmpty { nameLock[id] = n }
+            if let c = t.coastAt { coastAt[id] = c }
+            bins[id] = t.bin
+        }
+        return (hashes, pairLast, peaks, nameLock, coastAt, bins)
+    }
+
+    /// leftoverMirrorPending: eine Spur, ein Write.
+    static func leftoverTracksMove(
+        tracks: [UUID: LeftoverTrack],
+        from: UUID,
+        to: UUID
+    ) -> [UUID: LeftoverTrack] {
+        leftoverAssignAtomicAll(tracks: tracks, liveToHold: [to: from])
     }
 
     /// Pose-Bin × Name vor linearer Galerie. Gleicher Bin zuerst.

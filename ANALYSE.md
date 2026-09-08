@@ -1,3 +1,19 @@
+# Aegis 2.1.206 — leftoverTracks Unpack, Print-Index, Twin-Lock PrintCell
+
+Aegis **2.1.206 alpha** (Build 231). Helios **1.6.44** (Build 77). Nur `main`. `bugfix` mergen: nein.
+
+2.1.205: AssignAtomic Coast-Keep, TracksPack, Print-Index Math, Twin-Lock Math, Occupied-Yaw. leftoverTracks nach Pack ungelesen. FaceEngine linear. PrintCell ohne Twin-Lock.
+
+## Was 2.1.206 ändert
+
+1. **leftoverTracksUnpack** Identität (Hold/Hash/Name/Coast). leftoverFaceTrackRemintDropMaps nur noch Live-Skalare.
+2. **leftoverTracksMove** MirrorPending.
+3. **leftoverPrintCandidates** FaceEngine.matchLive.
+4. **leftoverAssignPrintCell** Twin-Lock → 0.
+5. Tests + VERSION = Models = MARKETING 2.1.206 (Build 231). Schema 15 bleibt.
+
+`bugfix` mergen: nein.
+
 # Aegis 2.1.203 — Overlay Twin-Chip
 
 Aegis **2.1.203 alpha** (Build 228). Helios **1.6.41** (Build 74). Nur `main`. `bugfix` mergen: nein.
