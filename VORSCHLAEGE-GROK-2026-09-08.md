@@ -1,28 +1,35 @@
-# Aegis Vorschläge — 2026-09-08 (Pass 7, 2.1.206)
+# Aegis Vorschläge — 2026-09-08 (Pass 8, 2.1.207)
 
-Stand 2.1.206 alpha Build 231. Ergänzung, keine Kopie von 2.1.188–205.
+Stand 2.1.207 alpha. Ergänzung zu 2.1.206 (Unpack/Move/Print-Index/Twin-Lock).
 
-## Gelandet in 2.1.206 (dieser Pass)
+## Gelandet in 2.1.207
 
-leftoverTracksUnpack als Identität (Hold/Hash/Name/Coast). leftoverTracksMove in MirrorPending. Print-Index Call-Site in FaceEngine. Twin-Lock in leftoverAssignPrintCell.
+`leftoverPairLast` nach Remint aus Unpack (siehe BUGFIX One-Liner in LibraryStore).
 
-## Erweiterung (neu, nicht in der 2.1.205-Liste)
+## Erweiterung (neu)
 
-57. **leftoverTracks auch Live-Skalare** Yaw/Kalman/Blink — FaceTrackMaps aus Unpack. P0 Rest.
-58. **CameraBroker XPC + IOSurface** mit Helios. Eine TCC. P0.
-59. **gallery ANN** HNSW statt linear, Print-Index ist der Einstieg.
-60. **Identity-Merge-Wizard** Cosine 0,89–0,94 mit Pairwise-Heatmap.
-61. **Watch-Folder PhotoKit** + Export `.aegis` verschlüsselt.
-62. **P-Slot Maske/Schal**, Brille Twin-Veto.
-63. **ReID-Graph** Hold-Trail, nicht nur Last-Print.
-64. **Stereo Built-in + Continuity** Disparität als Yaw-Prior.
-65. **FaceTrack.id uniqueID-Reconnect** via Print+Yaw-Bin.
-66. **Overlay CAMetalLayer 60 Hz**, Detect 8–24.
-67. **Gemeinsamer CVPixelBuffer** Detect+Print, JPEG nur Export.
-68. **VNTrackObjectRequest** Box halten zwischen Detect-Ticks.
-69. **Hung-Detect Cancel** nach 1 s, FrameTap drop-oldest bleibt.
-70. **LiveCapture nicht @MainActor.** Detect outputQueue.
-71. **420f vs 420v** Color-Space-Mismatch Continuity/Built-in.
-72. **Tests: eine Fixture Restart+Twin+AssignLive.** Orakel auf 40 Bools stoppen.
+73. **leftoverTracks auch Live-Skalare** Yaw/Kalman/Blink. P0 Rest.
+74. **CameraBroker XPC + IOSurface** mit Helios. Eine TCC. P0.
+75. **gallery ANN / HNSW** nach Print-Index.
+76. **Identity-Merge-Wizard** Cosine 0,89–0,94 + Pairwise-Heatmap.
+77. **Watch-Folder PhotoKit** + Export `.aegis` verschlüsselt.
+78. **P-Slot Maske/Schal**, Brille Twin-Veto.
+79. **ReID-Graph** Hold-Trail.
+80. **Stereo Built-in + Continuity** Disparität als Yaw-Prior.
+81. **FaceTrack.id uniqueID-Reconnect** via Print+Yaw-Bin.
+82. **Overlay CAMetalLayer 60 Hz**, Detect 8–24.
+83. **Gemeinsamer CVPixelBuffer** Detect+Print.
+84. **VNTrackObjectRequest** Box zwischen Detect-Ticks.
+85. **Hung-Detect Cancel** nach 1 s.
+86. **LiveCapture nicht @MainActor.**
+87. **420f vs 420v** Color-Space Continuity/Built-in.
+88. **Eine Fixture Restart+Twin+AssignLive** statt 40 Bool-Orakel.
+89. **leftoverPrintYaw in gallery.json persist**.
+90. **Detect-Interval ≠ Print-Interval**.
+91. **Twin-Bin ¾L vs ¾R**.
+92. **Overlay identity-Lerp unabhängig von Assign**.
+93. **Blink-Liveness auf Assign**.
+94. **Match-Log JSONL** für False-Accept Replay.
+95. **Drop-in `.mlmodel`** Print-Backbone ohne MatchMath-Rewrite.
 
-Kein 2.1.207-Flag ohne CameraBroker oder leftoverTracks als einzige Map für Live-Skalare.
+Kein 2.1.208-Flag ohne CameraBroker oder leftoverTracks als einzige Live-Map.
