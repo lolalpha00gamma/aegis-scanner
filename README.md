@@ -1,3 +1,29 @@
+# Aegis **2.1.226 alpha**
+
+
+
+Direkt laden:
+- [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
+- [Releases](https://github.com/lolalpha00gamma/aegis-scanner/releases)
+
+Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
+## Installieren
+
+1. [Aegis.dmg](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg) öffnen
+2. **Aegis** in den Ordner Programme ziehen
+3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
+
+macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.226 alpha
+
+Warum Twins und Enroll weiter falsch tauften: Pass 26 trennte L/R-Hold und `@cam`. leftoverPick glättete trotzdem mit dem Frontal-UUID-Trail. Der SM-Chip und Skip-Capture zählten die ganze Print-Galerie.
+
+- **Pick-Trail Yaw-Bin.** ¾ liest nicht Frontal-Median 0,88.
+- **Enroll-SM nur Live-Hashes.** Ada-Front + Ben-Profil ≠ ●●●●.
+- **Skip-Capture per Person.** Bens fehlende Posen bleiben im Budget.
+- Tests + VERSION = Models = MARKETING 2.1.226 (Build 251). Schema 15 bleibt.
+
 # Aegis **2.1.225 alpha**
 
 

@@ -908,6 +908,17 @@ enum MatchMath {
         return bins
     }
 
+    /// Nur Hashes der lebenden Gesichter, nicht die ganze Galerie.
+    static func enrollSMCacheBins(cache: Set<String>, liveHashes: [String]) -> Set<Int> {
+        let live = Set(liveHashes.map { leftoverHoldHashSpatial($0) }.filter { !$0.isEmpty })
+        guard !live.isEmpty else { return [] }
+        var bins = Set<Int>()
+        for h in live {
+            bins.formUnion(leftoverPrintCacheBins(cache, hash: h))
+        }
+        return bins
+    }
+
     static func leftoverPrintCacheHits(hash: String?, yaw: Double?, cached: Set<String>, cam: String? = nil) -> Bool {
         guard let yaw else { return false }
         guard let key = leftoverLastHashBinKey(hash: hash, yaw: yaw, cam: cam) else { return false }

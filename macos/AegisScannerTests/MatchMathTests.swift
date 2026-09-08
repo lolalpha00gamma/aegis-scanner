@@ -5933,6 +5933,31 @@ enum MatchMathTests {
         ok(MatchMath.guestTTLChip(remain: -1) == "GUEST drop", "Guest Chip drop")
         ok(MatchMath.guestTTLChip(remain: nil) == nil, "Guest Chip Ada tot")
 
+        let galleryBins = MatchMath.enrollSMCacheBins(
+            cache: ["ada#0@iPhone", "ada#-1@iPhone", "ada#1@iPhone", "ben#2@iPhone"],
+            liveHashes: ["ada"]
+        )
+        ok(galleryBins == Set([0, -1, 1]), "Enroll SM nur Ada @cam")
+        ok(
+            MatchMath.enrollSMCacheBins(cache: ["ada#0", "ben#1"], liveHashes: []).isEmpty,
+            "Enroll SM ohne Live leer"
+        )
+        ok(
+            MatchMath.enrollSMCacheBins(
+                cache: ["ada#0@iPhone", "ben#2@iPhone"],
+                liveHashes: ["ada"]
+            ) == Set([0]),
+            "Enroll SM Ada ohne Ben-Profil"
+        )
+        ok(
+            MatchMath.leftoverTrailNowOf(idTrail: [0.91, 0.88], binTrail: [0.66], yawAbs: 0.40) == [0.66],
+            "Pick-Trail ¾ nicht Frontal-Median"
+        )
+        ok(
+            MatchMath.leftoverTrailNowOf(idTrail: [0.91, 0.88], binTrail: [0.66], yawAbs: -0.40) == [0.66],
+            "Pick-Trail ¾L nicht Frontal"
+        )
+
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)
             exit(1)

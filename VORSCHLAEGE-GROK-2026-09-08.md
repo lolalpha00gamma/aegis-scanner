@@ -1,3 +1,38 @@
+# Aegis Vorschläge — 2026-09-08 (Pass 27, 2.1.226)
+
+Stand 2.1.226 alpha. Pick-Trail Yaw-Bin, Enroll-SM nur Live-Hashes, Skip-Capture per Person.
+
+## Gelandet in 2.1.226
+
+- leftoverPick holdTrail leftoverTrailNowOf (¾ nicht Frontal-Median, signed)
+- enrollSMCacheBins liveHashes statt Galerie
+- enrollSMSkipCapture leftoverPrintCacheBins(hash:) pro Gesicht
+
+## Erweiterung (neu)
+
+292. **leftoverOccupiedHashes signed Yaw.** abs mischt Twin L/R Occupancy — Steal falsch. P1.
+293. **leftoverHoldSmooth trail immer leftoverTrailNowOf** intern, nicht nur Call-Site.
+294. **LiveCapture off MainActor.** Detect+Print blockiert die UI. P0 nach CameraBroker.
+295. **HNSW Gallery.** Linear-Scan O(n) jede Frame.
+296. **CameraBroker XPC + IOSurface** mit Helios. Eine TCC. P0.
+297. **Overlay CAMetalLayer 60 Hz.**
+298. **leftoverHoldTrail Disk persist.**
+299. **Glasses On/Off Templates.**
+300. **Face-Print Versioning.**
+301. **Export Embeddings JSONL.**
+302. **UMAP Cluster-View.**
+303. **Identity-Merge-Wizard.**
+304. **Blink-Liveness EAR**, nicht nur SM-Chip.
+305. **Profil-Hold nicht in Frontal-EMA.** leftoverHold Bin 0 bleibt Front.
+306. **Continuity Night-IR eigene Galerie.**
+307. **Per-Camera WB-Lock** Osmo vs Phone.
+308. **Mutex-PTS pro Frame** von Helios (Heartbeat wenn LOCK_SH Helios-EX blockt).
+309. **EAR + SM AND** für Taufe — Chip allein lässt 1 Frontal+Fake-Blink.
+310. **False-Accept JSONL → Twin-Split Auto** nach Restart ohne FA-Heat.
+311. **Print-Cache Cap FIFO** statt `prefix` — älteste Pose fliegt, nicht lexikographisch.
+
+P0: CameraBroker. Kein neues leftover*-Flag. Branch `bugfix` (2.1.15) nicht mergen.
+
 # Aegis Vorschläge — 2026-09-08 (Pass 26, 2.1.225)
 
 Stand 2.1.225 alpha. Yaw L/R Hold, Print-Cache×Cam, Bin-Parse @cam, Guest-TTL Chip, FA-Hold×Yaw.

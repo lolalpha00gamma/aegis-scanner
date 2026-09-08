@@ -2545,15 +2545,17 @@ final class LibraryStore: ObservableObject {
             dt: dt,
             continuity: cont
         )
-        var enrollBins = MatchMath.leftoverPrintCacheBins(leftoverPrintCache)
-        let haveF = enrollBins.contains(0)
-        let haveL = enrollBins.contains(-1)
-        let haveR = enrollBins.contains(1)
-        let haveP = enrollBins.contains(-2) || enrollBins.contains(2)
         for id in liveIds {
             guard let yaw = liveYaw[id] else { continue }
+            let hash = leftoverLiveHashTick[id] ?? leftoverLastHash[id]
+            guard let hash, !hash.isEmpty else { continue }
+            let personBins = MatchMath.leftoverPrintCacheBins(leftoverPrintCache, hash: hash)
             if MatchMath.enrollSMSkipCapture(
-                yaw: yaw, haveFrontal: haveF, haveLeft: haveL, haveRight: haveR, haveProfile: haveP
+                yaw: yaw,
+                haveFrontal: personBins.contains(0),
+                haveLeft: personBins.contains(-1),
+                haveRight: personBins.contains(1),
+                haveProfile: personBins.contains(-2) || personBins.contains(2)
             ) {
                 skipIds.insert(id)
             }
@@ -3966,7 +3968,10 @@ final class LibraryStore: ObservableObject {
                     yawCoverageChip = MatchMath.printYawCoverageChip(
                         MatchMath.printYawCoverageBest(cached: leftoverPrintCache)
                     )
-                    var bins = MatchMath.leftoverPrintCacheBins(leftoverPrintCache)
+                    let liveHashes = adopted.compactMap {
+                        leftoverLiveHashTick[$0.id] ?? leftoverLastHash[$0.id]
+                    }
+                    var bins = MatchMath.enrollSMCacheBins(cache: leftoverPrintCache, liveHashes: liveHashes)
                     for face in adopted {
                         let slots = MatchMath.leftoverEnrollSlotHave(
                             yaw: face.quality.yaw,
@@ -4237,7 +4242,14 @@ final class LibraryStore: ObservableObject {
                     holdOnlyUnsure: holdUnsure,
                     gallery: identities.count,
                     iouOnly: iouOnly,
-                    holdTrail: leftoverHoldTrail[old.id] ?? [],
+                    holdTrail: MatchMath.leftoverTrailNowOf(
+                        idTrail: leftoverHoldTrail[old.id] ?? [],
+                        binTrail: leftoverHoldTrailBins[MatchMath.leftoverHoldKey(
+                            id: old.id,
+                            bin: MatchMath.leftoverHoldBinSigned(yaw: old.quality.yaw)
+                        )] ?? [],
+                        yawAbs: old.quality.yaw
+                    ),
                     probeMasked: FaceEngine.lowerFaceOccluded(old),
                     refMasked: Dictionary(uniqueKeysWithValues: remaining.map {
                         ($0.index, FaceEngine.lowerFaceOccluded(adopted[$0.index]))
