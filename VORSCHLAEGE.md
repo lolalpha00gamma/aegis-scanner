@@ -1,3 +1,39 @@
+# 2.1.224 — PTS-Fill, Palm-skipPrint, Twin P-Slot.
+
+## In 2.1.224 wirklich im Code
+
+2.1.223 P-Slot, Yaw-Kompass, Twin-Split persist. obsFillUsesMutexPts tot. Palm nicht in der Lock-Zeile. `enrollSMReadyFromChip("●●●●")` matcht auch ohne P.
+
+1. **Mutex PTS Wall + FrameTap Fill.** `obsFillUsesMutexPts` am Stamp.
+2. **Helios Palm skipPrint.** `cameraMutexPalmSkip` Continuity+Helios, IoU 0,18.
+3. **enrollSMReadyFromChip needProfile.** Twins brauchen ●●●●●.
+4. Tests + VERSION = Models = MARKETING 2.1.224 (Build 249). Schema 15 bleibt.
+
+## Erweiterung (neu, 2.1.224)
+
+1. **CameraBroker XPC + IOSurface** mit Helios. Eine TCC. P0.
+2. **gallery ANN / HNSW** nach Print-Index.
+3. **LiveCapture nicht @MainActor.**
+4. **Face-Print Versioning.**
+5. **Glasses On/Off Twin-Templates.**
+6. **Per-Camera WB-Lock.**
+7. **Export Embeddings** JSONL.
+8. **UMAP Cluster-View.**
+9. **Overlay CAMetalLayer 60 Hz.**
+10. **Blink-Liveness EAR.**
+11. **Mutex-PTS pro Frame** (Helios Heartbeat 2 s).
+12. **Print-Cache × Camera uniqueID.**
+13. **EAR + SM AND** für Unnamed-Taufe.
+14. **Guest-TTL Overlay.**
+15. **FA-JSONL Twin-Split Auto** nach Restart.
+16. **Profil-Hold nicht in Frontal-EMA.**
+17. **Continuity Night-IR eigene Galerie.**
+18. **Identity-Merge-Wizard.**
+19. **leftoverHoldTrail Disk persist.**
+20. **Yaw-Bin Trail persist.**
+
+P0 CameraBroker. Kein neues leftover*-Flag.
+
 # 2.1.221 — PickFloor, People-Seed 3.
 
 ## In 2.1.221 wirklich im Code

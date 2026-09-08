@@ -27,7 +27,7 @@ enum FaceEngine {
         return tick.reject
     }
 
-    static func detect(in image: CGImage, mediaId: UUID, tiles: Bool = true, orientation: CGImagePropertyOrientation = .up, minSharpness: Double = MatchMath.sharpnessFloor, continuity: Bool = false, cheapGraph: Bool = false, live: Bool = false, skipPrints: Bool = false, roi: FaceBox? = nil, skipPrintBoxes: [FaceBox] = []) throws -> [FaceObservation] {
+    static func detect(in image: CGImage, mediaId: UUID, tiles: Bool = true, orientation: CGImagePropertyOrientation = .up, minSharpness: Double = MatchMath.sharpnessFloor, continuity: Bool = false, cheapGraph: Bool = false, live: Bool = false, skipPrints: Bool = false, roi: FaceBox? = nil, skipPrintBoxes: [FaceBox] = [], skipPrintPalm: FaceBox? = nil) throws -> [FaceObservation] {
         let w = Double(image.width)
         let h = Double(image.height)
         let cropOrigin: (x: Double, y: Double)
@@ -94,7 +94,7 @@ enum FaceEngine {
         }
         let boxed = nms(out, live: live)
         if skipPrints { return boxed }
-        return stampPrints(boxed, from: image, orientation: orientation, continuity: continuity, minSharpness: minSharpness, skipPrintBoxes: skipPrintBoxes)
+        return stampPrints(boxed, from: image, orientation: orientation, continuity: continuity, minSharpness: minSharpness, skipPrintBoxes: skipPrintBoxes, skipPrintPalm: skipPrintPalm)
     }
 
     private static func detectOnce(
@@ -1708,7 +1708,7 @@ enum FaceEngine {
         }
     }
 
-    private static func stampPrints(_ faces: [FaceObservation], from image: CGImage, orientation: CGImagePropertyOrientation = .up, continuity: Bool = false, minSharpness: Double = MatchMath.sharpnessFloor, skipPrintBoxes: [FaceBox] = []) -> [FaceObservation] {
+    private static func stampPrints(_ faces: [FaceObservation], from image: CGImage, orientation: CGImagePropertyOrientation = .up, continuity: Bool = false, minSharpness: Double = MatchMath.sharpnessFloor, skipPrintBoxes: [FaceBox] = [], skipPrintPalm: FaceBox? = nil) -> [FaceObservation] {
         let luma01 = lumaStats(image).mean / 255.0
         if MatchMath.nightIRPrintSkip(luma: luma01, continuity: continuity) {
             return faces.map { face in
@@ -1719,7 +1719,7 @@ enum FaceEngine {
             }
         }
         let needPrint = faces.contains { face in
-            !MatchMath.leftoverPrintSkipHits(face: face.box, skipBoxes: skipPrintBoxes)
+            !MatchMath.leftoverPrintSkipHits(face: face.box, skipBoxes: skipPrintBoxes, palm: skipPrintPalm)
                 && !MatchMath.skipPrint(sharpness: face.quality.sharpness, continuity: continuity, yaw: face.quality.yaw)
                 && !MatchMath.printCaptureQualitySkip(face.quality.capture)
                 && face.quality.sharpness >= minSharpness
@@ -1728,7 +1728,7 @@ enum FaceEngine {
         var used = Set<Int>()
         return faces.map { face in
             var next = face
-            if MatchMath.leftoverPrintSkipHits(face: face.box, skipBoxes: skipPrintBoxes)
+            if MatchMath.leftoverPrintSkipHits(face: face.box, skipBoxes: skipPrintBoxes, palm: skipPrintPalm)
                 || MatchMath.skipPrint(sharpness: face.quality.sharpness, continuity: continuity, yaw: face.quality.yaw)
                 || MatchMath.printCaptureQualitySkip(face.quality.capture)
                 || burstRejects(face.box, imageW: Double(image.width), imageH: Double(image.height))

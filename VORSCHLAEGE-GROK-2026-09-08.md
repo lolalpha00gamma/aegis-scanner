@@ -1,3 +1,38 @@
+# Aegis Vorschläge — 2026-09-08 (Pass 25, 2.1.224)
+
+Stand 2.1.224 alpha. PTS-Fill, Palm-skipPrint, Twin P-Slot Name-Lock.
+
+## Gelandet in 2.1.224
+
+- cameraMutexPtsWall + FrameTap obsFillUsesMutexPts
+- cameraMutexPalm / PalmBox / PalmSkip → skipPrintPalm
+- enrollSMReadyFromChip needProfile wenn twinSplits
+
+## Erweiterung (neu)
+
+251. **LiveCapture off MainActor.** Detect+Print blockiert die UI. P0 nach CameraBroker.
+252. **HNSW Gallery.** Linear-Scan O(n) jede Frame.
+253. **CameraBroker XPC + IOSurface** mit Helios. Eine TCC. P0.
+254. **Overlay CAMetalLayer 60 Hz.**
+255. **leftoverHoldTrail Disk persist.**
+256. **Glasses On/Off Templates.**
+257. **Face-Print Versioning.**
+258. **Export Embeddings JSONL.**
+259. **UMAP Cluster-View.**
+260. **Identity-Merge-Wizard.**
+261. **Blink-Liveness EAR**, nicht nur SM-Chip.
+262. **Profil-Hold nicht in Frontal-EMA.** leftoverHold Bin 0 bleibt Front.
+263. **Continuity Night-IR eigene Galerie.**
+264. **Per-Camera WB-Lock** Osmo vs Phone.
+265. **Mutex-PTS pro Frame** von Helios (Heartbeat 2 s > Fill 220 ms).
+266. **EAR + SM AND** für Taufe — Chip allein lässt 1 Frontal+Fake-Blink.
+267. **Print-Cache × Camera uniqueID.** Built-in-Print vs Continuity-Print nicht mischen.
+268. **Yaw-Bin Trail persist** neben leftoverHold (leftoverHoldTrailOf ist tot, leftoverTrailNowOf sitzt).
+269. **Guest-TTL Overlay** Countdown, nicht stilles Drop.
+270. **False-Accept JSONL → Twin-Split Auto** nach Restart ohne FA-Heat.
+
+P0: CameraBroker. Kein neues leftover*-Flag. Branch `bugfix` (2.1.15) nicht mergen.
+
 # Aegis Vorschläge — 2026-09-08 (Pass 24, 2.1.223)
 
 Stand 2.1.223 alpha. P-Slot, Yaw-Kompass, Twin-Split persist.

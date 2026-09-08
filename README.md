@@ -1,3 +1,29 @@
+# Aegis **2.1.224 alpha**
+
+
+
+Direkt laden:
+- [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
+- [Releases](https://github.com/lolalpha00gamma/aegis-scanner/releases)
+
+Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
+## Installieren
+
+1. [Aegis.dmg](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg) öffnen
+2. **Aegis** in den Ordner Programme ziehen
+3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
+
+macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.224 alpha
+
+Warum Live und Twins weiter schlecht saßen: Helios schrieb Session-PTS in den Mutex, Aegis `obsFillUsesMutexPts` lag getestet ohne Call-Site. Helios-Palme verdeckte Gesichter, Aegis druckte trotzdem. `enrollSMReadyFromChip` nahm ●●●● — Prefix von ●●●●● — und taufte Twins ohne Profil.
+
+- **Mutex PTS Fill.** FrameTap nutzt `obsFillUsesMutexPts`. Claim schreibt Unix-Wall.
+- **Helios Palm skipPrint.** Lock-Zeile trägt Palme UV. Continuity+Helios → Print-Skip IoU 0,18. Built-in unangetastet.
+- **Twin P-Slot Name-Lock.** `needProfile` wenn `twinSplits` nicht leer. Unnamed braucht ●●●●●.
+- Tests + VERSION = Models = MARKETING 2.1.224 (Build 249). Schema 15 bleibt.
+
 # Aegis **2.1.223 alpha**
 
 

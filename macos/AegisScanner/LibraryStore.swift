@@ -1319,7 +1319,7 @@ final class LibraryStore: ObservableObject {
                 need: need,
                 locked: MatchMath.leftoverNameLockBlocks(until: leftoverNameLockUntil[fid], now: frameNow),
                 held: liveNameLock[fid]?.uuidString,
-                enrollReady: MatchMath.enrollSMReadyFromChip(enrollSMChip),
+                enrollReady: MatchMath.enrollSMReadyFromChip(enrollSMChip, needProfile: !twinSplits.isEmpty),
                 alreadyNamed: liveNameLock[fid] != nil
             )
             if let voted, !voted.isEmpty {
@@ -2592,6 +2592,10 @@ final class LibraryStore: ObservableObject {
         if !skipDetect { leftoverDetectAt = stamp }
         if !skipPrints { leftoverPrintAt = stamp }
         let skipPrintBoxes = skipPrints ? [] : MatchMath.leftoverPrintSkipBoxes(tracks: kalmanSnap, skipIds: skipIdsAll)
+        let skipPrintPalm: FaceBox? = {
+            guard !skipPrints, MatchMath.cameraMutexPalmSkip(holder: liveCapture.mutexHolder, continuity: cont) else { return nil }
+            return liveCapture.mutexPalmBox(imageW: Double(image.width), imageH: Double(image.height))
+        }()
         liveDetectGen &+= 1
         let gen = liveDetectGen
         Task.detached(priority: .userInitiated) {
@@ -2611,13 +2615,13 @@ final class LibraryStore: ObservableObject {
                     FaceObservation.coast(id: k.id, mediaId: mediaId, box: b)
                 }
                 if MatchMath.overlayTrackForcesDetect(lost: FaceEngine.lastTrackLostCount(), live: kalmanSnap.count) {
-                    found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true, skipPrints: skipPrints, roi: roi, skipPrintBoxes: skipPrintBoxes)) ?? found
+                    found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true, skipPrints: skipPrints, roi: roi, skipPrintBoxes: skipPrintBoxes, skipPrintPalm: skipPrintPalm)) ?? found
                     if !found.isEmpty {
                         FaceEngine.seedTrack(boxes: found.map(\.box), image: image)
                     }
                 }
             } else {
-                found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true, skipPrints: skipPrints, roi: roi, skipPrintBoxes: skipPrintBoxes)) ?? []
+                found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true, skipPrints: skipPrints, roi: roi, skipPrintBoxes: skipPrintBoxes, skipPrintPalm: skipPrintPalm)) ?? []
                 if MatchMath.overlayTrackPersistReset(skipDetect: false) {
                     FaceEngine.seedTrack(boxes: found.map(\.box), image: image)
                 }
@@ -2625,17 +2629,18 @@ final class LibraryStore: ObservableObject {
             if !skipDetect, found.isEmpty, roi != nil, MatchMath.liveRoiMissRetries(hadROI: true, empty: true) {
                 if MatchMath.liveRoiMissGoesFull(dt: dt) {
                     roi = nil
-                    found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true, skipPrints: skipPrints, roi: nil, skipPrintBoxes: skipPrintBoxes)) ?? []
+                    found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true, skipPrints: skipPrints, roi: nil, skipPrintBoxes: skipPrintBoxes, skipPrintPalm: skipPrintPalm)) ?? []
                 } else if let raw = roiTuple {
                     let exp = MatchMath.liveRoiExpand(raw, imageW: Double(image.width), imageH: Double(image.height))
                     found = (try? FaceEngine.detect(
                         in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true,
                         skipPrints: skipPrints,
                         roi: FaceBox(x: exp.x, y: exp.y, width: exp.w, height: exp.h),
-                        skipPrintBoxes: skipPrintBoxes
+                        skipPrintBoxes: skipPrintBoxes,
+                        skipPrintPalm: skipPrintPalm
                     )) ?? []
                     if found.isEmpty {
-                        found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true, skipPrints: skipPrints, roi: nil, skipPrintBoxes: skipPrintBoxes)) ?? []
+                        found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true, skipPrints: skipPrints, roi: nil, skipPrintBoxes: skipPrintBoxes, skipPrintPalm: skipPrintPalm)) ?? []
                     }
                 }
             }

@@ -68,11 +68,17 @@ final class LiveCapture: NSObject {
     private var mutexBeat: Timer?
     private var mutexClaimFails = 0
     private var lastMutexClaimAt: TimeInterval = 0
-    private var lastMutexPts: TimeInterval = 0
+    private var lastMutexPalm: (x: CGFloat, y: CGFloat, w: CGFloat)?
+    private(set) var mutexHolder: String?
     private var lastFaceStreak = 0
     private var lastVisMs: Double = 0
 
     static func orientKey(_ uniqueID: String) -> String { "aegis.camOrient.\(uniqueID)" }
+
+    func mutexPalmBox(imageW: Double, imageH: Double) -> FaceBox? {
+        guard let palm = lastMutexPalm else { return nil }
+        return MatchMath.cameraMutexPalmBox(palm, imageW: imageW, imageH: imageH)
+    }
 
     func setOrientOverride(_ value: String) {
         orientOverride = value
@@ -453,7 +459,7 @@ final class LiveCapture: NSObject {
             }
             guard let line = MatchMath.cameraMutexLockedLine(
                 existing: existing, owner: owner, pid: pid, now: now, expectedGen: expectedGen, pidLive: pidLive,
-                pts: tap?.lastStamp
+                pts: MatchMath.cameraMutexPtsWall(now: now, mediaPts: tap?.lastStamp ?? 0)
             ) else {
                 _ = flock(fd, LOCK_UN)
                 close(fd)
@@ -481,7 +487,7 @@ final class LiveCapture: NSObject {
         let pidLive: Bool? = holderPid.map { p in p > 0 && (kill(p, 0) == 0 || errno == EPERM) }
         guard let line = MatchMath.cameraMutexLockedLine(
             existing: existing, owner: owner, pid: pid, now: now, expectedGen: expectedGen, pidLive: pidLive,
-            pts: tap?.lastStamp
+            pts: MatchMath.cameraMutexPtsWall(now: now, mediaPts: tap?.lastStamp ?? 0)
         ) else { return false }
         try? line.write(to: url, atomically: true, encoding: .utf8)
         return true
@@ -526,13 +532,23 @@ final class LiveCapture: NSObject {
         if tmpBusy { return (nil, true, nil) }
         let empty = cachesPresent && (caches == nil || caches?.isEmpty == true)
         guard let text = MatchMath.cameraMutexPickText(caches: caches, tmp: tmp, cachesEmpty: empty) else {
+            lastMutexPalm = nil
+            mutexHolder = nil
+            tap?.mutexPts = 0
             return (nil, false, nil)
         }
         let pid = MatchMath.cameraMutexPid(text)
         let live = pid.map { p in p > 0 && (kill(p, 0) == 0 || errno == EPERM) }
-        if let pts = MatchMath.cameraMutexPts(text) { lastMutexPts = pts }
+        if let pts = MatchMath.cameraMutexPts(text) {
+            tap?.mutexPts = pts
+        } else {
+            tap?.mutexPts = 0
+        }
+        lastMutexPalm = MatchMath.cameraMutexPalm(text)
+        let holder = MatchMath.cameraMutexParse(text, now: Date().timeIntervalSince1970, pidLive: live)
+        mutexHolder = holder
         return (
-            MatchMath.cameraMutexParse(text, now: Date().timeIntervalSince1970, pidLive: live),
+            holder,
             false,
             MatchMath.cameraMutexGen(text)
         )
@@ -901,6 +917,11 @@ private final class FrameTap: NSObject, AVCaptureVideoDataOutputSampleBufferDele
     var lastStamp: TimeInterval {
         lock.lock(); defer { lock.unlock() }; return _lastStamp
     }
+    private var _mutexPts: TimeInterval = 0
+    var mutexPts: TimeInterval {
+        get { lock.lock(); defer { lock.unlock() }; return _mutexPts }
+        set { lock.lock(); _mutexPts = newValue; lock.unlock() }
+    }
     private var _emitBusy = false
     private var _busySince: TimeInterval = 0
     private let emit: (CGImage, TimeInterval) -> Void
@@ -935,7 +956,8 @@ private final class FrameTap: NSObject, AVCaptureVideoDataOutputSampleBufferDele
         )
         lastRaw = fpsStamp
         lastRawWall = stamp
-        lock.lock(); _lastStamp = stamp; lock.unlock()
+        let filled = MatchMath.obsFillUsesMutexPts(own: stamp, mutex: mutexPts > 0 ? mutexPts : nil)
+        lock.lock(); _lastStamp = filled; lock.unlock()
         let median = fpsSamples.isEmpty ? 0.0 : fpsSamples.sorted()[fpsSamples.count / 2]
         if median > 0, median < 12 {
             if slowSince == 0 { slowSince = fpsStamp }
@@ -975,9 +997,9 @@ private final class FrameTap: NSObject, AVCaptureVideoDataOutputSampleBufferDele
             return
         }
         if MatchMath.liveFrameTapEmitsOnCaptureQueue() {
-            emit(image, stamp)
+            emit(image, filled)
         } else {
-            DispatchQueue.main.async { self.emit(image, stamp) }
+            DispatchQueue.main.async { self.emit(image, filled) }
         }
     }
 }

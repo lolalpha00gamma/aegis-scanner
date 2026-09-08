@@ -1,3 +1,19 @@
+# Aegis 2.1.224 — PTS-Fill, Palm-skipPrint, Twin P-Slot
+
+Aegis **2.1.224 alpha** (Build 249). Helios **1.6.63** (Build 96). Nur `main`. `bugfix` mergen: nein.
+
+## Was 2.1.224 ändert
+
+2.1.223: P-Slot, Yaw-Kompass, Twin-Split persist. Danach blieb Fill tot (Helper ohne Call-Site, fremde Epoch), Helios-Hand vergiftete Prints, ●●●● taufte Twins ohne Profil.
+
+| # | Bug | Fix |
+|---|---|---|
+| 1 | Fill tot, Epoch Media vs Unix | `cameraMutexPtsWall` + FrameTap Fill |
+| 2 | Helios-Palme kein skipPrint | `cameraMutexPalm` Pixel-Box IoU 0,18 |
+| 3 | ●●●● = Prefix ●●●●● | `enrollSMReadyFromChip needProfile` |
+
+Nicht: CameraBroker, HNSW, LiveCapture off MainActor, Overlay-Metal.
+
 # Aegis 2.1.223 — P-Slot, Yaw-Kompass, Twin-Split persist
 
 Aegis **2.1.223 alpha** (Build 248). Helios **1.6.62** (Build 95). Nur `main`. `bugfix` mergen: nein.

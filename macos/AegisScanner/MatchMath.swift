@@ -1166,11 +1166,12 @@ enum MatchMath {
         now: TimeInterval,
         expectedGen: UInt32? = nil,
         pidLive: Bool? = nil,
-        pts: TimeInterval? = nil
+        pts: TimeInterval? = nil,
+        palm: (x: CGFloat, y: CGFloat, w: CGFloat)? = nil
     ) -> String? {
         guard cameraMutexWriteAllowed(existing: existing, owner: owner, now: now, pidLive: pidLive) else { return nil }
         guard cameraMutexCasAllows(existing: existing, owner: owner, expectedGen: expectedGen) else { return nil }
-        return cameraMutexLine(owner: owner, pid: pid, now: now, gen: cameraMutexBumpGen(existing), pts: pts)
+        return cameraMutexLine(owner: owner, pid: pid, now: now, gen: cameraMutexBumpGen(existing), pts: pts, palm: palm)
     }
     /// 3 s war kürzer als Continuity-Frame. Heartbeat 2 s, Stale 12.
     static func cameraMutexStale() -> TimeInterval { 12 }
@@ -1186,10 +1187,20 @@ enum MatchMath {
         return parts.last == "v2" ? 2 : 1
     }
 
-    static func cameraMutexLine(owner: String, pid: Int32, now: TimeInterval, gen: UInt32 = 0, pts: TimeInterval? = nil) -> String {
+    static func cameraMutexLine(owner: String, pid: Int32, now: TimeInterval, gen: UInt32 = 0, pts: TimeInterval? = nil, palm: (x: CGFloat, y: CGFloat, w: CGFloat)? = nil) -> String {
         let p: TimeInterval
         if let pts, pts > 0, pts.isFinite { p = pts } else { p = 0 }
+        if let palm {
+            return String(format: "%@ %d %.3f %u %.3f %.3f %.3f %.3f v2", owner, pid, now, gen, p, Double(palm.x), Double(palm.y), Double(palm.w))
+        }
         return String(format: "%@ %d %.3f %u %.3f v2", owner, pid, now, gen, p)
+    }
+
+    /// Unix-Wall, nie CMSampleBuffer-PTS. Media < 1e6 ist Session-Zeit — obsFill sonst tot.
+    static func cameraMutexPtsWall(now: TimeInterval, mediaPts: TimeInterval = 0) -> TimeInterval {
+        if now > 1_000_000 { return now }
+        if mediaPts > 1_000_000 { return mediaPts }
+        return now > 0 ? now : mediaPts
     }
 
     /// 5. Feld: gemeinsame PTS-Epoch. Fehlt bei 3-/4-Zeile.
@@ -1197,6 +1208,46 @@ enum MatchMath {
         let parts = text.split(whereSeparator: { $0 == " " || $0 == "\n" }).map(String.init)
         guard parts.count >= 5, let v = TimeInterval(parts[4]), v.isFinite, v > 0 else { return nil }
         return v
+    }
+
+    /// Palme UV vor v2. Alte 6-Felder-Zeile bleibt lesbar.
+    static func cameraMutexPalm(_ text: String) -> (x: CGFloat, y: CGFloat, w: CGFloat)? {
+        let parts = text.split(whereSeparator: { $0 == " " || $0 == "\n" }).map(String.init)
+        guard parts.count >= 9, parts.last == "v2" else { return nil }
+        guard let x = Double(parts[5]), let y = Double(parts[6]), let w = Double(parts[7]) else { return nil }
+        guard x.isFinite, y.isFinite, w.isFinite, w > 0 else { return nil }
+        return (CGFloat(x), CGFloat(y), CGFloat(w))
+    }
+
+    /// Nur Continuity: Helios-Palme und Aegis-Built-in liegen in fremden UV-Räumen.
+    static func cameraMutexPalmSkip(holder: String?, continuity: Bool) -> Bool {
+        continuity && holder == cameraMutexOwnerHelios()
+    }
+
+    static func cameraMutexPalmIoU() -> Double { 0.18 }
+
+    /// Palme UV → Pixel-Box. skipPrint sonst UV vs Pixel tot.
+    static func cameraMutexPalmBox(
+        _ palm: (x: CGFloat, y: CGFloat, w: CGFloat),
+        imageW: Double = 1,
+        imageH: Double = 1,
+        pad: Double = 1.6
+    ) -> FaceBox {
+        let sx = max(1, imageW)
+        let sy = max(1, imageH)
+        let side = max(0.04, Double(palm.w)) * pad
+        let w = side * sx
+        let h = side * sy
+        return FaceBox(
+            x: Double(palm.x) * sx - w / 2,
+            y: Double(palm.y) * sy - h / 2,
+            width: w,
+            height: h
+        )
+    }
+
+    static func cameraMutexPalmHits(face: FaceBox, palm: FaceBox?, iou: Double = 0.18) -> Bool {
+        leftoverPrintSkipHits(face: face, skipBoxes: [], iou: iou, palm: palm, palmIou: iou)
     }
 
     /// Fill-Uhr: Mutex-PTS wenn Skew klein, sonst eigene. 80 ms war kürzer als Continuity 8 fps (125 ms).
@@ -2301,8 +2352,9 @@ enum MatchMath {
         !alreadyNamed && !ready
     }
 
-    static func enrollSMReadyFromChip(_ chip: String) -> Bool {
-        chip.contains("●●●●")
+    static func enrollSMReadyFromChip(_ chip: String, needProfile: Bool = false) -> Bool {
+        if needProfile { return chip.contains("●●●●●") }
+        return chip.contains("●●●●")
     }
 
     /// People-Dup Skip: 30 s Undo-Fenster, nicht stilles Return.
@@ -7919,13 +7971,20 @@ enum MatchMath {
         !liveIds.isEmpty && liveIds.allSatisfy { skipIds.contains($0) }
     }
 
-    static func leftoverPrintSkipHits(face: FaceBox, skipBoxes: [FaceBox], iou: Double = printBudgetIoU) -> Bool {
-        skipBoxes.contains {
+    static func leftoverPrintSkipHits(face: FaceBox, skipBoxes: [FaceBox], iou: Double = printBudgetIoU, palm: FaceBox? = nil, palmIou: Double = 0.18) -> Bool {
+        if skipBoxes.contains {
             boxIoU(
                 ax: face.x, ay: face.y, aw: face.width, ah: face.height,
                 bx: $0.x, by: $0.y, bw: $0.width, bh: $0.height
             ) + 1e-9 >= iou
+        } {
+            return true
         }
+        guard let palm else { return false }
+        return boxIoU(
+            ax: face.x, ay: face.y, aw: face.width, ah: face.height,
+            bx: palm.x, by: palm.y, bw: palm.width, bh: palm.height
+        ) + 1e-9 >= palmIou
     }
 
     static func leftoverPrintSkipBoxes(
