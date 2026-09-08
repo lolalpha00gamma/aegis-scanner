@@ -1,3 +1,20 @@
+# Aegis 2.1.223 — P-Slot, Yaw-Kompass, Twin-Split persist
+
+Aegis **2.1.223 alpha** (Build 248). Helios **1.6.62** (Build 95). Nur `main`. `bugfix` mergen: nein.
+
+## Was 2.1.223 ändert
+
+2.1.222: Still-Dedup, Name-Suffix, Compact, Burst, AE-Lock, PhotoKit-Debounce. Danach zählte Profil-Yaw (±2) als ¾ — SM nie P. Twin-Split war Chip ohne Persist, leftoverPick taufte Ada↔Ben nach Restart.
+
+| # | Bug | Fix |
+|---|---|---|
+| 1 | ±2 = ¾, P tot | leftoverEnrollSlotHave.profile, SM P-Schritt |
+| 2 | Skip-Capture Profil als ¾ | enrollSMSkipCapture haveProfile |
+| 3 | Twin-Split nur Chip | twinSplit persist + leftoverPick cull |
+| 4 | Coach ohne Richtung | enrollYawCompass |
+
+Nicht: CameraBroker, HNSW, LiveCapture off MainActor, Overlay-Metal.
+
 # Aegis 2.1.222 — Still-Dedup, Name-Suffix, Compact, Burst, AE-Lock
 
 Aegis **2.1.222 alpha** (Build 247). Helios **1.6.61** (Build 94). Nur `main`. `bugfix` mergen: nein.

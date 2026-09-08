@@ -1,3 +1,35 @@
+# Aegis Vorschläge — 2026-09-08 (Pass 24, 2.1.223)
+
+Stand 2.1.223 alpha. P-Slot, Yaw-Kompass, Twin-Split persist.
+
+## Gelandet in 2.1.223
+
+- leftoverEnrollSlotHave profile / ±2
+- enrollSMChip Front→¾L→¾R→P→Blink
+- enrollYawCompass
+- twinSplitInsert + UserDefaults + leftoverPick cull
+
+## Erweiterung (neu)
+
+235. **LiveCapture off MainActor.** Detect+Print blockiert die UI. P0 nach CameraBroker.
+236. **HNSW Gallery.** Linear-Scan O(n) jede Frame.
+237. **CameraBroker XPC + IOSurface** mit Helios. Eine TCC.
+238. **Overlay CAMetalLayer 60 Hz.**
+239. **leftoverHoldTrail Disk persist.**
+240. **Glasses On/Off Templates.**
+241. **Face-Print Versioning.**
+242. **Export Embeddings JSONL.**
+243. **UMAP Cluster-View.**
+244. **Identity-Merge-Wizard.**
+245. **Helios Palm-Box Occlusion-Skip** via Mutex-Zeile.
+246. **Blink-Liveness EAR**, nicht nur SM-Chip.
+247. **Profil-Hold nicht in Frontal-EMA.** leftoverHold Bin 0 bleibt Front.
+248. **Continuity Night-IR eigene Galerie.**
+249. **Per-Camera WB-Lock** Osmo vs Phone.
+250. **Name-Lock × P-Slot** — Taufe erst nach P wenn Twins in FA-Matrix.
+
+P0: CameraBroker. Kein neues leftover*-Flag. Branch `bugfix` (2.1.15) nicht mergen.
+
 # Aegis Vorschläge — 2026-09-08 (Pass 23, 2.1.222)
 
 Stand 2.1.222 alpha. Still-Dedup, Name-Suffix, Compact, Burst, AE-Lock, PhotoKit-Debounce.

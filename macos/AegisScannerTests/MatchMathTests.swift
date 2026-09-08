@@ -4455,6 +4455,14 @@ enum MatchMathTests {
             MatchMath.leftoverEnrollSlotHave(yaw: 0.40, haveFrontal: true, haveLeft: false, haveRight: false).right,
             "Enroll ¾R aus Yaw"
         )
+        ok(
+            MatchMath.leftoverEnrollSlotHave(yaw: -0.80, haveFrontal: true, haveLeft: false, haveRight: false).profile,
+            "Enroll P aus Yaw"
+        )
+        ok(
+            !MatchMath.leftoverEnrollSlotHave(yaw: -0.80, haveFrontal: true, haveLeft: false, haveRight: false).left,
+            "Enroll P nicht ¾"
+        )
         let trackId = UUID()
         let packed = MatchMath.leftoverFaceTrackPack(
             hold: [trackId: 0.80],
@@ -4966,16 +4974,20 @@ enum MatchMathTests {
             "Coach ¾R"
         )
         ok(
-            MatchMath.enrollCoachStep(haveFrontal: true, haveLeft: true, haveRight: true, haveBlink: false) == "einmal blinzeln",
-            "Coach Blink"
+            MatchMath.enrollCoachStep(haveFrontal: true, haveLeft: true, haveRight: true, haveBlink: false) == "Profil — Kopf weiter drehen",
+            "Coach P vor Blink"
         )
         ok(
-            MatchMath.enrollCoachStep(haveFrontal: true, haveLeft: true, haveRight: true) == "einmal blinzeln",
-            "Coach Blink Default"
+            MatchMath.enrollCoachStep(haveFrontal: true, haveLeft: true, haveRight: true) == "Profil — Kopf weiter drehen",
+            "Coach P Default"
         )
         ok(
-            MatchMath.enrollCoachStep(haveFrontal: true, haveLeft: true, haveRight: true, haveBlink: true) == nil,
-            "Coach fertig"
+            MatchMath.enrollCoachStep(haveFrontal: true, haveLeft: true, haveRight: true, haveBlink: false, haveProfile: true) == "einmal blinzeln",
+            "Coach Blink nach P"
+        )
+        ok(
+            MatchMath.enrollCoachStep(haveFrontal: true, haveLeft: true, haveRight: true, haveBlink: true, haveProfile: true) == nil,
+            "Coach fertig mit P"
         )
         ok(MatchMath.leftoverCoastAtStamp(prev: nil, miss: 0, now: 10) == nil, "CoastAt Hit tot")
         ok(MatchMath.leftoverCoastAtStamp(prev: 10, miss: 0, now: 11) == nil, "CoastAt Hit wischt")
@@ -5606,11 +5618,16 @@ enum MatchMathTests {
         ok(MatchMath.enrollSMChip(haveFrontal: false, haveLeft: false, haveRight: false, haveBlink: false) == "ENROLL F", "SM start F")
         ok(MatchMath.enrollSMChip(haveFrontal: true, haveLeft: false, haveRight: false, haveBlink: false) == "ENROLL ¾L", "SM ¾L")
         ok(MatchMath.enrollSMChip(haveFrontal: true, haveLeft: true, haveRight: false, haveBlink: false) == "ENROLL ¾R", "SM ¾R")
-        ok(MatchMath.enrollSMChip(haveFrontal: true, haveLeft: true, haveRight: true, haveBlink: false) == "ENROLL blink", "SM blink")
-        ok(MatchMath.enrollSMChip(haveFrontal: true, haveLeft: true, haveRight: true, haveBlink: true) == "ENROLL ●●●●", "SM fertig")
-        ok(MatchMath.enrollSMFromBins([0, -1, 1], haveBlink: true) == "ENROLL ●●●●", "SM from bins")
+        ok(MatchMath.enrollSMChip(haveFrontal: true, haveLeft: true, haveRight: true, haveBlink: false) == "ENROLL P", "SM P vor Blink")
+        ok(MatchMath.enrollSMChip(haveFrontal: true, haveLeft: true, haveRight: true, haveBlink: false, haveProfile: true) == "ENROLL blink", "SM blink nach P")
+        ok(MatchMath.enrollSMChip(haveFrontal: true, haveLeft: true, haveRight: true, haveBlink: true) == "ENROLL ●●●●", "SM fertig ohne P")
+        ok(MatchMath.enrollSMChip(haveFrontal: true, haveLeft: true, haveRight: true, haveBlink: true, haveProfile: true) == "ENROLL ●●●●●", "SM fertig mit P")
+        ok(MatchMath.enrollSMFromBins([0, -1, 1], haveBlink: true) == "ENROLL ●●●●", "SM from bins ohne P")
+        ok(MatchMath.enrollSMFromBins([0, -1, 1, -2], haveBlink: true) == "ENROLL ●●●●●", "SM from bins mit P")
+        ok(MatchMath.enrollSMFromBins([0, -2], haveBlink: false) == "ENROLL ¾L", "SM ±2 ist nicht ¾")
         ok(MatchMath.enrollSMFromBins([0], haveBlink: false) == "ENROLL ¾L", "SM bins nur F")
-        ok(MatchMath.enrollSMReady(haveFrontal: true, haveLeft: true, haveRight: true, haveBlink: true), "SM ready")
+        ok(MatchMath.enrollSMReady(haveFrontal: true, haveLeft: true, haveRight: true, haveBlink: true), "SM ready ohne P")
+        ok(MatchMath.enrollSMReady(haveFrontal: true, haveLeft: true, haveRight: true, haveBlink: true, haveProfile: false), "SM ready P optional")
         ok(!MatchMath.enrollSMReady(haveFrontal: true, haveLeft: true, haveRight: true, haveBlink: false), "SM ohne Blink")
         near(MatchMath.gallerySoftmaxTemp(n: 1), 16, 0.01, "Galerie 1 Temp 16")
         near(MatchMath.gallerySoftmaxTemp(n: 3), 16, 0.01, "Galerie 3 Temp 16")
@@ -5669,6 +5686,8 @@ enum MatchMathTests {
         ok(!MatchMath.enrollSMSkipCapture(yaw: 0.05, haveFrontal: false, haveLeft: false, haveRight: false), "SM F leer capturt")
         ok(MatchMath.enrollSMSkipCapture(yaw: -0.40, haveFrontal: true, haveLeft: true, haveRight: false), "SM skip voll ¾L")
         ok(!MatchMath.enrollSMSkipCapture(yaw: 0.40, haveFrontal: true, haveLeft: true, haveRight: false), "SM ¾R leer capturt")
+        ok(!MatchMath.enrollSMSkipCapture(yaw: -0.80, haveFrontal: true, haveLeft: true, haveRight: true, haveProfile: false), "SM P leer capturt")
+        ok(MatchMath.enrollSMSkipCapture(yaw: 0.80, haveFrontal: true, haveLeft: true, haveRight: true, haveProfile: true), "SM skip voll P")
         ok(MatchMath.peopleAlbumStillCap() == 3, "People still cap 3")
         ok(MatchMath.peopleAlbumStillLoads(count: 8) == 3, "People stills cap")
         ok(MatchMath.peopleAlbumStillLoads(count: 1) == 1, "People 1 still")
@@ -5757,6 +5776,7 @@ enum MatchMathTests {
         ok(!MatchMath.enrollSMBlocksName(ready: true, alreadyNamed: false), "SM ready tauft")
         ok(!MatchMath.enrollSMBlocksName(ready: false, alreadyNamed: true), "Ada bleibt")
         ok(MatchMath.enrollSMReadyFromChip("ENROLL ●●●●"), "SM chip fertig")
+        ok(MatchMath.enrollSMReadyFromChip("ENROLL ●●●●●"), "SM chip 5 fertig")
         ok(!MatchMath.enrollSMReadyFromChip("ENROLL F"), "SM chip F tot")
         ok(MatchMath.leftoverLiveNameAnd(voted: "Ada", hist: ["Ada", "Ada", "Ada", "Ada", "Ada"], need: 5, enrollReady: false, alreadyNamed: false) == nil, "SM blockt Vote")
         ok(MatchMath.leftoverLiveNameAnd(voted: "Ada", hist: ["Ada", "Ada", "Ada", "Ada", "Ada"], need: 5, enrollReady: false, alreadyNamed: true) == "Ada", "SM Ada hält")
@@ -5820,6 +5840,45 @@ enum MatchMathTests {
         ok(MatchMath.photoKitDebounceAllows(last: 0, now: 10), "PhotoKit first")
         ok(!MatchMath.photoKitDebounceAllows(last: 10, now: 10.5), "PhotoKit 0,5 s tot")
         ok(MatchMath.photoKitDebounceAllows(last: 10, now: 11.3), "PhotoKit 1,2 s")
+        ok(MatchMath.enrollYawCompass(yaw: 0) == "YAW F", "Kompass F")
+        ok(MatchMath.enrollYawCompass(yaw: -0.40) == "YAW ¾L", "Kompass ¾L")
+        ok(MatchMath.enrollYawCompass(yaw: 0.40) == "YAW ¾R", "Kompass ¾R")
+        ok(MatchMath.enrollYawCompass(yaw: 0.80) == "YAW PR", "Kompass PR")
+        ok(MatchMath.enrollYawCompass(yaw: -0.80) == "YAW PL", "Kompass PL")
+        ok(MatchMath.twinSplitKey("Ben", "Ada") == "Ada≠Ben", "Twin key sort")
+        ok(MatchMath.twinSplitKey("Ada", "Ben") == "Ada≠Ben", "Twin key same")
+        let splits = MatchMath.twinSplitInsert(kept: "Ada", split: "Ben", splits: [])
+        ok(MatchMath.twinSplitBlocks(a: "Ada", b: "Ben", splits: splits), "Twin blocks Ada/Ben")
+        ok(MatchMath.twinSplitBlocks(a: "Ben", b: "Ada", splits: splits), "Twin blocks reverse")
+        ok(!MatchMath.twinSplitBlocks(a: "Ada", b: "Cara", splits: splits), "Twin Cara frei")
+        ok(!MatchMath.twinSplitBlocks(a: "Ada", b: "Ada", splits: splits), "Twin same tot")
+        let culled = MatchMath.twinSplitCull(
+            remaining: [(0, "Ada"), (1, "Ben"), (2, "Cara")],
+            leftoverName: "Ada",
+            splits: splits
+        )
+        ok(culled == [0, 2], "Twin cull Ben")
+        let round = MatchMath.twinSplitDecode(MatchMath.twinSplitEncode(splits))
+        ok(round == splits, "Twin persist roundtrip")
+        ok(MatchMath.twinSplitStoreKey() == "aegis.twinSplits", "Twin store key")
+        ok(
+            MatchMath.leftoverPick(
+                candidates: [(0, 0.50, 0.85)],
+                leftoverName: "Ada",
+                candNames: [0: "Ben"],
+                twinSplits: splits
+            ) == nil,
+            "Pick culls Twin"
+        )
+        ok(
+            MatchMath.leftoverPick(
+                candidates: [(0, 0.50, 0.85)],
+                leftoverName: "Ada",
+                candNames: [0: "Ada"],
+                twinSplits: splits
+            ) == 0,
+            "Pick hält Ada"
+        )
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

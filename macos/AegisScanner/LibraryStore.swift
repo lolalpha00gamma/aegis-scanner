@@ -55,6 +55,7 @@ final class LibraryStore: ObservableObject {
     @Published var mutexChip: String = "—"
     @Published var yawCoverageChip: String = "YAW —"
     @Published var enrollSMChip: String = "ENROLL —"
+    @Published var enrollYawChip: String = "YAW F"
     @Published var enrollQualityChip: String = "Q —"
     @Published var captureSparkChip: String = "CQ —"
     @Published var faReplayChip: String = "FA —"
@@ -68,6 +69,7 @@ final class LibraryStore: ObservableObject {
     @Published var headCountFlashUntil: TimeInterval = 0
     @Published var mergeHint: String = ""
     private var mergeUndoAt: TimeInterval?
+    private var twinSplits: Set<String> = []
 
     private let liveCapture = LiveCapture()
     private var overlayTrack: Timer?
@@ -315,6 +317,9 @@ final class LibraryStore: ObservableObject {
             cameraChoice = CameraChoice(rawValue: next) ?? .builtIn
             UserDefaults.standard.set(cameraChoice.rawValue, forKey: "aegis.cameraChoice")
         }
+        twinSplits = MatchMath.twinSplitDecode(
+            UserDefaults.standard.stringArray(forKey: MatchMath.twinSplitStoreKey())
+        )
         mutexKill = MatchMath.cameraMutexKillPref(UserDefaults.standard.bool(forKey: "aegis.mutexKill"))
         liveCapture.mutexKillEnabled = mutexKill
         installSleepWatch()
@@ -2534,11 +2539,14 @@ final class LibraryStore: ObservableObject {
             enrollBins.insert(b)
         }
         let haveF = enrollBins.contains(0)
-        let haveL = enrollBins.contains(-1) || enrollBins.contains(-2)
-        let haveR = enrollBins.contains(1) || enrollBins.contains(2)
+        let haveL = enrollBins.contains(-1)
+        let haveR = enrollBins.contains(1)
+        let haveP = enrollBins.contains(-2) || enrollBins.contains(2)
         for id in liveIds {
             guard let yaw = liveYaw[id] else { continue }
-            if MatchMath.enrollSMSkipCapture(yaw: yaw, haveFrontal: haveF, haveLeft: haveL, haveRight: haveR) {
+            if MatchMath.enrollSMSkipCapture(
+                yaw: yaw, haveFrontal: haveF, haveLeft: haveL, haveRight: haveR, haveProfile: haveP
+            ) {
                 skipIds.insert(id)
             }
         }
@@ -3953,15 +3961,20 @@ final class LibraryStore: ObservableObject {
                         let slots = MatchMath.leftoverEnrollSlotHave(
                             yaw: face.quality.yaw,
                             haveFrontal: bins.contains(0),
-                            haveLeft: bins.contains(-1) || bins.contains(-2),
-                            haveRight: bins.contains(1) || bins.contains(2)
+                            haveLeft: bins.contains(-1),
+                            haveRight: bins.contains(1),
+                            haveProfile: bins.contains(-2) || bins.contains(2)
                         )
                         if slots.frontal { bins.insert(0) }
                         if slots.left { bins.insert(-1) }
                         if slots.right { bins.insert(1) }
+                        if slots.profile { bins.insert(face.quality.yaw < 0 ? -2 : 2) }
                     }
                     let blink = adopted.contains { leftoverBlinkSeen(faceId: $0.id) }
                     enrollSMChip = MatchMath.enrollSMFromBins(bins, haveBlink: blink)
+                    if let pose = adopted.first {
+                        enrollYawChip = MatchMath.enrollYawCompass(yaw: pose.quality.yaw)
+                    }
                     let capQ = adopted.map(\.quality.capture).max() ?? 0
                     let sharpQ = adopted.map(\.quality.sharpness).max() ?? 0
                     enrollQualityChip = MatchMath.enrollQualityMeter(
@@ -4053,12 +4066,15 @@ final class LibraryStore: ObservableObject {
             var leftoverPins = 0
             for id in order {
                 guard let item = leftoverItems.first(where: { $0.old.id == id }) else { continue }
-                let remaining = item.cands.filter { cand in
+                var remaining = item.cands.filter { cand in
                     let face = adopted[cand.index]
                     return MatchMath.leftoverAdoptAllowed(
                         adoptedEnrolled: namedTracks.contains(face.id) || enrolled.contains(face.id)
                     ) && !used.contains(face.id)
                 }
+                let leftoverHeldName = leftoverStoreName(for: item.old.id)
+                    ?? leftoverNameLockHeld[item.old.id]
+                    ?? identities.first(where: { $0.faceIds.contains(item.old.id) })?.name
                 var sharp: [Int: Double] = [:]
                 var sameSlot: [Int: Bool] = [:]
                 var yawAbs: [Int: Double] = [:]
@@ -4085,13 +4101,25 @@ final class LibraryStore: ObservableObject {
                     sameSlot[cand.index] = sticky.slot == oldSticky.slot
                 }
                 var liveIds: [Int: UUID] = [:]
+                var candNames: [Int: String] = [:]
                 for cand in remaining {
                     if let id = matches.first(where: { $0.faceId == adopted[cand.index].id })?
                         .hits.first(where: { $0.strategy == .aegis })?.identityId
                     {
                         liveIds[cand.index] = id
+                        if let n = identities.first(where: { $0.id == id })?.name { candNames[cand.index] = n }
+                    }
+                    if candNames[cand.index] == nil {
+                        candNames[cand.index] = leftoverStoreName(for: adopted[cand.index].id)
+                            ?? leftoverNameLockHeld[adopted[cand.index].id]
                     }
                 }
+                let keepIdx = Set(MatchMath.twinSplitCull(
+                    remaining: remaining.map { (index: $0.index, name: candNames[$0.index] ?? "") },
+                    leftoverName: leftoverHeldName,
+                    splits: twinSplits
+                ))
+                remaining = remaining.filter { keepIdx.contains($0.index) }
                 let aegisHit = matches.first { $0.faceId == old.id }?.hits.first { $0.strategy == .aegis }
                 let liveYaw = remaining.max(by: { $0.iou < $1.iou }).flatMap { yawAbs[$0.index] }
                 let lookYaw = MatchMath.leftoverLookawayYawOf(oldYaw: abs(old.quality.yaw), liveYaw: liveYaw)
@@ -4203,7 +4231,10 @@ final class LibraryStore: ObservableObject {
                     probeMasked: FaceEngine.lowerFaceOccluded(old),
                     refMasked: Dictionary(uniqueKeysWithValues: remaining.map {
                         ($0.index, FaceEngine.lowerFaceOccluded(adopted[$0.index]))
-                    })
+                    }),
+                    twinSplits: twinSplits,
+                    leftoverName: leftoverHeldName,
+                    candNames: candNames
                 ) else {
                     if holdUnsure {
                         if let best = remaining.max(by: { $0.iou < $1.iou }) {
@@ -5213,6 +5244,11 @@ final class LibraryStore: ObservableObject {
         if hits > 0 {
             if let split = MatchMath.twinAutoSplit(heat: heat) {
                 faReplayChip = MatchMath.twinAutoSplitChip(kept: split.kept, split: split.split)
+                twinSplits = MatchMath.twinSplitInsert(kept: split.kept, split: split.split, splits: twinSplits)
+                UserDefaults.standard.set(
+                    MatchMath.twinSplitEncode(twinSplits),
+                    forKey: MatchMath.twinSplitStoreKey()
+                )
             } else {
                 faReplayChip = MatchMath.falseAcceptPairChip(heat)
             }

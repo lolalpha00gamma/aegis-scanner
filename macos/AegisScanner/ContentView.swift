@@ -87,8 +87,16 @@ struct ContentView: View {
             if store.liveActive, store.enrollSMChip != "ENROLL —" {
                 Text(store.enrollSMChip)
                     .font(.system(.caption, design: .monospaced))
-                    .foregroundStyle(store.enrollSMChip == "ENROLL ●●●●" ? .green : .orange)
-                    .help("Enroll-Schritte Front → ¾L → ¾R → Blink. Chip treibt den nächsten Schritt.")
+                    .foregroundStyle(
+                        store.enrollSMChip.contains("●●●●") ? .green : .orange
+                    )
+                    .help("Enroll-Schritte Front → ¾L → ¾R → P → Blink. ●●●● ready, ●●●●● mit Profil.")
+            }
+            if store.liveActive, store.enrollYawChip != "YAW F" || store.enrollSMChip != "ENROLL —" {
+                Text(store.enrollYawChip)
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(.cyan)
+                    .help("Live-Yaw-Kompass. F / ¾L / ¾R / PL / PR.")
             }
             if store.liveActive, store.enrollQualityChip != "Q —" {
                 Text(store.enrollQualityChip)

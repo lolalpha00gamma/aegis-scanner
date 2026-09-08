@@ -989,25 +989,36 @@ enum FaceEngine {
         var haveQ = false
         var haveL = false
         var haveR = false
+        var haveP = false
         if let identity {
             let c = poseCoverage(identity: identity, faces: faces)
             haveF = c.frontal >= 1
             haveQ = c.threeQuarter >= 1
+            haveP = c.profile >= 1
             for f in faces where identity.faceIds.contains(f.id) {
                 let slots = MatchMath.leftoverEnrollSlotHave(
-                    yaw: f.quality.yaw, haveFrontal: haveF, haveLeft: haveL, haveRight: haveR
+                    yaw: f.quality.yaw,
+                    haveFrontal: haveF,
+                    haveLeft: haveL,
+                    haveRight: haveR,
+                    haveProfile: haveP
                 )
                 haveF = slots.frontal
                 haveL = slots.left
                 haveR = slots.right
+                haveP = slots.profile
             }
         }
         let coach = MatchMath.enrollmentCoach(haveFrontal: haveF, haveThreeQuarter: haveQ, yaw: face.quality.yaw)
         if let coach { return coach }
-        if let step = MatchMath.enrollCoachStep(haveFrontal: haveF, haveLeft: haveL, haveRight: haveR, haveBlink: haveBlink) {
+        if let step = MatchMath.enrollCoachStep(
+            haveFrontal: haveF, haveLeft: haveL, haveRight: haveR, haveBlink: haveBlink, haveProfile: haveP
+        ) {
             return step
         }
-        if let chip = MatchMath.leftoverEnrollSlotChip(haveFrontal: haveF, haveLeft: haveL, haveRight: haveR) {
+        if let chip = MatchMath.leftoverEnrollSlotChip(
+            haveFrontal: haveF, haveLeft: haveL, haveRight: haveR, haveProfile: haveP
+        ) {
             return chip
         }
         return nil

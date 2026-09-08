@@ -290,7 +290,10 @@ enum MatchMath {
         iouOnly: Bool = false,
         holdTrail: [Double] = [],
         probeMasked: Bool = false,
-        refMasked: [Int: Bool] = [:]
+        refMasked: [Int: Bool] = [:],
+        twinSplits: Set<String> = [],
+        leftoverName: String? = nil,
+        candNames: [Int: String] = [:]
     ) -> Int? {
         if leftoverLookawayBlocks(yawAbs: lookawayYaw, enrolled: lookawayEnrolled) {
             return nil
@@ -379,6 +382,12 @@ enum MatchMath {
         if !aspectOk.isEmpty {
             printable = printable.filter {
                 leftoverPickAspect(ok: aspectOk[$0.index], cosine: $0.cosine)
+            }
+        }
+        if !twinSplits.isEmpty {
+            printable = printable.filter { cand in
+                let name = candNames[cand.index] ?? ""
+                return !twinSplitBlocks(a: leftoverName ?? "", b: name, splits: twinSplits)
             }
         }
         guard !printable.isEmpty else { return nil }
@@ -2339,6 +2348,49 @@ enum MatchMath {
         "SPLIT \(split)≠\(kept)"
     }
 
+    /// Persistente Twin-Paare. Chip allein ließ Ada↔Ben nach Restart wieder taufen.
+    static func twinSplitStoreKey() -> String { "aegis.twinSplits" }
+
+    static func twinSplitKey(_ a: String, _ b: String) -> String {
+        let x = a.trimmingCharacters(in: .whitespacesAndNewlines)
+        let y = b.trimmingCharacters(in: .whitespacesAndNewlines)
+        if x.isEmpty || y.isEmpty { return "" }
+        return x <= y ? "\(x)≠\(y)" : "\(y)≠\(x)"
+    }
+
+    static func twinSplitBlocks(a: String, b: String, splits: Set<String>) -> Bool {
+        let key = twinSplitKey(a, b)
+        guard !key.isEmpty, a != b else { return false }
+        return splits.contains(key)
+    }
+
+    static func twinSplitInsert(kept: String, split: String, splits: Set<String>) -> Set<String> {
+        let key = twinSplitKey(kept, split)
+        guard !key.isEmpty else { return splits }
+        var out = splits
+        out.insert(key)
+        return out
+    }
+
+    static func twinSplitCull(
+        remaining: [(index: Int, name: String)],
+        leftoverName: String?,
+        splits: Set<String>
+    ) -> [Int] {
+        remaining.compactMap { row in
+            if twinSplitBlocks(a: leftoverName ?? "", b: row.name, splits: splits) { return nil }
+            return row.index
+        }
+    }
+
+    static func twinSplitEncode(_ splits: Set<String>) -> [String] {
+        Array(splits.filter { !$0.isEmpty }).sorted()
+    }
+
+    static func twinSplitDecode(_ raw: [String]?) -> Set<String> {
+        Set((raw ?? []).filter { !$0.isEmpty })
+    }
+
     /// Maske/Schal vs volles Template. Cosine 0,64 tauft den Nachbarn.
     static func maskTwinFloor() -> Double { 0.78 }
 
@@ -2448,26 +2500,52 @@ enum MatchMath {
         return heat.prefix(max(1, cap)).map { "\($0.pair)×\($0.n)" }.joined(separator: "  ")
     }
 
-    /// Front → ¾L → ¾R → Blink. Chip treibt den Schritt, nicht nur Coach-Text.
-    static func enrollSMChip(haveFrontal: Bool, haveLeft: Bool, haveRight: Bool, haveBlink: Bool) -> String {
-        if haveFrontal && haveLeft && haveRight && haveBlink { return "ENROLL ●●●●" }
+    /// Front → ¾L → ¾R → P → Blink. ±2 ist Profil, nicht ¾.
+    /// Ready bleibt F+L+R+Blink — P ist Extra (●●●●●), nicht Pflicht.
+    static func enrollSMChip(
+        haveFrontal: Bool,
+        haveLeft: Bool,
+        haveRight: Bool,
+        haveBlink: Bool,
+        haveProfile: Bool = false
+    ) -> String {
+        if haveFrontal && haveLeft && haveRight && haveBlink {
+            return haveProfile ? "ENROLL ●●●●●" : "ENROLL ●●●●"
+        }
         if !haveFrontal { return "ENROLL F" }
         if !haveLeft { return "ENROLL ¾L" }
         if !haveRight { return "ENROLL ¾R" }
+        if !haveProfile { return "ENROLL P" }
         return "ENROLL blink"
     }
 
-    static func enrollSMReady(haveFrontal: Bool, haveLeft: Bool, haveRight: Bool, haveBlink: Bool) -> Bool {
+    static func enrollSMReady(
+        haveFrontal: Bool,
+        haveLeft: Bool,
+        haveRight: Bool,
+        haveBlink: Bool,
+        haveProfile: Bool = false
+    ) -> Bool {
         haveFrontal && haveLeft && haveRight && haveBlink
     }
 
     static func enrollSMFromBins(_ bins: Set<Int>, haveBlink: Bool) -> String {
         enrollSMChip(
             haveFrontal: bins.contains(0),
-            haveLeft: bins.contains(-1) || bins.contains(-2),
-            haveRight: bins.contains(1) || bins.contains(2),
-            haveBlink: haveBlink
+            haveLeft: bins.contains(-1),
+            haveRight: bins.contains(1),
+            haveBlink: haveBlink,
+            haveProfile: bins.contains(-2) || bins.contains(2)
         )
+    }
+
+    /// Live-Yaw als Kompass. Coach sagte „¾ fehlt“, nicht wohin.
+    static func enrollYawCompass(yaw: Double) -> String {
+        let a = abs(yaw)
+        if a < 0.28 { return "YAW F" }
+        let side = yaw < 0 ? "L" : "R"
+        if a < 0.70 { return "YAW ¾\(side)" }
+        return "YAW P\(side)"
     }
 
     /// Helios 1.5.58: Coordinator drehte jeden Frame. Box 90°, leftover stiehlt.
@@ -9197,12 +9275,18 @@ enum MatchMath {
         return FaceBox(x: x, y: y, width: w, height: h)
     }
 
-    /// 3 Yaw-Slots. Coach kannte nur F+¾, ¾R blieb unsichtbar.
-    static func leftoverEnrollSlotChip(haveFrontal: Bool, haveLeft: Bool, haveRight: Bool) -> String? {
+    /// 4 Yaw-Slots. ±2 war ¾, P blieb unsichtbar.
+    static func leftoverEnrollSlotChip(
+        haveFrontal: Bool,
+        haveLeft: Bool,
+        haveRight: Bool,
+        haveProfile: Bool = true
+    ) -> String? {
         var miss: [String] = []
         if !haveFrontal { miss.append("F") }
         if !haveLeft { miss.append("¾L") }
         if !haveRight { miss.append("¾R") }
+        if !haveProfile { miss.append("P") }
         return miss.isEmpty ? nil : "enroll " + miss.joined(separator: " ")
     }
 
@@ -9210,42 +9294,50 @@ enum MatchMath {
         yaw: Double,
         haveFrontal: Bool,
         haveLeft: Bool,
-        haveRight: Bool
-    ) -> (frontal: Bool, left: Bool, right: Bool) {
+        haveRight: Bool,
+        haveProfile: Bool = false
+    ) -> (frontal: Bool, left: Bool, right: Bool, profile: Bool) {
         var f = haveFrontal
         var l = haveLeft
         var r = haveRight
+        var p = haveProfile
         let a = abs(yaw)
         if a < 0.28 { f = true }
         else if a < 0.70 {
             if yaw < 0 { l = true } else { r = true }
+        } else {
+            p = true
         }
-        return (f, l, r)
+        return (f, l, r, p)
     }
 
-    /// Volle Bins nicht nochmal capturen. Frontal voll → Skip bei Yaw ≈ 0.
+    /// Volle Bins nicht nochmal capturen. Profil |yaw|≥0,70 ist P, nicht ¾.
     static func enrollSMSkipCapture(
         yaw: Double,
         haveFrontal: Bool,
         haveLeft: Bool,
-        haveRight: Bool
+        haveRight: Bool,
+        haveProfile: Bool = false
     ) -> Bool {
         let a = abs(yaw)
         if a < 0.28 { return haveFrontal }
+        if a >= 0.70 { return haveProfile }
         if yaw < 0 { return haveLeft }
         return haveRight
     }
 
-    /// Front → ¾L → ¾R → Blink. Default haveBlink false — sonst Coach tot am Call-Site.
+    /// Front → ¾L → ¾R → P → Blink. haveProfile default false = P-Schritt sichtbar.
     static func enrollCoachStep(
         haveFrontal: Bool,
         haveLeft: Bool,
         haveRight: Bool,
-        haveBlink: Bool = false
+        haveBlink: Bool = false,
+        haveProfile: Bool = false
     ) -> String? {
         if !haveFrontal { return "Blick zur Kamera" }
         if !haveLeft { return "Kopf nach links drehen (¾)" }
         if !haveRight { return "Kopf nach rechts drehen (¾)" }
+        if !haveProfile { return "Profil — Kopf weiter drehen" }
         if !haveBlink { return "einmal blinzeln" }
         return nil
     }

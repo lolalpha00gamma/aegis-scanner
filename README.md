@@ -1,3 +1,29 @@
+# Aegis **2.1.223 alpha**
+
+
+
+Direkt laden:
+- [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
+- [Releases](https://github.com/lolalpha00gamma/aegis-scanner/releases)
+
+Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
+## Installieren
+
+1. [Aegis.dmg](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg) öffnen
+2. **Aegis** in den Ordner Programme ziehen
+3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
+
+macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.223 alpha
+
+Warum Enroll und Twins schlecht saßen: ±2 (Profil) zählte als ¾, P-Slot wurde nie geschrieben, SM sprang über Profil, Twin-Split war nur ein Chip und Ada taufte Ben nach Restart.
+
+- **P-Slot echt.** `leftoverEnrollSlotHave` schreibt ±2. SM Front → ¾L → ¾R → P → Blink. Ready bleibt F+L+R+Blink (●●●●); mit Profil ●●●●●.
+- **Yaw-Kompass.** `enrollYawCompass` live F / ¾L / ¾R / PL / PR.
+- **Twin-Split persist.** `twinSplitInsert` + UserDefaults `aegis.twinSplits`. `twinSplitCull` in leftoverPick. FA-Replay schreibt das Paar.
+- Tests + VERSION = Models = MARKETING 2.1.223 (Build 248). Schema 15 bleibt.
+
 # Aegis **2.1.222 alpha**
 
 
