@@ -96,6 +96,12 @@ struct ContentView: View {
                     .foregroundStyle(store.enrollQualityChip.contains("schwach") ? .orange : .mint)
                     .help("Enrollment-Qualität: Capture × Schärfe × Yaw-Coverage. Schwach = kein Print.")
             }
+            if store.liveActive, store.captureSparkChip != "CQ —" {
+                Text(store.captureSparkChip)
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(store.captureSparkChip.contains("skip") ? .orange : .mint)
+                    .help("Capture-Quality Spark. skip = Print nicht geschrieben.")
+            }
             if store.faReplayChip != "FA —" {
                 Text(store.faReplayChip)
                     .font(.system(.caption, design: .monospaced))

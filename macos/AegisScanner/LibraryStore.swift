@@ -55,6 +55,7 @@ final class LibraryStore: ObservableObject {
     @Published var yawCoverageChip: String = "YAW —"
     @Published var enrollSMChip: String = "ENROLL —"
     @Published var enrollQualityChip: String = "Q —"
+    @Published var captureSparkChip: String = "CQ —"
     @Published var faReplayChip: String = "FA —"
     @Published var faReplayMatrix: String = "FA —"
     @Published var overlayBeat: TimeInterval = 0
@@ -65,6 +66,7 @@ final class LibraryStore: ObservableObject {
     @Published var swapFlashUntil: TimeInterval = 0
     @Published var headCountFlashUntil: TimeInterval = 0
     @Published var mergeHint: String = ""
+    private var mergeUndoAt: TimeInterval?
 
     private let liveCapture = LiveCapture()
     private var overlayTrack: Timer?
@@ -1307,7 +1309,9 @@ final class LibraryStore: ObservableObject {
                 hist: hist,
                 need: need,
                 locked: MatchMath.leftoverNameLockBlocks(until: leftoverNameLockUntil[fid], now: frameNow),
-                held: liveNameLock[fid]?.uuidString
+                held: liveNameLock[fid]?.uuidString,
+                enrollReady: MatchMath.enrollSMReadyFromChip(enrollSMChip),
+                alreadyNamed: liveNameLock[fid] != nil
             )
             if let voted, !voted.isEmpty {
                 liveNameVoteAt[fid] = frameNow
@@ -2348,6 +2352,7 @@ final class LibraryStore: ObservableObject {
         yawCoverageChip = "YAW —"
         enrollSMChip = "ENROLL —"
         enrollQualityChip = "Q —"
+        captureSparkChip = "CQ —"
         faReplayChip = "FA —"
         faReplayMatrix = "FA —"
         faLogLastDecided = [:]
@@ -3961,6 +3966,7 @@ final class LibraryStore: ObservableObject {
                         sharpness: sharpQ,
                         yawCoverage: MatchMath.printYawCoverageBest(cached: leftoverPrintCache)
                     )
+                    captureSparkChip = MatchMath.captureQualitySpark(capQ)
                 }
                 let from = leftoverLastHash[face.id]
                 if let from, !ranked.isEmpty, from != ranked {
@@ -4189,7 +4195,8 @@ final class LibraryStore: ObservableObject {
                     holdOccupied: leftoverOccupiedHashes(except: old.id),
                     holdOnlyUnsure: holdUnsure,
                     gallery: identities.count,
-                    iouOnly: iouOnly
+                    iouOnly: iouOnly,
+                    holdTrail: leftoverHoldTrail[old.id] ?? []
                 ) else {
                     if holdUnsure {
                         if let best = remaining.max(by: { $0.iou < $1.iou }) {
@@ -5267,6 +5274,8 @@ final class LibraryStore: ObservableObject {
                             identities: self.identities,
                             faces: self.faces
                         ), MatchMath.peopleAlbumDuplicate(cosine: hit.1) {
+                            self.mergeUndoAt = Date().timeIntervalSince1970
+                            self.mergeHint = MatchMath.mergeUndoChip(kept: hit.0.name, skipped: name)
                             return
                         }
                     }

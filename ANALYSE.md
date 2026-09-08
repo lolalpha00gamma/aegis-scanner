@@ -1,3 +1,20 @@
+# Aegis 2.1.219 — Cosine-Median, Enroll-Liveness, Merge-Undo, Capture-Spark
+
+Aegis **2.1.219 alpha** (Build 244). Helios **1.6.57** (Build 90). Nur `main`. `bugfix` mergen: nein.
+
+## Was 2.1.219 ändert
+
+2.1.218: Lookalike, Night/IR, Guest-TTL, Hidden-Album. Danach taufte ein 8-Hz-Spike (0,91 dann 0,70) über EMA. Enroll-SM war nur Chip — ein Frontal tauft Unnamed. People-Dup skippt still. Capture-Skip unsichtbar.
+
+| # | Bug | Fix |
+|---|---|---|
+| 1 | EMA-Spike tauft | `cosineTickMedian` 3 Ticks |
+| 2 | Chip-only Enroll | `enrollSMBlocksName` Pflicht |
+| 3 | People-Dup still | `mergeUndoChip` 30 s |
+| 4 | Capture-Skip tot | `captureQualitySpark` |
+
+Nicht: CameraBroker, HNSW, LiveCapture off MainActor, Overlay-Metal.
+
 # Aegis 2.1.218 — Lookalike Negative, Night/IR Gate, Guest-TTL, Hidden-Album
 
 Aegis **2.1.218 alpha** (Build 243). Helios **1.6.56** (Build 89). Nur `main`. `bugfix` mergen: nein.

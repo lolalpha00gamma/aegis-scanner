@@ -287,7 +287,8 @@ enum MatchMath {
         holdOccupied: [String] = [],
         holdOnlyUnsure: Bool = false,
         gallery: Int = 0,
-        iouOnly: Bool = false
+        iouOnly: Bool = false,
+        holdTrail: [Double] = []
     ) -> Int? {
         if leftoverLookawayBlocks(yawAbs: lookawayYaw, enrolled: lookawayEnrolled) {
             return nil
@@ -344,7 +345,8 @@ enum MatchMath {
                     raw: leftoverPickPrint(raw: $0.cosine, smoothed: holdOf($0.index), holdOnlyUnsure: holdOnlyUnsure),
                     prev: holdOf($0.index),
                     dt: dt,
-                    captureJump: leftoverCaptureJump(prev: session, next: liveCap($0.index))
+                    captureJump: leftoverCaptureJump(prev: session, next: liveCap($0.index)),
+                    trail: holdTrail
                 )
             )
         }
@@ -1049,8 +1051,9 @@ enum MatchMath {
 
     /// Mehrheit UND 3 gleiche Ticks. Mehrheit allein springt Geschwister.
     /// JUMP-LOCK: neue Majority tot, Overlay hält `held` — nil wischt sonst den Namen.
-    static func leftoverLiveNameAnd(voted: String?, hist: [String], need: Int = 3, locked: Bool = false, held: String? = nil) -> String? {
+    static func leftoverLiveNameAnd(voted: String?, hist: [String], need: Int = 3, locked: Bool = false, held: String? = nil, enrollReady: Bool = true, alreadyNamed: Bool = true) -> String? {
         if locked { return held }
+        if enrollSMBlocksName(ready: enrollReady, alreadyNamed: alreadyNamed) { return nil }
         guard let voted, leftoverLiveNameHolds(hist, need: need) == voted else { return nil }
         return voted
     }
@@ -2196,6 +2199,50 @@ enum MatchMath {
         if t.isEmpty { return false }
         return t == "hidden" || t == "ausgeblendet" || t.contains("hidden album")
             || t == "recently deleted" || t == "zuletzt gelöscht" || t.contains("gelöscht")
+    }
+
+    /// 3-Tick Median. EMA 0,91/0,70/0,72 → 0,78 taufte. Median 0,72 hält.
+    static func cosineTickMedianNeed() -> Int { 3 }
+
+    static func cosineTickMedian(_ ticks: [Double]) -> Double? {
+        let xs = ticks.filter { $0.isFinite }.sorted()
+        guard !xs.isEmpty else { return nil }
+        if xs.count == 1 { return xs[0] }
+        let mid = xs.count / 2
+        if xs.count % 2 == 1 { return xs[mid] }
+        return (xs[mid - 1] + xs[mid]) / 2
+    }
+
+    /// Unnamed ohne Front+¾L+¾R+Blink nicht taufen. Chip allein ließ 1 Frontal durch.
+    static func enrollSMBlocksName(ready: Bool, alreadyNamed: Bool) -> Bool {
+        !alreadyNamed && !ready
+    }
+
+    static func enrollSMReadyFromChip(_ chip: String) -> Bool {
+        chip.contains("●●●●")
+    }
+
+    /// People-Dup Skip: 30 s Undo-Fenster, nicht stilles Return.
+    static func mergeUndoNeed() -> TimeInterval { 30 }
+
+    static func mergeUndoHolds(mergedAt: TimeInterval?, now: TimeInterval, ttl: TimeInterval = 30) -> Bool {
+        guard let t = mergedAt else { return false }
+        return now - t >= 0 && now - t < ttl
+    }
+
+    static func mergeUndoChip(kept: String, skipped: String) -> String {
+        let a = kept.isEmpty ? "?" : kept
+        let b = skipped.isEmpty ? "?" : skipped
+        return "UNDO \(b)→\(a) 30s"
+    }
+
+    /// Overlay-Spark: warum der Print skipped / gehalten wurde.
+    static func captureQualitySpark(_ quality: Double, skip: Bool? = nil) -> String {
+        let s = skip ?? printCaptureQualitySkip(quality)
+        let q = Int((max(0, min(1, quality)) * 100).rounded())
+        if s { return "CQ \(q) · skip" }
+        if q < 40 { return "CQ \(q)" }
+        return "CQ \(q)"
     }
 
     /// authorized = 3, limited = 4. Restricted/denied tot.
@@ -7490,8 +7537,12 @@ enum MatchMath {
 
     /// Glättung vor leftoverPick. Roh 0,70 / Hold 0,64 → 0,66, nicht 0,70.
     /// AE-Sprung: α 0,08, sonst Hold in einem Tick umgeschrieben.
-    static func leftoverHoldSmooth(raw: Double?, prev: Double?, dt: TimeInterval = 0.016, captureJump: Double = 0) -> Double? {
+    static func leftoverHoldSmooth(raw: Double?, prev: Double?, dt: TimeInterval = 0.016, captureJump: Double = 0, trail: [Double] = []) -> Double? {
         guard let raw else { return nil }
+        if trail.count >= 2 {
+            let ticks = leftoverHoldTrailCap(trail + [raw], cap: cosineTickMedianNeed())
+            if let med = cosineTickMedian(ticks) { return med }
+        }
         return leftoverHoldEMA(prev: prev, next: raw, alpha: leftoverHoldAlpha(dt: dt, captureJump: captureJump))
     }
 

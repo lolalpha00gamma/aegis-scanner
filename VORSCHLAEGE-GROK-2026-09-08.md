@@ -1,3 +1,29 @@
+# Aegis Vorschläge — 2026-09-08 (Pass 20, 2.1.219)
+
+Stand 2.1.219 alpha. Median, Enroll-Liveness, Merge-Undo, Capture-Spark.
+
+## Gelandet in 2.1.219
+
+- cosineTickMedian / leftoverHoldSmooth(trail:)
+- enrollSMBlocksName / enrollSMReadyFromChip
+- mergeUndoHolds / mergeUndoChip
+- captureQualitySpark CQ-Chip
+
+## Erweiterung (neu)
+
+191. **Print-Cache persist** Disk.
+192. **LiveCapture off MainActor.**
+193. **Glasses On/Off Templates.**
+194. **Per-Camera WB-Lock.**
+195. **Auto-Split Twins** FA-Matrix.
+196. **HNSW Gallery.**
+197. **Enrollment Hard-Gate** auch People-Seed.
+198. **Face-Print Versioning.**
+199. **Export Embeddings** JSONL.
+200. **UMAP Cluster-View.**
+
+P0: CameraBroker. Kein neues leftover*-Flag.
+
 # Aegis Vorschläge — 2026-09-08 (Pass 19, 2.1.218)
 
 Stand 2.1.218 alpha. Lookalike, Night/IR, Guest-TTL, Hidden-Album.

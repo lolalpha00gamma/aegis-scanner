@@ -1,3 +1,43 @@
+# 2.1.219 — Cosine-Median, Enroll-Liveness, Merge-Undo, Capture-Spark.
+
+## In 2.1.219 wirklich im Code
+
+2.1.218 Lookalike, Night/IR, Guest-TTL, Hidden. EMA ließ 0,91/0,70 durch. Enroll-SM nur Chip. People-Dup still. Capture-Skip unsichtbar.
+
+1. **Cosine 3-Tick Median.** `cosineTickMedian` in `leftoverHoldSmooth(trail:)`.
+2. **Enrollment Liveness Pflicht.** `enrollSMBlocksName` / `enrollSMReadyFromChip`.
+3. **Merge-Undo 30 s.** `mergeUndoHolds` + Chip nach People-Dup.
+4. **Capture-Quality Spark.** `captureQualitySpark` Overlay.
+5. Tests + VERSION = Models = MARKETING 2.1.219 (Build 244). Schema 15 bleibt.
+
+## Erweiterung (neu, 2.1.219)
+
+1. **CameraBroker XPC + IOSurface** mit Helios. Eine TCC. P0.
+2. **gallery ANN / HNSW** nach Print-Index.
+3. **Identity-Merge-Wizard** Cosine 0,89–0,94 + Pairwise-Heatmap.
+4. **Print-Cache persist** auf Disk (RAM tot nach Restart).
+5. **LiveCapture nicht @MainActor.**
+6. **Face-Print Versioning** nach Vision-Modellwechsel.
+7. **RAW/HEIC Watch-Folder** ohne JPEG-Probe.
+8. **Export Embeddings** JSONL für Offline-HNSW.
+9. **UMAP Cluster-View** der Galerie.
+10. **Glasses On/Off Twin-Templates.**
+11. **Per-Camera WB-Lock** damit Nacht-IR Prints nicht driftet.
+12. **Auto-Split Twins** aus FA-Matrix.
+13. **P-Slot Maske/Schal**, Brille Twin-Veto.
+14. **ReID-Graph** Hold-Trail.
+15. **Stereo Built-in + Continuity** Disparität als Yaw-Prior.
+16. **Overlay CAMetalLayer 60 Hz.**
+17. **Gemeinsamer CVPixelBuffer** Detect+Print.
+18. **Drop-in `.mlmodel`** Print-Backbone.
+19. **gallery.json.bak Rotate 3.**
+20. **mmap leftover-Boxen** Helios↔Aegis Palm-Occlusion.
+21. **Video-Cut ReID** über Szenenwechsel.
+22. **Enrollment Liveness Front→¾L→¾R als Hard-Gate** auch für People-Seed.
+23. **Cosine-Median persist** in leftoverHoldTrail Disk.
+
+P0 CameraBroker. Kein neues leftover*-Flag.
+
 # 2.1.218 — Lookalike Negative, Night/IR Gate, Guest-TTL, Hidden-Album.
 
 ## In 2.1.218 wirklich im Code

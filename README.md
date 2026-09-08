@@ -1,4 +1,31 @@
-# Aegis **2.1.218 alpha**
+# Aegis **2.1.219 alpha**
+
+
+
+Direkt laden:
+- [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
+- [Releases](https://github.com/lolalpha00gamma/aegis-scanner/releases)
+
+Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
+## Installieren
+
+1. [Aegis.dmg](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg) öffnen
+2. **Aegis** in den Ordner Programme ziehen
+3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
+
+macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.219 alpha
+
+2.1.218 Lookalike, Night/IR, Guest-TTL, Hidden-Album. Ein Continuity-Spike (0,91 dann 0,70) taufte über EMA. Enroll-SM war nur Chip. People-Dup skippt still. Capture-Skip unsichtbar.
+
+- **Cosine 3-Tick Median.** Spike 0,91/0,70/0,72 → 0,72, nicht EMA 0,78.
+- **Enrollment Liveness Pflicht.** Unnamed ohne Front+¾L+¾R+Blink tauft nicht.
+- **Merge-Undo 30 s.** People-Dup zeigt `UNDO … 30s` statt stilles Skip.
+- **Capture-Quality Spark.** Overlay `CQ n · skip`.
+- Tests + VERSION = Models = MARKETING 2.1.219 (Build 244). Schema 15 bleibt.
+
+## Neu in 2.1.218 alpha
 
 
 
