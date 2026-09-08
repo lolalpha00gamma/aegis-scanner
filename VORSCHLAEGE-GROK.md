@@ -1,3 +1,47 @@
+# Nachtrag 2026-09-08 — 2.1.203 / 1.6.41 (kein Merge von `bugfix`)
+
+Aegis `lolalpha00gamma/aegis-scanner` **2.1.203 alpha** (Build 228).
+Helios `lolalpha00gamma/Helios` **1.6.41** (Build 74).
+Nur `main`. Overlay Twin-Chip. Helios AX-TTL sampleDt, Drag×dt, Format-Score gemessen, Track-Dropout.
+
+## Warum es schlecht wirkte (dieser Pass)
+
+1. **leftoverHoldBinSignedChip tot.** leftoverHoldLabel schrieb „BIN 1“. ¾L und ¾R unsichtbar obwohl Hold-Keys signed.
+2. Helios **AX-Cache dt 0,04.** Continuity-Frame 125 ms — Cache nie frisch, hitTest jeden Tick.
+3. **pinchDragNeed 0,45** = ein 8-fps-Palm-Jitter = Zug statt Klick.
+4. **cameraFormatRenegotiate already=true.** Derselbe Score (1080p@30 gemeldet) nochmal. 8 fps bleibt.
+5. **HMM-Reset 0,35 s** am Rand von Freeze+Recover.
+6. Von `bugfix` bewusst nicht gemergt: IOHID Event-Tap, AX SetPosition/Frame, Per-App-Gain, JSONL.
+
+## In 2.1.203 / 1.6.41 gelandet
+
+- leftoverHoldLabel leftoverHoldBinSignedChip. Overlay ¾L/¾R/front.
+- Helios axHitCacheFresh(sampleDt), pinchDragNeedOf, cameraFormatScoreMeasured + Cooldown 8 s, trackDropoutNeed.
+- Tests + VERSION = Models = MARKETING 2.1.203 (Build 228). Schema 15 bleibt.
+
+Pass 35: Twin-Chip Overlay, Continuity-Uhren Rest — 2.1.203 / 1.6.41.
+
+## Erweiterungen (neu, oben)
+
+1. **CameraBroker-XPC** — eine TCC, IOSurface an beide. P0.
+2. **FaceTrack `[UUID: FaceTrack]` als einziges leftover-Dict.**
+3. **Overlay Metal 90 Hz** — leftoverOverlayLerp an DisplayLink, nicht nur Detect-Tick.
+4. **VNSequenceRequestHandler auf Capture-Queue.** FrameTap CVPixelBuffer.
+5. **IOHID Event-Tap / AX SetPosition / Per-App Gain** (`bugfix`, opt-in).
+6. **JSONL Session-Replay.** Tests splitten. Swift Testing.
+7. **Gallery-on-disk mmap.** Print-Bank PCA. Face-Print ONNX sidecar.
+8. **Helios leftover-Boxen als Palm-Occlusion.** Aegis-Yaw als Click-Lock.
+9. **MediaPipe Hands Sidecar.** LiDAR-Pinch. DepthCapture ist Stub.
+10. **Zwei-Pinzetten Freeze-Span.** Hand-ID über Continuity-Reconnect.
+11. **App-Group `group.helios.aegis`.** Speaker-Diarization. Negativ-Galerie.
+12. **leftoverAssignPrintOk blinkSeen Store** nur wenn FaceEngine EAR/Blink liefert.
+13. **Detect/Print-Split HUD-Chip** `box` / `print`.
+14. **leftoverPrintYaw in GalleryFile.decode-Tuple** — kein zweites loadPayload.
+15. **VNTrackObjectRequest** statt Remint-UUID.
+16. **EAR-Blink aus Landmarks** — Liveness ohne extra Request.
+17. **Format-Probe beim Helios-Start** vor dem ersten 8-fps-Sample.
+18. **Kalman-Q an fps.** AX-Cache × Fenster-ID.
+
 # Nachtrag 2026-09-08 — 2.1.202 / 1.6.40 (kein Merge von `bugfix`)
 
 Aegis `lolalpha00gamma/aegis-scanner` **2.1.202 alpha** (Build 227).

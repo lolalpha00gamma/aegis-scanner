@@ -1,3 +1,14 @@
+# Aegis Nachtrag 2.1.203 — 2026-09-08
+
+Binary **2.1.203 alpha Build 228**. leftoverHoldLabel Twin-Chip. Helios 1.6.41.
+
+## In 2.1.203 gelandet
+
+1. leftoverHoldLabel / Overlay-Chip über leftoverHoldBinSignedChip. ¾L ≠ ¾R sichtbar. BIN n tot.
+2. Tests + VERSION = Models = MARKETING 2.1.203 (Build 228). Schema 15 bleibt.
+
+Rest: CameraBroker, FaceTrack einzige Map, Overlay-Metal. Siehe VORSCHLAEGE-GROK.md.
+
 # Aegis Nachtrag 2.1.202 — 2026-09-08
 
 Binary **2.1.202 alpha Build 227**. Print-Yaw persist. Detect≠Print. Twin-Bin signed. Overlay-Lerp. Blink-Assign. Helios 1.6.40.

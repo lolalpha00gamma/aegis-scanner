@@ -791,7 +791,7 @@ enum MatchMath {
             hold = "gehalten \(raw)"
         }
         if let yawAbs {
-            return "\(hold) · \(leftoverHoldBinChip(leftoverHoldBin(yawAbs: yawAbs)))"
+            return "\(hold) · \(leftoverHoldBinSignedChip(leftoverHoldBinSigned(yaw: yawAbs)))"
         }
         return hold
     }
@@ -1393,7 +1393,7 @@ enum MatchMath {
         thermal ? max(base, 1.0 / 8.0) : base
     }
 
-    /// ¾: UUID-Trail ist Frontal. Chip sonst „HOLD 80/64 · BIN 1“.
+    /// ¾: UUID-Trail ist Frontal. Chip sonst „HOLD 80/64 · ¾R“.
     /// binTrail: ¾ roh aus Pose-Bin, nicht leftoverHold EMA allein.
     static func leftoverHoldOverlayChipOf(
         hold: Double?,

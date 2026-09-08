@@ -1842,7 +1842,8 @@ enum MatchMathTests {
         )
         ok(MatchMath.leftoverHoldBinChip(0) == "BIN 0", "frontal Chip")
         ok(MatchMath.leftoverHoldBinChip(1) == "BIN 1", "¾ Chip")
-        ok(MatchMath.leftoverHoldLabel(cosine: 0.64, yawAbs: 0.35) == "gehalten 0,64 · BIN 1", "Hold + BIN")
+        ok(MatchMath.leftoverHoldLabel(cosine: 0.64, yawAbs: 0.35) == "gehalten 0,64 · ¾R", "Hold + Twin ¾R")
+        ok(MatchMath.leftoverHoldLabel(cosine: 0.64, yawAbs: -0.35) == "gehalten 0,64 · ¾L", "Hold + Twin ¾L")
         near(MatchMath.leftoverSessionCapturePrefersFrame(frame: 0.70, box: 0.18) ?? -1, 0.70, 0.001, "Center Stage Box tot, Frame bleibt")
         near(MatchMath.leftoverSessionCapturePrefersFrame(frame: 0.70, box: 0.68) ?? -1, 0.68, 0.001, "einig Box")
         ok(MatchMath.leftoverSessionCapturePrefersFrame(frame: nil, box: 0.40) == 0.40, "ohne Frame Box")
@@ -1901,7 +1902,7 @@ enum MatchMathTests {
         ok(MatchMath.leftoverHoldLabel(cosine: 0.80, smooth: 0.64) == "gehalten 0,80 / 0,64", "HOLD roh/smooth")
         ok(MatchMath.leftoverHoldLabel(cosine: 0.64, smooth: 0.64) == "gehalten 0,64", "gleich eine Zahl")
         ok(
-            MatchMath.leftoverHoldLabel(cosine: 0.80, yawAbs: 0.35, smooth: 0.64) == "gehalten 0,80 / 0,64 · BIN 1",
+            MatchMath.leftoverHoldLabel(cosine: 0.80, yawAbs: 0.35, smooth: 0.64) == "gehalten 0,80 / 0,64 · ¾R",
             "HOLD roh/smooth + BIN"
         )
         let nightBytes = [UInt8](repeating: 46, count: 64)
@@ -1969,7 +1970,7 @@ enum MatchMathTests {
             "Overlay gleich eine Zahl"
         )
         ok(
-            MatchMath.leftoverHoldOverlayChip(hold: 0.64, trail: [0.80], yawAbs: 0.35) == "gehalten 0,80 / 0,64 · BIN 1",
+            MatchMath.leftoverHoldOverlayChip(hold: 0.64, trail: [0.80], yawAbs: 0.35) == "gehalten 0,80 / 0,64 · ¾R",
             "Overlay roh/smooth + BIN"
         )
         ok(MatchMath.leftoverBaptizeBoth(raw: 0.82, smooth: 0.80), "roh+smooth taufen")
@@ -2015,7 +2016,7 @@ enum MatchMathTests {
             + MatchMath.capturePixelBonus(osType: MatchMath.captureFourCCBGRA, fps: 8)
         ok(cap720_15 > cap720_8, "720p 420f@15 vor BGRA@8")
         ok(
-            MatchMath.leftoverHoldOverlayChip(hold: 0.66, trail: [0.64], yawAbs: 0.35) == "gehalten 0,64 / 0,66 · BIN 1",
+            MatchMath.leftoverHoldOverlayChip(hold: 0.66, trail: [0.64], yawAbs: 0.35) == "gehalten 0,64 / 0,66 · ¾R",
             "Overlay ¾ roh/smooth BIN"
         )
         ok(
@@ -2033,7 +2034,7 @@ enum MatchMathTests {
             "HOLD compact 80/64"
         )
         ok(
-            MatchMath.leftoverHoldOverlayChip(hold: 0.66, trail: [0.64], yawAbs: 0.35, compact: true) == "HOLD 64/66 · BIN 1",
+            MatchMath.leftoverHoldOverlayChip(hold: 0.66, trail: [0.64], yawAbs: 0.35, compact: true) == "HOLD 64/66 · ¾R",
             "HOLD compact BIN"
         )
         ok(MatchMath.leftoverSharpChip(0.12) == "SHARP 0,12", "SHARP Chip")
@@ -2065,7 +2066,7 @@ enum MatchMathTests {
             "¾ Chip-Bin nicht Frontal"
         )
         ok(
-            MatchMath.leftoverHoldOverlayChipOf(hold: 0.64, trail: [0.80], yawAbs: 0.35, compact: true) == "HOLD 64 · BIN 1",
+            MatchMath.leftoverHoldOverlayChipOf(hold: 0.64, trail: [0.80], yawAbs: 0.35, compact: true) == "HOLD 64 · ¾R",
             "¾ Overlay ohne Frontal-Trail"
         )
         ok(
@@ -2073,13 +2074,13 @@ enum MatchMathTests {
             "¾ ohne Bin kein Frontal-Chip"
         )
         ok(
-            MatchMath.leftoverHoldOverlayChipOf(hold: 0.80, trail: [0.82], yawAbs: 0.10, compact: true) == "HOLD 82/80 · BIN 0",
+            MatchMath.leftoverHoldOverlayChipOf(hold: 0.80, trail: [0.82], yawAbs: 0.10, compact: true) == "HOLD 82/80 · front",
             "frontal Overlay compact"
         )
         ok(
             MatchMath.leftoverHoldOverlayChipOf(
                 hold: 0.64, trail: [0.80], yawAbs: 0.35, compact: true, binTrail: [0.66]
-            ) == "HOLD 66/64 · BIN 1",
+            ) == "HOLD 66/64 · ¾R",
             "¾ HOLD Bin-Trail roh"
         )
         ok(!MatchMath.leftoverNameFromHold(hasHold: true, hold: nil, yawAbs: 0.35), "¾ ohne Bin kein Name")

@@ -1,3 +1,16 @@
+# Aegis 2.1.203 — Overlay Twin-Chip
+
+Aegis **2.1.203 alpha** (Build 228). Helios **1.6.41** (Build 74). Nur `main`. `bugfix` mergen: nein.
+
+2.1.202: Print-Yaw persist, Detect≠Print, Twin-Bin signed, Overlay-Lerp, Blink-Assign. leftoverHoldLabel blieb BIN n.
+
+## Was 2.1.203 ändert
+
+1. **leftoverHoldLabel** leftoverHoldBinSignedChip. ¾L / ¾R / front sichtbar.
+2. Tests + VERSION = Models = MARKETING 2.1.203 (Build 228). Schema 15 bleibt.
+
+`bugfix` mergen: nein.
+
 # Aegis 2.1.202 — Print-Yaw persist, Detect≠Print, Twin-Bin signed, Overlay-Lerp, Blink-Assign
 
 Aegis **2.1.202 alpha** (Build 227). Helios **1.6.40** (Build 73). Nur `main`. `bugfix` mergen: nein.

@@ -1,4 +1,4 @@
-# Aegis **2.1.202 alpha**
+# Aegis **2.1.203 alpha**
 
 
 Direkt laden:
@@ -14,6 +14,14 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.203 alpha
+
+2.1.202: Print-Yaw persist, Detect≠Print, Twin-Bin signed, Overlay-Lerp, Blink-Assign. leftoverHoldLabel blieb „BIN 1“ obwohl leftoverHoldBinSignedChip ¾L/¾R existierte. Overlay signed Yaw unsichtbar.
+
+- **leftoverHoldLabel Twin-Chip.** leftoverHoldBinSignedChip: ¾L / ¾R / front / Profil. Overlay signed Yaw.
+- Helios **1.6.41:** AX-TTL sampleDt, Drag×dt, Format-Score gemessen, Track-Dropout.
+- Tests + VERSION = Models = MARKETING 2.1.203 (Build 228). Schema 15 bleibt.
 
 ## Neu in 2.1.202 alpha
 
