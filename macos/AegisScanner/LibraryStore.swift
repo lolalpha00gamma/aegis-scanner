@@ -3967,14 +3967,14 @@ final class LibraryStore: ObservableObject {
                     return (
                         hash: value,
                         x: liveXs[key] ?? 0,
-                        yaw: liveYaw[key] ?? adopted.first(where: { $0.id == key })?.yaw ?? 0
+                        yaw: liveYaw[key] ?? adopted.first(where: { $0.id == key })?.quality.yaw ?? 0
                     )
                 }
                 leftoverLiveHashTick[face.id] = MatchMath.leftoverHashTwinRanked(
                     hash: hash,
                     x: liveXs[face.id] ?? 0,
                     others: rows.map { (hash: $0.hash, x: $0.x) },
-                    yawAbs: liveYaw[face.id] ?? face.yaw,
+                    yawAbs: liveYaw[face.id] ?? face.quality.yaw,
                     otherYaws: rows.map(\.yaw)
                 )
                 let ranked = leftoverLiveHashTick[face.id] ?? ""

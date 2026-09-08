@@ -6051,6 +6051,54 @@ enum MatchMathTests {
             !MatchMath.leftoverPrintSkipHits(face: faceMid, skipBoxes: [], palms: [p0]),
             "skipPrint nur erste Palme tot"
         )
+        let twoL2R = MatchMath.leftoverOccupiedMergeYaw(
+            stored: [],
+            live: [
+                (hash: "5.5.4.6", yawAbs: -0.40),
+                (hash: "5.5.4.6", yawAbs: -0.55),
+                (hash: "5.5.4.6", yawAbs: 0.40),
+                (hash: "5.5.4.6", yawAbs: 0.55)
+            ]
+        )
+        ok(twoL2R.contains("5.5.4.6"), "Occupied 2L+2R Exact")
+        ok(twoL2R.contains("5.5.4.6#101"), "Occupied 2L+2R extra L #101")
+        ok(twoL2R.contains("5.5.4.6#102"), "Occupied 2L+2R extra R #102")
+        let rExtra = MatchMath.leftoverHashTwinRanked(
+            hash: "5.5.4.6",
+            x: 0.80,
+            others: [
+                (hash: "5.5.4.6", x: 0.10),
+                (hash: "5.5.4.6", x: 0.20),
+                (hash: "5.5.4.6", x: 0.70)
+            ],
+            yawAbs: 0.55,
+            otherYaws: [-0.40, -0.55, 0.40]
+        )
+        ok(rExtra == "5.5.4.6#102", "Ranked extra R #102 nicht #101")
+        let lExtra = MatchMath.leftoverHashTwinRanked(
+            hash: "5.5.4.6",
+            x: 0.20,
+            others: [
+                (hash: "5.5.4.6", x: 0.10),
+                (hash: "5.5.4.6", x: 0.70),
+                (hash: "5.5.4.6", x: 0.80)
+            ],
+            yawAbs: -0.55,
+            otherYaws: [-0.40, 0.40, 0.55]
+        )
+        ok(lExtra == "5.5.4.6#101", "Ranked extra L #101")
+        ok(!MatchMath.leftoverHoldWriteOk(sharpness: 0.40, yawAbs: -0.40), "¾L signed kein Frontal-Hold")
+        ok(!MatchMath.leftoverHoldWriteOk(sharpness: 0.40, yawAbs: 0.40), "¾R kein Frontal-Hold")
+        ok(MatchMath.leftoverHoldWriteOk(sharpness: 0.40, yawAbs: 0.10), "frontal Hold signed-safe")
+        ok(MatchMath.cameraMutexStampName() == "helios.aegis.camera.pts", "Mutex Stamp Name")
+        ok(MatchMath.cameraMutexStampPick(lockPts: 1_700_000_000, stampPts: 1_700_000_080) == 1_700_000_080, "Stamp neuer PTS")
+        ok(MatchMath.cameraMutexStampPick(lockPts: nil, stampPts: 1_700_000_000) == 1_700_000_000, "Stamp ohne Lock")
+        ok(MatchMath.cameraMutexStampPick(lockPts: 12.4, stampPts: nil) == nil, "Stamp Media-PTS tot")
+        let encFifo = MatchMath.leftoverPrintCacheEncode((0..<70).map { "k\($0)#0" } as [String])
+        ok(encFifo.count == MatchMath.leftoverHashHoldCapN, "Encode FIFO cap")
+        ok(encFifo.first == "k6#0", "Encode FIFO drop oldest")
+        ok(encFifo.last == "k69#0", "Encode FIFO newest last")
+        ok(MatchMath.cameraMutexClaimMinDt() == 0.08, "Claim 80 ms Beat")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

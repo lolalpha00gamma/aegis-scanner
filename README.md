@@ -1,4 +1,4 @@
-# Aegis **2.1.228 alpha**
+# Aegis **2.1.229 alpha**
 
 
 
@@ -14,6 +14,17 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.229 alpha
+
+Warum 2.1.228 nicht baute und Twins bei 2L+2R weiter stahlen: `leftoverHashTwinRanked` las `face.yaw` — FaceObservation hat nur `quality.yaw`. MergeYaw extra-R bekam dasselbe `#101` wie extra-L. leftoverHoldWriteOk ohne `abs` ließ ¾L in den Frontal-Hold. Mutex-Beat 2 s > Fill-Skew 220 ms. Helios-EX blockte SH-Read, Fill/skipPrint tot.
+
+- **Compile-Fix `quality.yaw`.** 2.1.228 `[skip ci]` war tot.
+- **2L+2R Rank je Seite.** Extra-L `#101`, extra-R `#102`.
+- **HoldWriteOk `abs(yaw)`.** ¾L schreibt nicht Frontal-EMA.
+- **Stamp-Read + Beat 80 ms.** Fill/skipPrint während Helios-EX.
+- **Print-Cache Encode FIFO-Cap.** Restart drop oldest, nicht lex.
+- Tests + VERSION = Models = MARKETING 2.1.229 (Build 254). Schema 15 bleibt.
 
 ## Neu in 2.1.228 alpha
 

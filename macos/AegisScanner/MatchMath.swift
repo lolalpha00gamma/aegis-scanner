@@ -948,7 +948,7 @@ enum MatchMath {
 
     /// RAM-Cache stirbt nach Restart. JSON-Array, Schema 15 optional. Insertion-Order, nicht sortiert.
     static func leftoverPrintCacheEncode(_ cached: [String]) -> [String] {
-        cached.filter { !$0.isEmpty }
+        leftoverPrintCacheDecodeOrder(cached.filter { !$0.isEmpty })
     }
 
     static func leftoverPrintCacheEncode(_ cached: Set<String>) -> [String] {
@@ -1240,6 +1240,18 @@ enum MatchMath {
     static func cameraMutexStale() -> TimeInterval { 12 }
 
     static func cameraMutexHeartbeatSec() -> TimeInterval { 2 }
+    static func cameraMutexStampName() -> String { "helios.aegis.camera.pts" }
+
+    static func cameraMutexStampPick(lockPts: TimeInterval?, stampPts: TimeInterval?) -> TimeInterval? {
+        let a = lockPts.flatMap { $0 > 1_000_000 ? $0 : nil }
+        let b = stampPts.flatMap { $0 > 1_000_000 ? $0 : nil }
+        switch (a, b) {
+        case (let x?, let y?): return max(x, y)
+        case (let x?, nil): return x
+        case (nil, let y?): return y
+        default: return nil
+        }
+    }
 
     /// Int(now) = Sekundenraster: Claim 12,9 / Parse 13,0 = 1 s tot. %.3f hält ms.
     /// Protokoll v2: immer 5 Felder + Suffix. 3-/4-Zeile bleibt lesbar (v1).
@@ -2946,10 +2958,17 @@ enum MatchMath {
             let hasL = signed.contains { $0 < 0 }
             let hasR = signed.contains { $0 > 0 }
             if hasL && hasR {
+                var nextRank = 1
                 func rank(_ group: [(hash: String, yawAbs: Double)]) {
                     let sorted = group.sorted { abs($0.yawAbs) + 1e-9 < abs($1.yawAbs) }
                     for (i, _) in sorted.enumerated() {
-                        let emit = i == 0 ? key : leftoverHoldHashTwinKey(hash: key, rank: i)
+                        let emit: String
+                        if i == 0 {
+                            emit = key
+                        } else {
+                            emit = leftoverHoldHashTwinKey(hash: key, rank: nextRank)
+                            nextRank += 1
+                        }
                         if seen.insert(emit).inserted { out.append(emit) }
                     }
                 }
@@ -3148,15 +3167,18 @@ enum MatchMath {
         if !twinYaws.isEmpty && twinYaws.count == twins.count {
             let competing = zip(twins, twinYaws).filter { leftoverOccupiedSamePose(a: yawAbs, b: $0.1) }
             if competing.isEmpty { return hash }
-            return leftoverHoldHashTwinKey(
-                hash: bare,
-                rank: leftoverHashTwinRank(
-                    x: x,
-                    others: competing.map { $0.0.x },
-                    yawAbs: yawAbs,
-                    otherYaws: competing.map(\.1)
-                )
+            let rank = leftoverHashTwinRank(
+                x: x,
+                others: competing.map { $0.0.x },
+                yawAbs: yawAbs,
+                otherYaws: competing.map(\.1)
             )
+            var offset = 0
+            if rank > 0, leftoverHoldBinSigned(yaw: yawAbs) > 0 {
+                let nL = zip(twins, twinYaws).filter { leftoverHoldBinSigned(yaw: $0.1) < 0 }.count
+                offset = max(0, nL - 1)
+            }
+            return leftoverHoldHashTwinKey(hash: bare, rank: rank + offset)
         }
         return leftoverHoldHashTwinKey(
             hash: bare,
@@ -6975,7 +6997,7 @@ enum MatchMath {
     /// sharpnessFloor 0,12, nicht leftoverPrintSharp 0,22 — Continuity Laplacian 0,12–0,14 sonst tot.
     /// ¾ 0,35 schreibt sonst den Frontal-Hold runter. Lookaway 0,28, nicht erst Profil 0,45.
     static func leftoverHoldWriteOk(sharpness: Double?, yawAbs: Double? = nil) -> Bool {
-        if let y = yawAbs, y >= leftoverLookawayYaw { return false }
+        if let y = yawAbs, abs(y) >= leftoverLookawayYaw { return false }
         guard let s = sharpness else { return true }
         return s >= sharpnessFloor
     }

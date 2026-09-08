@@ -266,7 +266,7 @@ final class LiveCapture: NSObject {
             claimCameraMutex()
         }
         if mutexBeat == nil {
-            let beat = Timer(timeInterval: MatchMath.cameraMutexHeartbeatSec(), repeats: true) { [weak self] _ in
+            let beat = Timer(timeInterval: MatchMath.cameraMutexClaimMinDt(), repeats: true) { [weak self] _ in
                 Task { @MainActor in
                     self?.beatCameraMutex()
                 }
@@ -408,6 +408,52 @@ final class LiveCapture: NSObject {
 
     private func cameraMutexURL() -> URL { cameraMutexCachesURL() }
 
+    private func cameraMutexStampURL() -> URL {
+        let base = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
+            ?? FileManager.default.temporaryDirectory
+        let dir = base.appendingPathComponent(MatchMath.cameraMutexCacheFolder(), isDirectory: true)
+        return dir.appendingPathComponent(MatchMath.cameraMutexStampName())
+    }
+
+    private func applyMutexText(_ text: String, now: TimeInterval) -> (holder: String?, gen: UInt32?) {
+        let pid = MatchMath.cameraMutexPid(text)
+        let live = pid.map { p in p > 0 && (kill(p, 0) == 0 || errno == EPERM) }
+        let lockPts = MatchMath.cameraMutexPts(text)
+        let stampText = try? String(contentsOf: cameraMutexStampURL(), encoding: .utf8)
+        let stampPts = stampText.flatMap { MatchMath.cameraMutexPts($0) }
+        if let pts = MatchMath.cameraMutexStampPick(lockPts: lockPts, stampPts: stampPts) {
+            tap?.mutexPts = pts
+        } else if let lockPts {
+            tap?.mutexPts = lockPts
+        } else {
+            tap?.mutexPts = 0
+        }
+        let stampNewer = (stampPts ?? 0) > (lockPts ?? 0)
+        if stampNewer, let stampText, !stampText.isEmpty {
+            lastMutexPalms = MatchMath.cameraMutexPalms(stampText)
+        } else {
+            lastMutexPalms = MatchMath.cameraMutexPalms(text)
+        }
+        let holderSrc = stampNewer ? (stampText ?? text) : text
+        let holder = MatchMath.cameraMutexParse(holderSrc, now: now, pidLive: live)
+        mutexHolder = holder
+        return (holder, MatchMath.cameraMutexGen(text))
+    }
+
+    private func applyMutexStampOnly(now: TimeInterval) -> Bool {
+        guard let stampText = try? String(contentsOf: cameraMutexStampURL(), encoding: .utf8),
+              !stampText.isEmpty
+        else { return false }
+        let pid = MatchMath.cameraMutexPid(stampText)
+        let live = pid.map { p in p > 0 && (kill(p, 0) == 0 || errno == EPERM) }
+        if let pts = MatchMath.cameraMutexPts(stampText) {
+            tap?.mutexPts = pts
+        }
+        lastMutexPalms = MatchMath.cameraMutexPalms(stampText)
+        mutexHolder = MatchMath.cameraMutexParse(stampText, now: now, pidLive: live)
+        return true
+    }
+
     @discardableResult
     private func writeCameraMutexClaim(owner: String, url: URL, expectedGen: UInt32? = nil) -> Bool {
         let pid = ProcessInfo.processInfo.processIdentifier
@@ -527,33 +573,34 @@ final class LiveCapture: NSObject {
         let cachesPresent = FileManager.default.fileExists(atPath: cachesURL.path)
         var busy = false
         let caches = readCameraMutexLocked(url: cachesURL, busy: &busy)
-        if busy { return (nil, true, nil) }
+        let now = Date().timeIntervalSince1970
+        if busy {
+            _ = applyMutexStampOnly(now: now)
+            return (mutexHolder, true, nil)
+        }
         var tmpBusy = false
         let tmp = MatchMath.cameraMutexReadOrder().contains("tmp")
             ? readCameraMutexLocked(url: cameraMutexLegacyURL(), busy: &tmpBusy)
             : nil
-        if tmpBusy { return (nil, true, nil) }
+        if tmpBusy {
+            _ = applyMutexStampOnly(now: now)
+            return (mutexHolder, true, nil)
+        }
         let empty = cachesPresent && (caches == nil || caches?.isEmpty == true)
         guard let text = MatchMath.cameraMutexPickText(caches: caches, tmp: tmp, cachesEmpty: empty) else {
+            if applyMutexStampOnly(now: now) {
+                return (mutexHolder, false, nil)
+            }
             lastMutexPalms = []
             mutexHolder = nil
             tap?.mutexPts = 0
             return (nil, false, nil)
         }
-        let pid = MatchMath.cameraMutexPid(text)
-        let live = pid.map { p in p > 0 && (kill(p, 0) == 0 || errno == EPERM) }
-        if let pts = MatchMath.cameraMutexPts(text) {
-            tap?.mutexPts = pts
-        } else {
-            tap?.mutexPts = 0
-        }
-        lastMutexPalms = MatchMath.cameraMutexPalms(text)
-        let holder = MatchMath.cameraMutexParse(text, now: Date().timeIntervalSince1970, pidLive: live)
-        mutexHolder = holder
+        let applied = applyMutexText(text, now: now)
         return (
-            holder,
+            applied.holder,
             false,
-            MatchMath.cameraMutexGen(text)
+            applied.gen
         )
     }
 
@@ -567,7 +614,7 @@ final class LiveCapture: NSObject {
         if MatchMath.cameraMutexSkipClaim(readBusy: read.busy) {
             mutexClaimFails += 1
             mutexChip = MatchMath.cameraMutexClaimChip(
-                holder: nil, yielded: cameraMutexYielded, fails: mutexClaimFails
+                holder: mutexHolder ?? read.holder, yielded: cameraMutexYielded, fails: mutexClaimFails
             )
             return
         }
@@ -639,7 +686,7 @@ final class LiveCapture: NSObject {
         if MatchMath.cameraMutexSkipClaim(readBusy: read.busy) {
             mutexClaimFails += 1
             mutexChip = MatchMath.cameraMutexClaimChip(
-                holder: nil, yielded: cameraMutexYielded, fails: mutexClaimFails
+                holder: mutexHolder ?? read.holder, yielded: cameraMutexYielded, fails: mutexClaimFails
             )
             return
         }

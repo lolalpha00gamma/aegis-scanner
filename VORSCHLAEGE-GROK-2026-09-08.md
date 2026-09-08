@@ -1,3 +1,44 @@
+# Aegis Vorschläge — 2026-09-08 (Pass 30, 2.1.229)
+
+Stand 2.1.229 alpha. Compile-Fix quality.yaw, 2L+2R Rank, HoldWriteOk abs, Stamp-Read, Beat 80 ms, Encode FIFO-Cap.
+
+## Gelandet in 2.1.229
+
+- leftoverHashTwinRanked face.quality.yaw (2.1.228 tot)
+- leftoverOccupiedMergeYaw nextRank 2L+2R `#102`
+- leftoverHashTwinRanked R-Extra Offset nL−1
+- leftoverHoldWriteOk abs(yaw)
+- cameraMutexStampPick + Timer 80 ms
+- leftoverPrintCacheEncode FIFO suffix-cap
+
+## Erweiterung (neu)
+
+357. **LiveCapture off MainActor.** Detect+Print blockiert die UI. P0 nach CameraBroker.
+358. **HNSW Gallery.** Linear-Scan O(n) jede Frame.
+359. **CameraBroker XPC + IOSurface** mit Helios. Eine TCC. P0.
+360. **Overlay CAMetalLayer 60 Hz.**
+361. **leftoverHoldTrail Disk persist.** Restart sonst Frontal-Median 1 Tick.
+362. **Glasses On/Off Templates.**
+363. **Face-Print Versioning.**
+364. **Export Embeddings JSONL.**
+365. **UMAP Cluster-View.**
+366. **Identity-Merge-Wizard.**
+367. **Blink-Liveness EAR**, nicht nur SM-Chip.
+368. **Profil-Hold nicht in Frontal-EMA.** leftoverHold Bin 0 bleibt Front.
+369. **Continuity Night-IR eigene Galerie.**
+370. **Per-Camera WB-Lock** Osmo vs Phone.
+371. **EAR + SM AND** für Taufe — Chip allein lässt 1 Frontal+Fake-Blink.
+372. **False-Accept JSONL → Twin-Split Auto** nach Restart ohne FA-Heat.
+373. **leftoverOccupiedMergeYaw Frontal-Extras** vs `#101` der ¾-Seite — Front i+1 kollidiert.
+374. **skipPrintPalms IoU 0,18** nicht printBudgetIoU wenn Palme in skipBoxes landet.
+375. **leftoverSparkChipNow signed** — Spark nutzt leftoverHoldBin (Magnitude), L/R-Chip fehlt.
+376. **leftoverPrintCacheHits [String]** ohne Set() jede Frame.
+377. **Stamp-TTL 250 ms** analog Helios — verwaister PTS nach Crash.
+378. **leftoverHashTwinRanked frontal vs 2L** konkurriert mit beiden — Front stiehlt `#101`.
+379. **LiveCapture Detect-Queue** nicht MainActor Timer für mutexBeat (80 ms wacht UI).
+
+P0: CameraBroker. Kein neues leftover*-Flag. Branch `bugfix` (2.1.15) nicht mergen.
+
 # Aegis Vorschläge — 2026-09-08 (Pass 29, 2.1.228)
 
 Stand 2.1.228 alpha. Per-sign Rank 2L+1R, Twin-Chip signed, Occupied-Yaw aus Print, zwei Palmen skipPrint.
