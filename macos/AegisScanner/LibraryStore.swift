@@ -56,6 +56,7 @@ final class LibraryStore: ObservableObject {
     @Published var yawCoverageChip: String = "YAW —"
     @Published var enrollSMChip: String = "ENROLL —"
     @Published var enrollYawChip: String = "YAW F"
+    @Published var guestTTLChip: String = "—"
     @Published var enrollQualityChip: String = "Q —"
     @Published var captureSparkChip: String = "CQ —"
     @Published var faReplayChip: String = "FA —"
@@ -441,17 +442,28 @@ final class LibraryStore: ObservableObject {
 
     private func pruneGuestTTL() {
         let now = Date()
+        var nearest: TimeInterval?
         let drop = identities.filter { ident in
             let enrolled = ident.faceIds.compactMap { fid in
                 faces.first { $0.id == fid }?.enrolledAt
             }.min()
+            let guest = MatchMath.guestPersistKeeps(name: ident.name)
+            if let remain = MatchMath.guestTTLRemain(
+                isGuest: guest,
+                enrolledAt: enrolled,
+                now: now,
+                lastSeen: leftoverStreakSince[ident.id.uuidString]
+            ) {
+                if nearest == nil || remain < nearest! { nearest = remain }
+            }
             return MatchMath.guestTTLExpired(
-                isGuest: MatchMath.guestPersistKeeps(name: ident.name),
+                isGuest: guest,
                 enrolledAt: enrolled,
                 now: now,
                 lastSeen: leftoverStreakSince[ident.id.uuidString]
             )
         }
+        guestTTLChip = MatchMath.guestTTLChip(remain: nearest) ?? "—"
         guard !drop.isEmpty else { return }
         let ids = Set(drop.map(\.id))
         identities.removeAll { ids.contains($0.id) }
@@ -1327,7 +1339,7 @@ final class LibraryStore: ObservableObject {
                 let hash = leftoverLastHash[fid] ?? fid.uuidString
                 let expected = liveNameLock[fid]?.uuidString ?? ""
                 let cos = MatchMath.falseAcceptJSONLCosine(
-                    hold: leftoverHoldNow(faceId: fid),
+                    hold: leftoverHoldNow(faceId: fid, yawAbs: liveYaw[fid] ?? face?.quality.yaw),
                     emaPercent: liveScoreEma[fid]
                 )
                 appendFalseAcceptLog(hash: hash, identity: expected, cosine: cos, decided: voted)
@@ -2533,11 +2545,7 @@ final class LibraryStore: ObservableObject {
             dt: dt,
             continuity: cont
         )
-        var enrollBins = Set<Int>()
-        for k in leftoverPrintCache {
-            guard let r = k.range(of: "#"), let b = Int(k[r.upperBound...]) else { continue }
-            enrollBins.insert(b)
-        }
+        var enrollBins = MatchMath.leftoverPrintCacheBins(leftoverPrintCache)
         let haveF = enrollBins.contains(0)
         let haveL = enrollBins.contains(-1)
         let haveR = enrollBins.contains(1)
@@ -2553,7 +2561,7 @@ final class LibraryStore: ObservableObject {
         let skipPrintCached: Set<UUID> = Set(kalmanSnap.compactMap { row in
             guard let yaw = liveYaw[row.id] else { return nil }
             let hash = leftoverLiveHashTick[row.id] ?? leftoverLastHash[row.id]
-            guard MatchMath.leftoverPrintCacheHits(hash: hash, yaw: yaw, cached: leftoverPrintCache) else {
+            guard MatchMath.leftoverPrintCacheHits(hash: hash, yaw: yaw, cached: leftoverPrintCache, cam: cameraUniqueID) else {
                 return nil
             }
             return row.id
@@ -3482,7 +3490,7 @@ final class LibraryStore: ObservableObject {
                     leftoverPairCommit[old.id] = maj.commit
                     leftoverPairCommitMiss[old.id] = 0
                     leftoverDisagree[old.id] = 0
-                    let step = leftoverAdvance(oldId: old.id, box: adopted[i].box, now: now, boxId: adopted[i].id, dt: liveDt, yawAbs: abs(adopted[i].quality.yaw))
+                    let step = leftoverAdvance(oldId: old.id, box: adopted[i].box, now: now, boxId: adopted[i].id, dt: liveDt, yawAbs: adopted[i].quality.yaw)
                     if let label = step.label {
                         leftoverPending[adopted[i].id] = label
                     }
@@ -3952,16 +3960,13 @@ final class LibraryStore: ObservableObject {
                     leftoverPrintCache = MatchMath.leftoverPrintCachePut(
                         cached: leftoverPrintCache,
                         hash: ranked,
-                        yaw: face.quality.yaw
+                        yaw: face.quality.yaw,
+                        cam: cameraUniqueID
                     )
                     yawCoverageChip = MatchMath.printYawCoverageChip(
                         MatchMath.printYawCoverageBest(cached: leftoverPrintCache)
                     )
-                    var bins = Set<Int>()
-                    for k in leftoverPrintCache {
-                        guard let r = k.range(of: "#"), let b = Int(k[r.upperBound...]) else { continue }
-                        bins.insert(b)
-                    }
+                    var bins = MatchMath.leftoverPrintCacheBins(leftoverPrintCache)
                     for face in adopted {
                         let slots = MatchMath.leftoverEnrollSlotHave(
                             yaw: face.quality.yaw,
@@ -4341,7 +4346,7 @@ final class LibraryStore: ObservableObject {
                 )
                 let holdPrev = MatchMath.leftoverHoldPrevOf(
                     frontal: storedHold,
-                    yawAbs: abs(adopted[bestJ].quality.yaw),
+                    yawAbs: adopted[bestJ].quality.yaw,
                     bins: leftoverHoldBins,
                     id: old.id,
                     hash: holdHash,
@@ -4351,7 +4356,7 @@ final class LibraryStore: ObservableObject {
                     facesInFrame: adopted.count,
                     occupied: leftoverOccupiedHashes(except: old.id)
                 )
-                let step = leftoverAdvance(oldId: old.id, box: adopted[bestJ].box, now: now, holdPrev: holdPrev, boxId: adopted[bestJ].id, dt: liveDt, yawAbs: abs(adopted[bestJ].quality.yaw))
+                let step = leftoverAdvance(oldId: old.id, box: adopted[bestJ].box, now: now, holdPrev: holdPrev, boxId: adopted[bestJ].id, dt: liveDt, yawAbs: adopted[bestJ].quality.yaw)
                 if let label = step.label {
                     leftoverPending[adopted[bestJ].id] = label
                 }
@@ -4448,7 +4453,7 @@ final class LibraryStore: ObservableObject {
                 let pinCos = remaining.first(where: { $0.index == bestJ })?.cosine ?? item.bestCos
                 let holdNow = MatchMath.leftoverHoldPrevOf(
                     frontal: storedHold,
-                    yawAbs: abs(adopted[bestJ].quality.yaw),
+                    yawAbs: adopted[bestJ].quality.yaw,
                     bins: leftoverHoldBins,
                     id: old.id,
                     hash: holdHash,
@@ -4469,7 +4474,7 @@ final class LibraryStore: ObservableObject {
                         facesInFrame: adopted.count,
                         occupied: leftoverOccupiedHashes(except: old.id)
                     ),
-                    yawAbs: abs(adopted[bestJ].quality.yaw)
+                    yawAbs: adopted[bestJ].quality.yaw
                 )
                 let tapUntil = tapNameLockUntil[old.id] ?? tapNameLockUntil[adopted[bestJ].id]
                 if let tap = MatchMath.tapNameLockLabel(until: tapUntil, now: now) {

@@ -110,6 +110,12 @@ struct ContentView: View {
                     .foregroundStyle(store.captureSparkChip.contains("skip") ? .orange : .mint)
                     .help("Capture-Quality Spark. skip = Print nicht geschrieben.")
             }
+            if store.liveActive, store.guestTTLChip != "—" {
+                Text(store.guestTTLChip)
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(store.guestTTLChip.contains("drop") ? .orange : .secondary)
+                    .help("Gast-TTL Countdown. 30 s ohne Print → Forget. Ada bleibt.")
+            }
             if store.faReplayChip != "FA —" {
                 Text(store.faReplayChip)
                     .font(.system(.caption, design: .monospaced))

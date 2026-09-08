@@ -1,4 +1,24 @@
+# Aegis 2.1.225 — Yaw L/R, Print-Cache×Cam, Guest-TTL
+
+Aegis **2.1.225 alpha** (Build 250). Helios **1.6.65** (Build 98). Nur `main`. `bugfix` mergen: nein.
+
+## Was 2.1.225 ändert
+
+2.1.224: PTS-Fill, Palm-skipPrint, Twin P-Slot. Danach klebte Hold ¾L=¾R (`abs(yaw)`), Print-Cache mischte Kameras, `@cam` im Key machte `Int(bin)` tot (SM/YAW leer), Gast verschwand ohne Chip, FA-Log las Frontal-Hold in Profil.
+
+| # | Bug | Fix |
+|---|---|---|
+| 1 | ¾L Hold = ¾R | leftoverHoldPrevOf signed |
+| 2 | Print-Cache Cam-Mix | leftoverLastHashBinKey `@cam` |
+| 3 | SM-Bins tot nach @cam | leftoverPrintCacheBin |
+| 4 | Update reprintet alles | Hits Legacy ohne @cam |
+| 5 | Gast stilles Drop | guestTTLChip |
+| 6 | FA-JSONL Frontal-Hold | leftoverHoldNow liveYaw |
+
+Nicht: CameraBroker, HNSW, LiveCapture off MainActor, Overlay-Metal.
+
 # Aegis 2.1.224 — PTS-Fill, Palm-skipPrint, Twin P-Slot
+
 
 Aegis **2.1.224 alpha** (Build 249). Helios **1.6.63** (Build 96). Nur `main`. `bugfix` mergen: nein.
 

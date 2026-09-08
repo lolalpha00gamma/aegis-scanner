@@ -1,4 +1,33 @@
+# Aegis **2.1.225 alpha**
+
+
+
+Direkt laden:
+- [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
+- [Releases](https://github.com/lolalpha00gamma/aegis-scanner/releases)
+
+Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
+## Installieren
+
+1. [Aegis.dmg](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg) öffnen
+2. **Aegis** in den Ordner Programme ziehen
+3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
+
+macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.225 alpha
+
+Warum Live und Twins weiter schlecht saßen: Hold nahm `abs(yaw)` — Ada links war Ben rechts. Print-Cache ignorierte die Kamera, `@cam` im Key zerlegte den Bin-Parse (SM/YAW tot). Gast fiel nach 30 s ohne Chip. FA-Log las Frontal-Hold in Profil.
+
+- **Yaw L/R Hold.** ¾L und ¾R getrennte Bins (−1 / +1).
+- **Print-Cache × Camera.** Built-in und Continuity nicht mehr dieselbe Pose.
+- **Bin-Parse @cam.** SM-Slots und YAW-Coverage lesen `hash#bin@cam`.
+- **Legacy-Hit.** Alte Disk-Keys ohne Kamera gelten nach dem Update.
+- **Guest-TTL Chip.** Countdown, dann `GUEST drop`. Ada bleibt.
+- Tests + VERSION = Models = MARKETING 2.1.225 (Build 250). Schema 15 bleibt.
+
 # Aegis **2.1.224 alpha**
+
 
 
 

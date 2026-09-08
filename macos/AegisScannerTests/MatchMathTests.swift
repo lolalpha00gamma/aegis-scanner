@@ -5905,6 +5905,34 @@ enum MatchMathTests {
         let px = MatchMath.cameraMutexPalmBox((0.40, 0.55, 0.12), imageW: 1280, imageH: 720)
         near(px.x + px.width / 2, 0.40 * 1280, 0.6, "Palm Pixel Mitte X")
 
+        let idL = UUID(uuidString: "AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA")!
+        var bins: [String: Double] = [:]
+        bins = MatchMath.leftoverHoldBinPut(bins: bins, id: idL, yawAbs: -0.50, next: 0.91)
+        near(MatchMath.leftoverHoldPrevOf(frontal: 0.70, yawAbs: -0.50, bins: bins, id: idL) ?? -1, 0.91, 1e-6, "Profil L Hold")
+        ok(MatchMath.leftoverHoldPrevOf(frontal: 0.70, yawAbs: 0.50, bins: bins, id: idL) == nil, "Profil R liest nicht L")
+        ok(MatchMath.leftoverHoldBinSigned(yaw: -0.50) == -MatchMath.leftoverHoldBinSigned(yaw: 0.50), "Yaw L/R signed")
+        ok(MatchMath.leftoverTrailNowOf(idTrail: [0.80], binTrail: [0.64], yawAbs: -0.35) == [0.64], "¾L Bin-Trail")
+        ok(MatchMath.leftoverTrailNowOf(idTrail: [0.80], binTrail: [0.64], yawAbs: 0.10) == [0.80], "frontal UUID-Trail")
+
+        var camCache: Set<String> = []
+        camCache = MatchMath.leftoverPrintCachePut(cached: camCache, hash: "6.6.4.6", yaw: 0, cam: "iPhone-A-uid")
+        ok(MatchMath.leftoverPrintCacheHits(hash: "6.6.4.6", yaw: 0, cached: camCache, cam: "iPhone-A-uid"), "Print-Cache Cam A")
+        ok(!MatchMath.leftoverPrintCacheHits(hash: "6.6.4.6", yaw: 0, cached: camCache, cam: "iPhone-B-uid"), "Print-Cache Cam B tot")
+        ok(!MatchMath.leftoverPrintCacheHits(hash: "6.6.4.6", yaw: 0, cached: camCache), "Print-Cache ohne Cam tot")
+        ok(MatchMath.leftoverPrintCacheBin("6.6.4.6#-1@iPhone-A-uid") == -1, "Print-Cache Bin ¾L @cam")
+        ok(MatchMath.leftoverPrintCacheBin("6.6.4.6#0") == 0, "Print-Cache Bin frontal")
+        ok(MatchMath.leftoverPrintCacheBin("6.6.4.6#2@OsmoPocket3") == 2, "Print-Cache Bin Profil @cam")
+        ok(MatchMath.leftoverPrintCacheBins(["6.6.4.6#0@cam", "6.6.4.6#-2@cam", "6.6.4.6#1@cam"]).contains(-2), "Print-Cache Bins signed")
+        ok(MatchMath.leftoverPrintCacheHits(hash: "6.6.4.6", yaw: 0, cached: ["6.6.4.6#0"], cam: "iPhone-A-uid"), "Print-Cache legacy ohne @cam")
+        near(MatchMath.printYawCoverageBest(cached: ["6.6.4.6#0@iPhone", "6.6.4.6#-1@iPhone", "6.6.4.6#1@iPhone"]), 1.0, 1e-9, "Yaw coverage @cam")
+
+        let old = Date().addingTimeInterval(-12)
+        let remain = MatchMath.guestTTLRemain(isGuest: true, enrolledAt: old, now: Date(), ttl: 30)
+        ok((remain ?? 0) > 10 && (remain ?? 0) < 20, "Guest remain ~18 s")
+        ok(MatchMath.guestTTLChip(remain: 18)?.hasPrefix("GUEST ") == true, "Guest Chip Countdown")
+        ok(MatchMath.guestTTLChip(remain: -1) == "GUEST drop", "Guest Chip drop")
+        ok(MatchMath.guestTTLChip(remain: nil) == nil, "Guest Chip Ada tot")
+
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)
             exit(1)

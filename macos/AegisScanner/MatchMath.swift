@@ -872,21 +872,54 @@ enum MatchMath {
     }
 
     /// Print-Cache leftoverLastHash × Yaw-Bin. Gleicher Hash+Bin kein zweiter VNFacePrint.
-    static func leftoverLastHashBinKey(hash: String?, yaw: Double) -> String? {
+    static func leftoverPrintCacheCam(_ cam: String?) -> String {
+        guard let cam, !cam.isEmpty else { return "" }
+        let bare = cameraNameBare(cam)
+        if bare.count <= 12 { return bare }
+        return String(bare.suffix(12))
+    }
+
+    static func leftoverLastHashBinKey(hash: String?, yaw: Double, cam: String? = nil) -> String? {
         guard let hash, !hash.isEmpty else { return nil }
         let spatial = leftoverHoldHashSpatial(hash)
         guard !spatial.isEmpty else { return nil }
-        return leftoverHoldHashKey(hash: spatial, bin: leftoverHoldBinSigned(yaw: yaw))
+        let base = leftoverHoldHashKey(hash: spatial, bin: leftoverHoldBinSigned(yaw: yaw))
+        let tag = leftoverPrintCacheCam(cam)
+        return tag.isEmpty ? base : "\(base)@\(tag)"
     }
 
-    static func leftoverPrintCacheHits(hash: String?, yaw: Double?, cached: Set<String>) -> Bool {
+    /// `#bin` und `#bin@cam`. Int("0@iPhone") war tot — SM-Bins und YAW-Coverage fielen aus.
+    static func leftoverPrintCacheBin(_ key: String) -> Int? {
+        guard let hashMark = key.lastIndex(of: "#") else { return nil }
+        var rest = String(key[key.index(after: hashMark)...])
+        if let at = rest.firstIndex(of: "@") {
+            rest = String(rest[..<at])
+        }
+        return Int(rest)
+    }
+
+    static func leftoverPrintCacheBins(_ cached: Set<String>, hash: String? = nil) -> Set<Int> {
+        var bins = Set<Int>()
+        let want = hash.map { leftoverHoldHashSpatial($0) } ?? ""
+        for k in cached {
+            if !want.isEmpty && leftoverHoldHashSpatial(k) != want { continue }
+            if let b = leftoverPrintCacheBin(k) { bins.insert(b) }
+        }
+        return bins
+    }
+
+    static func leftoverPrintCacheHits(hash: String?, yaw: Double?, cached: Set<String>, cam: String? = nil) -> Bool {
         guard let yaw else { return false }
-        guard let key = leftoverLastHashBinKey(hash: hash, yaw: yaw) else { return false }
-        return cached.contains(key)
+        guard let key = leftoverLastHashBinKey(hash: hash, yaw: yaw, cam: cam) else { return false }
+        if cached.contains(key) { return true }
+        if cam != nil, let legacy = leftoverLastHashBinKey(hash: hash, yaw: yaw, cam: nil) {
+            return cached.contains(legacy)
+        }
+        return false
     }
 
-    static func leftoverPrintCachePut(cached: Set<String>, hash: String?, yaw: Double) -> Set<String> {
-        guard let key = leftoverLastHashBinKey(hash: hash, yaw: yaw) else { return cached }
+    static func leftoverPrintCachePut(cached: Set<String>, hash: String?, yaw: Double, cam: String? = nil) -> Set<String> {
+        guard let key = leftoverLastHashBinKey(hash: hash, yaw: yaw, cam: cam) else { return cached }
         var out = cached
         out.insert(key)
         if out.count > leftoverHashHoldCapN {
@@ -1366,14 +1399,7 @@ enum MatchMath {
     }
 
     static func printYawCoverageFromCache(cached: Set<String>, hash: String) -> Double {
-        let spatial = leftoverHoldHashSpatial(hash)
-        guard !spatial.isEmpty else { return 0 }
-        var bins = Set<Int>()
-        for k in cached {
-            guard k.hasPrefix(spatial), let r = k.range(of: "#"), let b = Int(k[r.upperBound...]) else { continue }
-            bins.insert(b)
-        }
-        return printYawCoverage(bins: bins)
+        printYawCoverage(bins: leftoverPrintCacheBins(cached, hash: hash))
     }
 
     static func printYawCoverageChip(_ coverage: Double) -> String {
@@ -2323,6 +2349,25 @@ enum MatchMath {
         let t = lastSeen ?? enrolledAt?.timeIntervalSince1970 ?? 0
         guard t > 0 else { return false }
         return now.timeIntervalSince1970 - t >= ttl
+    }
+
+    static func guestTTLRemain(
+        isGuest: Bool,
+        enrolledAt: Date?,
+        now: Date = Date(),
+        ttl: TimeInterval = 30,
+        lastSeen: TimeInterval? = nil
+    ) -> TimeInterval? {
+        guard isGuest else { return nil }
+        let t = lastSeen ?? enrolledAt?.timeIntervalSince1970 ?? 0
+        guard t > 0 else { return nil }
+        return ttl - (now.timeIntervalSince1970 - t)
+    }
+
+    static func guestTTLChip(remain: TimeInterval?) -> String? {
+        guard let remain else { return nil }
+        if remain <= 0 { return "GUEST drop" }
+        return "GUEST \(max(1, Int(remain.rounded(.up))))s"
     }
 
     /// Hidden / Zuletzt gelöscht nie seeden.
