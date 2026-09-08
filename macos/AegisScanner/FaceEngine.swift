@@ -2950,39 +2950,80 @@ enum FaceEngine {
     }
 
     private static let trackLock = NSLock()
+    private static var trackHandler = VNSequenceRequestHandler()
+    private static var trackObs: [VNDetectedObjectObservation] = []
+
+    static func resetTrack() {
+        trackLock.lock()
+        trackHandler = VNSequenceRequestHandler()
+        trackObs = []
+        trackLock.unlock()
+    }
 
     /// VNTrackObjectRequest auf der letzten Box. Detect 8 Hz, Track folgt Pixel.
-    /// Handler pro Aufruf — ein Prozess-weiter Sequence-Handler vermischt Gesichter.
-    static func trackBoxes(in image: CGImage, boxes: [FaceBox]) -> [FaceBox] {
+    /// persist: gleiche Sequence + Observation über skipDetect. Sonst Reseed.
+    static func trackBoxes(in image: CGImage, boxes: [FaceBox], persist: Bool = false) -> [FaceBox] {
         let w = Double(image.width)
         let h = Double(image.height)
         guard w > 8, h > 8, !boxes.isEmpty else { return boxes }
         var out: [FaceBox] = []
         out.reserveCapacity(boxes.count)
+        var nextObs: [VNDetectedObjectObservation] = []
+        nextObs.reserveCapacity(boxes.count)
         trackLock.lock()
         defer { trackLock.unlock() }
-        let handler = VNSequenceRequestHandler()
-        for box in boxes {
+        if !persist {
+            trackHandler = VNSequenceRequestHandler()
+            trackObs = []
+        }
+        let handler = trackHandler
+        for (i, box) in boxes.enumerated() {
             let vn = CGRect(
                 x: box.x / w,
                 y: 1 - (box.y + box.height) / h,
                 width: box.width / w,
                 height: box.height / h
             )
-            let obs = VNDetectedObjectObservation(boundingBox: vn)
-            let req = VNTrackObjectRequest(detectedObjectObservation: obs)
+            let seed: VNDetectedObjectObservation
+            if persist, i < trackObs.count {
+                seed = trackObs[i]
+            } else {
+                seed = VNDetectedObjectObservation(boundingBox: vn)
+            }
+            let req = VNTrackObjectRequest(detectedObjectObservation: seed)
             req.trackingLevel = .fast
             do {
                 try handler.perform([req], on: image)
                 if let r = req.results?.first, MatchMath.overlayTrackVisionOk(confidence: r.confidence) {
+                    nextObs.append(r)
                     out.append(vnToPixels(r.boundingBox, width: w, height: h))
                 } else {
+                    nextObs.append(seed)
                     out.append(box)
                 }
             } catch {
+                nextObs.append(seed)
                 out.append(box)
             }
         }
+        trackObs = nextObs
         return out
+    }
+
+    static func seedTrack(boxes: [FaceBox], image: CGImage) {
+        let w = Double(image.width)
+        let h = Double(image.height)
+        guard w > 8, h > 8 else { resetTrack(); return }
+        trackLock.lock()
+        defer { trackLock.unlock() }
+        trackHandler = VNSequenceRequestHandler()
+        trackObs = boxes.map { box in
+            VNDetectedObjectObservation(boundingBox: CGRect(
+                x: box.x / w,
+                y: 1 - (box.y + box.height) / h,
+                width: box.width / w,
+                height: box.height / h
+            ))
+        }
     }
 }

@@ -97,9 +97,9 @@ struct ContentView: View {
                     .help("False-Accept JSONL Replay. Letzte Match-Zeilen.")
             }
             Button("People") { store.seedFromPeopleAlbum() }
-                .help("Photos People-/Faces-Album als Enroll-Seed.")
+                .help("Photos People-/Faces-Album: Name + bis zu 3 Stills als Referenzen.")
             Button("FA-Log") { store.replayFalseAccept() }
-                .help("False-Accept JSONL Replay.")
+                .help("False-Accept JSONL Replay. Pair-Heatmap Ada→Ben.")
             if store.mutexChip != "—" && !store.mutexChip.isEmpty {
                 Text(store.mutexChip.uppercased())
                     .font(.system(.caption, design: .monospaced))

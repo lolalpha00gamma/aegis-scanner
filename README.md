@@ -1,4 +1,4 @@
-# Aegis **2.1.214 alpha**
+# Aegis **2.1.215 alpha**
 
 
 
@@ -14,6 +14,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.215 alpha
+
+2.1.214 VNTrack one-shot, People nur Name, FA ohne Paar. Track-Handler jedes Frame neu. Volle Bins nochmal Print.
+
+- **VNTrack persist.** Sequence+Observation über skipDetect. Detect reseedet.
+- **Enroll-SM skippt volle Bins.**
+- **People 3 Stills.** Name + Detect-Referenzen. limited-auth.
+- **FA Pair-Heatmap.** Ada→Ben×n.
+- Tests + VERSION = Models = MARKETING 2.1.215 (Build 240). Schema 15 bleibt.
 
 ## Neu in 2.1.214 alpha
 

@@ -2013,6 +2013,11 @@ enum MatchMath {
 
     static func overlayTrackVisionOk(confidence: Float) -> Bool { confidence >= 0.15 }
 
+    /// skipDetect hält Sequence+Observation. Detect reseedet.
+    static func overlayTrackPersist(skipDetect: Bool) -> Bool { skipDetect }
+
+    static func overlayTrackPersistReset(skipDetect: Bool) -> Bool { !skipDetect }
+
     static func overlayTrackStep(prev: CGRect, detect: CGRect, dt: TimeInterval, tau: TimeInterval) -> CGRect {
         let iou = overlayTrackIoU(prev, detect)
         if iou < 0.12 { return detect }
@@ -2036,6 +2041,17 @@ enum MatchMath {
     static func peopleAlbumSkipEmpty(_ name: String) -> Bool {
         peopleAlbumPersonKey(name).isEmpty
     }
+
+    static func peopleAlbumStillCap() -> Int { peopleAlbumSeedNeed() }
+
+    static func peopleAlbumStillLoads(count: Int, cap: Int = 3) -> Int {
+        min(max(0, count), max(1, cap))
+    }
+
+    /// authorized = 3, limited = 4. Restricted/denied tot.
+    static func peopleAlbumAuthOk(_ raw: Int) -> Bool { raw == 3 || raw == 4 }
+
+    static func peopleAlbumLimitedOnly(_ raw: Int) -> Bool { raw == 4 }
 
     /// Match-Log / False-Accept Replay. Eine Zeile, kein leftover*-Flag.
     static func falseAcceptJSONLLine(
@@ -2101,6 +2117,25 @@ enum MatchMath {
         let keep = lines.suffix(max(1, cap))
         if keep.isEmpty { return "" }
         return keep.joined(separator: "\n") + "\n"
+    }
+
+    static func falseAcceptPairKey(expected: String, decided: String) -> String {
+        "\(expected)→\(decided)"
+    }
+
+    static func falseAcceptPairHeatmap(_ rows: [(expected: String, decided: String)]) -> [(pair: String, n: Int)] {
+        var c: [String: Int] = [:]
+        for r in rows where !r.expected.isEmpty && !r.decided.isEmpty && r.expected != r.decided {
+            let k = falseAcceptPairKey(expected: r.expected, decided: r.decided)
+            c[k, default: 0] += 1
+        }
+        return c.map { (pair: $0.key, n: $0.value) }.sorted { $0.n > $1.n || ($0.n == $1.n && $0.pair < $1.pair) }
+    }
+
+    static func falseAcceptPairChip(_ heat: [(pair: String, n: Int)]) -> String {
+        guard let top = heat.first else { return "FA —" }
+        if heat.count == 1, top.n <= 1 { return "FA \(top.pair)" }
+        return "FA \(top.pair)×\(top.n)"
     }
 
     /// Front → ¾L → ¾R → Blink. Chip treibt den Schritt, nicht nur Coach-Text.
@@ -8862,6 +8897,19 @@ enum MatchMath {
             if yaw < 0 { l = true } else { r = true }
         }
         return (f, l, r)
+    }
+
+    /// Volle Bins nicht nochmal capturen. Frontal voll → Skip bei Yaw ≈ 0.
+    static func enrollSMSkipCapture(
+        yaw: Double,
+        haveFrontal: Bool,
+        haveLeft: Bool,
+        haveRight: Bool
+    ) -> Bool {
+        let a = abs(yaw)
+        if a < 0.28 { return haveFrontal }
+        if yaw < 0 { return haveLeft }
+        return haveRight
     }
 
     /// Front → ¾L → ¾R → Blink. Default haveBlink false — sonst Coach tot am Call-Site.

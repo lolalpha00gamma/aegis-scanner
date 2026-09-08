@@ -5661,6 +5661,30 @@ enum MatchMathTests {
         ok(MatchMath.falseAcceptJSONLCap() == 500, "FA cap 500")
         let trimmed = MatchMath.falseAcceptJSONLTrim((0..<12).map { "{\"n\":\($0)}" }.joined(separator: "\n"), cap: 3)
         ok(trimmed.contains("\"n\":9") && trimmed.contains("\"n\":11") && !trimmed.contains("\"n\":8"), "FA trim last 3")
+        ok(MatchMath.overlayTrackPersist(skipDetect: true), "Track persist skipDetect")
+        ok(!MatchMath.overlayTrackPersist(skipDetect: false), "Track persist Detect tot")
+        ok(MatchMath.overlayTrackPersistReset(skipDetect: false), "Track reseed Detect")
+        ok(!MatchMath.overlayTrackPersistReset(skipDetect: true), "Track reseed skip tot")
+        ok(MatchMath.enrollSMSkipCapture(yaw: 0.05, haveFrontal: true, haveLeft: false, haveRight: false), "SM skip voll F")
+        ok(!MatchMath.enrollSMSkipCapture(yaw: 0.05, haveFrontal: false, haveLeft: false, haveRight: false), "SM F leer capturt")
+        ok(MatchMath.enrollSMSkipCapture(yaw: -0.40, haveFrontal: true, haveLeft: true, haveRight: false), "SM skip voll ¾L")
+        ok(!MatchMath.enrollSMSkipCapture(yaw: 0.40, haveFrontal: true, haveLeft: true, haveRight: false), "SM ¾R leer capturt")
+        ok(MatchMath.peopleAlbumStillCap() == 3, "People still cap 3")
+        ok(MatchMath.peopleAlbumStillLoads(count: 8) == 3, "People stills cap")
+        ok(MatchMath.peopleAlbumStillLoads(count: 1) == 1, "People 1 still")
+        ok(MatchMath.peopleAlbumAuthOk(3), "People authorized")
+        ok(MatchMath.peopleAlbumAuthOk(4), "People limited")
+        ok(!MatchMath.peopleAlbumAuthOk(2), "People denied tot")
+        ok(MatchMath.peopleAlbumLimitedOnly(4), "People limited-only")
+        let heat = MatchMath.falseAcceptPairHeatmap([
+            (expected: "Ada", decided: "Ben"),
+            (expected: "Ada", decided: "Ben"),
+            (expected: "Ada", decided: "Cara"),
+            (expected: "Ada", decided: "Ada")
+        ])
+        ok(heat.first?.pair == "Ada→Ben" && heat.first?.n == 2, "FA heatmap Ada→Ben ×2")
+        ok(MatchMath.falseAcceptPairChip(heat) == "FA Ada→Ben×2", "FA pair chip")
+        ok(MatchMath.falseAcceptPairChip([]) == "FA —", "FA pair leer")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

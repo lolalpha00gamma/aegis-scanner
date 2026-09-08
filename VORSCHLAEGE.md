@@ -1,3 +1,40 @@
+# 2.1.215 — VNTrack persist, Enroll-SM skip, People 3 Stills, FA Heatmap.
+
+## In 2.1.215 wirklich im Code
+
+2.1.214 VNTrack one-shot, People nur Name, FA-Log ohne Paar. Track-Handler jedes Frame neu. Volle Bins nochmal Print. People ohne Fotos. FA nur Zähler.
+
+1. **VNTrack Observation persist** über skipDetect. `FaceEngine.trackBoxes(persist:)` + `seedTrack` nach Detect.
+2. **Enroll-SM skippt volle Bins.** `enrollSMSkipCapture` → printBudget skipIds.
+3. **People-Album lädt 3 Stills.** Detect + FaceIds, nicht nur Name. limited-auth ok.
+4. **FA-Replay Pair-Heatmap.** `falseAcceptPairHeatmap` Chip Ada→Ben×n.
+5. Tests + VERSION = Models = MARKETING 2.1.215 (Build 240). Schema 15 bleibt.
+
+## Erweiterung (neu, 2.1.215)
+
+1. **CameraBroker XPC + IOSurface** mit Helios. Eine TCC. P0.
+2. **gallery ANN / HNSW** nach Print-Index.
+3. **Identity-Merge-Wizard** Cosine 0,89–0,94 + Pairwise-Heatmap.
+4. **Softmax-Temperature** weiter nach Capture-Luma.
+5. **Cluster-Merge** mit 3 Stills bestätigen.
+6. **P-Slot Maske/Schal**, Brille Twin-Veto.
+7. **ReID-Graph** Hold-Trail.
+8. **Stereo Built-in + Continuity** Disparität als Yaw-Prior.
+9. **Overlay CAMetalLayer 60 Hz.**
+10. **Gemeinsamer CVPixelBuffer** Detect+Print.
+11. **LiveCapture nicht @MainActor.**
+12. **Drop-in `.mlmodel`** Print-Backbone.
+13. **gallery.json.bak Rotate 3.**
+14. **mmap leftover-Boxen** Helios↔Aegis Palm-Occlusion.
+15. **People-Album Yaw-Diversität** Front+L+R statt 3 Frontal.
+16. **FA-Heatmap Matrix-UI** nicht nur Chip.
+17. **Print-Cache persist** auf Disk (RAM tot nach Restart).
+18. **VNDetectFaceCaptureQuality** als Print-Skip.
+19. **Track lost → Detect sofort** wenn Observation confidence < 0,15.
+20. **Photos limited-auth** nur sichtbare Alben filtern.
+
+P0 CameraBroker. Kein neues leftover*-Flag.
+
 # 2.1.214 — VNTrack, People-Album, False-Accept JSONL.
 
 ## In 2.1.214 wirklich im Code

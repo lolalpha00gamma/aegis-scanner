@@ -1,3 +1,31 @@
+# Aegis Vorschläge — 2026-09-08 (Pass 16, 2.1.215)
+
+Stand 2.1.215 alpha. VNTrack persist, Enroll-SM skip, People 3 Stills, FA Heatmap.
+
+## Gelandet in 2.1.215
+
+- overlayTrackPersist / FaceEngine.trackBoxes(persist:) + seedTrack
+- enrollSMSkipCapture → skipIds
+- peopleAlbumStillCap / AuthOk + 3 Stills Detect
+- falseAcceptPairHeatmap Chip
+
+## Erweiterung (neu)
+
+149. **People-Album Yaw-Diversität** Front+L+R.
+150. **FA-Heatmap Matrix-UI.**
+151. **Print-Cache persist** auf Disk.
+152. **VNDetectFaceCaptureQuality** Print-Skip.
+153. **Track lost → Detect sofort.**
+154. **Photos limited-auth** nur sichtbare Alben.
+155. **Cluster-Merge** 3 Stills.
+156. **mmap leftover-Boxen** Helios Palm-Occlusion.
+157. **gallery ANN / HNSW.**
+158. **Identity-Merge-Wizard.**
+159. **LiveCapture nicht @MainActor.**
+160. **Overlay CAMetalLayer 60 Hz.**
+
+P0: CameraBroker. Kein neues leftover*-Flag.
+
 # Aegis Vorschläge — 2026-09-08 (Pass 15, 2.1.214)
 
 Stand 2.1.214 alpha. VNTrack, People-Album, False-Accept JSONL.

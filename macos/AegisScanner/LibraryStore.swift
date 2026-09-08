@@ -2486,7 +2486,7 @@ final class LibraryStore: ObservableObject {
             (id: id, x: v.x, y: v.y, w: v.w, h: v.h)
         }
         let liveIds = kalmanSnap.map(\.id)
-        let skipIds = MatchMath.printBudgetSkipIds(
+        var skipIds = MatchMath.printBudgetSkipIds(
             ids: liveIds,
             lastIoU: leftoverLastIoU,
             yaw: liveYaw,
@@ -2496,6 +2496,20 @@ final class LibraryStore: ObservableObject {
             dt: dt,
             continuity: cont
         )
+        var enrollBins = Set<Int>()
+        for k in leftoverPrintCache {
+            guard let r = k.range(of: "#"), let b = Int(k[r.upperBound...]) else { continue }
+            enrollBins.insert(b)
+        }
+        let haveF = enrollBins.contains(0)
+        let haveL = enrollBins.contains(-1) || enrollBins.contains(-2)
+        let haveR = enrollBins.contains(1) || enrollBins.contains(2)
+        for id in liveIds {
+            guard let yaw = liveYaw[id] else { continue }
+            if MatchMath.enrollSMSkipCapture(yaw: yaw, haveFrontal: haveF, haveLeft: haveL, haveRight: haveR) {
+                skipIds.insert(id)
+            }
+        }
         let skipPrintCached: Set<UUID> = Set(kalmanSnap.compactMap { row in
             guard let yaw = liveYaw[row.id] else { return nil }
             let hash = leftoverLiveHashTick[row.id] ?? leftoverLastHash[row.id]
@@ -2547,13 +2561,20 @@ final class LibraryStore: ObservableObject {
             if MatchMath.leftoverDetectSkipVision(skipDetect: skipDetect) {
                 var boxes = kalmanSnap.map { FaceBox(x: $0.x, y: $0.y, width: $0.w, height: $0.h) }
                 if MatchMath.overlayTrackUsesVision() {
-                    boxes = FaceEngine.trackBoxes(in: image, boxes: boxes)
+                    boxes = FaceEngine.trackBoxes(
+                        in: image,
+                        boxes: boxes,
+                        persist: MatchMath.overlayTrackPersist(skipDetect: true)
+                    )
                 }
                 found = zip(kalmanSnap, boxes).map { k, b in
                     FaceObservation.coast(id: k.id, mediaId: mediaId, box: b)
                 }
             } else {
                 found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true, skipPrints: skipPrints, roi: roi, skipPrintBoxes: skipPrintBoxes)) ?? []
+                if MatchMath.overlayTrackPersistReset(skipDetect: false) {
+                    FaceEngine.seedTrack(boxes: found.map(\.box), image: image)
+                }
             }
             if !skipDetect, found.isEmpty, roi != nil, MatchMath.liveRoiMissRetries(hadROI: true, empty: true) {
                 if MatchMath.liveRoiMissGoesFull(dt: dt) {
@@ -5126,31 +5147,40 @@ final class LibraryStore: ObservableObject {
         }
         let lines = text.split(whereSeparator: \.isNewline).suffix(20)
         var hits = 0
-        var last = "FA —"
+        var pairs: [(expected: String, decided: String)] = []
         for line in lines {
             guard let row = MatchMath.falseAcceptJSONLParse(String(line)) else { continue }
             if MatchMath.falseAcceptJSONLHits(
                 cosine: row.cosine, floor: 0.80, decided: row.decided, expected: row.identity
             ) {
                 hits += 1
+                pairs.append((expected: row.identity, decided: row.decided))
             }
-            last = String(format: "FA %.0f%% %@", row.cosine * 100, row.decided)
         }
-        faReplayChip = hits > 0 ? "FA \(hits)" : last
-        status = hits > 0 ? "False-Accept Replay · \(hits) Treffer" : "Match-Log \(lines.count) Zeilen"
+        let heat = MatchMath.falseAcceptPairHeatmap(pairs)
+        if hits > 0 {
+            faReplayChip = MatchMath.falseAcceptPairChip(heat)
+            let top = heat.prefix(3).map { "\($0.pair)×\($0.n)" }.joined(separator: " · ")
+            status = "False-Accept Replay · \(hits) Treffer · \(top)"
+        } else {
+            faReplayChip = "FA —"
+            status = "Match-Log \(lines.count) Zeilen"
+        }
     }
 
     func seedFromPeopleAlbum() {
         PHPhotoLibrary.requestAuthorization(for: .readWrite) { [weak self] auth in
             Task { @MainActor in
                 guard let self else { return }
-                guard auth == .authorized || auth == .limited else {
+                guard MatchMath.peopleAlbumAuthOk(Int(auth.rawValue)) else {
                     self.status = "Fotos-Zugriff fehlt — People-Album"
                     return
                 }
                 let subtype = PHAssetCollectionSubtype(rawValue: UInt(MatchMath.peopleAlbumSubtypeRaw)) ?? .albumSyncedFaces
                 let cols = PHAssetCollection.fetchAssetCollections(with: .album, subtype: subtype, options: nil)
                 var seeded = 0
+                var stillCount = 0
+                let cap = MatchMath.peopleAlbumStillCap()
                 cols.enumerateObjects { col, _, stop in
                     if seeded >= 8 { stop.pointee = true; return }
                     let name = col.localizedTitle ?? ""
@@ -5159,21 +5189,70 @@ final class LibraryStore: ObservableObject {
                         MatchMath.peopleAlbumPersonKey($0.name) == MatchMath.peopleAlbumPersonKey(name)
                     }) { return }
                     let assets = PHAsset.fetchAssets(in: col, options: nil)
-                    var stills = 0
-                    assets.enumerateObjects { _, _, halt in
-                        if stills >= MatchMath.peopleAlbumSeedNeed() { halt.pointee = true; return }
-                        stills += 1
+                    var picked: [PHAsset] = []
+                    assets.enumerateObjects { asset, _, halt in
+                        if picked.count >= cap { halt.pointee = true; return }
+                        if asset.mediaType == .image { picked.append(asset) }
                     }
-                    if MatchMath.peopleAlbumEnrollOk(stills: stills) {
-                        self.identities.append(Identity(id: UUID(), name: name, faceIds: []))
-                        seeded += 1
+                    let loadN = MatchMath.peopleAlbumStillLoads(count: picked.count, cap: cap)
+                    guard MatchMath.peopleAlbumEnrollOk(stills: loadN, need: 1) else { return }
+                    let images = self.peopleAlbumLoadStills(Array(picked.prefix(loadN)))
+                    var faceIds: [UUID] = []
+                    for cg in images {
+                        let mid = UUID()
+                        let found = (try? FaceEngine.detect(in: cg, mediaId: mid, tiles: false, live: false)) ?? []
+                        guard let face = found.max(by: { $0.box.width * $0.box.height < $1.box.width * $1.box.height }) else { continue }
+                        var copy = face
+                        copy.enrolledAt = Date()
+                        if !self.faces.contains(where: { $0.id == copy.id }) {
+                            self.faces.append(copy)
+                        }
+                        if !self.media.contains(where: { $0.id == mid }) {
+                            self.media.append(MediaItem(
+                                id: mid,
+                                url: URL(fileURLWithPath: "/tmp/aegis-people-\(mid.uuidString)"),
+                                name: name,
+                                kind: .photo,
+                                width: cg.width,
+                                height: cg.height,
+                                duration: nil,
+                                parentId: nil,
+                                timeSec: nil,
+                                preview: cg
+                            ))
+                        }
+                        faceIds.append(copy.id)
                     }
+                    self.identities.append(Identity(id: UUID(), name: name, faceIds: faceIds))
+                    seeded += 1
+                    stillCount += faceIds.count
                 }
                 if seeded > 0 { self.persist() }
                 self.status = seeded > 0
-                    ? "People-Album · \(seeded) Personen angelegt"
+                    ? "People-Album · \(seeded) Personen · \(stillCount) Stills"
                     : "People-Album leer oder schon in der Galerie"
             }
         }
+    }
+
+    private func peopleAlbumLoadStills(_ assets: [PHAsset]) -> [CGImage] {
+        let opts = PHImageRequestOptions()
+        opts.isSynchronous = true
+        opts.deliveryMode = .highQualityFormat
+        opts.resizeMode = .fast
+        opts.isNetworkAccessAllowed = false
+        var out: [CGImage] = []
+        let mgr = PHImageManager.default()
+        for asset in assets {
+            mgr.requestImage(
+                for: asset,
+                targetSize: CGSize(width: 720, height: 720),
+                contentMode: .aspectFill,
+                options: opts
+            ) { img, _ in
+                if let cg = img?.cgImage { out.append(cg) }
+            }
+        }
+        return out
     }
 }
