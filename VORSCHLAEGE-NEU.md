@@ -1,3 +1,17 @@
+# Aegis Nachtrag 2.1.201 — 2026-09-08
+
+Binary **2.1.201 alpha Build 226**. Trail nur Live-next. Median + Gallery-Anker. Blur-Skip ohne Yaw-Stempel. Coast nur Commit. Helios 1.6.39.
+
+## In 2.1.201 gelandet
+
+1. leftoverPrintTrailNext — nur Live-next, Cap 5. Gallery-Print nicht jedes Tick.
+2. leftoverPrintBlend — Median + Anker. Mean nur Last ≈ Median (0,97).
+3. leftoverPrintCommitOk — Blur-Skip kein Yaw-Stempel.
+4. leftoverCoastPrintMerge / StampMerge `commitIds`.
+5. Tests + VERSION = Models = MARKETING 2.1.201 (Build 226). Schema 15 bleibt.
+
+Rest: CameraBroker, FaceTrack einzige Map, Overlay-Metal. Siehe VORSCHLAEGE-GROK.md.
+
 # Aegis Nachtrag 2.1.200 — 2026-09-08
 
 Binary **2.1.200 alpha Build 225**. Hold-Still × fps. Overlay-Taufe 0,80. Print-EMA × dt. Helios 1.6.38.

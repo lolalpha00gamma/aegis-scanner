@@ -2734,6 +2734,7 @@ final class LibraryStore: ObservableObject {
         }
         var adopted: [FaceObservation] = []
         adopted.reserveCapacity(found.count)
+        var printCommitted = Set<UUID>()
         for var face in found {
             let probeVec = FaceEngine.embedding(of: face)
             var best: FaceObservation?
@@ -2965,19 +2966,22 @@ final class LibraryStore: ObservableObject {
                         trail = []
                     }
                     livePrintTrailSlot[old.id] = nextSlot
-                    if prev.count >= 32 { trail.append(prev) }
-                    if next.count >= 32, MatchMath.leftoverTrailWriteOk(sharpness: face.quality.sharpness) {
-                        trail.append(next)
+                    if MatchMath.leftoverPrintCommitOk(next: next, sharpness: face.quality.sharpness) {
+                        trail = MatchMath.leftoverPrintTrailNext(trail: trail, next: next)
+                        livePrintTrail[old.id] = trail
+                        let median = MatchMath.leftoverPrintBlend(trail, dt: liveDt, anchor: prev)
+                        face.printVec = median.isEmpty ? FaceEngine.blendEmbeddings(prev, next, alpha: blend) : median
+                        leftoverPrintYaw = MatchMath.leftoverPrintYawStamp(
+                            printed: leftoverPrintYaw,
+                            id: old.id,
+                            yaw: face.quality.yaw
+                        )
+                        printCommitted.insert(old.id)
+                    } else {
+                        livePrintTrail[old.id] = trail
+                        face.featurePrint = old.featurePrint
+                        face.printVec = old.printVec.isEmpty ? FaceEngine.embedding(of: old) : old.printVec
                     }
-                    if trail.count > 5 { trail.removeFirst(trail.count - 5) }
-                    livePrintTrail[old.id] = trail
-                    let median = MatchMath.leftoverPrintBlend(trail, dt: liveDt)
-                    face.printVec = median.isEmpty ? FaceEngine.blendEmbeddings(prev, next, alpha: blend) : median
-                    leftoverPrintYaw = MatchMath.leftoverPrintYawStamp(
-                        printed: leftoverPrintYaw,
-                        id: old.id,
-                        yaw: face.quality.yaw
-                    )
                     }
                 } else if face.printVec.isEmpty {
                     face.printVec = FaceEngine.embedding(of: face)
@@ -4428,14 +4432,16 @@ final class LibraryStore: ObservableObject {
             leftoverCoastPrint = MatchMath.leftoverCoastPrintMerge(
                 stored: leftoverCoastPrint,
                 live: livePrints,
-                skipPrints: skipPrints
+                skipPrints: skipPrints,
+                commitIds: printCommitted
             )
             leftoverCoastPrintAt = MatchMath.leftoverCoastPrintStampMerge(
                 stamped: leftoverCoastPrintAt,
                 live: livePrints,
                 skipPrints: skipPrints,
                 now: now,
-                stored: prevCoast
+                stored: prevCoast,
+                commitIds: printCommitted
             )
             leftoverCoastPrint = leftoverCoastPrint.filter { liveIds.contains($0.key) || leftoverIds.contains($0.key) }
             leftoverCoastPrintAt = leftoverCoastPrintAt.filter { leftoverCoastPrint[$0.key] != nil }

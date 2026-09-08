@@ -1,3 +1,9 @@
+# Nachtrag 2026-09-08 — 2.1.201 / 1.6.39 (kein Merge von `bugfix`)
+
+Aegis `lolalpha00gamma/aegis-scanner` **2.1.201 alpha** (Build 226).
+Helios `lolalpha00gamma/Helios` **1.6.39** (Build 72).
+Nur `main`. Trail-next, Median+Anker, Blur kein Stamp, Coast nur Commit. Helios Approach+Reach, Finger-Kontakt, q-Gate, Tip-Konfidenz.
+
 # Nachtrag 2026-09-08 — 2.1.200 / 1.6.38 (kein Merge von `bugfix`)
 
 Aegis `lolalpha00gamma/aegis-scanner` **2.1.200 alpha** (Build 225).

@@ -1,3 +1,5 @@
+# 2.1.201 — Print-Trail nur next, Median+Anker, Blur kein Stamp, Coast nur Commit.
+
 # 2.1.200 — siehe VORSCHLAEGE-NEU.md (Hold-Still × fps, Overlay-Taufe 0,80, Print-EMA × dt).
 
 # 2.1.199 — siehe VORSCHLAEGE-NEU.md (Print-Yaw Stamp, EMA Gleichgewicht).

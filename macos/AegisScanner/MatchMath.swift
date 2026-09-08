@@ -554,11 +554,13 @@ enum MatchMath {
     static func leftoverCoastPrintMerge(
         stored: [UUID: [Double]],
         live: [UUID: [Double]],
-        skipPrints: Bool
+        skipPrints: Bool,
+        commitIds: Set<UUID>? = nil
     ) -> [UUID: [Double]] {
         guard !skipPrints else { return stored }
         var out = stored
         for (id, vec) in live {
+            if let commitIds, !commitIds.contains(id) { continue }
             let next = leftoverCoastPrintVecOf(live: vec, stored: out[id] ?? [])
             if next.count >= 32 { out[id] = next }
         }
@@ -3474,11 +3476,13 @@ enum MatchMath {
         live: [UUID: [Double]],
         skipPrints: Bool,
         now: TimeInterval,
-        stored: [UUID: [Double]] = [:]
+        stored: [UUID: [Double]] = [:],
+        commitIds: Set<UUID>? = nil
     ) -> [UUID: TimeInterval] {
         guard !skipPrints else { return stamped }
         var out = stamped
         for (id, vec) in live where vec.count >= 32 {
+            if let commitIds, !commitIds.contains(id) { continue }
             if let old = stored[id], leftoverCoastPrintSame(old, vec) { continue }
             out[id] = now
         }
@@ -6354,11 +6358,29 @@ enum MatchMath {
         return l2normalize(acc)
     }
 
-    static func leftoverPrintBlend(_ vectors: [[Double]], dt: TimeInterval = 0.04) -> [Double] {
-        if vectors.filter({ $0.count >= 32 }).count >= leftoverPrintEmaNeed(dt: dt) {
-            return leftoverPrintEma(vectors)
+    static func leftoverPrintBlend(_ vectors: [[Double]], dt: TimeInterval = 0.04, anchor: [Double] = []) -> [Double] {
+        var pool = vectors.filter { $0.count >= 32 }
+        if anchor.count >= 32 { pool.insert(anchor, at: 0) }
+        let med = medianBlend(pool)
+        guard pool.count >= leftoverPrintEmaNeed(dt: dt), med.count >= 32, let last = pool.last, last.count == med.count else {
+            return med
         }
-        return medianBlend(vectors)
+        if cosine(med, last) + 1e-12 < 0.97 { return med }
+        return leftoverPrintEma([med, last])
+    }
+
+    /// Trail nur Live-next. Gallery-Print ist Anker in leftoverPrintBlend, nicht Sample.
+    static func leftoverPrintTrailNext(trail: [[Double]], next: [Double], cap: Int = 5) -> [[Double]] {
+        guard next.count >= 32 else { return trail }
+        var out = trail.filter { $0.count >= 32 }
+        out.append(next)
+        if out.count > cap { out.removeFirst(out.count - cap) }
+        return out
+    }
+
+    /// Gallery-Commit nur wenn Live-Print in den Trail geht. Blur-Skip darf Yaw/Coast nicht stempeln.
+    static func leftoverPrintCommitOk(next: [Double], sharpness: Double?) -> Bool {
+        next.count >= 32 && leftoverTrailWriteOk(sharpness: sharpness)
     }
 
     /// Overlay 3 Frames nach Remint. Detect-UUID tot, identityId bleibt. 24 fps 6.

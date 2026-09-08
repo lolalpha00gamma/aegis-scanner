@@ -1,3 +1,19 @@
+# Aegis 2.1.201 — Print-Trail next, Median+Anker, Blur kein Stamp
+
+Aegis **2.1.201 alpha** (Build 226). Helios **1.6.39** (Build 72). Nur `main`. `bugfix` mergen: nein.
+
+2.1.200: Hold-Still × fps. Trail append prev. Coast trotz Skip. Blur stempelt Yaw. Mean ab 2 Frames = Glück 50 %.
+
+## Was 2.1.201 ändert
+
+1. **leftoverPrintTrailNext** nur Live-next.
+2. **leftoverPrintBlend** Median + Gallery-Anker; Mean nur Cosine ≥ 0,97.
+3. **leftoverPrintCommitOk** Blur-Skip ohne Yaw-Stempel.
+4. **leftoverCoastPrintMerge commitIds.**
+5. Tests + VERSION = Models = MARKETING 2.1.201 (Build 226). Schema 15 bleibt.
+
+`bugfix` mergen: nein.
+
 # Aegis 2.1.200 — Hold-Still × fps, Overlay-Taufe, Print-EMA × dt
 
 Aegis **2.1.200 alpha** (Build 225). Helios **1.6.38** (Build 71). Nur `main`. `bugfix` mergen: nein.

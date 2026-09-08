@@ -5177,7 +5177,31 @@ enum MatchMathTests {
         let blend2 = MatchMath.leftoverPrintBlend([ones, ones])
         ok(blend2.count == med.count, "Blend < 3 = Median")
         let blend3 = MatchMath.leftoverPrintBlend([ones, ones, shifted])
-        ok(blend3.count == 64, "Blend ≥ 3 = EMA")
+        ok(blend3.count == 64, "Blend ≥ 3 Dim")
+        ok(MatchMath.cosine(blend3, ones) > 0.98, "Glücks-Frame Median hält")
+        let blendAnchor = MatchMath.leftoverPrintBlend([shifted], dt: 0.125, anchor: ones)
+        ok(MatchMath.cosine(blendAnchor, ones) > 0.90, "Gallery-Anker hält Median")
+        ok(MatchMath.leftoverPrintCommitOk(next: ones, sharpness: 0.90), "Commit scharf")
+        ok(!MatchMath.leftoverPrintCommitOk(next: ones, sharpness: 0.01), "Commit Blur tot")
+        ok(!MatchMath.leftoverPrintCommitOk(next: [0.1], sharpness: 0.90), "Commit kurz tot")
+        let trailLive = MatchMath.leftoverPrintTrailNext(trail: [ones], next: shifted)
+        ok(trailLive.count == 2, "Trail nur next")
+        let trailCap = MatchMath.leftoverPrintTrailNext(trail: [ones, ones, ones, ones, ones], next: shifted, cap: 5)
+        ok(trailCap.count == 5, "Trail Cap 5")
+        ok(
+            MatchMath.leftoverCoastPrintMerge(
+                stored: [liveOld: ones],
+                live: [liveOld: shifted],
+                skipPrints: false,
+                commitIds: []
+            )[liveOld] != nil && MatchMath.cosine(MatchMath.leftoverCoastPrintMerge(
+                stored: [liveOld: ones],
+                live: [liveOld: shifted],
+                skipPrints: false,
+                commitIds: []
+            )[liveOld] ?? [], ones) > 0.99,
+            "Coast Merge ohne Commit hält"
+        )
         ok(MatchMath.leftoverPrintEmaNeed() == 3, "EMA 3 Frames")
         ok(MatchMath.leftoverPeakHoldNeed(dt: 0.125) == 3, "Peak-Hold 8 fps 3")
         ok(MatchMath.leftoverPeakHoldNeed(dt: 0.04) == 6, "Peak-Hold 24 fps 6")

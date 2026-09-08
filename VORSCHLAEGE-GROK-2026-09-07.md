@@ -1,3 +1,55 @@
+# Nachtrag Grok 2026-09-08 — 2.1.201 gelandet, Rest offen
+
+Quelle: Review + Fix Aegis 2.1.201 (Build 226) auf 2.1.200 (Trail prev, Coast ohne Commit, Blur-Yaw). Helios 1.6.39.
+Kein Binary-Lauf (Linux-Sandbox). Tests in CI. `bugfix` nicht gemergt. Nur `main`.
+
+## Warum es nach 2.1.200 weiter riss
+
+1. livePrintTrail append prev jedes Tick. Gallery klebt, Mean ab 2 Frames bei 8 fps = 50 % Glück.
+2. leftoverCoastPrintMerge ohne commitIds. Diversity-Skip hält Print, Coast driftet.
+3. leftoverPrintYawStamp auch wenn leftoverTrailWriteOk tot. SameBin vs Glücks-Yaw.
+4. Helios pinch3DVeto Approach vor Reach. Echte Pinzette zur Kamera tot.
+
+## In 2.1.201 / 1.6.39 gelandet
+
+- leftoverPrintTrailNext nur Live-next.
+- leftoverPrintBlend Median + Anker, Mean nur Cosine ≥ 0,97.
+- leftoverPrintCommitOk: Blur-Skip stempelt kein Yaw.
+- leftoverCoastPrintMerge / StampMerge commitIds.
+- Helios pinch3DVeto Reach skippt Approach, pinchFingerContact, pinchClosednessNeed im Gate, pinchRatioSmooth × q, Tip-Konfidenz vor z.
+
+## Offen (nicht noch ein Slider)
+
+P0 CameraBroker IOSurface. FaceTrack einzige Store-Map.
+P1 Overlay-Metal. LiveCapture nicht @MainActor.
+P2 VNTrackObjectRequest. Replay 20 s. HeliosAegisKit.
+
+## Erweiterung (neu)
+
+1. CameraBroker Shared Memory statt flock/90 Hz.
+2. FaceTrack Debug-Dump eine Map JSON.
+3. Pose-Meter ¾L/¾R getrennt, nicht ein ¾.
+4. Licht-Eimer (frontal / ¾ / Profil) statt einem Cosine.
+5. Match-Log JSONL für Replay.
+6. Drop-in `.mlmodel` FaceEmbedder-Protokoll.
+7. Overlay-Metal 90 Hz unabhängig von 8 fps Detect.
+8. Tests splitten (MatchMathTests > 200 kB). Swift Testing.
+9. Helios liest leftover-Boxen als Palm-Occlusion. Aegis-Yaw als Click-Lock.
+10. leftoverBaptize Temperatur je Bin — 0,80 hart tauft im ¾ falsch.
+11. leftoverPrintYaw in gallery.json persist — Restart sonst SameBin tot.
+12. Detect-Interval ≠ Print-Interval. 8 fps Detect, Print nur nach Still.
+13. Twin-Bin ¾L vs ¾R (signed yaw, nicht nur |yaw|).
+14. Overlay identity-Lerp unabhängig von Assign.
+15. Blink-Liveness auf Assign, nicht nur Enroll.
+16. gallery ANN (HNSW) ab n>50.
+17. CVPixelBuffer bis Detect, kein CGImage-Hop.
+18. Name-Lock nur nach Blink + 3 Frames gleicher ID.
+19. P-Slot Maske/Schal, Brille-Slot als Twin-Veto.
+20. Continuity 720p@24 Format-Lock (Helios cameraFormatScore, Aegis Session analog).
+21. DisplayLink 90 Hz HUD unabhängig von Detect.
+22. Wrist-IMU Watch für Pinch-Confirm / Blink-Confirm.
+23. Homographie Online-Nachzug nach Clutch.
+
 # Nachtrag Grok 2026-09-08 — 2.1.200 gelandet, Rest offen
 
 Quelle: Review + Fix Aegis 2.1.200 (Build 225) auf 2.1.199 (Hold-Still IoU 0,70 bei 8 fps, Overlay Firm 0,64, EMA 3 Ticks). Helios 1.6.38.
