@@ -5137,6 +5137,36 @@ enum MatchMathTests {
             scores: [[0, nil], [nil, 0.85]]
         )
         ok(drop0[0] == nil && drop0[1] == 1, "DropForbidden 0 fällt, Taufe hält")
+        ok(MatchMath.leftoverHoldBin(yawAbs: -0.50) == 2, "signed −Profil = Bin 2")
+        ok(MatchMath.leftoverHoldBin(yawAbs: -0.10) == 0, "signed −frontal = Bin 0")
+        ok(MatchMath.leftoverHoldBin(yawAbs: -0.35) == 1, "signed −¾ = Bin 1")
+        ok(MatchMath.nameHistCap(need: 3, dt: 0.125) >= 10, "8 fps Hist ≥ 1,2 s")
+        ok(MatchMath.nameHistCap(need: 7, dt: 0.04) >= 19, "24 fps Hist ≥ Familien-Need")
+        ok(MatchMath.nameHistCap(need: 3, dt: 0.04) >= 20, "24 fps Hist ≥ 0,8 s")
+        let ones = [Double](repeating: 1.0 / sqrt(64), count: 64)
+        var shifted = ones
+        shifted[0] = 0.2
+        let ema = MatchMath.leftoverPrintEma([ones, ones, shifted])
+        ok(ema.count == 64, "Print-EMA Dim")
+        let med = MatchMath.medianBlend([ones, ones])
+        let blend2 = MatchMath.leftoverPrintBlend([ones, ones])
+        ok(blend2.count == med.count, "Blend < 3 = Median")
+        let blend3 = MatchMath.leftoverPrintBlend([ones, ones, shifted])
+        ok(blend3.count == 64, "Blend ≥ 3 = EMA")
+        ok(MatchMath.leftoverPrintEmaNeed() == 3, "EMA 3 Frames")
+        ok(MatchMath.leftoverPeakHoldNeed(dt: 0.125) == 3, "Peak-Hold 8 fps 3")
+        ok(MatchMath.leftoverPeakHoldNeed(dt: 0.04) == 6, "Peak-Hold 24 fps 6")
+        ok(MatchMath.leftoverPeakHoldKeeps(miss: 1, need: 3), "Peak-Hold miss 1")
+        ok(!MatchMath.leftoverPeakHoldKeeps(miss: 3, need: 3), "Peak-Hold miss 3 tot")
+        let peakNeedId = UUID()
+        let advNeed = MatchMath.leftoverOverlayPeakAdvance(
+            guest: [peakNeedId: "Ada"],
+            held: [:],
+            remain: [:],
+            live: [peakNeedId],
+            need: MatchMath.leftoverPeakHoldNeed(dt: 0.04)
+        )
+        ok(advNeed.remain[peakNeedId] == 6, "Peak Advance 24 fps remain 6")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

@@ -1,3 +1,9 @@
+# Nachtrag 2026-09-08 — 2.1.198 / 1.6.36 (kein Merge von `bugfix`)
+
+Aegis `lolalpha00gamma/aegis-scanner` **2.1.198 alpha** (Build 223).
+Helios `lolalpha00gamma/Helios` **1.6.36** (Build 69).
+Nur `main`. leftoverHoldBin |yaw|, nameHist × dt, Print-EMA, Peak-Hold verdrahtet. Helios Approach/Recover-Jump/Faust-Grace.
+
 # Nachtrag 2026-09-08 — 2.1.197 / 1.6.35 (kein Merge von `bugfix`)
 
 Aegis `lolalpha00gamma/aegis-scanner` **2.1.197 alpha** (Build 222).

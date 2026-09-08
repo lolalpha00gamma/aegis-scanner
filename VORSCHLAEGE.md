@@ -1,3 +1,5 @@
+# 2.1.198 — siehe VORSCHLAEGE-NEU.md (Hold-Bin |yaw|, nameHist × dt, Print-EMA, Peak-Hold verdrahtet).
+
 # 2.1.197 — siehe VORSCHLAEGE-NEU.md (PrintCell 0≠nil, x-Fill skip, SameBin ohne Yaw).
 
 # 2.1.196 — siehe VORSCHLAEGE-NEU.md (leftover Taufe 0,80, Twin-Yaw-Cull, Print-Diversity).

@@ -1246,7 +1246,7 @@ final class LibraryStore: ObservableObject {
                 pairCosine: hit.pairCosine
             )
             let need = MatchMath.nameAgreeNeed(family: close, dt: dt)
-            let cap = MatchMath.nameHistCap(need: need)
+            let cap = MatchMath.nameHistCap(need: need, dt: dt)
             let hist = MatchMath.nameHistAppend(liveNameHist[fid] ?? [], token: token, cap: cap)
             liveNameHist[fid] = hist
             let voted = MatchMath.leftoverLiveNameAnd(
@@ -2956,7 +2956,7 @@ final class LibraryStore: ObservableObject {
                     }
                     if trail.count > 5 { trail.removeFirst(trail.count - 5) }
                     livePrintTrail[old.id] = trail
-                    let median = MatchMath.medianBlend(trail)
+                    let median = MatchMath.leftoverPrintBlend(trail)
                     face.printVec = median.isEmpty ? FaceEngine.blendEmbeddings(prev, next, alpha: blend) : median
                     }
                 } else if face.printVec.isEmpty {
@@ -3472,12 +3472,14 @@ final class LibraryStore: ObservableObject {
             arm: MatchMath.leftoverNameLockSec
         )
         do {
+            let peakNeed = MatchMath.leftoverPeakHoldNeed(dt: liveDt)
             let peakBoxes = MatchMath.leftoverOverlayPeakIoUAdopt(
                 held: leftoverOverlayPeakHeld,
                 remain: leftoverOverlayPeakRemain,
                 live: adoptLive,
                 stored: adoptStored,
-                floor: adoptFloor
+                floor: adoptFloor,
+                need: peakNeed
             )
             leftoverOverlayPeakHeld = peakBoxes.held
             leftoverOverlayPeakRemain = peakBoxes.remain
@@ -3487,7 +3489,8 @@ final class LibraryStore: ObservableObject {
                 guest: guests,
                 held: leftoverOverlayPeakHeld,
                 remain: leftoverOverlayPeakRemain,
-                live: peakLive
+                live: peakLive,
+                need: peakNeed
             )
             leftoverOverlayPeakHeld = advanced.held
             leftoverOverlayPeakRemain = advanced.remain

@@ -1,4 +1,4 @@
-# Aegis **2.1.197 alpha**
+# Aegis **2.1.198 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,17 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.198 alpha
+
+2.1.197: PrintCell 0≠nil, x-Fill skip, SameBin Optional. leftoverHoldBin ohne abs — −Profil = frontal. nameHist 5 Frames. Print-Median Glücks-Frame. Peak-Hold Need tot.
+
+- **leftoverHoldBin** |yaw| intern.
+- **nameHistCap(need, dt)** Fenster in Sekunden, Cap 24.
+- **leftoverPrintBlend** EMA ab 3 Vecs, sonst Median.
+- **leftoverPeakHoldNeed** in Advance + IoUAdopt (24 fps 6 Frames).
+- Helios **1.6.36:** Approach-Veto, Recover-Jump, Faust-Grace, pinchActor z.
+- Tests + VERSION = Models = MARKETING 2.1.198 (Build 223). Schema 15 bleibt.
 
 ## Neu in 2.1.197 alpha
 

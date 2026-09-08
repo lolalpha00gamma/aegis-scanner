@@ -1,3 +1,19 @@
+# Aegis 2.1.198 — Hold-Bin |yaw|, nameHist × dt, Print-EMA, Peak-Hold
+
+Aegis **2.1.198 alpha** (Build 223). Helios **1.6.36** (Build 69). Nur `main`. `bugfix` mergen: nein.
+
+2.1.197: PrintCell 0≠nil. leftoverHoldBin signed. Hist in Frames. Median-Glück. Peak-Need unverdrahtet.
+
+## Was 2.1.198 ändert
+
+1. **leftoverHoldBin** abs intern. −Profil ≠ frontal.
+2. **nameHistCap(need, dt)** Sekunden, Cap 24.
+3. **leftoverPrintBlend** EMA ≥ 3, sonst Median.
+4. **leftoverPeakHoldNeed** in Advance + IoUAdopt. 24 fps 6, 8 fps 3.
+5. Tests + VERSION = Models = MARKETING 2.1.198 (Build 223). Schema 15 bleibt.
+
+`bugfix` mergen: nein.
+
 # Aegis 2.1.197 — PrintCell 0≠nil, x-Fill, SameBin
 
 Aegis **2.1.197 alpha** (Build 222). Helios **1.6.35** (Build 68). Nur `main`. `bugfix` mergen: nein.

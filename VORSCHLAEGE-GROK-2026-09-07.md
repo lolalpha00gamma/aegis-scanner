@@ -1,3 +1,42 @@
+# Nachtrag Grok 2026-09-08 — 2.1.198 gelandet, Rest offen
+
+Quelle: Review + Fix Aegis 2.1.198 (Build 223) auf 2.1.197 (signed Hold-Bin, Hist in Frames, Median-Glück, Peak-Need tot). Helios 1.6.36.
+Kein Binary-Lauf (Linux-Sandbox). Tests in CI. `bugfix` nicht gemergt. Nur `main`.
+
+## Warum es nach 2.1.197 weiter riss
+
+1. leftoverHoldBin ohne abs. SameBin war |yaw|, Hold-EMA schrieb −Profil in Bin 0.
+2. nameHistCap 5 Frames. Continuity 8 fps = 0,62 s, Familien-Need 0,80 s hungert.
+3. Gallery-Print Median/blendEmbeddings — ein Glücks-Frame überschreibt.
+4. leftoverPeakHoldNeed existierte in keinem Call. Overlay „?“ nach Remint 3 Frames bei 24 fps = 125 ms Flicker.
+
+## In 2.1.198 / 1.6.36 gelandet
+
+- leftoverHoldBin abs intern.
+- nameHistCap(need, dt) Sekunden, Cap 24.
+- leftoverPrintEma / leftoverPrintBlend ≥ 3.
+- leftoverPeakHoldNeed in Advance + IoUAdopt.
+- Helios pinch3DApproach, pinchActor z, PalmJump, pullTowardPalmGrow, fistScharfGrace.
+
+## Offen (nicht noch ein Slider)
+
+P0 CameraBroker IOSurface. FaceTrack einzige Store-Map.
+P1 Overlay-Metal. LiveCapture nicht @MainActor.
+P2 VNTrackObjectRequest. Replay 20 s. HeliosAegisKit.
+
+## Erweiterung (neu)
+
+1. CameraBroker Shared Memory statt flock/90 Hz.
+2. FaceTrack Debug-Dump eine Map JSON.
+3. Pose-Meter ¾L/¾R getrennt, nicht ein ¾.
+4. Licht-Eimer (frontal / ¾ / Profil) statt einem Cosine.
+5. Match-Log JSONL für Replay.
+6. Drop-in `.mlmodel` FaceEmbedder-Protokoll.
+7. Overlay-Metal 90 Hz unabhängig von 8 fps Detect.
+8. leftoverPrintTrail nur Live-next, old-Print als Ankergewicht.
+9. Tests splitten (MatchMathTests > 200 kB). Swift Testing.
+10. Helios liest leftover-Boxen als Palm-Occlusion. Aegis-Yaw als Click-Lock.
+
 # Nachtrag Grok 2026-09-08 — 2.1.197 gelandet, Rest offen
 
 Quelle: Review + Fix Aegis 2.1.197 (Build 222) auf 2.1.196 (PrintOk nillte 0,64 → x-Fill stahl UUID). Helios 1.6.35.

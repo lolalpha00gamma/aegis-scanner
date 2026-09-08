@@ -75,7 +75,15 @@ enum MatchMath {
 
     /// Leere Look≠Print-Tokens dürfen die Familien-Taufe nicht aushungern.
     static func nameHistCap(need: Int) -> Int {
-        max(nameVoteFrames, need + 3)
+        nameHistCap(need: need, dt: 0.04)
+    }
+
+    /// 8 fps: Fenster in Sekunden, nicht 5 Frames (0,62 s). 24 fps: nicht 2 s Hist.
+    static func nameHistCap(need: Int, dt: TimeInterval) -> Int {
+        let step = max(0.04, min(0.20, dt <= 0 ? 0.125 : dt))
+        let span = nameFamilySec + 0.40
+        let frames = Int(ceil(span / step))
+        return max(nameVoteFrames, max(need + 3, min(24, frames)))
     }
     /// Rename-Confirm klebt sonst an der nächsten Person.
     static let renameConfirmHold: TimeInterval = 8
@@ -5684,9 +5692,11 @@ enum MatchMath {
     }
 
     /// front / ¾ / Profil. leftoverHold je Pose, nicht eine EMA für alle.
+    /// Signed Yaw: −0,50 Profil darf nicht Bin 0 (frontal) werden.
     static func leftoverHoldBin(yawAbs: Double) -> Int {
-        if yawAbs >= leftoverPrintProfileYaw { return 2 }
-        if yawAbs >= leftoverLookawayYaw { return 1 }
+        let y = abs(yawAbs)
+        if y >= leftoverPrintProfileYaw { return 2 }
+        if y >= leftoverLookawayYaw { return 1 }
         return 0
     }
 
@@ -6285,6 +6295,44 @@ enum MatchMath {
             }
         }
         return l2normalize(out)
+    }
+
+    /// 3-Frame-EMA vor Gallery-Commit. Ein Glücks-Frame sonst überschreibt den Print.
+    static func leftoverPrintEmaNeed() -> Int { 3 }
+
+    static func leftoverPrintEma(_ vectors: [[Double]], alpha: Double = 0.45) -> [Double] {
+        let pool = vectors.filter { $0.count >= 32 }
+        guard let first = pool.first else { return [] }
+        if pool.count == 1 { return l2normalize(first) }
+        let dim = first.count
+        var acc = l2normalize(first)
+        let a = max(0.15, min(0.80, alpha))
+        for v in pool.dropFirst() where v.count == dim {
+            let n = l2normalize(v)
+            var next = [Double](repeating: 0, count: dim)
+            for i in 0..<dim {
+                next[i] = acc[i] * (1 - a) + n[i] * a
+            }
+            acc = l2normalize(next)
+        }
+        return acc
+    }
+
+    static func leftoverPrintBlend(_ vectors: [[Double]]) -> [Double] {
+        if vectors.filter({ $0.count >= 32 }).count >= leftoverPrintEmaNeed() {
+            return leftoverPrintEma(vectors)
+        }
+        return medianBlend(vectors)
+    }
+
+    /// Overlay 3 Frames nach Remint. Detect-UUID tot, identityId bleibt. 24 fps 6.
+    static func leftoverPeakHoldNeed(dt: TimeInterval) -> Int {
+        let step = max(0.04, min(0.20, dt <= 0 ? 0.125 : dt))
+        return max(3, min(6, Int(ceil(0.36 / step))))
+    }
+
+    static func leftoverPeakHoldKeeps(miss: Int, need: Int) -> Bool {
+        miss >= 0 && miss < need
     }
 
     /// Landmark-Yaw in Radiant, wenn Vision 0/nil liefert. Nase links vom Augenmittel = negativ.
@@ -8518,7 +8566,8 @@ enum MatchMath {
         remain: [UUID: Int],
         live: [(id: UUID, x: Double, y: Double, w: Double, h: Double)],
         stored: [(id: UUID, x: Double, y: Double, w: Double, h: Double)],
-        floor: Double = 0.40
+        floor: Double = 0.40,
+        need: Int = 3
     ) -> (held: [UUID: String], remain: [UUID: Int]) {
         let liveIds = Set(live.map(\.id))
         var h = held
@@ -8542,7 +8591,7 @@ enum MatchMath {
             guard hits.count == 1 else { continue }
             let nid = hits[0].0
             h[nid] = leftoverOverlayPeakBare(name)
-            r[nid] = r[oldId] ?? 3
+            r[nid] = r[oldId] ?? need
             h.removeValue(forKey: oldId)
             r.removeValue(forKey: oldId)
             occupied.insert(nid)

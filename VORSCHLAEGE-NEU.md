@@ -1,3 +1,17 @@
+# Aegis Nachtrag 2.1.198 — 2026-09-08
+
+Binary **2.1.198 alpha Build 223**. leftoverHoldBin |yaw|. nameHist × dt. Print-EMA. Peak-Hold verdrahtet. Helios 1.6.36.
+
+## In 2.1.198 gelandet
+
+1. leftoverHoldBin abs() intern. −0,50 Profil war Bin 0 (frontal).
+2. nameHistCap(need, dt) — Fenster in Sekunden, 8 fps nicht 5 Frames. Cap 24.
+3. leftoverPrintBlend — ≥ 3 Vecs EMA, sonst Median.
+4. leftoverPeakHoldNeed(dt) in Advance + IoUAdopt. 24 fps 6, 8 fps 3.
+5. Tests + VERSION = Models = MARKETING 2.1.198 (Build 223). Schema 15 bleibt.
+
+Rest: CameraBroker, FaceTrack einzige Map, Overlay-Metal. Siehe VORSCHLAEGE-GROK.md.
+
 # Aegis Nachtrag 2.1.197 — 2026-09-08
 
 Binary **2.1.197 alpha Build 222**. PrintCell 0≠nil. x-Fill skip gemessen. SameBin ohne Yaw tot. Helios Closedness/Freeze-Predict.
