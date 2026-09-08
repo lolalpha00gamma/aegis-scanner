@@ -199,7 +199,7 @@ final class LiveCapture: NSObject {
             isContinuity: isContinuity,
             isExternal: device.deviceType == .external
         )
-        if !MatchMath.sessionPresetClampsContinuity(isContinuity) {
+        if MatchMath.sessionPresetApplies720(continuity: isContinuity, external: cameraRole == "osmo") {
             session.sessionPreset = .hd1280x720
         }
         applyCenterStage(force: true)
@@ -699,8 +699,14 @@ final class LiveCapture: NSObject {
             if let range = device.activeFormat.videoSupportedFrameRateRanges.max(by: {
                 $0.maxFrameRate < $1.maxFrameRate
             }) {
-                let hi = MatchMath.captureLockFrameRate(range.maxFrameRate, continuity: self.isContinuity)
-                let lo = MatchMath.captureLockFrameLo(range.maxFrameRate, rangeMin: range.minFrameRate, continuity: self.isContinuity)
+                let usb = self.cameraRole == "osmo"
+                let hi = MatchMath.captureLockFrameRate(
+                    range.maxFrameRate, continuity: self.isContinuity, external: usb
+                )
+                let lo = MatchMath.captureLockFrameLo(
+                    range.maxFrameRate, rangeMin: range.minFrameRate,
+                    continuity: self.isContinuity, external: usb
+                )
                 var minDur = CMTimeMake(value: 1, timescale: CMTimeScale(max(1, Int(hi.rounded()))))
                 var maxDur = CMTimeMake(value: 1, timescale: CMTimeScale(max(1, Int(lo.rounded()))))
                 if minDur < range.minFrameDuration { minDur = range.minFrameDuration }

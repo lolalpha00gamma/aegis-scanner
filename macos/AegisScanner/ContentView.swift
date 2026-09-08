@@ -83,6 +83,12 @@ struct ContentView: View {
                     .foregroundStyle(.mint)
                     .help("Print-Cache Yaw-Bins: Front + L + R. ●●● = enroll-fertig.")
             }
+            if store.liveActive, store.enrollSMChip != "ENROLL —" {
+                Text(store.enrollSMChip)
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(store.enrollSMChip == "ENROLL ●●●●" ? .green : .orange)
+                    .help("Enroll-Schritte Front → ¾L → ¾R → Blink. Chip treibt den nächsten Schritt.")
+            }
             if store.mutexChip != "—" && !store.mutexChip.isEmpty {
                 Text(store.mutexChip.uppercased())
                     .font(.system(.caption, design: .monospaced))
@@ -814,6 +820,7 @@ struct FaceOverlay: View {
 
     var body: some View {
         GeometryReader { geo in
+            let _ = store.overlayBeat
             let ns = NSImage(cgImage: image, size: NSSize(width: image.width, height: image.height))
             let scale = min(geo.size.width / CGFloat(image.width), geo.size.height / CGFloat(image.height))
             let dw = CGFloat(image.width) * scale
@@ -878,7 +885,8 @@ struct FaceOverlay: View {
                     let shown = MatchMath.leftoverOverlayLerp(
                         prev: overlayPrev[row.row] ?? rawBox,
                         next: rawBox,
-                        dt: store.liveFrameDt
+                        dt: MatchMath.overlayTrackDt(),
+                        tau: MatchMath.overlayTrackTau()
                     )
                     let coachDest = owner ?? (store.identities.count == 1 ? store.identities.first : ident)
                     let coach = selected ? FaceEngine.enrollmentCoach(
@@ -1087,7 +1095,8 @@ struct FaceOverlay: View {
                         overlayPrev[row.row] = MatchMath.leftoverOverlayLerp(
                             prev: overlayPrev[row.row] ?? next,
                             next: next,
-                            dt: store.liveFrameDt
+                            dt: MatchMath.overlayTrackDt(),
+                            tau: MatchMath.overlayTrackTau()
                         )
                     }
                     .onAppear {

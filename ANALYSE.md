@@ -1,3 +1,19 @@
+# Aegis 2.1.212 — Osmo 720@24, Enroll-SM Chip, Overlay-Track 60 Hz
+
+Aegis **2.1.212 alpha** (Build 237). Helios **1.6.50** (Build 83). Nur `main`. `bugfix` mergen: nein.
+
+## Was 2.1.212 ändert
+
+2.1.211: Osmo Choice, Coast ohne Kalman-Write, Yaw-Meter. Osmo lockte 30 fps → USB 8. Enroll-Coach Text, Chip trieb nicht. Overlay-Lerp an Detect-dt (8 fps Snap).
+
+| # | Bug | Fix |
+|---|---|---|
+| 1 | Osmo 30 → 8 fps | `captureLockFrameRate` external 24, 720-Preset |
+| 2 | Enroll unsichtbar | `enrollSMChip` Front→¾L→¾R→Blink |
+| 3 | Overlay 8 Hz | `overlayTrackDt` 60 Hz Beat |
+
+Nicht: CameraBroker, HNSW, Overlay-Metal, LiveCapture off MainActor.
+
 # Aegis 2.1.211 — Osmo Choice, Coast ohne Kalman-Write, Yaw-Meter
 
 Aegis **2.1.211 alpha** (Build 236). Helios **1.6.49** (Build 82). Nur `main`. `bugfix` mergen: nein.

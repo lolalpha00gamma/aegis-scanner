@@ -52,6 +52,8 @@ final class LibraryStore: ObservableObject {
     @Published var liveFormatChip: String = ""
     @Published var mutexChip: String = "—"
     @Published var yawCoverageChip: String = "YAW —"
+    @Published var enrollSMChip: String = "ENROLL —"
+    @Published var overlayBeat: TimeInterval = 0
     @Published var yieldAutoReturn = true
     @Published var yieldGrace: Double = 4
     @Published var mutexKill = false
@@ -61,6 +63,7 @@ final class LibraryStore: ObservableObject {
     @Published var mergeHint: String = ""
 
     private let liveCapture = LiveCapture()
+    private var overlayTrack: Timer?
     private var liveMediaId: UUID?
     private var leftoverStreak: [UUID: Int] = [:]
     private var leftoverStreakBox: [UUID: FaceBox] = [:]
@@ -2225,6 +2228,22 @@ final class LibraryStore: ObservableObject {
         startLive(url: URL(string: "webcam://local")!, kind: .webcam, name: "Webcam")
     }
 
+    private func startOverlayTrack() {
+        overlayTrack?.invalidate()
+        overlayTrack = nil
+        guard MatchMath.overlayTrackBeats(live: true) else { return }
+        let dt = MatchMath.overlayTrackDt()
+        let t = Timer(timeInterval: dt, repeats: true) { [weak self] _ in
+            let store = self
+            Task { @MainActor in
+                store?.overlayBeat = CACurrentMediaTime()
+            }
+        }
+        t.tolerance = dt * 0.25
+        RunLoop.main.add(t, forMode: .common)
+        overlayTrack = t
+    }
+
     func stopLive() {
         liveDetectGen &+= 1
         livePending = nil
@@ -2293,6 +2312,10 @@ final class LibraryStore: ObservableObject {
         leftoverPrintSkipIds = []
         leftoverPrintCache = []
         yawCoverageChip = "YAW —"
+        enrollSMChip = "ENROLL —"
+        overlayTrack?.invalidate()
+        overlayTrack = nil
+        overlayBeat = 0
         leftoverJpegAt = [:]
         leftoverJpegHash = [:]
         leftoverJpegCos = [:]
@@ -2340,6 +2363,7 @@ final class LibraryStore: ObservableObject {
         )
         selectedMediaId = id
         liveActive = true
+        startOverlayTrack()
         status = "Live · verbindet"
         liveCapture.onReady = { [weak self] in
             guard let self else { return }
@@ -3846,6 +3870,24 @@ final class LibraryStore: ObservableObject {
                     yawCoverageChip = MatchMath.printYawCoverageChip(
                         MatchMath.printYawCoverageBest(cached: leftoverPrintCache)
                     )
+                    var bins = Set<Int>()
+                    for k in leftoverPrintCache {
+                        guard let r = k.range(of: "#"), let b = Int(k[r.upperBound...]) else { continue }
+                        bins.insert(b)
+                    }
+                    for face in adopted {
+                        let slots = MatchMath.leftoverEnrollSlotHave(
+                            yaw: face.quality.yaw,
+                            haveFrontal: bins.contains(0),
+                            haveLeft: bins.contains(-1) || bins.contains(-2),
+                            haveRight: bins.contains(1) || bins.contains(2)
+                        )
+                        if slots.frontal { bins.insert(0) }
+                        if slots.left { bins.insert(-1) }
+                        if slots.right { bins.insert(1) }
+                    }
+                    let blink = adopted.contains { leftoverBlinkSeen(faceId: $0.id) }
+                    enrollSMChip = MatchMath.enrollSMFromBins(bins, haveBlink: blink)
                 }
                 let from = leftoverLastHash[face.id]
                 if let from, !ranked.isEmpty, from != ranked {

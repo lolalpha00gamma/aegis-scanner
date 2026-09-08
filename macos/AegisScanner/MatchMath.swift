@@ -1930,8 +1930,8 @@ enum MatchMath {
         return String(format: "%@ %.0f–%.0f", captureFourCCName(osType), lo, hi)
     }
 
-    static func captureLockFrameRate(_ maxFps: Double, continuity: Bool = false) -> Double {
-        if continuity, maxFps >= 24 { return min(24, maxFps) }
+    static func captureLockFrameRate(_ maxFps: Double, continuity: Bool = false, external: Bool = false) -> Double {
+        if continuity || external, maxFps >= 24 { return min(24, maxFps) }
         if maxFps >= 30 { return 30 }
         if maxFps >= 24 { return max(24, min(30, maxFps)) }
         if maxFps >= 15 { return max(15, min(24, maxFps)) }
@@ -1957,8 +1957,8 @@ enum MatchMath {
     /// Continuity 1–30 hart auf 30 droppt auf 8. Band Floor 15 atmet.
     static let captureLockFloor: Double = 15
 
-    static func captureLockFrameLo(_ maxFps: Double, rangeMin: Double, continuity: Bool = false) -> Double {
-        let hi = captureLockFrameRate(maxFps, continuity: continuity)
+    static func captureLockFrameLo(_ maxFps: Double, rangeMin: Double, continuity: Bool = false, external: Bool = false) -> Double {
+        let hi = captureLockFrameRate(maxFps, continuity: continuity, external: external)
         if hi + 1e-9 < captureLockFloor { return hi }
         return min(hi, max(rangeMin, captureLockFloor))
     }
@@ -1976,6 +1976,44 @@ enum MatchMath {
     }
 
     static func sessionPresetClampsContinuity(_ continuity: Bool) -> Bool { continuity }
+
+    /// Osmo/USB: 720-Preset setzen. Continuity bleibt ohne Preset (sonst 8 fps).
+    static func sessionPresetApplies720(continuity: Bool, external: Bool = false) -> Bool {
+        !continuity
+    }
+
+    /// Overlay zwischen Detect-Ticks. 60 Hz Beat, tau kürzer als Detect-dt.
+    static func overlayTrackDt(displayHz: Double = 60) -> TimeInterval {
+        1.0 / max(24, displayHz)
+    }
+
+    static func overlayTrackTau(displayHz: Double = 60) -> TimeInterval {
+        displayHz >= 50 ? 0.05 : 0.08
+    }
+
+    static func overlayTrackBeats(live: Bool) -> Bool { live }
+
+    /// Front → ¾L → ¾R → Blink. Chip treibt den Schritt, nicht nur Coach-Text.
+    static func enrollSMChip(haveFrontal: Bool, haveLeft: Bool, haveRight: Bool, haveBlink: Bool) -> String {
+        if haveFrontal && haveLeft && haveRight && haveBlink { return "ENROLL ●●●●" }
+        if !haveFrontal { return "ENROLL F" }
+        if !haveLeft { return "ENROLL ¾L" }
+        if !haveRight { return "ENROLL ¾R" }
+        return "ENROLL blink"
+    }
+
+    static func enrollSMReady(haveFrontal: Bool, haveLeft: Bool, haveRight: Bool, haveBlink: Bool) -> Bool {
+        haveFrontal && haveLeft && haveRight && haveBlink
+    }
+
+    static func enrollSMFromBins(_ bins: Set<Int>, haveBlink: Bool) -> String {
+        enrollSMChip(
+            haveFrontal: bins.contains(0),
+            haveLeft: bins.contains(-1) || bins.contains(-2),
+            haveRight: bins.contains(1) || bins.contains(2),
+            haveBlink: haveBlink
+        )
+    }
 
     /// Helios 1.5.58: Coordinator drehte jeden Frame. Box 90°, leftover stiehlt.
     static func physicalCaptureRotation() -> Bool { false }

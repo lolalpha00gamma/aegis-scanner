@@ -1,3 +1,33 @@
+# Aegis Vorschläge — 2026-09-08 (Pass 13, 2.1.212)
+
+Stand 2.1.212 alpha. Osmo 720@24, Enroll-SM Chip, Overlay-Track 60 Hz.
+
+## Gelandet in 2.1.212
+
+- captureLockFrameRate external 24
+- sessionPresetApplies720 Osmo 720, Continuity skip
+- enrollSMChip Front→¾L→¾R→Blink
+- overlayTrackDt + Timer-Beat 60 Hz
+
+## Erweiterung (neu)
+
+109. **PhotoKit People-Album** Enroll-Seed.
+110. **VNTrackObjectRequest** Box zwischen Detect (Track statt nur Lerp).
+111. **False-Accept JSONL Replay-UI.**
+112. **Softmax-Temperature × Gallery-Größe.**
+113. **Cluster-Merge** 3 Stills.
+114. **mmap leftover-Boxen** Helios Palm-Occlusion.
+115. **gallery ANN / HNSW** nach Print-Index.
+116. **Identity-Merge-Wizard** Cosine 0,89–0,94.
+117. **P-Slot Maske/Schal**, Brille Twin-Veto.
+118. **ReID-Graph** Hold-Trail.
+119. **Stereo Built-in + Continuity** Disparität als Yaw-Prior.
+120. **Drop-in `.mlmodel`** Print-Backbone.
+121. **gallery.json.bak Rotate 3.**
+122. **Gemeinsamer CVPixelBuffer** Detect+Print.
+
+P0: CameraBroker. Kein neues leftover*-Flag.
+
 # Aegis Vorschläge — 2026-09-08 (Pass 12, 2.1.211)
 
 Stand 2.1.211 alpha. Osmo Choice, Coast ohne Kalman-Write, Yaw-Meter.

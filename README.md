@@ -1,4 +1,4 @@
-# Aegis **2.1.211 alpha**
+# Aegis **2.1.212 alpha**
 
 
 
@@ -15,6 +15,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.212 alpha
+
+2.1.211 Osmo Choice, Coast ohne Kalman-Write, Yaw-Meter. Osmo lockte 30 fps → USB 8. Enroll-Coach Text. Overlay-Lerp an Detect-dt.
+
+- **Osmo 720@24.** USB nicht Continuity-8. `captureLockFrameRate` external.
+- **Enroll-SM Chip.** Front → ¾L → ¾R → Blink in der Toolbar.
+- **Box-Track 60 Hz.** Overlay gleitet zwischen Detect.
+- Tests + VERSION = Models = MARKETING 2.1.212 (Build 237). Schema 15 bleibt.
 
 ## Neu in 2.1.211 alpha
 
