@@ -1,3 +1,19 @@
+# Aegis 2.1.213 — Mac 1080, Softmax×Galerie, Overlay reduced-motion
+
+Aegis **2.1.213 alpha** (Build 238). Helios **1.6.51** (Build 84). Nur `main`. `bugfix` mergen: nein.
+
+## Was 2.1.213 ändert
+
+2.1.212: Osmo 720@24, Enroll-SM Chip, Overlay-Track 60 Hz. `sessionPresetApplies720` ignorierte `external` → Mac 720. Softmax Temp 16 bei 8 Personen Impostor-Taufe. Overlay 60 Hz trotz Reduce-Motion.
+
+| # | Bug | Fix |
+|---|---|---|
+| 1 | Mac 720-Preset | `sessionPresetApplies720` nur external |
+| 2 | Softmax Galerie | `gallerySoftmaxTemp` |
+| 3 | Overlay Reduce-Motion | tau 0 snap |
+
+Nicht: CameraBroker, HNSW, Overlay-Metal, LiveCapture off MainActor.
+
 # Aegis 2.1.212 — Osmo 720@24, Enroll-SM Chip, Overlay-Track 60 Hz
 
 Aegis **2.1.212 alpha** (Build 237). Helios **1.6.50** (Build 83). Nur `main`. `bugfix` mergen: nein.

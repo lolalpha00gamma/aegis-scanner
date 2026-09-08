@@ -5598,6 +5598,7 @@ enum MatchMathTests {
         ok(MatchMath.captureLockFrameRate(30, continuity: false, external: false) == 30, "Mac 30 bleibt")
         ok(MatchMath.sessionPresetApplies720(continuity: false, external: true), "Osmo 720-Preset")
         ok(!MatchMath.sessionPresetApplies720(continuity: true, external: false), "Continuity kein Preset")
+        ok(!MatchMath.sessionPresetApplies720(continuity: false, external: false), "Mac kein 720-Preset")
         near(MatchMath.overlayTrackDt(), 1.0 / 60.0, 0.001, "Overlay Track 60 Hz")
         near(MatchMath.overlayTrackTau(), 0.05, 0.001, "Overlay tau 60 Hz")
         ok(MatchMath.overlayTrackBeats(live: true), "Track Beat live")
@@ -5611,6 +5612,21 @@ enum MatchMathTests {
         ok(MatchMath.enrollSMFromBins([0], haveBlink: false) == "ENROLL ¾L", "SM bins nur F")
         ok(MatchMath.enrollSMReady(haveFrontal: true, haveLeft: true, haveRight: true, haveBlink: true), "SM ready")
         ok(!MatchMath.enrollSMReady(haveFrontal: true, haveLeft: true, haveRight: true, haveBlink: false), "SM ohne Blink")
+        near(MatchMath.gallerySoftmaxTemp(n: 1), 16, 0.01, "Galerie 1 Temp 16")
+        near(MatchMath.gallerySoftmaxTemp(n: 3), 16, 0.01, "Galerie 3 Temp 16")
+        ok(MatchMath.gallerySoftmaxTemp(n: 8) < 12, "Galerie 8 weicher")
+        let smSmall = MatchMath.leftoverScoreSoftmax([0.80, 0.70], gallery: 2)
+        let smWide = MatchMath.leftoverScoreSoftmax([0.80, 0.70], gallery: 8)
+        ok((smSmall.max() ?? 0) >= (smWide.max() ?? 1), "große Galerie flacher")
+        let snap = MatchMath.leftoverOverlayLerp(
+            prev: CGRect(x: 0, y: 0, width: 10, height: 10),
+            next: CGRect(x: 8, y: 0, width: 10, height: 10),
+            dt: 0.016,
+            tau: 0
+        )
+        near(Double(snap.minX), 8, 0.01, "Reduce-Motion Overlay snap")
+        near(MatchMath.overlayTrackTau(reduceMotion: true), 0, 0.001, "Reduce-Motion tau 0")
+        near(MatchMath.overlayTrackDt(reduceMotion: true), 1.0 / 24.0, 0.001, "Reduce-Motion 24 Hz")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

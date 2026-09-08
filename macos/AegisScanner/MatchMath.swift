@@ -286,6 +286,7 @@ enum MatchMath {
         frameCapture: Double? = nil,
         holdOccupied: [String] = [],
         holdOnlyUnsure: Bool = false,
+        gallery: Int = 0,
         iouOnly: Bool = false
     ) -> Int? {
         if leftoverLookawayBlocks(yawAbs: lookawayYaw, enrolled: lookawayEnrolled) {
@@ -437,7 +438,7 @@ enum MatchMath {
         })
         let floorRaw = pool.map { origRaw[$0.index] ?? ($0.cosine ?? -1) }
         if leftoverAmbiguousBlocks(raw: floorRaw, scored: scored) { return nil }
-        if leftoverSoftmaxBlocks(leftoverScoreSoftmax(scored), capture: session) { return nil }
+        if leftoverSoftmaxBlocks(leftoverScoreSoftmax(scored, gallery: gallery), capture: session) { return nil }
         let arg = leftoverPickArgmax(raw: floorRaw, scored: scored)
         let rawBest = floorRaw.indices.max(by: { floorRaw[$0] < floorRaw[$1] })
         if arg == rawBest, leftoverOpenSetUnsure(scores: floorRaw) { return nil }
@@ -1977,18 +1978,20 @@ enum MatchMath {
 
     static func sessionPresetClampsContinuity(_ continuity: Bool) -> Bool { continuity }
 
-    /// Osmo/USB: 720-Preset setzen. Continuity bleibt ohne Preset (sonst 8 fps).
+    /// Osmo/USB: 720-Preset setzen. Continuity ohne Preset (sonst 8 fps). Mac 1080 bleibt.
     static func sessionPresetApplies720(continuity: Bool, external: Bool = false) -> Bool {
-        !continuity
+        !continuity && external
     }
 
     /// Overlay zwischen Detect-Ticks. 60 Hz Beat, tau kürzer als Detect-dt.
-    static func overlayTrackDt(displayHz: Double = 60) -> TimeInterval {
-        1.0 / max(24, displayHz)
+    static func overlayTrackDt(displayHz: Double = 60, reduceMotion: Bool = false) -> TimeInterval {
+        if reduceMotion { return 1.0 / 24.0 }
+        return 1.0 / max(24, displayHz)
     }
 
-    static func overlayTrackTau(displayHz: Double = 60) -> TimeInterval {
-        displayHz >= 50 ? 0.05 : 0.08
+    static func overlayTrackTau(displayHz: Double = 60, reduceMotion: Bool = false) -> TimeInterval {
+        if reduceMotion { return 0 }
+        return displayHz >= 50 ? 0.05 : 0.08
     }
 
     static func overlayTrackBeats(live: Bool) -> Bool { live }
@@ -5108,6 +5111,14 @@ enum MatchMath {
     static let leftoverScoreTempK: Double = 0.10
     static let leftoverScoreTempMid: Double = 0.72
 
+    /// Große Galerie: weichere Softmax, sonst ein Impostor 0,02 vorne tauft.
+    static func gallerySoftmaxTemp(n: Int, base: Double = leftoverScoreTemp) -> Double {
+        let g = max(1, n)
+        if g <= 3 { return base }
+        if g <= 6 { return max(10, base * 0.82) }
+        return max(8, base * 0.68)
+    }
+
     /// Nacht Heat-Mid 0,60. Tag 0,72 ließ Genuine 0,62 tot.
     static func leftoverScoreHeatMid(capture: Double? = nil) -> Double {
         leftoverSessionLumaLow(capture) ? 0.60 : leftoverScoreTempMid
@@ -5120,11 +5131,12 @@ enum MatchMath {
         return 1 / (1 + exp(-z))
     }
 
-    static func leftoverScoreSoftmax(_ scores: [Double], t: Double = leftoverScoreTemp) -> [Double] {
+    static func leftoverScoreSoftmax(_ scores: [Double], t: Double = leftoverScoreTemp, gallery: Int = 0) -> [Double] {
         guard !scores.isEmpty else { return [] }
+        let temp = gallerySoftmaxTemp(n: gallery > 0 ? gallery : scores.count, base: t)
         let m = scores.max() ?? 0
         let exps = scores.map { s -> Double in
-            let z = t * (s - m)
+            let z = temp * (s - m)
             if z < -20 { return 0 }
             return exp(z)
         }
@@ -8980,6 +8992,7 @@ enum MatchMath {
 
     /// Overlay-Box unabhängig von Assign. Remint darf Lerp nicht resetten.
     static func leftoverOverlayLerp(prev: CGRect, next: CGRect, dt: TimeInterval, tau: TimeInterval = 0.08) -> CGRect {
+        if tau <= 0 { return next }
         let t = max(0.008, dt)
         let a = CGFloat(min(1, t / (t + max(0.02, tau))))
         return CGRect(

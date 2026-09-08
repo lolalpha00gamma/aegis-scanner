@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct ContentView: View {
     @EnvironmentObject private var store: LibraryStore
@@ -882,11 +883,12 @@ struct FaceOverlay: View {
                     let ghost = store.ghostFaceIds().contains(face.id)
                     let kind = MatchMath.overlayBoxKind(selected: selected, pinned: pinned, leftover: leftover, ghost: ghost)
                     let rawBox = CGRect(x: face.box.x, y: face.box.y, width: face.box.width, height: face.box.height)
+                    let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
                     let shown = MatchMath.leftoverOverlayLerp(
                         prev: overlayPrev[row.row] ?? rawBox,
                         next: rawBox,
-                        dt: MatchMath.overlayTrackDt(),
-                        tau: MatchMath.overlayTrackTau()
+                        dt: MatchMath.overlayTrackDt(reduceMotion: reduceMotion),
+                        tau: MatchMath.overlayTrackTau(reduceMotion: reduceMotion)
                     )
                     let coachDest = owner ?? (store.identities.count == 1 ? store.identities.first : ident)
                     let coach = selected ? FaceEngine.enrollmentCoach(
@@ -1092,11 +1094,12 @@ struct FaceOverlay: View {
                         y: oy + shown.minY * scale
                     )
                     .onChange(of: rawBox) { _, next in
+                        let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
                         overlayPrev[row.row] = MatchMath.leftoverOverlayLerp(
                             prev: overlayPrev[row.row] ?? next,
                             next: next,
-                            dt: MatchMath.overlayTrackDt(),
-                            tau: MatchMath.overlayTrackTau()
+                            dt: MatchMath.overlayTrackDt(reduceMotion: reduceMotion),
+                            tau: MatchMath.overlayTrackTau(reduceMotion: reduceMotion)
                         )
                     }
                     .onAppear {

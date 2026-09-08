@@ -1,3 +1,38 @@
+# 2.1.213 — Mac 1080, Softmax×Galerie, Overlay reduced-motion.
+
+## In 2.1.213 wirklich im Code
+
+2.1.212 Osmo 720@24, Enroll-SM, Overlay 60 Hz. Mac klebte 720. Softmax Temp 16. Overlay trotz Reduce-Motion.
+
+1. **sessionPresetApplies720 nur external.** Mac 1080.
+2. **gallerySoftmaxTemp.** 8 Identitäten weicher.
+3. **overlayTrackTau reduceMotion = 0.** Snap.
+4. Tests + VERSION = Models = MARKETING 2.1.213 (Build 238). Schema 15 bleibt.
+
+## Erweiterung (neu, 2.1.213)
+
+1. **CameraBroker XPC + IOSurface** mit Helios. Eine TCC. P0.
+2. **gallery ANN / HNSW** nach Print-Index.
+3. **Identity-Merge-Wizard** Cosine 0,89–0,94 + Pairwise-Heatmap.
+4. **PhotoKit People-Album** als Enroll-Seed.
+5. **VNTrackObjectRequest** Box zwischen Detect-Ticks.
+6. **False-Accept JSONL Replay-UI.**
+7. **Cluster-Merge** mit 3 Stills bestätigen.
+8. **P-Slot Maske/Schal**, Brille Twin-Veto.
+9. **ReID-Graph** Hold-Trail.
+10. **Stereo Built-in + Continuity** Disparität als Yaw-Prior.
+11. **Overlay CAMetalLayer 60 Hz.**
+12. **Gemeinsamer CVPixelBuffer** Detect+Print.
+13. **LiveCapture nicht @MainActor.**
+14. **Drop-in `.mlmodel`** Print-Backbone.
+15. **gallery.json.bak Rotate 3.**
+16. **mmap leftover-Boxen** Helios↔Aegis Palm-Occlusion.
+17. **Enroll-SM skippt volle Bins** beim Capture, nicht nur Chip.
+18. **Hung-Vision Timeout-Token** — Gen-Bump tötet VN nicht.
+19. **Print-Budget Softmax Floor × Capture-Luma.**
+
+P0 CameraBroker. Kein neues leftover*-Flag.
+
 # 2.1.212 — Osmo 720@24, Enroll-SM Chip, Overlay-Track 60 Hz.
 
 ## In 2.1.212 wirklich im Code

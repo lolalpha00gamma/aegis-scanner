@@ -2232,7 +2232,8 @@ final class LibraryStore: ObservableObject {
         overlayTrack?.invalidate()
         overlayTrack = nil
         guard MatchMath.overlayTrackBeats(live: true) else { return }
-        let dt = MatchMath.overlayTrackDt()
+        let reduce = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        let dt = MatchMath.overlayTrackDt(reduceMotion: reduce)
         let t = Timer(timeInterval: dt, repeats: true) { [weak self] _ in
             let store = self
             Task { @MainActor in
@@ -4115,6 +4116,7 @@ final class LibraryStore: ObservableObject {
                     frameCapture: liveFrameCapture,
                     holdOccupied: leftoverOccupiedHashes(except: old.id),
                     holdOnlyUnsure: holdUnsure,
+                    gallery: identities.count,
                     iouOnly: iouOnly
                 ) else {
                     if holdUnsure {

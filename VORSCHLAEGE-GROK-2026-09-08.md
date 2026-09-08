@@ -1,3 +1,35 @@
+# Aegis Vorschläge — 2026-09-08 (Pass 14, 2.1.213)
+
+Stand 2.1.213 alpha. Mac 1080, Softmax×Galerie, Overlay reduced-motion.
+
+## Gelandet in 2.1.213
+
+- sessionPresetApplies720 nur external
+- gallerySoftmaxTemp
+- overlayTrackTau reduceMotion 0
+
+## Erweiterung (neu)
+
+123. **PhotoKit People-Album** Enroll-Seed.
+124. **VNTrackObjectRequest** Box zwischen Detect (Track statt nur Lerp).
+125. **False-Accept JSONL Replay-UI.**
+126. **Cluster-Merge** 3 Stills.
+127. **mmap leftover-Boxen** Helios Palm-Occlusion.
+128. **gallery ANN / HNSW** nach Print-Index.
+129. **Identity-Merge-Wizard** Cosine 0,89–0,94.
+130. **P-Slot Maske/Schal**, Brille Twin-Veto.
+131. **ReID-Graph** Hold-Trail.
+132. **Stereo Built-in + Continuity** Disparität als Yaw-Prior.
+133. **Drop-in `.mlmodel`** Print-Backbone.
+134. **gallery.json.bak Rotate 3.**
+135. **Gemeinsamer CVPixelBuffer** Detect+Print.
+136. **Enroll-SM skippt volle Bins** beim Capture.
+137. **Hung-Vision Timeout-Token.**
+138. **LiveCapture nicht @MainActor.**
+139. **Overlay CAMetalLayer 60 Hz.**
+
+P0: CameraBroker. Kein neues leftover*-Flag.
+
 # Aegis Vorschläge — 2026-09-08 (Pass 13, 2.1.212)
 
 Stand 2.1.212 alpha. Osmo 720@24, Enroll-SM Chip, Overlay-Track 60 Hz.

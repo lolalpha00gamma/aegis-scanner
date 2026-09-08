@@ -1,4 +1,30 @@
-# Aegis **2.1.212 alpha**
+# Aegis **2.1.213 alpha**
+
+
+
+Direkt laden:
+- [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
+- [Releases](https://github.com/lolalpha00gamma/aegis-scanner/releases)
+
+Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
+## Installieren
+
+1. [Aegis.dmg](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg) öffnen
+2. **Aegis** in den Ordner Programme ziehen
+3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
+
+macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.213 alpha
+
+2.1.212 Osmo 720@24, Enroll-SM Chip, Overlay-Track 60 Hz. Mac klebte 720-Preset. Softmax Temp 16 tauft Impostor in großer Galerie. Overlay lerpte trotz Reduce-Motion.
+
+- **Mac 1080.** `sessionPresetApplies720` nur Osmo/USB.
+- **Softmax × Galerie.** 8 Identitäten weicher.
+- **Overlay reduced-motion.** Snap statt 60 Hz.
+- Tests + VERSION = Models = MARKETING 2.1.213 (Build 238). Schema 15 bleibt.
+
+## Neu in 2.1.212 alpha
 
 
 
