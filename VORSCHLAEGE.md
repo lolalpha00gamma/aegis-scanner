@@ -1,3 +1,39 @@
+# 2.1.230 — skipPrint Palme in skipBoxes, Set-Encode ohne Sort, Frontal nextRank.
+
+## In 2.1.230 wirklich im Code
+
+2.1.229 quality.yaw, 2L+2R Rank, HoldWriteOk abs, Stamp 80 ms. Palme in skipBoxes tot. Set-Encode sortiert. Frontal-Extra drop.
+
+1. **leftoverPrintSkipBoxIsPalm** palmIou 0,18 in skipBoxes.
+2. **leftoverPrintCacheEncode(Set)** ohne Sort.
+3. **Occupied Frontal nextRank.** 2L+2R+F `#103`.
+4. Tests + VERSION = Models = MARKETING 2.1.230 (Build 255). Schema 15 bleibt.
+
+## Erweiterung (neu, 2.1.230)
+
+1. **CameraBroker XPC + IOSurface** mit Helios. Eine TCC. P0.
+2. **gallery ANN / HNSW** nach Print-Index.
+3. **LiveCapture nicht @MainActor.**
+4. **Face-Print Versioning.**
+5. **Glasses On/Off Twin-Templates.**
+6. **Per-Camera WB-Lock.**
+7. **Export Embeddings** JSONL.
+8. **UMAP Cluster-View.**
+9. **Overlay CAMetalLayer 60 Hz.**
+10. **Blink-Liveness EAR.**
+11. **EAR + SM AND** für Unnamed-Taufe.
+12. **FA-JSONL Twin-Split Auto** nach Restart.
+13. **leftoverHoldTrail Disk persist** inkl. TTL ohne Restore-Reset.
+14. **Print-Cache FIFO nach Restart** für Legacy-sortiertes JSON.
+15. **gemeinsamer CVPixelBuffer** Detect+Print.
+16. **gallery.json.bak Restore .bak.1/.bak.2.**
+17. **ReID-Graph** Hold-Trail.
+18. **Stereo Built-in + Continuity** Disparität als Yaw-Prior.
+19. **Continuity Night-IR eigene Galerie.**
+20. **Identity-Merge-Wizard.**
+
+P0 CameraBroker. Kein neues leftover*-Flag.
+
 # 2.1.228 — Per-sign Rank, Twin-Chip Yaw, Print-Yaw Ghost, zwei Palmen.
 
 ## In 2.1.228 wirklich im Code

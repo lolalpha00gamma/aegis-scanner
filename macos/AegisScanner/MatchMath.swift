@@ -952,7 +952,7 @@ enum MatchMath {
     }
 
     static func leftoverPrintCacheEncode(_ cached: Set<String>) -> [String] {
-        leftoverPrintCacheEncode(Array(cached.filter { !$0.isEmpty })).sorted()
+        leftoverPrintCacheEncode(Array(cached.filter { !$0.isEmpty }))
     }
 
     static func leftoverPrintCacheDecodeOrder(_ raw: [String]?, cap: Int = leftoverHashHoldCapN) -> [String] {
@@ -2975,8 +2975,9 @@ enum MatchMath {
                 rank(rows.filter { leftoverHoldBinSigned(yaw: $0.yawAbs) < 0 })
                 rank(rows.filter { leftoverHoldBinSigned(yaw: $0.yawAbs) > 0 })
                 let front = rows.filter { leftoverHoldBinSigned(yaw: $0.yawAbs) == 0 }
-                for (i, _) in front.enumerated() {
-                    let emit = leftoverHoldHashTwinKey(hash: key, rank: i + 1)
+                for _ in front {
+                    let emit = leftoverHoldHashTwinKey(hash: key, rank: nextRank)
+                    nextRank += 1
                     if seen.insert(emit).inserted { out.append(emit) }
                 }
                 continue
@@ -8179,6 +8180,15 @@ enum MatchMath {
         } {
             return true
         }
+        if skipBoxes.contains {
+            leftoverPrintSkipBoxIsPalm($0, face: face)
+                && boxIoU(
+                    ax: face.x, ay: face.y, aw: face.width, ah: face.height,
+                    bx: $0.x, by: $0.y, bw: $0.width, bh: $0.height
+                ) + 1e-9 >= palmIou
+        } {
+            return true
+        }
         var all = palms
         if let palm { all.insert(palm, at: 0) }
         for p in all {
@@ -8190,6 +8200,11 @@ enum MatchMath {
             }
         }
         return false
+    }
+
+    /// Palme in skipBoxes ist kleiner als die Face-Box — printBudgetIoU 0,92 sonst tot.
+    static func leftoverPrintSkipBoxIsPalm(_ box: FaceBox, face: FaceBox) -> Bool {
+        box.width * box.height + 1e-9 < face.width * face.height
     }
 
     static func leftoverPrintSkipBoxes(

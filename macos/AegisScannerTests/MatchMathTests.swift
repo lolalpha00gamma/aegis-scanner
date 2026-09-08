@@ -6099,6 +6099,36 @@ enum MatchMathTests {
         ok(encFifo.first == "k6#0", "Encode FIFO drop oldest")
         ok(encFifo.last == "k69#0", "Encode FIFO newest last")
         ok(MatchMath.cameraMutexClaimMinDt() == 0.08, "Claim 80 ms Beat")
+        let twoL2RFront = MatchMath.leftoverOccupiedMergeYaw(
+            stored: [],
+            live: [
+                (hash: "5.5.4.6", yawAbs: -0.40),
+                (hash: "5.5.4.6", yawAbs: -0.55),
+                (hash: "5.5.4.6", yawAbs: 0.40),
+                (hash: "5.5.4.6", yawAbs: 0.55),
+                (hash: "5.5.4.6", yawAbs: 0.05)
+            ]
+        )
+        ok(twoL2RFront.contains("5.5.4.6"), "Occupied 2L+2R+F Exact")
+        ok(twoL2RFront.contains("5.5.4.6#101"), "Occupied 2L+2R+F extra L")
+        ok(twoL2RFront.contains("5.5.4.6#102"), "Occupied 2L+2R+F extra R")
+        ok(twoL2RFront.contains("5.5.4.6#103"), "Occupied 2L+2R+F Frontal nextRank nicht #101")
+        let palmInSkip = MatchMath.cameraMutexPalmBox((0.40, 0.55, 0.12), imageW: 1, imageH: 1)
+        let faceSkip = FaceBox(x: 0.30, y: 0.45, width: 0.20, height: 0.25)
+        ok(MatchMath.leftoverPrintSkipBoxIsPalm(palmInSkip, face: faceSkip), "Palm-Box kleiner als Face")
+        ok(
+            MatchMath.leftoverPrintSkipHits(face: faceSkip, skipBoxes: [palmInSkip]),
+            "skipPrint Palme in skipBoxes IoU 0,18"
+        )
+        let sameFace = FaceBox(x: 0.80, y: 0.10, width: 0.20, height: 0.25)
+        ok(!MatchMath.leftoverPrintSkipBoxIsPalm(sameFace, face: faceSkip), "Face-Box nicht Palm")
+        ok(
+            !MatchMath.leftoverPrintSkipHits(face: faceSkip, skipBoxes: [sameFace]),
+            "skipPrint Nachbar-Face nicht palmIou"
+        )
+        let setEnc = MatchMath.leftoverPrintCacheEncode(["z#0", "a#0"] as Set<String>)
+        ok(setEnc == MatchMath.leftoverPrintCacheEncode(["z#0", "a#0"] as Set<String>), "Set-Encode ohne Sort stabil-ish")
+        ok(setEnc.count == 2, "Set-Encode ohne lex Sort drop keine Keys")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

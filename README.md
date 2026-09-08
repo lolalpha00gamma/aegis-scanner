@@ -1,4 +1,4 @@
-# Aegis **2.1.229 alpha**
+# Aegis **2.1.230 alpha**
 
 
 
@@ -14,6 +14,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.230 alpha
+
+Warum Helios-Palme Gesichter weiter druckte und Twins Frontal-Extras verloren: skipPrintPalms in skipBoxes nahm printBudgetIoU 0,92. Set-Encode sortierte FIFO. leftoverOccupiedMergeYaw Frontal-Extra kollidierte mit `#101`.
+
+- **Palme in skipBoxes.** palmIou 0,18 wenn die Box kleiner ist als das Gesicht.
+- **Set-Encode ohne Sort.** FIFO-Cap bleibt Suffix.
+- **Frontal nextRank.** 2L+2R+F `#103`.
+- Tests + VERSION = Models = MARKETING 2.1.230 (Build 255). Schema 15 bleibt.
 
 ## Neu in 2.1.229 alpha
 

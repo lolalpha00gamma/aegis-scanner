@@ -1,3 +1,38 @@
+# Aegis Vorschläge — 2026-09-08 (Pass 31, 2.1.230)
+
+Stand 2.1.230 alpha. skipPrint Palme in skipBoxes, Set-Encode ohne Sort, Frontal nextRank.
+
+## Gelandet in 2.1.230
+
+- leftoverPrintSkipBoxIsPalm + palmIou in skipBoxes
+- leftoverPrintCacheEncode(Set) ohne Sort
+- leftoverOccupiedMergeYaw Frontal nextRank `#103`
+
+## Erweiterung (neu)
+
+379. **LiveCapture off MainActor.** Detect+Print blockiert die UI. P0 nach CameraBroker.
+380. **HNSW Gallery.** Linear-Scan O(n) jede Frame.
+381. **CameraBroker XPC + IOSurface** mit Helios. Eine TCC. P0.
+382. **Overlay CAMetalLayer 60 Hz.**
+383. **leftoverHoldTrail Disk persist.**
+384. **Glasses On/Off Templates.**
+385. **Face-Print Versioning.**
+386. **Export Embeddings JSONL.**
+387. **UMAP Cluster-View.**
+388. **Identity-Merge-Wizard.**
+389. **Blink-Liveness EAR.**
+390. **Continuity Night-IR eigene Galerie.**
+391. **Per-Camera WB-Lock.**
+392. **EAR + SM AND** für Taufe.
+393. **False-Accept JSONL → Twin-Split Auto.**
+394. **Print-Cache FIFO nach Restart** für Legacy-sortiertes JSON.
+395. **gemeinsamer CVPixelBuffer** Detect+Print.
+396. **gallery.json.bak Restore .bak.1/.bak.2.**
+397. **ReID-Graph** Hold-Trail.
+398. **Stereo Built-in + Continuity** Disparität als Yaw-Prior.
+
+P0: CameraBroker. Kein neues leftover*-Flag. Branch `bugfix` (2.1.15) nicht mergen.
+
 # Aegis Vorschläge — 2026-09-08 (Pass 30, 2.1.229)
 
 Stand 2.1.229 alpha. Compile-Fix quality.yaw, 2L+2R Rank, HoldWriteOk abs, Stamp-Read, Beat 80 ms, Encode FIFO-Cap.
