@@ -1,3 +1,40 @@
+# 2.1.220 — Print-Cache Disk, People-SM-Gate, Twin-Split, Mask-Veto.
+
+## In 2.1.220 wirklich im Code
+
+2.1.219 Median, Enroll-Liveness, Undo, CQ. Print-Cache RAM. People 3× Frontal. FA nur Chip. Maske 0,64 tauft.
+
+1. **Print-Cache persist.** `leftoverPrintCacheEncode` / Decode, Schema 15 optional.
+2. **People-Seed SM Hard-Gate.** `peopleAlbumSMBlocksSeed` Front+L+R.
+3. **Auto-Split Twins.** `twinAutoSplit` FA ×3 → SPLIT-Chip.
+4. **Mask Twin-Veto.** `maskTwinVeto` Floor 0,78 in leftoverPick.
+5. Tests + VERSION = Models = MARKETING 2.1.220 (Build 245). Schema 15 bleibt.
+
+## Erweiterung (neu, 2.1.220)
+
+1. **CameraBroker XPC + IOSurface** mit Helios. Eine TCC. P0.
+2. **gallery ANN / HNSW** nach Print-Index.
+3. **Identity-Merge-Wizard** Cosine 0,89–0,94 + Pairwise-Heatmap.
+4. **LiveCapture nicht @MainActor.**
+5. **Face-Print Versioning** nach Vision-Modellwechsel.
+6. **RAW/HEIC Watch-Folder** ohne JPEG-Probe.
+7. **Export Embeddings** JSONL für Offline-HNSW.
+8. **UMAP Cluster-View** der Galerie.
+9. **Glasses On/Off Twin-Templates** (Mask-Veto ist nur Okklusion).
+10. **Per-Camera WB-Lock** damit Nacht-IR Prints nicht driftet.
+11. **P-Slot Maske/Schal** wirklich schreiben, nicht nur Chip.
+12. **ReID-Graph** Hold-Trail.
+13. **Stereo Built-in + Continuity** Disparität als Yaw-Prior.
+14. **Overlay CAMetalLayer 60 Hz.**
+15. **Gemeinsamer CVPixelBuffer** Detect+Print.
+16. **Drop-in `.mlmodel`** Print-Backbone.
+17. **mmap leftover-Boxen** Helios↔Aegis Palm-Occlusion.
+18. **Video-Cut ReID** über Szenenwechsel.
+19. **Twin-Split wirklich trennen** (Chip allein lässt die IDs).
+20. **Cosine-Median persist** leftoverHoldTrail schon Disk — Hash-Trail analog.
+
+P0 CameraBroker. Kein neues leftover*-Flag.
+
 # 2.1.219 — Cosine-Median, Enroll-Liveness, Merge-Undo, Capture-Spark.
 
 ## In 2.1.219 wirklich im Code

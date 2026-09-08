@@ -5768,6 +5768,30 @@ enum MatchMathTests {
         ok(MatchMath.captureQualitySpark(0.20).contains("skip"), "CQ skip")
         ok(MatchMath.captureQualitySpark(0.50) == "CQ 50", "CQ 50")
         ok(MatchMath.captureQualitySpark(0.20, skip: false) == "CQ 20", "CQ skip override")
+        var diskCache: Set<String> = []
+        diskCache = MatchMath.leftoverPrintCachePut(cached: diskCache, hash: "6.6.4.6", yaw: 0)
+        let enc = MatchMath.leftoverPrintCacheEncode(diskCache)
+        let dec = MatchMath.leftoverPrintCacheDecode(enc)
+        ok(MatchMath.leftoverPrintCacheHits(hash: "6.6.4.6", yaw: 0, cached: dec), "Print-Cache Disk roundtrip")
+        ok(MatchMath.leftoverPrintCacheDecode(nil).isEmpty, "Print-Cache Decode nil")
+        ok(MatchMath.peopleAlbumSMBlocksSeed(bins: [0, 0, 0]), "People 3× Front blockt")
+        ok(!MatchMath.peopleAlbumSMBlocksSeed(bins: [0, -1, 1]), "People Front+L+R seeden")
+        ok(MatchMath.peopleAlbumSMBlocksSeed(bins: []), "People leer blockt")
+        let heatSplit = MatchMath.falseAcceptPairHeatmap([
+            (expected: "Ada", decided: "Ben"),
+            (expected: "Ada", decided: "Ben"),
+            (expected: "Ada", decided: "Ben")
+        ])
+        let split = MatchMath.twinAutoSplit(heat: heatSplit)
+        ok(split?.kept == "Ada" && split?.split == "Ben", "Twin-Split Ada/Ben")
+        ok(MatchMath.twinAutoSplitChip(kept: "Ada", split: "Ben") == "SPLIT Ben≠Ada", "Twin-Split chip")
+        ok(MatchMath.twinAutoSplit(heat: [(pair: "Ada→Ben", n: 2)]) == nil, "Twin-Split 2 tot")
+        ok(MatchMath.twinAutoSplitNeed() == 3, "Twin-Split Need 3")
+        ok(MatchMath.maskTwinVeto(probeMasked: true, refMasked: false, cosine: 0.64), "Mask 0,64 veto")
+        ok(!MatchMath.maskTwinVeto(probeMasked: true, refMasked: false, cosine: 0.90), "Mask 0,90 hält")
+        ok(!MatchMath.maskTwinVeto(probeMasked: true, refMasked: true, cosine: 0.64), "Mask=Mask kein Veto")
+        ok(!MatchMath.maskTwinVeto(probeMasked: false, refMasked: false, cosine: 0.64), "voll=voll kein Veto")
+        ok(MatchMath.maskTwinFloor() == 0.78, "Mask Floor 0,78")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

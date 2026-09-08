@@ -42,6 +42,7 @@ struct GalleryPayload: Codable {
     var leftoverCoastPrint: [String: [Double]]?
     var leftoverCoastPrintAge: [String: Double]?
     var leftoverPrintYaw: [String: Double]?
+    var leftoverPrintCache: [String]?
 }
 
 enum GalleryFile {
@@ -171,7 +172,8 @@ enum GalleryFile {
         leftoverSparkChip: [String: String]? = nil,
         leftoverCoastPrint: [String: [Double]]? = nil,
         leftoverCoastPrintAge: [String: Double]? = nil,
-        leftoverPrintYaw: [String: Double]? = nil
+        leftoverPrintYaw: [String: Double]? = nil,
+        leftoverPrintCache: [String]? = nil
     ) {
         let enrolled = Set(identities.flatMap(\.faceIds))
         let payload = GalleryPayload(
@@ -206,7 +208,8 @@ enum GalleryFile {
             leftoverSparkChip: leftoverSparkChip,
             leftoverCoastPrint: leftoverCoastPrint,
             leftoverCoastPrintAge: leftoverCoastPrintAge,
-            leftoverPrintYaw: leftoverPrintYaw
+            leftoverPrintYaw: leftoverPrintYaw,
+            leftoverPrintCache: leftoverPrintCache
         )
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]

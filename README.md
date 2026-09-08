@@ -1,4 +1,31 @@
-# Aegis **2.1.219 alpha**
+# Aegis **2.1.220 alpha**
+
+
+
+Direkt laden:
+- [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
+- [Releases](https://github.com/lolalpha00gamma/aegis-scanner/releases)
+
+Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
+## Installieren
+
+1. [Aegis.dmg](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg) öffnen
+2. **Aegis** in den Ordner Programme ziehen
+3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
+
+macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.220 alpha
+
+2.1.219 Median, Enroll-Liveness, Merge-Undo, Capture-Spark. Print-Cache starb nach Restart. People seede 3 Frontals. FA-Twins ohne Split. Maske 0,64 taufte den Nachbarn.
+
+- **Print-Cache persist.** Hash×Yaw auf Disk, Schema 15 optional.
+- **People-Seed SM Hard-Gate.** Front+¾L+¾R Pflicht, sonst Skip.
+- **Auto-Split Twins.** FA Ada→Ben ×3 → `SPLIT Ben≠Ada`.
+- **Mask Twin-Veto.** Maske vs voll, Floor 0,78.
+- Tests + VERSION = Models = MARKETING 2.1.220 (Build 245). Schema 15 bleibt.
+
+## Neu in 2.1.219 alpha
 
 
 

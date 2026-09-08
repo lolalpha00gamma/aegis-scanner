@@ -377,6 +377,7 @@ final class LibraryStore: ObservableObject {
             leftoverCoastPrint = coast.print
             leftoverCoastPrintAt = coast.at
             leftoverPrintYaw = MatchMath.leftoverPrintYawDecode(extra.leftoverPrintYaw)
+            leftoverPrintCache = MatchMath.leftoverPrintCacheDecode(extra.leftoverPrintCache)
         }
         let lockStored = UserDefaults.standard.double(forKey: "aegis.nameLockSec")
         if lockStored > 0 {
@@ -520,7 +521,8 @@ final class LibraryStore: ObservableObject {
                 stamped: leftoverCoastPrintAt,
                 now: Date().timeIntervalSince1970
             ),
-            leftoverPrintYaw: MatchMath.leftoverPrintYawEncode(leftoverPrintYaw)
+            leftoverPrintYaw: MatchMath.leftoverPrintYawEncode(leftoverPrintYaw),
+            leftoverPrintCache: MatchMath.leftoverPrintCacheEncode(leftoverPrintCache)
         )
         if !liveActive {
             refreshMergeHint()
@@ -675,6 +677,7 @@ final class LibraryStore: ObservableObject {
             leftoverCoastPrint = coast.print
             leftoverCoastPrintAt = coast.at
             leftoverPrintYaw = MatchMath.leftoverPrintYawDecode(extra.leftoverPrintYaw)
+            leftoverPrintCache = MatchMath.leftoverPrintCacheDecode(extra.leftoverPrintCache)
         } else {
             leftoverStreak = [:]
             leftoverPairStreak = [:]
@@ -2348,7 +2351,6 @@ final class LibraryStore: ObservableObject {
         leftoverJpegDelta = [:]
         leftoverLastIoU = [:]
         leftoverPrintSkipIds = []
-        leftoverPrintCache = []
         yawCoverageChip = "YAW —"
         enrollSMChip = "ENROLL —"
         enrollQualityChip = "Q —"
@@ -4196,7 +4198,11 @@ final class LibraryStore: ObservableObject {
                     holdOnlyUnsure: holdUnsure,
                     gallery: identities.count,
                     iouOnly: iouOnly,
-                    holdTrail: leftoverHoldTrail[old.id] ?? []
+                    holdTrail: leftoverHoldTrail[old.id] ?? [],
+                    probeMasked: FaceEngine.lowerFaceOccluded(old),
+                    refMasked: Dictionary(uniqueKeysWithValues: remaining.map {
+                        ($0.index, FaceEngine.lowerFaceOccluded(adopted[$0.index]))
+                    })
                 ) else {
                     if holdUnsure {
                         if let best = remaining.max(by: { $0.iou < $1.iou }) {
@@ -5204,7 +5210,11 @@ final class LibraryStore: ObservableObject {
         }
         let heat = MatchMath.falseAcceptPairHeatmap(pairs)
         if hits > 0 {
-            faReplayChip = MatchMath.falseAcceptPairChip(heat)
+            if let split = MatchMath.twinAutoSplit(heat: heat) {
+                faReplayChip = MatchMath.twinAutoSplitChip(kept: split.kept, split: split.split)
+            } else {
+                faReplayChip = MatchMath.falseAcceptPairChip(heat)
+            }
             faReplayMatrix = MatchMath.falseAcceptPairMatrix(heat)
             let top = heat.prefix(3).map { "\($0.pair)×\($0.n)" }.joined(separator: " · ")
             status = "False-Accept Replay · \(hits) Treffer · \(top)"
@@ -5267,6 +5277,8 @@ final class LibraryStore: ObservableObject {
                     }
                     let bins = detected.map { MatchMath.peopleAlbumYawBin($0.face.quality.yaw) }
                     let keep = MatchMath.peopleAlbumYawPick(bins: bins, cap: cap)
+                    let keepBins = keep.map { bins[$0] }
+                    if MatchMath.peopleAlbumSMBlocksSeed(bins: keepBins) { return }
                     if let i = keep.first {
                         let probe = detected[i].face
                         if let hit = FaceEngine.duplicateOf(

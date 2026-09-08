@@ -1,3 +1,20 @@
+# Aegis 2.1.220 — Print-Cache Disk, People-SM-Gate, Twin-Split, Mask-Veto
+
+Aegis **2.1.220 alpha** (Build 245). Helios **1.6.58** (Build 91). Nur `main`. `bugfix` mergen: nein.
+
+## Was 2.1.220 ändert
+
+2.1.219: Median, Enroll-Liveness, Merge-Undo, Capture-Spark. Print-Cache blieb RAM — Restart druckte jede Pose neu (Nacht-IR konnte nachgift). People yawPick füllte mit Frontals wenn kein Profil da war. FA-Matrix nur Chip, Twins blieben eine ID. Maske 0,64 gegen volles Template taufte den Nachbarn.
+
+| # | Bug | Fix |
+|---|---|---|
+| 1 | Print-Cache RAM tot | `leftoverPrintCacheEncode` Disk |
+| 2 | People 3× Frontal | `peopleAlbumSMBlocksSeed` |
+| 3 | Twins ohne Split | `twinAutoSplit` FA ×3 |
+| 4 | Maske tauft Nachbar | `maskTwinVeto` Floor 0,78 |
+
+Nicht: CameraBroker, HNSW, LiveCapture off MainActor, Overlay-Metal.
+
 # Aegis 2.1.219 — Cosine-Median, Enroll-Liveness, Merge-Undo, Capture-Spark
 
 Aegis **2.1.219 alpha** (Build 244). Helios **1.6.57** (Build 90). Nur `main`. `bugfix` mergen: nein.

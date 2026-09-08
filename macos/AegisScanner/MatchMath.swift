@@ -288,7 +288,9 @@ enum MatchMath {
         holdOnlyUnsure: Bool = false,
         gallery: Int = 0,
         iouOnly: Bool = false,
-        holdTrail: [Double] = []
+        holdTrail: [Double] = [],
+        probeMasked: Bool = false,
+        refMasked: [Int: Bool] = [:]
     ) -> Int? {
         if leftoverLookawayBlocks(yawAbs: lookawayYaw, enrolled: lookawayEnrolled) {
             return nil
@@ -358,6 +360,16 @@ enum MatchMath {
            !printable.contains(where: { leftoverBaptize(cosine: $0.cosine) })
         {
             return nil
+        }
+        if probeMasked || !refMasked.isEmpty {
+            printable = printable.filter {
+                let c = $0.cosine ?? 1
+                return !maskTwinVeto(
+                    probeMasked: probeMasked,
+                    refMasked: refMasked[$0.index] ?? false,
+                    cosine: c
+                )
+            }
         }
         if let leftoverId, !liveIds.isEmpty {
             printable = printable.filter {
@@ -870,6 +882,15 @@ enum MatchMath {
             return Set(out.prefix(leftoverHashHoldCapN))
         }
         return out
+    }
+
+    /// RAM-Cache stirbt nach Restart. JSON-Array, Schema 15 optional.
+    static func leftoverPrintCacheEncode(_ cached: Set<String>) -> [String] {
+        Array(cached.filter { !$0.isEmpty }).sorted()
+    }
+
+    static func leftoverPrintCacheDecode(_ raw: [String]?, cap: Int = leftoverHashHoldCapN) -> Set<String> {
+        Set((raw ?? []).filter { !$0.isEmpty }.prefix(max(1, cap)))
     }
 
     static func leftoverJpegProbeKeyBin(_ hash: String, yaw: Double) -> String {
@@ -2091,6 +2112,11 @@ enum MatchMath {
         bins.contains(0) && bins.contains(where: { $0 < 0 }) && bins.contains(where: { $0 > 0 })
     }
 
+    /// People-Seed ohne Front+L+R = 3× Frontal. Blink fehlt in Stills.
+    static func peopleAlbumSMBlocksSeed(bins: [Int]) -> Bool {
+        bins.isEmpty || !peopleAlbumYawDiverse(bins: Set(bins))
+    }
+
     /// limited = 4 → .any statt Faces-Album.
     static func peopleAlbumFetchAny(limited: Bool) -> Bool { limited }
 
@@ -2243,6 +2269,39 @@ enum MatchMath {
         if s { return "CQ \(q) · skip" }
         if q < 40 { return "CQ \(q)" }
         return "CQ \(q)"
+    }
+
+    /// FA-Matrix Ada→Ben ×3: Twins, nicht Merge. Chip, kein leftover*-Flag.
+    static func twinAutoSplitNeed() -> Int { 3 }
+
+    static func twinAutoSplit(
+        heat: [(pair: String, n: Int)],
+        need: Int = 3
+    ) -> (kept: String, split: String)? {
+        guard let top = heat.first, top.n >= max(1, need) else { return nil }
+        let parts = top.pair.split(separator: "→", maxSplits: 1).map(String.init)
+        guard parts.count == 2 else { return nil }
+        let a = parts[0].trimmingCharacters(in: .whitespacesAndNewlines)
+        let b = parts[1].trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !a.isEmpty, !b.isEmpty, a != b else { return nil }
+        return (a, b)
+    }
+
+    static func twinAutoSplitChip(kept: String, split: String) -> String {
+        "SPLIT \(split)≠\(kept)"
+    }
+
+    /// Maske/Schal vs volles Template. Cosine 0,64 tauft den Nachbarn.
+    static func maskTwinFloor() -> Double { 0.78 }
+
+    static func maskTwinVeto(
+        probeMasked: Bool,
+        refMasked: Bool,
+        cosine: Double,
+        floor: Double = 0.78
+    ) -> Bool {
+        if probeMasked == refMasked { return false }
+        return cosine < floor
     }
 
     /// authorized = 3, limited = 4. Restricted/denied tot.

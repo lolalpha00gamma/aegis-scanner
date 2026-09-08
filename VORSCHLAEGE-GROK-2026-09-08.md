@@ -1,3 +1,29 @@
+# Aegis Vorschläge — 2026-09-08 (Pass 21, 2.1.220)
+
+Stand 2.1.220 alpha. Print-Cache Disk, People-SM-Gate, Twin-Split, Mask-Veto.
+
+## Gelandet in 2.1.220
+
+- leftoverPrintCacheEncode / Decode gallery.json
+- peopleAlbumSMBlocksSeed Front+L+R
+- twinAutoSplit FA ×3 SPLIT-Chip
+- maskTwinVeto Floor 0,78 leftoverPick
+
+## Erweiterung (neu)
+
+201. **LiveCapture off MainActor.**
+202. **Glasses On/Off Templates** (nicht nur Maske).
+203. **Per-Camera WB-Lock.**
+204. **HNSW Gallery.**
+205. **Twin-Split IDs wirklich trennen.**
+206. **Face-Print Versioning.**
+207. **Export Embeddings** JSONL.
+208. **UMAP Cluster-View.**
+209. **P-Slot wirklich schreiben.**
+210. **Identity-Merge-Wizard.**
+
+P0: CameraBroker. Kein neues leftover*-Flag.
+
 # Aegis Vorschläge — 2026-09-08 (Pass 20, 2.1.219)
 
 Stand 2.1.219 alpha. Median, Enroll-Liveness, Merge-Undo, Capture-Spark.
