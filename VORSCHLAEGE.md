@@ -1,4 +1,45 @@
+# 2.1.205 — AssignAtomic Coast-Keep, TracksPack, Print-Index, Twin-Lock 15°, Occupied-Yaw.
+
+## In 2.1.205 wirklich im Code
+
+2.1.204: leftoverAssignAtomicAll droppte unassigned (Coast tot). Occupied-Yaw `UUID() ?? random`. leftoverTracks unverdrahtet. Gallery linear.
+
+1. **leftoverAssignAtomicAll** behält Coast/Twin. Alter Hold-Key tot.
+2. **leftoverAssignAtomicRemint** stored→live (remintPlan).
+3. **leftoverTracksPack** + LibraryStore `leftoverTracks` nach remintPlan.
+4. **leftoverPrintCandidates** Pose-Bin × Name.
+5. **leftoverTwinLockHolds** cosine > 0,90 / 15°.
+6. **leftoverOccupiedYaw** kein random UUID.
+7. Tests + VERSION = Models = MARKETING 2.1.205 (Build 230). Schema 15 bleibt.
+
+## Erweiterung (neu, 2.1.205)
+
+1. **leftoverTracks = einzige Map.** leftoverFaceTrackRemintDropMaps aus Unpack, nicht 20 Drops. P0.
+2. **Print-Index in FaceEngine** — leftoverPrintCandidates Call-Site, nicht nur Math.
+3. **Twin-Lock an leftoverAssignPrintCell** — Math ist da, Hungarian nicht.
+4. **CameraBroker XPC + IOSurface** mit Helios. Eine TCC. P0.
+5. **Overlay CAMetalLayer 60 Hz**, Detect 8–24.
+6. **Gemeinsamer CVPixelBuffer** Detect+Print, JPEG nur Export.
+7. **VNTrackObjectRequest** Box halten zwischen Detect-Ticks.
+8. **Temperature Cosine** statt hart 0,80. Calibration auf eigenen Prints.
+9. **Enroll-SM** Front → ¾L → ¾R → Blink als Pflichtpfad.
+10. **Hung-Detect Cancel** nach 1 s, FrameTap drop-oldest bleibt.
+11. **gallery.json.bak Rotate 3** + printRevision je Identity (Math `galleryBakRotate` existiert).
+12. **Licht-Eimer** frontal / ¾ / Profil getrennte Prototypen.
+13. **Match-Log JSONL** Replay gegen Twin-Restart-Fixture.
+14. **Drop-in `.mlmodel`** FaceEmbedder-Protokoll.
+15. **LiveCapture nicht @MainActor.** Detect outputQueue.
+16. **420f vs 420v** Color-Space-Mismatch Continuity/Built-in.
+17. **Time-to-identity HUD** ms seit letztem stabilen Namen.
+18. **Negative Gallery** „nicht Ada“-Prints für harte Twins.
+19. **Tests: eine Fixture Restart+Twin+AssignLive.** Orakel auf 40 Bools stoppen.
+20. **Print auf Metal** statt JPEG-Roundtrip.
+
+Kein 2.1.206-Flag ohne 1 verdrahtet oder 4.
+
 # 2.1.204 — Rescue facesInFrame (Remint), GhostDrop Occupied, LeftoverTrack, AssignAtomic.
+
+
 
 # 2.1.203 — Overlay Twin-Chip ¾L/¾R, leftoverHoldLabel signed.
 

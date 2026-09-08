@@ -3098,16 +3098,19 @@ enum MatchMath {
     }
 
     /// Eine Map, ein Write. Hash+Hold+PairLast+Peak+NameLock nicht nacheinander.
+    /// Unassigned bleiben — Coast/Twin sonst tot nach einem Remint.
     static func leftoverAssignAtomicAll(
         tracks: [UUID: LeftoverTrack],
         liveToHold: [UUID: UUID]
     ) -> [UUID: LeftoverTrack] {
-        var out: [UUID: LeftoverTrack] = [:]
+        if liveToHold.isEmpty { return tracks }
+        var out = tracks
         var taken = Set<UUID>()
         for (live, hold) in liveToHold {
-            guard var t = tracks[hold] ?? tracks[live] else { continue }
+            guard var t = out[hold] ?? out[live] else { continue }
             if taken.contains(hold) { continue }
             taken.insert(hold)
+            if hold != live { out.removeValue(forKey: hold) }
             t.id = live
             t.hold = hold
             t.pairLast = hold
@@ -3115,6 +3118,94 @@ enum MatchMath {
         }
         return out
     }
+
+    /// leftoverHoldRemintMap ist stored→live. AssignAtomic nimmt live→hold.
+    static func leftoverAssignAtomicRemint(
+        tracks: [UUID: LeftoverTrack],
+        remap: [UUID: UUID]
+    ) -> [UUID: LeftoverTrack] {
+        var liveToHold: [UUID: UUID] = [:]
+        liveToHold.reserveCapacity(remap.count)
+        for (stored, live) in remap {
+            liveToHold[live] = stored
+        }
+        return leftoverAssignAtomicAll(tracks: tracks, liveToHold: liveToHold)
+    }
+
+    /// Store-Identität aus den leftover-Maps. Nicht FaceTrack (Live-Skalare).
+    static func leftoverTracksPack(
+        hashes: [UUID: String],
+        pairLast: [UUID: UUID],
+        peaks: [UUID: Double],
+        nameLock: [UUID: String],
+        coastAt: [UUID: TimeInterval],
+        bins: [UUID: Int] = [:]
+    ) -> [UUID: LeftoverTrack] {
+        let keys = leftoverHoldRemintKeys([
+            Set(hashes.keys), Set(pairLast.keys), Set(peaks.keys),
+            Set(nameLock.keys), Set(coastAt.keys), Set(bins.keys)
+        ])
+        var out: [UUID: LeftoverTrack] = [:]
+        out.reserveCapacity(keys.count)
+        for id in keys {
+            out[id] = LeftoverTrack(
+                id: id,
+                hash: hashes[id] ?? "",
+                bin: bins[id] ?? 0,
+                hold: pairLast[id],
+                pairLast: pairLast[id],
+                peak: peaks[id] ?? 0,
+                nameLock: nameLock[id],
+                coastAt: coastAt[id],
+                kind: coastAt[id] != nil ? "coast" : "live"
+            )
+        }
+        return out
+    }
+
+    /// Pose-Bin × Name vor linearer Galerie. Gleicher Bin zuerst.
+    static func leftoverPrintIndexKey(name: String, bin: Int) -> String {
+        "\(name)#\(bin)"
+    }
+
+    static func leftoverPrintCandidates(
+        gallery: [(id: UUID, name: String, bin: Int)],
+        queryName: String?,
+        queryBin: Int
+    ) -> [UUID] {
+        if let n = queryName, !n.isEmpty {
+            let same = gallery.filter { $0.name == n && $0.bin == queryBin }.map(\.id)
+            if !same.isEmpty { return same }
+            let named = gallery.filter { $0.name == n }.map(\.id)
+            if !named.isEmpty { return named }
+        }
+        let binOnly = gallery.filter { $0.bin == queryBin }.map(\.id)
+        return binOnly.isEmpty ? gallery.map(\.id) : binOnly
+    }
+
+    /// Twin cosine > 0,90: keine zweite Taufe bis Yaw 15° divergiert.
+    static let leftoverTwinLockCosine = 0.90
+    static let leftoverTwinLockYaw = 15.0 * Double.pi / 180.0
+
+    static func leftoverTwinLockHolds(cosine: Double, yawDelta: Double) -> Bool {
+        cosine > leftoverTwinLockCosine && abs(yawDelta) < leftoverTwinLockYaw
+    }
+
+    static func leftoverTwinLockBaptizeOk(
+        otherCosine: Double?,
+        yawDelta: Double,
+        alreadyNamed: Bool
+    ) -> Bool {
+        guard alreadyNamed, let c = otherCosine else { return true }
+        return !leftoverTwinLockHolds(cosine: c, yawDelta: yawDelta)
+    }
+
+    /// Occupied-Yaw: kaputter UUID-String nicht als random UUID (Yaw 0-Glück).
+    static func leftoverOccupiedYaw(key: String, yawOf: (UUID) -> Double) -> Double {
+        guard let id = UUID(uuidString: key) else { return 0 }
+        return yawOf(id)
+    }
+
 
     /// Tick füllt Last-Löcher. Last nicht überschreiben.
     static func leftoverStoredHashMerge(last: [UUID: String], tick: [UUID: String]) -> [UUID: String] {

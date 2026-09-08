@@ -172,7 +172,7 @@ final class LibraryStore: ObservableObject {
             abs(self.liveYaw[fid] ?? self.faces.first(where: { $0.id == fid })?.quality.yaw ?? 0)
         }
         let otherYaws: [Double] = rows.map { row in
-            yawOf(UUID(uuidString: row.key) ?? UUID())
+            MatchMath.leftoverOccupiedYaw(key: row.key, yawOf: yawOf)
         }
         return MatchMath.leftoverHashTwinOccupied(
             occupied: merged,
@@ -190,6 +190,8 @@ final class LibraryStore: ObservableObject {
     private var leftoverOverlayPeakHeld: [UUID: String] = [:]
     private var leftoverOverlayPeakRemain: [UUID: Int] = [:]
     private var leftoverLastHash: [UUID: String] = [:]
+    /// Eine Map für Hold/Hash/NameLock/Coast. 20 Dicts bleiben, AssignAtomic schreibt hier.
+    private var leftoverTracks: [UUID: LeftoverTrack] = [:]
     private var leftoverCaptureHistByHash: [String: [Double]] = [:]
     private var leftoverCaptureHistAt: [String: TimeInterval] = [:]
     private var leftoverLastIoU: [UUID: Double] = [:]
@@ -3344,6 +3346,18 @@ final class LibraryStore: ObservableObject {
             hashTableKeys: remintHashKeys,
             pad: fillXPad,
             padRescue: fillXRescue
+        )
+        leftoverTracks = MatchMath.leftoverTracksPack(
+            hashes: leftoverLastHash,
+            pairLast: leftoverPairLast,
+            peaks: leftoverHold,
+            nameLock: leftoverNameLockHeld,
+            coastAt: leftoverCoastAt,
+            bins: leftoverPrintYaw.mapValues { MatchMath.leftoverHoldBinSigned(yaw: $0) }
+        )
+        leftoverTracks = MatchMath.leftoverAssignAtomicRemint(
+            tracks: leftoverTracks,
+            remap: remintPlan
         )
         let remintVel = MatchMath.leftoverFaceTrackVelFromKalman(boxKalmanV)
         let faceMaps = MatchMath.leftoverFaceTrackRemintDropMaps(

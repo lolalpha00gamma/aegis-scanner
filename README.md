@@ -1,4 +1,4 @@
-# Aegis **2.1.204 alpha**
+# Aegis **2.1.205 alpha**
 
 
 Direkt laden:
@@ -15,7 +15,19 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
 
+## Neu in 2.1.205 alpha
+
+2.1.204: leftoverAssignAtomicAll **wischte** Coast/Twin. Occupied-Yaw `UUID() ?? random`. Gallery linear. leftoverTracks unverdrahtet.
+
+- **AssignAtomic Coast-Keep.** Unassigned bleiben. `leftoverAssignAtomicRemint` stored→live.
+- **leftoverTracks** in LibraryStore nach remintPlan. Pack aus Hash/Pair/Peak/Name/Coast/Bin.
+- **Print-Index** Pose-Bin × Name vor linearer Galerie.
+- **Twin-Lock 15°.** Cosine > 0,90 keine zweite Taufe bis Yaw divergiert.
+- **Occupied-Yaw** kaputter Key = 0, nicht random UUID.
+- Tests + VERSION = Models = MARKETING 2.1.205 (Build 230). Schema 15 bleibt.
+
 ## Neu in 2.1.204 alpha
+
 
 2.1.203: Overlay Twin-Chip ¾L/¾R. Solo-Rescue stahl Twins (1 Hold + 2 Faces) auf dem Remint-Pfad. Occupied hielt Ghost-Hashes nach Coast. `MatchMath.FaceTrack` ist Pack, nicht Store.
 
@@ -27,6 +39,7 @@ macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos
 - Tests + VERSION = Models = MARKETING 2.1.204 (Build 229). Schema 15 bleibt.
 
 ## Neu in 2.1.203 alpha
+
 
 2.1.202: Print-Yaw persist, Detect≠Print, Twin-Bin signed, Overlay-Lerp, Blink-Assign. leftoverHoldLabel blieb „BIN 1“ obwohl leftoverHoldBinSignedChip ¾L/¾R existierte. Overlay signed Yaw unsichtbar.
 

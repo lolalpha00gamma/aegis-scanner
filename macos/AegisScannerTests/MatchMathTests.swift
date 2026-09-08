@@ -5346,6 +5346,73 @@ enum MatchMathTests {
         ok(atomic[liveT]?.nameLock == "Ada", "AssignAtomic NameLock ein Write")
         ok(atomic[liveT]?.pairLast == adaT, "AssignAtomic PairLast")
         ok(atomic[twinT] == nil, "AssignAtomic Twin nicht mitgeschrieben")
+        ok(atomic[adaT] == nil, "AssignAtomic alter Hold-Key tot")
+
+        let bobT = UUID(), adaLive = UUID()
+        let withCoast: [UUID: LeftoverTrack] = [
+            adaT: LeftoverTrack(id: adaT, hash: "5.5.4.6", peak: 0.82, nameLock: "Ada"),
+            bobT: LeftoverTrack(id: bobT, hash: "9.9.9.9", peak: 0.71, nameLock: "Bob", coastAt: 12, kind: "coast")
+        ]
+        let keep = MatchMath.leftoverAssignAtomicAll(tracks: withCoast, liveToHold: [adaLive: adaT])
+        ok(keep[adaLive]?.nameLock == "Ada", "AssignAtomic Ada remint")
+        ok(keep[bobT]?.nameLock == "Bob", "AssignAtomic Coast-Bob bleibt")
+        ok(keep[bobT]?.kind == "coast", "AssignAtomic Coast-Kind")
+        ok(keep[adaT] == nil, "AssignAtomic Ada-Key nach Remint tot")
+
+        let packed = MatchMath.leftoverTracksPack(
+            hashes: [adaT: "5.5.4.6"],
+            pairLast: [adaT: adaT],
+            peaks: [adaT: 0.82],
+            nameLock: [adaT: "Ada"],
+            coastAt: [:],
+            bins: [adaT: -1]
+        )
+        ok(packed[adaT]?.hash == "5.5.4.6", "TracksPack Hash")
+        ok(packed[adaT]?.bin == -1, "TracksPack ¾L Bin")
+        let reminted = MatchMath.leftoverAssignAtomicRemint(
+            tracks: packed, remap: [adaT: liveT]
+        )
+        ok(reminted[liveT]?.hold == adaT, "AssignAtomicRemint stored→live")
+        ok(reminted[adaT] == nil, "AssignAtomicRemint alter Key tot")
+
+        let gal = [
+            (id: adaT, name: "Ada", bin: -1),
+            (id: bobT, name: "Bob", bin: 1),
+            (id: twinT, name: "Ada", bin: 1)
+        ]
+        ok(
+            MatchMath.leftoverPrintCandidates(gallery: gal, queryName: "Ada", queryBin: -1) == [adaT],
+            "PrintIndex Ada ¾L zuerst"
+        )
+        ok(
+            MatchMath.leftoverPrintCandidates(gallery: gal, queryName: "Ada", queryBin: 2).contains(adaT)
+                && MatchMath.leftoverPrintCandidates(gallery: gal, queryName: "Ada", queryBin: 2).contains(twinT),
+            "PrintIndex Ada Name-Fallback"
+        )
+        ok(
+            MatchMath.leftoverTwinLockHolds(cosine: 0.93, yawDelta: 0.10),
+            "TwinLock 0,93 / 6° hält"
+        )
+        ok(
+            !MatchMath.leftoverTwinLockHolds(cosine: 0.93, yawDelta: 0.30),
+            "TwinLock 17° divergiert"
+        )
+        ok(
+            !MatchMath.leftoverTwinLockBaptizeOk(otherCosine: 0.93, yawDelta: 0.10, alreadyNamed: true),
+            "TwinLock keine zweite Taufe"
+        )
+        ok(
+            MatchMath.leftoverTwinLockBaptizeOk(otherCosine: 0.93, yawDelta: 0.10, alreadyNamed: false),
+            "TwinLock Unnamed darf taufen"
+        )
+        ok(
+            MatchMath.leftoverOccupiedYaw(key: "not-a-uuid", yawOf: { _ in 9 }) == 0,
+            "Occupied-Yaw kaputter Key nicht random"
+        )
+        ok(
+            abs(MatchMath.leftoverOccupiedYaw(key: adaT.uuidString, yawOf: { $0 == adaT ? 0.35 : 0 }) - 0.35) < 1e-9,
+            "Occupied-Yaw UUID"
+        )
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)
