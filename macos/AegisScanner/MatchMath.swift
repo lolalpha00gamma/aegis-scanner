@@ -2013,6 +2013,11 @@ enum MatchMath {
 
     static func overlayTrackVisionOk(confidence: Float) -> Bool { confidence >= 0.15 }
 
+    static func overlayTrackLost(confidence: Float) -> Bool { !overlayTrackVisionOk(confidence: confidence) }
+
+    /// Observation tot → Detect sofort, nicht Kalman-Coast.
+    static func overlayTrackForcesDetect(lost: Int, live: Int) -> Bool { lost > 0 && live > 0 }
+
     /// skipDetect hält Sequence+Observation. Detect reseedet.
     static func overlayTrackPersist(skipDetect: Bool) -> Bool { skipDetect }
 
@@ -2046,6 +2051,50 @@ enum MatchMath {
 
     static func peopleAlbumStillLoads(count: Int, cap: Int = 3) -> Int {
         min(max(0, count), max(1, cap))
+    }
+
+    /// Mehr scannen als committen — Yaw-Diversität braucht Kandidaten.
+    static func peopleAlbumScanCap() -> Int { 12 }
+
+    /// Front = 0, L < 0, R > 0. leftoverHoldBinSigned.
+    static func peopleAlbumYawBin(_ yaw: Double) -> Int {
+        leftoverHoldBinSigned(yaw: yaw)
+    }
+
+    /// Indizes Front+L+R, Rest auffüllen. Leere bins → [].
+    static func peopleAlbumYawPick(bins: [Int], cap: Int = 3) -> [Int] {
+        let n = min(cap, max(1, peopleAlbumStillCap()))
+        var picked: [Int] = []
+        var used = Set<Int>()
+        func take(_ pred: (Int) -> Bool) {
+            guard picked.count < n else { return }
+            if let i = bins.indices.first(where: { !used.contains($0) && pred(bins[$0]) }) {
+                used.insert(i)
+                picked.append(i)
+            }
+        }
+        take { $0 == 0 }
+        take { $0 < 0 }
+        take { $0 > 0 }
+        for i in bins.indices where picked.count < n && !used.contains(i) {
+            used.insert(i)
+            picked.append(i)
+        }
+        return picked
+    }
+
+    static func peopleAlbumYawDiverse(bins: Set<Int>) -> Bool {
+        bins.contains(0) && bins.contains(where: { $0 < 0 }) && bins.contains(where: { $0 > 0 })
+    }
+
+    /// limited = 4 → .any statt Faces-Album.
+    static func peopleAlbumFetchAny(limited: Bool) -> Bool { limited }
+
+    static func peopleAlbumLimitedStatus(seeded: Int, limited: Bool) -> String {
+        if seeded > 0 {
+            return limited ? "People-Album (eingeschränkt) · \(seeded)" : "People-Album · \(seeded)"
+        }
+        return limited ? "People-Album eingeschränkt — keine sichtbaren Alben" : "People-Album leer oder schon in der Galerie"
     }
 
     /// authorized = 3, limited = 4. Restricted/denied tot.
@@ -2136,6 +2185,12 @@ enum MatchMath {
         guard let top = heat.first else { return "FA —" }
         if heat.count == 1, top.n <= 1 { return "FA \(top.pair)" }
         return "FA \(top.pair)×\(top.n)"
+    }
+
+    /// Mehrzeilige Matrix, nicht nur Top-Paar.
+    static func falseAcceptPairMatrix(_ heat: [(pair: String, n: Int)], cap: Int = 6) -> String {
+        if heat.isEmpty { return "FA —" }
+        return heat.prefix(max(1, cap)).map { "\($0.pair)×\($0.n)" }.joined(separator: "  ")
     }
 
     /// Front → ¾L → ¾R → Blink. Chip treibt den Schritt, nicht nur Coach-Text.

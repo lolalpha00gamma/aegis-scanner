@@ -1,3 +1,44 @@
+# 2.1.216 — Track lost Detect, People Yaw, limited-auth, FA Matrix.
+
+## In 2.1.216 wirklich im Code
+
+2.1.215 VNTrack persist, Enroll-SM skip, People 3 Stills (oft Frontal), FA Chip. Track-Loss coastete. Limited suchte Faces-Album.
+
+1. **Track lost → Detect sofort.** `overlayTrackLost` + `overlayTrackForcesDetect`.
+2. **People-Album Yaw-Diversität.** Scan 12, Pick Front+L+R.
+3. **Photos limited-auth** `.any` + Status eingeschränkt.
+4. **FA-Heatmap Matrix-UI.** `falseAcceptPairMatrix`.
+5. Tests + VERSION = Models = MARKETING 2.1.216 (Build 241). Schema 15 bleibt.
+
+## Erweiterung (neu, 2.1.216)
+
+1. **CameraBroker XPC + IOSurface** mit Helios. Eine TCC. P0.
+2. **gallery ANN / HNSW** nach Print-Index.
+3. **Identity-Merge-Wizard** Cosine 0,89–0,94 + Pairwise-Heatmap.
+4. **Softmax-Temperature** weiter nach Capture-Luma.
+5. **Cluster-Merge** mit 3 Stills bestätigen.
+6. **P-Slot Maske/Schal**, Brille Twin-Veto.
+7. **ReID-Graph** Hold-Trail.
+8. **Stereo Built-in + Continuity** Disparität als Yaw-Prior.
+9. **Overlay CAMetalLayer 60 Hz.**
+10. **Gemeinsamer CVPixelBuffer** Detect+Print.
+11. **LiveCapture nicht @MainActor.**
+12. **Drop-in `.mlmodel`** Print-Backbone.
+13. **gallery.json.bak Rotate 3.**
+14. **mmap leftover-Boxen** Helios↔Aegis Palm-Occlusion.
+15. **Print-Cache persist** auf Disk (RAM tot nach Restart).
+16. **VNDetectFaceCaptureQuality** als Print-Skip.
+17. **Temporal Majority-Vote** 5 Frames bevor Name lockt.
+18. **Lookalike Negative-Embed** gegen Twin-False-Accept.
+19. **Enrollment-Quality-Meter** live (Yaw-Coverage × Capture).
+20. **Duplicate-Identity Detector** beim People-Seed.
+21. **Night/IR Continuity** Luma-Gate vor Print.
+22. **Face-Print Versioning** nach Vision-Modellwechsel.
+23. **RAW/HEIC Watch-Folder** ohne JPEG-Probe.
+24. **Export Embeddings** JSONL für Offline-HNSW.
+
+P0 CameraBroker. Kein neues leftover*-Flag.
+
 # 2.1.215 — VNTrack persist, Enroll-SM skip, People 3 Stills, FA Heatmap.
 
 ## In 2.1.215 wirklich im Code

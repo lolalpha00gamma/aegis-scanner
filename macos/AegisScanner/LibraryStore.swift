@@ -55,6 +55,7 @@ final class LibraryStore: ObservableObject {
     @Published var yawCoverageChip: String = "YAW —"
     @Published var enrollSMChip: String = "ENROLL —"
     @Published var faReplayChip: String = "FA —"
+    @Published var faReplayMatrix: String = "FA —"
     @Published var overlayBeat: TimeInterval = 0
     @Published var yieldAutoReturn = true
     @Published var yieldGrace: Double = 4
@@ -2326,6 +2327,7 @@ final class LibraryStore: ObservableObject {
         yawCoverageChip = "YAW —"
         enrollSMChip = "ENROLL —"
         faReplayChip = "FA —"
+        faReplayMatrix = "FA —"
         faLogLastDecided = [:]
         faLogLines = 0
         overlayTrack?.invalidate()
@@ -2569,6 +2571,12 @@ final class LibraryStore: ObservableObject {
                 }
                 found = zip(kalmanSnap, boxes).map { k, b in
                     FaceObservation.coast(id: k.id, mediaId: mediaId, box: b)
+                }
+                if MatchMath.overlayTrackForcesDetect(lost: FaceEngine.lastTrackLostCount(), live: kalmanSnap.count) {
+                    found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true, skipPrints: skipPrints, roi: roi, skipPrintBoxes: skipPrintBoxes)) ?? found
+                    if !found.isEmpty {
+                        FaceEngine.seedTrack(boxes: found.map(\.box), image: image)
+                    }
                 }
             } else {
                 found = (try? FaceEngine.detect(in: image, mediaId: mediaId, tiles: false, continuity: cont, cheapGraph: true, live: true, skipPrints: skipPrints, roi: roi, skipPrintBoxes: skipPrintBoxes)) ?? []
@@ -5142,6 +5150,7 @@ final class LibraryStore: ObservableObject {
         let url = GalleryFile.falseAcceptURL
         guard let text = try? String(contentsOf: url, encoding: .utf8) else {
             faReplayChip = "FA —"
+            faReplayMatrix = "FA —"
             status = "Kein False-Accept-Log"
             return
         }
@@ -5160,10 +5169,12 @@ final class LibraryStore: ObservableObject {
         let heat = MatchMath.falseAcceptPairHeatmap(pairs)
         if hits > 0 {
             faReplayChip = MatchMath.falseAcceptPairChip(heat)
+            faReplayMatrix = MatchMath.falseAcceptPairMatrix(heat)
             let top = heat.prefix(3).map { "\($0.pair)×\($0.n)" }.joined(separator: " · ")
             status = "False-Accept Replay · \(hits) Treffer · \(top)"
         } else {
             faReplayChip = "FA —"
+            faReplayMatrix = "FA —"
             status = "Match-Log \(lines.count) Zeilen"
         }
     }
@@ -5176,11 +5187,18 @@ final class LibraryStore: ObservableObject {
                     self.status = "Fotos-Zugriff fehlt — People-Album"
                     return
                 }
-                let subtype = PHAssetCollectionSubtype(rawValue: UInt(MatchMath.peopleAlbumSubtypeRaw)) ?? .albumSyncedFaces
+                let limited = MatchMath.peopleAlbumLimitedOnly(Int(auth.rawValue))
+                let subtype: PHAssetCollectionSubtype
+                if MatchMath.peopleAlbumFetchAny(limited: limited) {
+                    subtype = .any
+                } else {
+                    subtype = PHAssetCollectionSubtype(rawValue: UInt(MatchMath.peopleAlbumSubtypeRaw)) ?? .albumSyncedFaces
+                }
                 let cols = PHAssetCollection.fetchAssetCollections(with: .album, subtype: subtype, options: nil)
                 var seeded = 0
                 var stillCount = 0
                 let cap = MatchMath.peopleAlbumStillCap()
+                let scan = MatchMath.peopleAlbumScanCap()
                 cols.enumerateObjects { col, _, stop in
                     if seeded >= 8 { stop.pointee = true; return }
                     let name = col.localizedTitle ?? ""
@@ -5191,19 +5209,28 @@ final class LibraryStore: ObservableObject {
                     let assets = PHAsset.fetchAssets(in: col, options: nil)
                     var picked: [PHAsset] = []
                     assets.enumerateObjects { asset, _, halt in
-                        if picked.count >= cap { halt.pointee = true; return }
+                        if picked.count >= scan { halt.pointee = true; return }
                         if asset.mediaType == .image { picked.append(asset) }
                     }
-                    let loadN = MatchMath.peopleAlbumStillLoads(count: picked.count, cap: cap)
-                    guard MatchMath.peopleAlbumEnrollOk(stills: loadN, need: 1) else { return }
-                    let images = self.peopleAlbumLoadStills(Array(picked.prefix(loadN)))
-                    var faceIds: [UUID] = []
+                    guard MatchMath.peopleAlbumEnrollOk(stills: picked.count, need: 1) else { return }
+                    let images = self.peopleAlbumLoadStills(picked)
+                    var detected: [(cg: CGImage, face: FaceObservation)] = []
                     for cg in images {
                         let mid = UUID()
                         let found = (try? FaceEngine.detect(in: cg, mediaId: mid, tiles: false, live: false)) ?? []
                         guard let face = found.max(by: { $0.box.width * $0.box.height < $1.box.width * $1.box.height }) else { continue }
                         var copy = face
                         copy.enrolledAt = Date()
+                        detected.append((cg: cg, face: copy))
+                    }
+                    let bins = detected.map { MatchMath.peopleAlbumYawBin($0.face.quality.yaw) }
+                    let keep = MatchMath.peopleAlbumYawPick(bins: bins, cap: cap)
+                    var faceIds: [UUID] = []
+                    for i in keep {
+                        let row = detected[i]
+                        let cg = row.cg
+                        let copy = row.face
+                        let mid = copy.mediaId
                         if !self.faces.contains(where: { $0.id == copy.id }) {
                             self.faces.append(copy)
                         }
@@ -5223,14 +5250,17 @@ final class LibraryStore: ObservableObject {
                         }
                         faceIds.append(copy.id)
                     }
+                    guard !faceIds.isEmpty else { return }
                     self.identities.append(Identity(id: UUID(), name: name, faceIds: faceIds))
                     seeded += 1
                     stillCount += faceIds.count
                 }
                 if seeded > 0 { self.persist() }
                 self.status = seeded > 0
-                    ? "People-Album · \(seeded) Personen · \(stillCount) Stills"
-                    : "People-Album leer oder schon in der Galerie"
+                    ? (limited
+                        ? "People-Album (eingeschränkt) · \(seeded) Personen · \(stillCount) Stills"
+                        : "People-Album · \(seeded) Personen · \(stillCount) Stills")
+                    : MatchMath.peopleAlbumLimitedStatus(seeded: 0, limited: limited)
             }
         }
     }

@@ -95,11 +95,18 @@ struct ContentView: View {
                     .font(.system(.caption, design: .monospaced))
                     .foregroundStyle(.pink)
                     .help("False-Accept JSONL Replay. Letzte Match-Zeilen.")
+                if store.faReplayMatrix != "FA —", store.faReplayMatrix != store.faReplayChip {
+                    Text(store.faReplayMatrix)
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(.pink.opacity(0.85))
+                        .lineLimit(2)
+                        .help("False-Accept Pair-Matrix. Ada→Ben×n.")
+                }
             }
             Button("People") { store.seedFromPeopleAlbum() }
-                .help("Photos People-/Faces-Album: Name + bis zu 3 Stills als Referenzen.")
+                .help("Photos People-/Faces-Album: Name + Front/L/R Stills. Limited-Auth nur sichtbare Alben.")
             Button("FA-Log") { store.replayFalseAccept() }
-                .help("False-Accept JSONL Replay. Pair-Heatmap Ada→Ben.")
+                .help("False-Accept JSONL Replay. Pair-Matrix Ada→Ben.")
             if store.mutexChip != "—" && !store.mutexChip.isEmpty {
                 Text(store.mutexChip.uppercased())
                     .font(.system(.caption, design: .monospaced))

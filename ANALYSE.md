@@ -1,3 +1,20 @@
+# Aegis 2.1.216 — Track lost Detect, People Yaw, limited-auth, FA Matrix
+
+Aegis **2.1.216 alpha** (Build 241). Helios **1.6.54** (Build 87). Nur `main`. `bugfix` mergen: nein.
+
+## Was 2.1.216 ändert
+
+2.1.215: VNTrack persist, Enroll-SM skip, People 3 Stills, FA Heatmap. Track-Loss coastete die tote Box. People nahm die ersten 3 Fotos (meist Frontal). Limited-Auth suchte Faces-Album. FA nur Top-Paar-Chip.
+
+| # | Bug | Fix |
+|---|---|---|
+| 1 | Track lost = Kalman-Coast | overlayTrackForcesDetect → Detect sofort |
+| 2 | People 3× Frontal | yawPick Front+L+R, scan 12 |
+| 3 | limited = leeres Faces-Album | fetch .any + Status eingeschränkt |
+| 4 | FA nur Chip | falseAcceptPairMatrix UI |
+
+Nicht: CameraBroker, HNSW, LiveCapture off MainActor, Overlay-Metal.
+
 # Aegis 2.1.214 — VNTrack, People-Album, False-Accept JSONL
 
 Aegis **2.1.214 alpha** (Build 239). Helios **1.6.52** (Build 85). Nur `main`. `bugfix` mergen: nein.

@@ -2952,13 +2952,17 @@ enum FaceEngine {
     private static let trackLock = NSLock()
     private static var trackHandler = VNSequenceRequestHandler()
     private static var trackObs: [VNDetectedObjectObservation] = []
+    nonisolated(unsafe) private static var trackLostN = 0
 
     static func resetTrack() {
         trackLock.lock()
         trackHandler = VNSequenceRequestHandler()
         trackObs = []
+        trackLostN = 0
         trackLock.unlock()
     }
+
+    static func lastTrackLostCount() -> Int { trackLostN }
 
     /// VNTrackObjectRequest auf der letzten Box. Detect 8 Hz, Track folgt Pixel.
     /// persist: gleiche Sequence + Observation über skipDetect. Sonst Reseed.
@@ -2970,6 +2974,7 @@ enum FaceEngine {
         out.reserveCapacity(boxes.count)
         var nextObs: [VNDetectedObjectObservation] = []
         nextObs.reserveCapacity(boxes.count)
+        var lost = 0
         trackLock.lock()
         defer { trackLock.unlock() }
         if !persist {
@@ -2998,15 +3003,18 @@ enum FaceEngine {
                     nextObs.append(r)
                     out.append(vnToPixels(r.boundingBox, width: w, height: h))
                 } else {
+                    lost += 1
                     nextObs.append(seed)
                     out.append(box)
                 }
             } catch {
+                lost += 1
                 nextObs.append(seed)
                 out.append(box)
             }
         }
         trackObs = nextObs
+        trackLostN = lost
         return out
     }
 
@@ -3017,6 +3025,7 @@ enum FaceEngine {
         trackLock.lock()
         defer { trackLock.unlock() }
         trackHandler = VNSequenceRequestHandler()
+        trackLostN = 0
         trackObs = boxes.map { box in
             VNDetectedObjectObservation(boundingBox: CGRect(
                 x: box.x / w,

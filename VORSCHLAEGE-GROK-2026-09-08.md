@@ -1,3 +1,29 @@
+# Aegis Vorschläge — 2026-09-08 (Pass 17, 2.1.216)
+
+Stand 2.1.216 alpha. Track lost Detect, People Yaw, limited-auth, FA Matrix.
+
+## Gelandet in 2.1.216
+
+- overlayTrackLost / overlayTrackForcesDetect + FaceEngine.lastTrackLostCount
+- peopleAlbumYawPick / ScanCap 12 / YawDiverse
+- peopleAlbumFetchAny limited → .any
+- falseAcceptPairMatrix UI
+
+## Erweiterung (neu)
+
+161. **Temporal Majority-Vote** 5 Frames vor Name-Lock.
+162. **Lookalike Negative-Embed.**
+163. **Enrollment-Quality-Meter** live.
+164. **Duplicate-Identity Detector** People-Seed.
+165. **Night/IR Continuity** Luma-Gate.
+166. **Face-Print Versioning.**
+167. **RAW/HEIC Watch-Folder.**
+168. **Export Embeddings** JSONL.
+169. **Print-Cache persist** auf Disk.
+170. **VNDetectFaceCaptureQuality** Print-Skip.
+
+P0: CameraBroker. Kein neues leftover*-Flag.
+
 # Aegis Vorschläge — 2026-09-08 (Pass 16, 2.1.215)
 
 Stand 2.1.215 alpha. VNTrack persist, Enroll-SM skip, People 3 Stills, FA Heatmap.
