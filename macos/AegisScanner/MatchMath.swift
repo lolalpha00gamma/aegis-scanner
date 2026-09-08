@@ -844,6 +844,65 @@ enum MatchMath {
         return prev
     }
 
+    /// Print-Cache leftoverLastHash × Yaw-Bin. Gleicher Hash+Bin kein zweiter VNFacePrint.
+    static func leftoverLastHashBinKey(hash: String?, yaw: Double) -> String? {
+        guard let hash, !hash.isEmpty else { return nil }
+        let spatial = leftoverHoldHashSpatial(hash)
+        guard !spatial.isEmpty else { return nil }
+        return leftoverHoldHashKey(hash: spatial, bin: leftoverHoldBinSigned(yaw: yaw))
+    }
+
+    static func leftoverPrintCacheHits(hash: String?, yaw: Double, cached: Set<String>) -> Bool {
+        guard let key = leftoverLastHashBinKey(hash: hash, yaw: yaw) else { return false }
+        return cached.contains(key)
+    }
+
+    static func leftoverPrintCachePut(cached: Set<String>, hash: String?, yaw: Double) -> Set<String> {
+        guard let key = leftoverLastHashBinKey(hash: hash, yaw: yaw) else { return cached }
+        var out = cached
+        out.insert(key)
+        if out.count > leftoverHashHoldCapN {
+            return Set(out.prefix(leftoverHashHoldCapN))
+        }
+        return out
+    }
+
+    static func leftoverJpegProbeKeyBin(_ hash: String, yaw: Double) -> String {
+        leftoverHoldHashKey(hash: leftoverHoldHashSpatial(hash), bin: leftoverHoldBinSigned(yaw: yaw))
+    }
+
+    static func leftoverJpegProbeLookupBin(
+        table: [String: (delta: Double, at: TimeInterval, cosine: Double)],
+        hash: String,
+        yaw: Double
+    ) -> (delta: Double, at: TimeInterval, cosine: Double)? {
+        let keyed = leftoverJpegProbeKeyBin(hash, yaw: yaw)
+        if let hit = table[keyed] { return hit }
+        if leftoverHoldBinSigned(yaw: yaw) == 0 {
+            return leftoverJpegProbeLookup(table: table, hash: hash)
+        }
+        return nil
+    }
+
+    static func leftoverJpegProbeStoreBin(
+        table: [String: (delta: Double, at: TimeInterval, cosine: Double)],
+        hash: String,
+        yaw: Double,
+        delta: Double?,
+        at: TimeInterval,
+        cosine: Double?
+    ) -> [String: (delta: Double, at: TimeInterval, cosine: Double)] {
+        let key = leftoverJpegProbeKeyBin(hash, yaw: yaw)
+        guard !key.isEmpty else { return table }
+        var out = table
+        out[key] = (delta: leftoverJpegProbePut(delta), at: at, cosine: cosine ?? 0)
+        if out.count > leftoverHashHoldCapN {
+            let keep = out.sorted { $0.value.at > $1.value.at }.prefix(leftoverHashHoldCapN)
+            out = Dictionary(uniqueKeysWithValues: keep.map { ($0.key, $0.value) })
+        }
+        return out
+    }
+
     /// 8 fps Overlay sonst flackert Spark. Wrapper um overlayChipPeakHold.
     static func leftoverSparkChipHold(prev: String?, now: String?, hold: Int, need: Int = 2) -> (chip: String?, hold: Int) {
         let r = overlayChipPeakHold(current: now, held: prev, remaining: hold, need: need)
@@ -1126,6 +1185,11 @@ enum MatchMath {
     /// Solange Detect läuft, kein neues CGImage — sonst Task-Stau auf Main.
     static func liveEmitAllows(busy: Bool, busyFor: TimeInterval = 0, hungAfter: TimeInterval = 1.0) -> Bool {
         !busy || busyFor >= hungAfter
+    }
+
+    /// Hung-Detect: busy ≥ 1 s → Cancel, nicht zweiten Detect stapeln.
+    static func liveEmitHungCancel(busy: Bool, busyFor: TimeInterval, hungAfter: TimeInterval = 1.0) -> Bool {
+        busy && busyFor + 1e-12 >= hungAfter
     }
 
     /// Detect busy: neuestes Frame in livePending, nicht Drop-new am Tap.
@@ -1497,7 +1561,8 @@ enum MatchMath {
         continuity: Bool = false,
         twinOtherCosine: Double? = nil,
         twinYawDelta: Double = 0,
-        alreadyNamed: Bool = false
+        alreadyNamed: Bool = false,
+        blinkOk: Bool = true
     ) -> Double? {
         guard let cosine else { return nil }
         if !leftoverTwinLockBaptizeOk(
@@ -1507,9 +1572,13 @@ enum MatchMath {
         ) {
             return 0
         }
-        return leftoverAssignPrintOk(
+        let printOk = leftoverAssignPrintOk(
             cosine: cosine, sharpness: sharpness, yawAbs: yawAbs, continuity: continuity
-        ) ? cosine : 0
+        )
+        if !leftoverAssignBlinkOk(printOk: printOk, blinkOk: blinkOk, alreadyNamed: false) {
+            return 0
+        }
+        return printOk ? cosine : 0
     }
 
     /// nil = ungemessen, x-Fill (Vision-Restart). 0 = gemessen unter Taufe, kein UUID-Diebstahl.

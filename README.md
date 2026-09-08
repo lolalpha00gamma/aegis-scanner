@@ -1,4 +1,4 @@
-# Aegis **2.1.207 alpha**
+# Aegis **2.1.208 alpha**
 
 
 Direkt laden:
@@ -14,6 +14,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.208 alpha
+
+2.1.207 pairLast Value-Remint, leftoverTracks Yaw/Kalman/Blink. Vision-Detect hängt `liveBusy` ewig. leftoverLastHash/JPEG nur Spatial — Frontal-Print auf Profil. Hungarian taufte Unnamed ohne Blinzeln.
+
+- **Hung-Detect Cancel.** Nach 1 s `liveDetectGen` tot, neuer Detect auf dem aktuellen Frame.
+- **Print-Cache × Yaw-Bin.** Gleicher Hash+Bin kein zweiter VNFacePrint. Profil nach Frontal druckt.
+- **JPEG-Probe × Yaw-Bin.** StoreBin `#bin`, LookupBin Spatial-Fallback nur frontal.
+- **Blink-Liveness auf Assign.** PrintCell 0 ohne Blink (`alreadyNamed: false` intern).
+- Tests + VERSION = Models = MARKETING 2.1.208 (Build 233). Schema 15 bleibt.
 
 ## Neu in 2.1.207 alpha
 

@@ -1,3 +1,43 @@
+# 2.1.208 — Hung-Detect Cancel, Print-Cache Yaw-Bin, JPEG-Bin, Blink-Assign.
+
+## In 2.1.208 wirklich im Code
+
+2.1.207 pairLast Value-Remint, leftoverTracks Yaw/Kalman/Blink. Vision-Detect hängt liveBusy. leftoverLastHash/JPEG Spatial — Frontal auf Profil. Hungarian alreadyNamed:true, Blink tot.
+
+1. **liveEmitHungCancel** 1 s. liveDetectGen invalidiert hängenden Task.
+2. **leftoverLastHashBinKey / leftoverPrintCacheHits×Put.** Skip nur gleicher Yaw-Bin.
+3. **leftoverJpegProbeStoreBin / LookupBin.** Spatial-Fallback nur Bin 0.
+4. **leftoverAssignPrintCell blinkOk.** Intern alreadyNamed:false — Unnamed ohne Blink = 0.
+5. Tests + VERSION = Models = MARKETING 2.1.208 (Build 233). Schema 15 bleibt.
+
+## Erweiterung (neu, 2.1.208)
+
+1. **CameraBroker XPC + IOSurface** mit Helios. Eine TCC. P0.
+2. **gallery ANN / HNSW** nach Print-Index.
+3. **Identity-Merge-Wizard** Cosine 0,89–0,94 + Pairwise-Heatmap.
+4. **Watch-Folder PhotoKit** + Export `.aegis` verschlüsselt.
+5. **P-Slot Maske/Schal**, Brille Twin-Veto.
+6. **ReID-Graph** Hold-Trail.
+7. **Stereo Built-in + Continuity** Disparität als Yaw-Prior.
+8. **FaceTrack.id uniqueID-Reconnect** via Print+Yaw-Bin.
+9. **Overlay CAMetalLayer 60 Hz**, Detect 8–24.
+10. **Gemeinsamer CVPixelBuffer** Detect+Print, JPEG nur Export.
+11. **VNTrackObjectRequest** Box zwischen Detect-Ticks.
+12. **LiveCapture nicht @MainActor.**
+13. **420f vs 420v** Color-Space Continuity/Built-in.
+14. **Eine Fixture Restart+Twin+AssignLive** statt 40 Bool-Orakel.
+15. **Overlay identity-Lerp unabhängig von Assign.**
+16. **Match-Log JSONL** für False-Accept Replay.
+17. **Drop-in `.mlmodel`** Print-Backbone ohne MatchMath-Rewrite.
+18. **Hung-Detect: VNRequest cancel** statt nur Gen-Bump.
+19. **leftoverPrintCache persist** in extra (RAM-only tot nach Restart).
+20. **Temporal-Median Cosine 3 Ticks** statt nur EMA.
+21. **Print-Budget pro Identität**, nicht nur Hash×Bin.
+22. **Guest vs enrolled two-speed detect.**
+23. **VNDetectFaceCaptureQuality** als Print-Skip.
+
+Kein 2.1.209-Flag ohne CameraBroker oder LiveCapture off MainActor.
+
 # 2.1.207 — pairLast Value-Remint, leftoverTracks Yaw/Kalman/Blink.
 
 ## In 2.1.207 wirklich im Code

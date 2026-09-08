@@ -5132,6 +5132,8 @@ enum MatchMathTests {
         ok(MatchMath.leftoverAssignPrintCell(cosine: 0.81) == 0.81, "PrintCell Taufe Cosine")
         ok(MatchMath.leftoverAssignPrintCell(cosine: 0.64) == 0, "PrintCell 0,64 = 0")
         ok(MatchMath.leftoverAssignPrintCell(cosine: nil) == nil, "PrintCell ungemessen nil")
+        ok(MatchMath.leftoverAssignPrintCell(cosine: 0.81, blinkOk: false) == 0, "PrintCell Blink tot")
+        ok(MatchMath.leftoverAssignPrintCell(cosine: 0.81, blinkOk: true) == 0.81, "PrintCell Blink tauft")
         let weakFill = MatchMath.leftoverAssignLive(scores: [[0]], liveX: [0.21], holdX: [0.22])
         ok(weakFill[0] == nil, "AssignLive 0 gemessen kein UUID-Diebstahl")
         let remintFill = MatchMath.leftoverAssignLive(scores: [[nil]], liveX: [0.21], holdX: [0.22])
@@ -5479,6 +5481,38 @@ enum MatchMathTests {
             alreadyNamed: true
         )
         ok(yawCell == 0.93, "PrintCell Yaw 23° Twin frei")
+        ok(MatchMath.liveEmitHungCancel(busy: true, busyFor: 1.0), "Hung 1 s")
+        ok(MatchMath.liveEmitHungCancel(busy: true, busyFor: 1.2), "Hung >1 s")
+        ok(!MatchMath.liveEmitHungCancel(busy: true, busyFor: 0.50), "Hung 0,5 s tot")
+        ok(!MatchMath.liveEmitHungCancel(busy: false, busyFor: 4.0), "Hung nicht busy tot")
+        ok(MatchMath.leftoverLastHashBinKey(hash: "6.6.4.6", yaw: 0) == "6.6.4.6#0", "Print-Cache frontal")
+        ok(MatchMath.leftoverLastHashBinKey(hash: "6.6.4.6#101", yaw: 0.50) == "6.6.4.6#2", "Print-Cache Profil strip Rank")
+        ok(MatchMath.leftoverLastHashBinKey(hash: "6.6.4.6", yaw: -0.50) == "6.6.4.6#-2", "Print-Cache Profil L")
+        ok(MatchMath.leftoverLastHashBinKey(hash: nil, yaw: 0) == nil, "Print-Cache Hash nil")
+        ok(MatchMath.leftoverLastHashBinKey(hash: "", yaw: 0) == nil, "Print-Cache Hash leer")
+        var printCache: Set<String> = []
+        printCache = MatchMath.leftoverPrintCachePut(cached: printCache, hash: "6.6.4.6", yaw: 0)
+        ok(MatchMath.leftoverPrintCacheHits(hash: "6.6.4.6", yaw: 0, cached: printCache), "Print-Cache Hit frontal")
+        ok(!MatchMath.leftoverPrintCacheHits(hash: "6.6.4.6", yaw: 0.50, cached: printCache), "Print-Cache Profil kein Frontal")
+        ok(!MatchMath.leftoverPrintCacheHits(hash: "5.5.4.6", yaw: 0, cached: printCache), "Print-Cache Twin tot")
+        printCache = MatchMath.leftoverPrintCachePut(cached: printCache, hash: "6.6.4.6", yaw: 0.50)
+        ok(MatchMath.leftoverPrintCacheHits(hash: "6.6.4.6", yaw: 0.50, cached: printCache), "Print-Cache Profil nach Put")
+        var jpegBin: [String: (delta: Double, at: TimeInterval, cosine: Double)] = [:]
+        jpegBin = MatchMath.leftoverJpegProbeStoreBin(
+            table: jpegBin, hash: "6.6.4.6", yaw: 0, delta: 0.02, at: 1.0, cosine: 0.90
+        )
+        near(MatchMath.leftoverJpegProbeLookupBin(table: jpegBin, hash: "6.6.4.6", yaw: 0)?.delta ?? 1, 0.02, 0.001, "JPEG Bin frontal")
+        ok(MatchMath.leftoverJpegProbeLookupBin(table: jpegBin, hash: "6.6.4.6", yaw: 0.50) == nil, "JPEG Bin Profil kein Frontal")
+        jpegBin = MatchMath.leftoverJpegProbeStoreBin(
+            table: jpegBin, hash: "6.6.4.6", yaw: 0.50, delta: 0.08, at: 1.1, cosine: 0.70
+        )
+        near(MatchMath.leftoverJpegProbeLookupBin(table: jpegBin, hash: "6.6.4.6", yaw: 0.50)?.delta ?? 1, 0.08, 0.001, "JPEG Bin Profil")
+        near(MatchMath.leftoverJpegProbeLookupBin(table: jpegBin, hash: "6.6.4.6", yaw: 0)?.delta ?? 1, 0.02, 0.001, "JPEG Bin frontal bleibt")
+        let jpegOldSpatial = MatchMath.leftoverJpegProbeStore(
+            table: [:], hash: "5.5.4.6", delta: 0.03, at: 2.0, cosine: 0.88
+        )
+        near(MatchMath.leftoverJpegProbeLookupBin(table: jpegOldSpatial, hash: "5.5.4.6", yaw: 0)?.delta ?? 1, 0.03, 0.001, "JPEG Spatial Fallback frontal")
+        ok(MatchMath.leftoverJpegProbeLookupBin(table: jpegOldSpatial, hash: "5.5.4.6", yaw: 0.50) == nil, "JPEG Spatial Fallback Profil tot")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

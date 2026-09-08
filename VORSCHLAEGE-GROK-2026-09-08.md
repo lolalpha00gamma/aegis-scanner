@@ -1,34 +1,38 @@
-# Aegis Vorschläge — 2026-09-08 (Pass 9, 2.1.207)
+# Aegis Vorschläge — 2026-09-08 (Pass 10, 2.1.208)
 
-Stand 2.1.207 alpha. pairLast Value-Remint, leftoverTracks Yaw/Kalman/Blink.
+Stand 2.1.208 alpha. Hung-Detect, Print-Cache Yaw-Bin, JPEG-Bin, Blink-Assign.
 
-## Gelandet in 2.1.207
+## Gelandet in 2.1.208
 
-- leftoverAssignAtomicAll pairLast Value-Remint
-- leftoverPairLastPick Unpack > faceMaps
-- leftoverTracks yaw / velX / velY / blink
+- liveEmitHungCancel + liveDetectGen
+- leftoverLastHashBinKey / leftoverPrintCacheHits×Put
+- leftoverJpegProbeStoreBin / LookupBin (Profil ≠ Frontal)
+- leftoverAssignPrintCell blinkOk intern alreadyNamed:false
 
 ## Erweiterung (neu)
 
 73. **CameraBroker XPC + IOSurface** mit Helios. Eine TCC. P0.
-74. **Hung-Detect Cancel** nach 1 s. P0 klein.
-75. **gallery ANN / HNSW** nach Print-Index.
-76. **Identity-Merge-Wizard** Cosine 0,89–0,94 + Pairwise-Heatmap.
-77. **Watch-Folder PhotoKit** + Export `.aegis` verschlüsselt.
-78. **P-Slot Maske/Schal**, Brille Twin-Veto.
-79. **ReID-Graph** Hold-Trail.
-80. **Stereo Built-in + Continuity** Disparität als Yaw-Prior.
-81. **FaceTrack.id uniqueID-Reconnect** via Print+Yaw-Bin.
-82. **Overlay CAMetalLayer 60 Hz**, Detect 8–24.
-83. **Gemeinsamer CVPixelBuffer** Detect+Print.
-84. **VNTrackObjectRequest** Box zwischen Detect-Ticks.
-85. **LiveCapture nicht @MainActor.**
-86. **420f vs 420v** Color-Space Continuity/Built-in.
-87. **Eine Fixture Restart+Twin+AssignLive** statt 40 Bool-Orakel.
-88. **Overlay identity-Lerp unabhängig von Assign.**
-89. **Blink-Liveness auf Assign.**
-90. **Match-Log JSONL** für False-Accept Replay.
-91. **Drop-in `.mlmodel`** Print-Backbone ohne MatchMath-Rewrite.
-92. **Print-Cache leftoverLastHash × Yaw-Bin.**
+74. **gallery ANN / HNSW** nach Print-Index.
+75. **Identity-Merge-Wizard** Cosine 0,89–0,94 + Pairwise-Heatmap.
+76. **Watch-Folder PhotoKit** + Export `.aegis` verschlüsselt.
+77. **P-Slot Maske/Schal**, Brille Twin-Veto.
+78. **ReID-Graph** Hold-Trail.
+79. **Stereo Built-in + Continuity** Disparität als Yaw-Prior.
+80. **FaceTrack.id uniqueID-Reconnect** via Print+Yaw-Bin.
+81. **Overlay CAMetalLayer 60 Hz**, Detect 8–24.
+82. **Gemeinsamer CVPixelBuffer** Detect+Print.
+83. **VNTrackObjectRequest** Box zwischen Detect-Ticks.
+84. **LiveCapture nicht @MainActor.**
+85. **420f vs 420v** Color-Space Continuity/Built-in.
+86. **Eine Fixture Restart+Twin+AssignLive** statt 40 Bool-Orakel.
+87. **Overlay identity-Lerp unabhängig von Assign.**
+88. **Match-Log JSONL** für False-Accept Replay.
+89. **Drop-in `.mlmodel`** Print-Backbone ohne MatchMath-Rewrite.
+90. **Hung-Detect: VNRequest cancel** statt nur Gen-Bump.
+91. **leftoverPrintCache persist** in extra (RAM-only tot nach Restart).
+92. **Temporal-Median Cosine 3 Ticks** statt nur EMA.
+93. **Print-Budget pro Identität**, nicht nur Hash×Bin.
+94. **Guest vs enrolled two-speed detect.**
+95. **VNDetectFaceCaptureQuality** als Print-Skip.
 
-Kein 2.1.208-Flag ohne CameraBroker oder Hung-Detect.
+Kein 2.1.209-Flag ohne CameraBroker oder LiveCapture off MainActor.

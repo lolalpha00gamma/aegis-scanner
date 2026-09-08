@@ -1,3 +1,21 @@
+# Aegis 2.1.208 — Hung-Detect Cancel, Print-Cache Yaw-Bin, JPEG-Bin, Blink-Assign
+
+Aegis **2.1.208 alpha** (Build 233). Helios **1.6.46** (Build 79). Nur `main`. `bugfix` mergen: nein.
+
+## Was 2.1.208 ändert
+
+2.1.207: pairLast Value-Remint, leftoverTracks Yaw/Kalman/Blink. Vision-Detect hängt liveBusy. leftoverLastHash/JPEG Spatial. Hungarian alreadyNamed:true, Blink tot.
+
+1. **liveEmitHungCancel** 1 s + liveDetectGen. Hängender Task tot, neuer Detect.
+2. **leftoverPrintCache** Hash×Yaw-Bin. Profil nach Frontal druckt.
+3. **leftoverJpegProbeStoreBin.** Spatial-Fallback nur Bin 0.
+4. **leftoverAssignPrintCell blinkOk** intern alreadyNamed:false.
+5. Tests + VERSION = Models = MARKETING 2.1.208 (Build 233). Schema 15 bleibt.
+
+Nicht: CameraBroker, HNSW, Overlay-Metal, LiveCapture off MainActor.
+
+
+
 # Aegis 2.1.207 — pairLast Value-Remint, leftoverTracks Yaw/Kalman/Blink
 
 Aegis **2.1.207 alpha** (Build 232). Helios **1.6.45** (Build 78). Nur `main`. `bugfix` mergen: nein.

@@ -78,6 +78,9 @@ final class LibraryStore: ObservableObject {
     private var scopedRoots: [URL] = []
     private var liveBusy = false
     private var livePending: (image: CGImage, mediaId: UUID, stamp: TimeInterval)?
+    private var liveDetectGen: UInt64 = 0
+    private var liveBusySince: TimeInterval = 0
+    private var leftoverPrintCache: Set<String> = []
     private var liveRoiTick = 0
     private var liveRoiSkipOnce = false
     private var maskHoldSince: [UUID: TimeInterval] = [:]
@@ -2212,8 +2215,10 @@ final class LibraryStore: ObservableObject {
     }
 
     func stopLive() {
+        liveDetectGen &+= 1
         livePending = nil
         liveBusy = false
+        liveBusySince = 0
         liveCapture.markFrameConsumed()
         liveRoiTick = 0
         liveRoiSkipOnce = false
@@ -2273,6 +2278,7 @@ final class LibraryStore: ObservableObject {
         leftoverJpegDelta = [:]
         leftoverLastIoU = [:]
         leftoverPrintSkipIds = []
+        leftoverPrintCache = []
         leftoverJpegAt = [:]
         leftoverJpegHash = [:]
         leftoverJpegCos = [:]
@@ -2337,6 +2343,8 @@ final class LibraryStore: ObservableObject {
                 self.liveRoiSkipOnce = false
                 self.leftoverDetectAt = 0
                 self.leftoverPrintAt = 0
+                self.leftoverPrintCache = []
+                self.liveDetectGen &+= 1
             }
             self.lastCameraUniqueID = uid
             self.cameraUniqueID = uid
@@ -2361,11 +2369,21 @@ final class LibraryStore: ObservableObject {
     }
 
     private func ingestLiveFrame(_ image: CGImage, mediaId: UUID, stamp: TimeInterval) {
+        let now = CACurrentMediaTime()
         if liveBusy {
             livePending = (image, mediaId, stamp)
+            let busyFor = liveBusySince > 0 ? now - liveBusySince : 0
+            if MatchMath.liveEmitHungCancel(busy: true, busyFor: busyFor) {
+                liveDetectGen &+= 1
+                liveBusySince = now
+                livePending = nil
+                liveCapture.markFrameConsumed()
+                runLiveDetect(image, mediaId: mediaId, stamp: stamp)
+            }
             return
         }
         liveBusy = true
+        liveBusySince = now
         runLiveDetect(image, mediaId: mediaId, stamp: stamp)
     }
 
@@ -2387,7 +2405,16 @@ final class LibraryStore: ObservableObject {
             dt: dt,
             continuity: cont
         )
-        let roiKalman = MatchMath.liveRoiTracks(tracks: kalmanSnap, skipIds: skipIds)
+        let skipPrintCached: Set<UUID> = Set(kalmanSnap.compactMap { row in
+            let yaw = liveYaw[row.id] ?? 0
+            let hash = leftoverLiveHashTick[row.id] ?? leftoverLastHash[row.id]
+            guard MatchMath.leftoverPrintCacheHits(hash: hash, yaw: yaw, cached: leftoverPrintCache) else {
+                return nil
+            }
+            return row.id
+        })
+        let skipIdsAll = skipIds.union(skipPrintCached)
+        let roiKalman = MatchMath.liveRoiTracks(tracks: kalmanSnap, skipIds: skipIdsAll)
         let roiTuple = MatchMath.liveRoiBox(
             kalman: roiKalman,
             imageW: Double(image.width),
@@ -2416,10 +2443,12 @@ final class LibraryStore: ObservableObject {
         let skipDetect = skipDetectTick || split.skipDetect
         liveRoiTick += 1
         liveRoiSkipOnce = false
-        let skipPrints = split.skipPrint || MatchMath.printBudgetSkipAll(skipIds: skipIds, liveIds: liveIds)
+        let skipPrints = split.skipPrint || MatchMath.printBudgetSkipAll(skipIds: skipIdsAll, liveIds: liveIds)
         if !skipDetect { leftoverDetectAt = stamp }
         if !skipPrints { leftoverPrintAt = stamp }
-        let skipPrintBoxes = skipPrints ? [] : MatchMath.leftoverPrintSkipBoxes(tracks: kalmanSnap, skipIds: skipIds)
+        let skipPrintBoxes = skipPrints ? [] : MatchMath.leftoverPrintSkipBoxes(tracks: kalmanSnap, skipIds: skipIdsAll)
+        liveDetectGen &+= 1
+        let gen = liveDetectGen
         Task.detached(priority: .userInitiated) {
             let t0 = CFAbsoluteTimeGetCurrent()
             var roi = skipRoi ? nil : roiTuple.map { FaceBox(x: $0.x, y: $0.y, width: $0.w, height: $0.h) }
@@ -2455,11 +2484,12 @@ final class LibraryStore: ObservableObject {
             let visMs = (CFAbsoluteTimeGetCurrent() - t0) * 1000
             await MainActor.run { [weak self] in
                 guard let self else { return }
+                guard self.liveDetectGen == gen else { return }
                 self.lastLiveVisMs = visMs
                 self.liveCapture.setVisionBudget(ms: visMs)
                 self.liveFormatChip = self.liveCapture.formatChip
                 self.mutexChip = self.liveCapture.mutexChip
-                self.leftoverPrintSkipIds = skipIds
+                self.leftoverPrintSkipIds = skipIdsAll
                 if !self.liveActive || self.liveMediaId != mediaId {
                     self.liveBusy = false
                     self.livePending = nil
@@ -3201,7 +3231,8 @@ final class LibraryStore: ObservableObject {
                                 continuity: liveCapture.isContinuity,
                                 twinOtherCosine: c,
                                 twinYawDelta: abs(face.quality.yaw - old.quality.yaw),
-                                alreadyNamed: true
+                                alreadyNamed: true,
+                                blinkOk: leftoverBlinkSeen(faceId: face.id)
                             ))
                         } else {
                             row.append(nil)
@@ -3734,6 +3765,13 @@ final class LibraryStore: ObservableObject {
                     otherYaws: rows.map(\.yaw)
                 )
                 let ranked = leftoverLiveHashTick[face.id] ?? ""
+                if !face.featurePrint.isEmpty {
+                    leftoverPrintCache = MatchMath.leftoverPrintCachePut(
+                        cached: leftoverPrintCache,
+                        hash: ranked,
+                        yaw: face.quality.yaw
+                    )
+                }
                 let from = leftoverLastHash[face.id]
                 if let from, !ranked.isEmpty, from != ranked {
                     leftoverHoldByHash = MatchMath.leftoverStringMapMove(hold: leftoverHoldByHash, from: from, to: ranked)
@@ -4241,7 +4279,11 @@ final class LibraryStore: ObservableObject {
                     let probeId = adopted[bestJ].id
                     let boxHash = leftoverLastHash[probeId] ?? leftoverLastHash[old.id]
                     if let boxHash,
-                       let hit = MatchMath.leftoverJpegProbeLookup(table: leftoverJpegByHash, hash: boxHash),
+                       let hit = MatchMath.leftoverJpegProbeLookupBin(
+                        table: leftoverJpegByHash,
+                        hash: boxHash,
+                        yaw: adopted[bestJ].quality.yaw
+                       ),
                        MatchMath.leftoverJpegProbeReuse(
                         now: now,
                         last: hit.at,
@@ -4273,9 +4315,10 @@ final class LibraryStore: ObservableObject {
                         leftoverJpegAt[probeId] = now
                         if let boxHash {
                             leftoverJpegHash[probeId] = boxHash
-                            leftoverJpegByHash = MatchMath.leftoverJpegProbeStore(
+                            leftoverJpegByHash = MatchMath.leftoverJpegProbeStoreBin(
                                 table: leftoverJpegByHash,
                                 hash: boxHash,
+                                yaw: adopted[bestJ].quality.yaw,
                                 delta: jpegDelta,
                                 at: now,
                                 cosine: pinCos
