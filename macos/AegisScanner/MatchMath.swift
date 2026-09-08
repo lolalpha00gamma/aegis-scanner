@@ -526,7 +526,8 @@ enum MatchMath {
         )
     }
 
-    /// skipPrints hält den letzten Print-Yaw. Copy liveYaw vorher macht Δ immer 0.
+    /// skipPrints hält. Existierender Print-Yaw bleibt — Twin-Print sonst Ada-Δ 0 / SameBin immer true.
+    /// Nur fehlende IDs, und nur printedIds (Commit). Live-Copy ist leftoverPrintYawStamp.
     static func leftoverPrintYawMerge(
         printed: [UUID: Double],
         live: [UUID: Double],
@@ -536,9 +537,17 @@ enum MatchMath {
         guard !skipPrints else { return printed }
         var out = printed
         for (id, yaw) in live {
+            if out[id] != nil { continue }
             if let printedIds, !printedIds.contains(id) { continue }
             out[id] = yaw
         }
+        return out
+    }
+
+    /// Gallery-Commit stempelt Yaw. Merge darf committed nicht mit Live überschreiben.
+    static func leftoverPrintYawStamp(printed: [UUID: Double], id: UUID, yaw: Double) -> [UUID: Double] {
+        var out = printed
+        out[id] = yaw
         return out
     }
 
@@ -6297,25 +6306,26 @@ enum MatchMath {
         return l2normalize(out)
     }
 
-    /// 3-Frame-EMA vor Gallery-Commit. Ein Glücks-Frame sonst überschreibt den Print.
+    /// 3-Frame-Mittel vor Gallery-Commit. Recency-EMA (α 0,45) kippte auf den letzten Glücks-Frame.
     static func leftoverPrintEmaNeed() -> Int { 3 }
 
     static func leftoverPrintEma(_ vectors: [[Double]], alpha: Double = 0.45) -> [Double] {
+        _ = alpha
         let pool = vectors.filter { $0.count >= 32 }
         guard let first = pool.first else { return [] }
         if pool.count == 1 { return l2normalize(first) }
         let dim = first.count
-        var acc = l2normalize(first)
-        let a = max(0.15, min(0.80, alpha))
-        for v in pool.dropFirst() where v.count == dim {
-            let n = l2normalize(v)
-            var next = [Double](repeating: 0, count: dim)
-            for i in 0..<dim {
-                next[i] = acc[i] * (1 - a) + n[i] * a
-            }
-            acc = l2normalize(next)
+        var acc = [Double](repeating: 0, count: dim)
+        var n = 0
+        for v in pool where v.count == dim {
+            let nv = l2normalize(v)
+            for i in 0 ..< dim { acc[i] += nv[i] }
+            n += 1
         }
-        return acc
+        guard n > 0 else { return [] }
+        let inv = 1.0 / Double(n)
+        for i in 0 ..< dim { acc[i] *= inv }
+        return l2normalize(acc)
     }
 
     static func leftoverPrintBlend(_ vectors: [[Double]]) -> [Double] {

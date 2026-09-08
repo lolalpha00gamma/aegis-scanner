@@ -1,3 +1,16 @@
+# Aegis Nachtrag 2.1.199 — 2026-09-08
+
+Binary **2.1.199 alpha Build 224**. leftoverPrintYaw Stamp. EMA Gleichgewicht. Helios 1.6.37.
+
+## In 2.1.199 gelandet
+
+1. leftoverPrintYawMerge hält committed — Twin-Print überschreibt Ada nicht.
+2. leftoverPrintYawStamp nach Gallery-Commit. LibraryStore printedIds leer.
+3. leftoverPrintEma Mittel 1/n, nicht Recency α 0,45.
+4. Tests + VERSION = Models = MARKETING 2.1.199 (Build 224). Schema 15 bleibt.
+
+Rest: CameraBroker, FaceTrack einzige Map, Overlay-Metal. Siehe VORSCHLAEGE-GROK.md.
+
 # Aegis Nachtrag 2.1.198 — 2026-09-08
 
 Binary **2.1.198 alpha Build 223**. leftoverHoldBin |yaw|. nameHist × dt. Print-EMA. Peak-Hold verdrahtet. Helios 1.6.36.

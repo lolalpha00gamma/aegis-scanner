@@ -4034,8 +4034,12 @@ enum MatchMathTests {
             "PrintYaw skip hält"
         )
         ok(
-            abs((MatchMath.leftoverPrintYawMerge(printed: [liveOld: 0], live: [liveOld: 0.30], skipPrints: false)[liveOld] ?? -1) - 0.30) < 1e-9,
-            "PrintYaw nach Print"
+            MatchMath.leftoverPrintYawMerge(printed: [liveOld: 0], live: [liveOld: 0.30], skipPrints: false)[liveOld] == 0,
+            "PrintYaw Merge hält committed"
+        )
+        ok(
+            abs((MatchMath.leftoverPrintYawStamp(printed: [liveOld: 0], id: liveOld, yaw: 0.30)[liveOld] ?? -1) - 0.30) < 1e-9,
+            "PrintYaw Stamp nach Commit"
         )
         ok(
             !MatchMath.printBudgetSkip(visionMs: 19, dt: 0.016, minIoU: 0.95, yawAbs: 0.05, yawDelta: 0.30),
@@ -4384,13 +4388,29 @@ enum MatchMathTests {
             "Yaw Merge Ada ohne Print hält"
         )
         ok(
-            abs((MatchMath.leftoverPrintYawMerge(
+            MatchMath.leftoverPrintYawMerge(
                 printed: [twin: 0.05],
                 live: [twin: 0.30],
                 skipPrints: false,
                 printedIds: [twin]
+            )[twin] == 0.05,
+            "Yaw Merge Twin committed hält"
+        )
+        ok(
+            abs((MatchMath.leftoverPrintYawStamp(printed: [twin: 0.05], id: twin, yaw: 0.30)[twin] ?? -1) - 0.30) < 1e-9,
+            "Yaw Stamp Twin Commit"
+        )
+        ok(
+            abs((MatchMath.leftoverPrintYawMerge(
+                printed: [:], live: [twin: 0.30], skipPrints: false, printedIds: [twin]
             )[twin] ?? -1) - 0.30) < 1e-9,
-            "Yaw Merge Twin mit Print"
+            "Yaw Merge fehlend seed"
+        )
+        ok(
+            MatchMath.leftoverPrintYawMerge(
+                printed: [:], live: [twin: 0.30], skipPrints: false, printedIds: []
+            )[twin] == nil,
+            "Yaw Merge printedIds leer tot"
         )
         ok(
             abs((MatchMath.leftoverPrintBudgetYawDeltaOf(printed: [ada: 0.05], live: 0.05, id: ada) ?? -1)) < 1e-9,
@@ -5148,6 +5168,11 @@ enum MatchMathTests {
         shifted[0] = 0.2
         let ema = MatchMath.leftoverPrintEma([ones, ones, shifted])
         ok(ema.count == 64, "Print-EMA Dim")
+        ok(
+            MatchMath.cosine(ema, MatchMath.leftoverPrintEma([shifted, ones, ones])) > 0.999,
+            "Print-EMA gleich Gewicht Reihenfolge"
+        )
+        ok(MatchMath.cosine(ema, ones) > MatchMath.cosine(ema, shifted), "Print-EMA 2:1 nicht Glücks-Frame")
         let med = MatchMath.medianBlend([ones, ones])
         let blend2 = MatchMath.leftoverPrintBlend([ones, ones])
         ok(blend2.count == med.count, "Blend < 3 = Median")

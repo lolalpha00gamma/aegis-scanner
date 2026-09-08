@@ -1,3 +1,5 @@
+# 2.1.199 — siehe VORSCHLAEGE-NEU.md (Print-Yaw Stamp, EMA Gleichgewicht).
+
 # 2.1.198 — siehe VORSCHLAEGE-NEU.md (Hold-Bin |yaw|, nameHist × dt, Print-EMA, Peak-Hold verdrahtet).
 
 # 2.1.197 — siehe VORSCHLAEGE-NEU.md (PrintCell 0≠nil, x-Fill skip, SameBin ohne Yaw).

@@ -1,4 +1,4 @@
-# Aegis **2.1.198 alpha**
+# Aegis **2.1.199 alpha**
 
 Direkt laden:
 - [Aegis.dmg (Latest)](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg)
@@ -13,6 +13,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.199 alpha
+
+2.1.198: Hold-Bin |yaw|, nameHist × dt, Print-EMA Recency, Peak-Hold. leftoverPrintYawMerge kopierte Live-Yaw sobald irgendwer druckte — Ada-Δ 0, SameBin immer true. Recency-EMA α 0,45 kippte auf den letzten Glücks-Frame. LibraryStore printedIds = jeder mit printVec.
+
+- **leftoverPrintYawMerge** hält committed. Nur fehlende IDs, printedIds leer aus Store.
+- **leftoverPrintYawStamp** nur nach Gallery-Commit.
+- **leftoverPrintEma** Gleichgewicht, Reihenfolge egal. α tot.
+- Helios **1.6.37:** Format-Score, Residual-Gate, Sign-Hysterese, q-Chip, One-Euro, Tastatur-Ring.
+- Tests + VERSION = Models = MARKETING 2.1.199 (Build 224). Schema 15 bleibt.
 
 ## Neu in 2.1.198 alpha
 

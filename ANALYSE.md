@@ -1,3 +1,18 @@
+# Aegis 2.1.199 — Print-Yaw Stamp, EMA Gleichgewicht
+
+Aegis **2.1.199 alpha** (Build 224). Helios **1.6.37** (Build 70). Nur `main`. `bugfix` mergen: nein.
+
+2.1.198: leftoverHoldBin |yaw|. nameHist × dt. Print-EMA Recency. Peak-Hold verdrahtet. Merge überschrieb Ada-Yaw. EMA letzter Frame 45 %.
+
+## Was 2.1.199 ändert
+
+1. **leftoverPrintYawMerge** committed hält. Twin-Print sonst Ada-Δ 0.
+2. **leftoverPrintYawStamp** nach Gallery-Commit. LibraryStore printedIds leer.
+3. **leftoverPrintEma** Mittel, nicht Recency. Glücks-Frame 1/n.
+4. Tests + VERSION = Models = MARKETING 2.1.199 (Build 224). Schema 15 bleibt.
+
+`bugfix` mergen: nein.
+
 # Aegis 2.1.198 — Hold-Bin |yaw|, nameHist × dt, Print-EMA, Peak-Hold
 
 Aegis **2.1.198 alpha** (Build 223). Helios **1.6.36** (Build 69). Nur `main`. `bugfix` mergen: nein.

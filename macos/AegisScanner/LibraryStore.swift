@@ -2958,6 +2958,11 @@ final class LibraryStore: ObservableObject {
                     livePrintTrail[old.id] = trail
                     let median = MatchMath.leftoverPrintBlend(trail)
                     face.printVec = median.isEmpty ? FaceEngine.blendEmbeddings(prev, next, alpha: blend) : median
+                    leftoverPrintYaw = MatchMath.leftoverPrintYawStamp(
+                        printed: leftoverPrintYaw,
+                        id: old.id,
+                        yaw: face.quality.yaw
+                    )
                     }
                 } else if face.printVec.isEmpty {
                     face.printVec = FaceEngine.embedding(of: face)
@@ -4399,7 +4404,7 @@ final class LibraryStore: ObservableObject {
                 printed: leftoverPrintYaw,
                 live: Dictionary(uniqueKeysWithValues: adopted.map { ($0.id, $0.quality.yaw) }),
                 skipPrints: skipPrints,
-                printedIds: Set(adopted.filter { $0.printVec.count >= 32 }.map(\.id))
+                printedIds: []
             )
             let livePrints = Dictionary(uniqueKeysWithValues: adopted.map {
                 ($0.id, $0.printVec.count >= 32 ? $0.printVec : FaceEngine.embedding(of: $0))

@@ -1,3 +1,9 @@
+# Nachtrag 2026-09-08 — 2.1.199 / 1.6.37 (kein Merge von `bugfix`)
+
+Aegis `lolalpha00gamma/aegis-scanner` **2.1.199 alpha** (Build 224).
+Helios `lolalpha00gamma/Helios` **1.6.37** (Build 70).
+Nur `main`. leftoverPrintYaw Stamp, EMA Gleichgewicht. Helios Format/Residual/q-Chip.
+
 # Nachtrag 2026-09-08 — 2.1.198 / 1.6.36 (kein Merge von `bugfix`)
 
 Aegis `lolalpha00gamma/aegis-scanner` **2.1.198 alpha** (Build 223).
