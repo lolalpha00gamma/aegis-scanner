@@ -1,4 +1,19 @@
-# Aegis 2.1.206 — leftoverTracks Unpack, Print-Index, Twin-Lock PrintCell
+# Aegis 2.1.207 — pairLast Value-Remint, leftoverTracks Yaw/Kalman/Blink
+
+Aegis **2.1.207 alpha** (Build 232). Helios **1.6.45** (Build 78). Nur `main`. `bugfix` mergen: nein.
+
+## Was 2.1.207 ändert
+
+2.1.206: leftoverTracksUnpack Identität, Print-Index, Twin-Lock. leftoverPairLast = faceMaps. AssignAtomic `pairLast = hold`. Yaw/Kalman/Blink 20 Maps.
+
+1. **leftoverAssignAtomicAll** remintet pairLast-Value über holdToLive. Hold bleibt stored-Key.
+2. **leftoverPairLastPick** Unpack gewinnt, leer → faceMaps.
+3. **leftoverTracksPack** yaw / velX / velY / blink. LibraryStore MapPick nach Remint.
+4. Tests + VERSION = Models = MARKETING 2.1.207 (Build 232). Schema 15 bleibt.
+
+Nicht: CameraBroker, HNSW, Overlay-Metal, Hung-Detect, LiveCapture off MainActor.
+
+
 
 Aegis **2.1.206 alpha** (Build 231). Helios **1.6.44** (Build 77). Nur `main`. `bugfix` mergen: nein.
 

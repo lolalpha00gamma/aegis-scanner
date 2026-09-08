@@ -3352,20 +3352,24 @@ final class LibraryStore: ObservableObject {
             pad: fillXPad,
             padRescue: fillXRescue
         )
+        let packVel = MatchMath.leftoverFaceTrackVelFromKalman(boxKalmanV)
         leftoverTracks = MatchMath.leftoverTracksPack(
             hashes: leftoverLastHash,
             pairLast: leftoverPairLast,
             peaks: leftoverHold,
             nameLock: leftoverNameLockHeld,
             coastAt: leftoverCoastAt,
-            bins: leftoverPrintYaw.mapValues { MatchMath.leftoverHoldBinSigned(yaw: $0) }
+            bins: leftoverPrintYaw.mapValues { MatchMath.leftoverHoldBinSigned(yaw: $0) },
+            yaw: liveYaw,
+            velX: packVel.px,
+            velY: packVel.py,
+            blink: liveBlinkSeen
         )
         leftoverTracks = MatchMath.leftoverAssignAtomicRemint(
             tracks: leftoverTracks,
             remap: remintPlan
         )
         let unpacked = MatchMath.leftoverTracksUnpack(leftoverTracks)
-        let remintVel = MatchMath.leftoverFaceTrackVelFromKalman(boxKalmanV)
         let faceMaps = MatchMath.leftoverFaceTrackRemintDropMaps(
             hold: leftoverHold,
             pending: leftoverPending,
@@ -3389,13 +3393,13 @@ final class LibraryStore: ObservableObject {
             lidClosed: liveLidClosed,
             openStreak: liveOpenStreak,
             voteAt: liveNameVoteAt,
-            px: remintVel.px,
-            py: remintVel.py,
+            px: packVel.px,
+            py: packVel.py,
             coastAt: leftoverCoastAt,
             unsureTicks: leftoverUnsureTicks,
             remap: remintPlan
         )
-        leftoverHold = unpacked.peaks
+        leftoverHold = MatchMath.leftoverMapPick(unpacked.peaks, fallback: faceMaps.hold)
         leftoverPending = faceMaps.pending
         leftoverStreak = faceMaps.streak
         leftoverLastHash = unpacked.hashes
@@ -3404,15 +3408,18 @@ final class LibraryStore: ObservableObject {
         leftoverNameLockUntil = faceMaps.nameUntil
         leftoverMissFrames = faceMaps.miss
         leftoverStreakBox = faceMaps.streakBox.mapValues { MatchMath.leftoverFaceBox($0) }
-        leftoverPairLast = faceMaps.pairLast
+        leftoverPairLast = MatchMath.leftoverPairLastPick(
+            unpacked: unpacked.pairLast,
+            faceMaps: faceMaps.pairLast
+        )
         leftoverPairStreak = faceMaps.pairStreak
-        liveYaw = faceMaps.yaw
+        liveYaw = MatchMath.leftoverMapPick(unpacked.yaw, fallback: faceMaps.yaw)
         livePitch = faceMaps.pitch
         liveRoll = faceMaps.roll
         liveStillFor = faceMaps.stillFor
         liveScoreEma = faceMaps.scoreEma
         livePoseAt = faceMaps.poseAt
-        liveBlinkSeen = faceMaps.blinkSeen
+        liveBlinkSeen = MatchMath.leftoverMapPick(unpacked.blink, fallback: faceMaps.blinkSeen)
         liveLidClosed = faceMaps.lidClosed
         liveOpenStreak = faceMaps.openStreak
         liveNameVoteAt = faceMaps.voteAt
@@ -3475,8 +3482,8 @@ final class LibraryStore: ObservableObject {
         boxKalman = MatchMath.leftoverHoldRemintDrop(hold: boxKalman, remap: remintPlan)
         boxKalmanV = MatchMath.leftoverFaceTrackVelMerge(
             vel: MatchMath.leftoverHoldRemintDrop(hold: boxKalmanV, remap: remintPlan),
-            px: faceMaps.px,
-            py: faceMaps.py
+            px: MatchMath.leftoverMapPick(unpacked.velX, fallback: faceMaps.px),
+            py: MatchMath.leftoverMapPick(unpacked.velY, fallback: faceMaps.py)
         )
         for face in adopted {
             if let k = boxKalman[face.id] {

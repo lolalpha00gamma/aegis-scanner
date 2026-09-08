@@ -3110,11 +3110,17 @@ enum MatchMath {
 
     /// Eine Map, ein Write. Hash+Hold+PairLast+Peak+NameLock nicht nacheinander.
     /// Unassigned bleiben — Coast/Twin sonst tot nach einem Remint.
+    /// pairLast ist last-proposed, nicht remint-source. hold bleibt stored-Key.
     static func leftoverAssignAtomicAll(
         tracks: [UUID: LeftoverTrack],
         liveToHold: [UUID: UUID]
     ) -> [UUID: LeftoverTrack] {
         if liveToHold.isEmpty { return tracks }
+        var holdToLive: [UUID: UUID] = [:]
+        holdToLive.reserveCapacity(liveToHold.count)
+        for (live, hold) in liveToHold {
+            holdToLive[hold] = live
+        }
         var out = tracks
         var taken = Set<UUID>()
         for (live, hold) in liveToHold {
@@ -3124,7 +3130,9 @@ enum MatchMath {
             if hold != live { out.removeValue(forKey: hold) }
             t.id = live
             t.hold = hold
-            t.pairLast = hold
+            if let prev = t.pairLast {
+                t.pairLast = holdToLive[prev] ?? prev
+            }
             out[live] = t
         }
         return out
@@ -3143,18 +3151,23 @@ enum MatchMath {
         return leftoverAssignAtomicAll(tracks: tracks, liveToHold: liveToHold)
     }
 
-    /// Store-Identität aus den leftover-Maps. Nicht FaceTrack (Live-Skalare).
+    /// Store-Identität + Live-Skalare (Yaw/Kalman/Blink) in einer Map.
     static func leftoverTracksPack(
         hashes: [UUID: String],
         pairLast: [UUID: UUID],
         peaks: [UUID: Double],
         nameLock: [UUID: String],
         coastAt: [UUID: TimeInterval],
-        bins: [UUID: Int] = [:]
+        bins: [UUID: Int] = [:],
+        yaw: [UUID: Double] = [:],
+        velX: [UUID: Double] = [:],
+        velY: [UUID: Double] = [:],
+        blink: [UUID: Bool] = [:]
     ) -> [UUID: LeftoverTrack] {
         let keys = leftoverHoldRemintKeys([
             Set(hashes.keys), Set(pairLast.keys), Set(peaks.keys),
-            Set(nameLock.keys), Set(coastAt.keys), Set(bins.keys)
+            Set(nameLock.keys), Set(coastAt.keys), Set(bins.keys),
+            Set(yaw.keys), Set(velX.keys), Set(velY.keys), Set(blink.keys)
         ])
         var out: [UUID: LeftoverTrack] = [:]
         out.reserveCapacity(keys.count)
@@ -3168,13 +3181,17 @@ enum MatchMath {
                 peak: peaks[id] ?? 0,
                 nameLock: nameLock[id],
                 coastAt: coastAt[id],
-                kind: coastAt[id] != nil ? "coast" : "live"
+                kind: coastAt[id] != nil ? "coast" : "live",
+                yaw: yaw[id],
+                velX: velX[id],
+                velY: velY[id],
+                blink: blink[id]
             )
         }
         return out
     }
 
-    /// Store-Identität zurück in die leftover-Maps. pairLast hier = alter Hold, nicht live-ID.
+    /// Nach Remint: pairLast = last-proposed (Value remintet), nicht Hold-Key.
     static func leftoverTracksUnpack(
         _ tracks: [UUID: LeftoverTrack]
     ) -> (
@@ -3183,7 +3200,11 @@ enum MatchMath {
         peaks: [UUID: Double],
         nameLock: [UUID: String],
         coastAt: [UUID: TimeInterval],
-        bins: [UUID: Int]
+        bins: [UUID: Int],
+        yaw: [UUID: Double],
+        velX: [UUID: Double],
+        velY: [UUID: Double],
+        blink: [UUID: Bool]
     ) {
         var hashes: [UUID: String] = [:]
         var pairLast: [UUID: UUID] = [:]
@@ -3191,18 +3212,35 @@ enum MatchMath {
         var nameLock: [UUID: String] = [:]
         var coastAt: [UUID: TimeInterval] = [:]
         var bins: [UUID: Int] = [:]
+        var yaw: [UUID: Double] = [:]
+        var velX: [UUID: Double] = [:]
+        var velY: [UUID: Double] = [:]
+        var blink: [UUID: Bool] = [:]
         hashes.reserveCapacity(tracks.count)
         peaks.reserveCapacity(tracks.count)
         bins.reserveCapacity(tracks.count)
         for (id, t) in tracks {
             if !t.hash.isEmpty { hashes[id] = t.hash }
             if let p = t.pairLast { pairLast[id] = p }
-            peaks[id] = t.peak
+            if t.peak != 0 { peaks[id] = t.peak }
             if let n = t.nameLock, !n.isEmpty { nameLock[id] = n }
             if let c = t.coastAt { coastAt[id] = c }
             bins[id] = t.bin
+            if let y = t.yaw { yaw[id] = y }
+            if let vx = t.velX { velX[id] = vx }
+            if let vy = t.velY { velY[id] = vy }
+            if let b = t.blink { blink[id] = b }
         }
-        return (hashes, pairLast, peaks, nameLock, coastAt, bins)
+        return (hashes, pairLast, peaks, nameLock, coastAt, bins, yaw, velX, velY, blink)
+    }
+
+    /// Unpack gewinnt. Leere Map fällt auf FaceTrack-Remint.
+    static func leftoverPairLastPick(unpacked: [UUID: UUID], faceMaps: [UUID: UUID]) -> [UUID: UUID] {
+        leftoverMapPick(unpacked, fallback: faceMaps)
+    }
+
+    static func leftoverMapPick<K: Hashable, V>(_ unpacked: [K: V], fallback: [K: V]) -> [K: V] {
+        unpacked.isEmpty ? fallback : unpacked
     }
 
     /// leftoverMirrorPending: eine Spur, ein Write.

@@ -2,10 +2,10 @@ import CoreGraphics
 import Foundation
 
 enum AppVersion {
-    static let marketing = "2.1.206"
-    static let build = 231
+    static let marketing = "2.1.207"
+    static let build = 232
     static let channel = "alpha"
-    static let display = "2.1.206 alpha"
+    static let display = "2.1.207 alpha"
 }
 
 enum StrategyTrack: String, CaseIterable, Identifiable {
@@ -174,6 +174,10 @@ struct LeftoverTrack: Equatable, Hashable, Codable {
     var nameLock: String? = nil
     var coastAt: TimeInterval? = nil
     var kind: String = "live"
+    var yaw: Double? = nil
+    var velX: Double? = nil
+    var velY: Double? = nil
+    var blink: Bool? = nil
 }
 
 struct MediaItem: Identifiable, Hashable {

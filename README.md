@@ -1,4 +1,4 @@
-# Aegis **2.1.206 alpha**
+# Aegis **2.1.207 alpha**
 
 
 Direkt laden:
@@ -14,6 +14,14 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.207 alpha
+
+2.1.206 Unpack/Move/Print-Index/Twin-Lock. leftoverPairLast nach Remint nur faceMaps. leftoverAssignAtomicAll schrieb pairLast = Hold-Key (last-proposed tot). Yaw/Kalman/Blink weiter 20 Maps.
+
+- **pairLast überlebt Remint.** AssignAtomic remintet das Value, clobber nicht mit Hold. Unpack gewinnt, leer fällt auf faceMaps.
+- **leftoverTracks Live-Skalare.** Yaw / Kalman-Vx/Vy / Blink in derselben Map, überleben leftoverAssignAtomicRemint.
+- Tests + VERSION = Models = MARKETING 2.1.207 (Build 232). Schema 15 bleibt.
 
 ## Neu in 2.1.206 alpha
 

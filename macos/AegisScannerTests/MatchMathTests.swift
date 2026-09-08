@@ -5374,6 +5374,30 @@ enum MatchMathTests {
         )
         ok(reminted[liveT]?.hold == adaT, "AssignAtomicRemint stored→live")
         ok(reminted[adaT] == nil, "AssignAtomicRemint alter Key tot")
+        ok(reminted[liveT]?.pairLast == liveT, "AssignAtomic pairLast Value remint, nicht Hold-Clobber")
+        let packedOther = MatchMath.leftoverTracksPack(
+            hashes: [adaT: "5.5.4.6"],
+            pairLast: [adaT: bobT],
+            peaks: [adaT: 0.82],
+            nameLock: [adaT: "Ada"],
+            coastAt: [:],
+            bins: [:],
+            yaw: [adaT: 0.35],
+            velX: [adaT: 0.02],
+            velY: [adaT: -0.01],
+            blink: [adaT: true]
+        )
+        let remintedOther = MatchMath.leftoverAssignAtomicRemint(
+            tracks: packedOther, remap: [adaT: liveT]
+        )
+        ok(remintedOther[liveT]?.pairLast == bobT, "AssignAtomic pairLast fremd bleibt")
+        ok(remintedOther[liveT]?.yaw == 0.35, "Tracks Yaw überlebt Remint")
+        ok(remintedOther[liveT]?.velX == 0.02, "Tracks Kalman-Vx überlebt Remint")
+        ok(remintedOther[liveT]?.blink == true, "Tracks Blink überlebt Remint")
+        let pickedEmpty = MatchMath.leftoverPairLastPick(unpacked: [:], faceMaps: [adaT: bobT])
+        ok(pickedEmpty[adaT] == bobT, "PairLastPick leer → faceMaps")
+        let pickedUnpack = MatchMath.leftoverPairLastPick(unpacked: [liveT: bobT], faceMaps: [adaT: adaT])
+        ok(pickedUnpack[liveT] == bobT, "PairLastPick Unpack gewinnt")
 
         let gal = [
             (id: adaT, name: "Ada", bin: -1),
@@ -5429,6 +5453,7 @@ enum MatchMathTests {
         ok(unpacked.bins[adaT] == -1, "TracksUnpack Bin")
         ok(unpacked.coastAt[bobT] == 12, "TracksUnpack Coast")
         ok(unpacked.pairLast[adaT] == adaT, "TracksUnpack PairLast Hold")
+        ok(unpacked.yaw.isEmpty, "TracksUnpack ohne Yaw leer")
         let moved = MatchMath.leftoverTracksMove(tracks: packedRound, from: adaT, to: liveT)
         ok(moved[liveT]?.nameLock == "Ada", "TracksMove NameLock")
         ok(moved[adaT] == nil, "TracksMove alter Key tot")

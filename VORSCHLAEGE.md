@@ -1,4 +1,41 @@
+# 2.1.207 — pairLast Value-Remint, leftoverTracks Yaw/Kalman/Blink.
+
+## In 2.1.207 wirklich im Code
+
+2.1.206 Unpack/Move/Print-Index/Twin-Lock. leftoverPairLast nur faceMaps. AssignAtomic clobberte pairLast mit Hold-Key. Yaw/Kalman/Blink 20 Drops.
+
+1. **leftoverAssignAtomicAll** remintet pairLast-Value. Hold bleibt stored-Key.
+2. **leftoverPairLastPick** Unpack gewinnt, leer → faceMaps.
+3. **leftoverTracksPack** Yaw / Kalman-Vx/Vy / Blink. Remint überlebt.
+4. Tests + VERSION = Models = MARKETING 2.1.207 (Build 232). Schema 15 bleibt.
+
+## Erweiterung (neu, 2.1.207)
+
+1. **CameraBroker XPC + IOSurface** mit Helios. Eine TCC. P0.
+2. **gallery ANN / HNSW** nach Print-Index.
+3. **Identity-Merge-Wizard** Cosine 0,89–0,94 + Pairwise-Heatmap.
+4. **Watch-Folder PhotoKit** + Export `.aegis` verschlüsselt.
+5. **P-Slot Maske/Schal**, Brille Twin-Veto.
+6. **ReID-Graph** Hold-Trail.
+7. **Stereo Built-in + Continuity** Disparität als Yaw-Prior.
+8. **FaceTrack.id uniqueID-Reconnect** via Print+Yaw-Bin.
+9. **Overlay CAMetalLayer 60 Hz**, Detect 8–24.
+10. **Gemeinsamer CVPixelBuffer** Detect+Print, JPEG nur Export.
+11. **VNTrackObjectRequest** Box zwischen Detect-Ticks.
+12. **Hung-Detect Cancel** nach 1 s.
+13. **LiveCapture nicht @MainActor.**
+14. **420f vs 420v** Color-Space Continuity/Built-in.
+15. **Eine Fixture Restart+Twin+AssignLive** statt 40 Bool-Orakel.
+16. **Overlay identity-Lerp unabhängig von Assign.**
+17. **Blink-Liveness auf Assign.**
+18. **Match-Log JSONL** für False-Accept Replay.
+19. **Drop-in `.mlmodel`** Print-Backbone ohne MatchMath-Rewrite.
+20. **Print-Cache leftoverLastHash × Yaw-Bin** — gleicher Hash+Bin kein zweiter VNFacePrint.
+
+Kein 2.1.208-Flag ohne CameraBroker oder Hung-Detect.
+
 # 2.1.206 — leftoverTracks Unpack, Print-Index Call-Site, Twin-Lock PrintCell.
+
 
 ## In 2.1.206 wirklich im Code
 
@@ -9,31 +46,6 @@
 3. **leftoverPrintCandidates** in FaceEngine.matchLive — Centroid aus gleichem Pose-Bin.
 4. **leftoverAssignPrintCell** Twin-Lock 0,90 / 15° → Zelle 0.
 5. Tests + VERSION = Models = MARKETING 2.1.206 (Build 231). Schema 15 bleibt.
-
-## Erweiterung (neu, 2.1.206)
-
-1. **leftoverTracks = einzige Map auch für Yaw/Kalman/Blink.** P0 Rest.
-2. **CameraBroker XPC + IOSurface** mit Helios. Eine TCC. P0.
-3. **gallery ANN** HNSW statt linear.
-4. **Overlay CAMetalLayer 60 Hz**, Detect 8–24.
-5. **Gemeinsamer CVPixelBuffer** Detect+Print, JPEG nur Export.
-6. **VNTrackObjectRequest** Box halten zwischen Detect-Ticks.
-7. **Temperature Cosine** statt hart 0,80.
-8. **Enroll-SM** Front → ¾L → ¾R → Blink als Pflichtpfad.
-9. **Hung-Detect Cancel** nach 1 s.
-10. **gallery.json.bak Rotate 3** + printRevision je Identity.
-11. **Licht-Eimer** frontal / ¾ / Profil getrennte Prototypen.
-12. **Match-Log JSONL** Replay gegen Twin-Restart-Fixture.
-13. **Drop-in `.mlmodel`** FaceEmbedder-Protokoll.
-14. **LiveCapture nicht @MainActor.**
-15. **420f vs 420v** Color-Space-Mismatch.
-16. **Time-to-identity HUD** ms seit letztem stabilen Namen.
-17. **Negative Gallery** „nicht Ada“-Prints für harte Twins.
-18. **Tests: eine Fixture Restart+Twin+AssignLive.**
-19. **Print auf Metal** statt JPEG-Roundtrip.
-20. **Identity-Merge-Wizard** Cosine 0,89–0,94.
-
-Kein 2.1.207-Flag ohne 1 verdrahtet oder 2.
 
 # 2.1.205 — AssignAtomic Coast-Keep, TracksPack, Print-Index, Twin-Lock 15°, Occupied-Yaw.
 
