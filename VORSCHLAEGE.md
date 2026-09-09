@@ -1,3 +1,45 @@
+# 2.1.232 — Spark/Pick signed yaw, Lookaway abs, skip ci.
+
+## In 2.1.232 wirklich im Code
+
+2.1.231 Stamp-TTL, Print-Cache Set, Burst-Lock. ¾L las ¾R-Hold. Lookaway ohne abs.
+
+1. **tickLeftoverSparkChips signed yaw.** leftoverHoldBinSigned trifft ¾L.
+2. **leftoverPick yawAbs signed.** leftoverHoldPrevOf kein R-Steal.
+3. **leftoverLookawayBlocks abs.** ¾L enrolled freeze. Ghost-Yaw signed.
+4. Tests + VERSION = Models = MARKETING 2.1.232 (Build 257). Schema 15 bleibt.
+
+## Erweiterung (neu, 2.1.232)
+
+1. **CameraBroker XPC + IOSurface** mit Helios. Eine TCC. P0.
+2. **VNImageRequestHandler(cvPixelBuffer:)** Detect+Print ohne 420f→CGImage.
+3. **Gallery Index Pose-Bin + Name.** leftoverPick nicht O(n) alle Prints.
+4. **HNSW / ANN** nach dem Index.
+5. **LiveCapture nicht @MainActor.** Mutex-Beat auf outputQueue.
+6. **leftoverHoldTrailOf falten** in leftoverTrailNowOf — tot, signed-Bins doppelt.
+7. **Print-Crop aus VNFaceObservation** der Detect — kein zweiter Landmarks+Print-Pass.
+8. **Template-Aging** Prints > N Tage runtergewichten.
+9. **FA-JSONL Kalibrierung** leftoverBaptizeFloor je Paar.
+10. **Glasses On/Off Twin-Templates.**
+11. **leftoverHoldTrail Disk persist** inkl. TTL.
+12. **Overlay CAMetalLayer 60 Hz**, Detect 8–24.
+13. **EAR + SM AND** Unnamed-Taufe.
+14. **Face-Print Versioning.**
+15. **gallery.json.bak .bak.1/.bak.2.**
+16. **Identity-Merge-Wizard.**
+17. **ReID-Graph** Hold-Trail.
+18. **UMAP Cluster-View.**
+19. **Export Embeddings JSONL.**
+20. **Continuity Night-IR eigene Galerie.**
+21. **Stereo Built-in + Continuity** Yaw-Prior.
+22. **Per-Camera WB-Lock.**
+23. **gemeinsamer CVPixelBuffer** Detect+Print.
+24. **HeliosAegisKit** Mutex-Protokoll einmal.
+25. **Spark-Chip Hash-Bin signed** in leftoverSparkChipHashPut, nicht nur UUID-Trail.
+26. **Lookaway-Pin IoU-only** nicht leftoverPick — Ghost bleibt auf der Live-Kiste.
+
+P0: CameraBroker. Kein neues leftover*-Flag. Branch `bugfix` nicht mergen.
+
 # 2.1.231 — Stamp-TTL, Print-Cache Set einmal, Burst-Lock, skipPrint einmal.
 
 ## In 2.1.231 wirklich im Code

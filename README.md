@@ -1,4 +1,4 @@
-# Aegis **2.1.231 alpha**
+# Aegis **2.1.232 alpha**
 
 
 
@@ -14,6 +14,15 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.232 alpha
+
+Warum ¾L den ¾R-Hold/Spark stahl und enrolled Lookaway nach links nie froze: `tickLeftoverSparkChips` und `leftoverPick` schrieben `abs(yaw)` in Dicts, die `leftoverHoldBinSigned` lesen. `leftoverLookawayBlocks` verglich signed yaw mit 0,28 ohne `abs` — ¾L (−0,40) nie WEG.
+
+- **Spark-Tick signed yaw.** ¾L liest den L-Trail, nicht ¾R.
+- **leftoverPick yawAbs signed.** leftoverHoldPrevOf trifft L/R-Bins.
+- **Lookaway abs.** Enrolled ¾L freeze wie ¾R. Ghost-Yaw signed.
+- Tests + VERSION = Models = MARKETING 2.1.232 (Build 257). Schema 15 bleibt.
 
 ## Neu in 2.1.231 alpha
 

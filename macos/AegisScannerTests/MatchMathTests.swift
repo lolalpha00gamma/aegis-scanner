@@ -1341,6 +1341,8 @@ enum MatchMathTests {
         ok(MatchMath.leftoverLookawayBlocks(yawAbs: 0.40, enrolled: true), "Enrolled wegsieht freeze")
         ok(!MatchMath.leftoverLookawayBlocks(yawAbs: 0.40, enrolled: false), "Gast wegsieht darf")
         ok(!MatchMath.leftoverLookawayBlocks(yawAbs: 0.10, enrolled: true), "frontal kein Freeze")
+        ok(MatchMath.leftoverLookawayBlocks(yawAbs: -0.40, enrolled: true), "¾L enrolled freeze abs")
+        ok(!MatchMath.leftoverLookawayBlocks(yawAbs: -0.10, enrolled: true), "¾L frontal kein Freeze")
         ok(
             MatchMath.leftoverPick(
                 candidates: [(0, 0.50, 0.82)],
@@ -1349,6 +1351,32 @@ enum MatchMathTests {
                 lookawayYaw: 0.40
             ) == nil,
             "Lookaway leftover tot"
+        )
+        ok(
+            MatchMath.leftoverPick(
+                candidates: [(0, 0.50, 0.82)],
+                sharpness: [0: 0.20],
+                lookawayEnrolled: true,
+                lookawayYaw: -0.40
+            ) == nil,
+            "Lookaway ¾L leftover tot"
+        )
+        let yawStealId = UUID()
+        let yawStealBins = [
+            MatchMath.leftoverHoldKey(id: yawStealId, bin: MatchMath.leftoverHoldBinSigned(yaw: -0.35)): 0.70,
+            MatchMath.leftoverHoldKey(id: yawStealId, bin: MatchMath.leftoverHoldBinSigned(yaw: 0.35)): 0.60,
+        ]
+        near(
+            MatchMath.leftoverHoldPrevOf(frontal: 0.80, yawAbs: -0.35, bins: yawStealBins, id: yawStealId) ?? -1,
+            0.70,
+            1e-9,
+            "¾L signed liest L-Hold"
+        )
+        near(
+            MatchMath.leftoverHoldPrevOf(frontal: 0.80, yawAbs: abs(-0.35), bins: yawStealBins, id: yawStealId) ?? -1,
+            0.60,
+            1e-9,
+            "abs(yaw) klebt ¾L auf ¾R"
         )
         let a8 = MatchMath.leftoverHoldAlpha(dt: 0.125)
         ok(a8 < 0.12 && a8 > 0.04, "8 fps EMA träge")

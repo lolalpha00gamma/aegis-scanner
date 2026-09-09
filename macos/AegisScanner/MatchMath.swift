@@ -669,7 +669,7 @@ enum MatchMath {
         enrolled: Bool,
         floor: Double = leftoverLookawayYaw
     ) -> Bool {
-        enrolled && (yawAbs ?? 0) >= floor
+        enrolled && abs(yawAbs ?? 0) >= floor
     }
 
     /// Lookaway freeze: Hold/Streak behalten, nicht leftoverClear.

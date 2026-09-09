@@ -1999,7 +1999,7 @@ final class LibraryStore: ObservableObject {
         }
         leftoverSparkChipHeld = next
         for fid in liveFaceIds {
-            let yaw = faces.first { $0.id == fid }.map { abs($0.quality.yaw) }
+            let yaw = faces.first { $0.id == fid }.map { $0.quality.yaw }
             let nowChip = leftoverSparkChipNow(faceId: fid, yawAbs: yaw)
             let hash = leftoverLiveHashTick[fid] ?? leftoverLastHash[fid]
             let prevChip = leftoverSparkChipHeld[fid]?.chip
@@ -4125,7 +4125,7 @@ final class LibraryStore: ObservableObject {
                 liveSlotHold[old.id] = (slot: oldSticky.slot, n: oldSticky.hold)
                 for cand in remaining {
                     sharp[cand.index] = adopted[cand.index].quality.sharpness
-                    yawAbs[cand.index] = abs(adopted[cand.index].quality.yaw)
+                    yawAbs[cand.index] = adopted[cand.index].quality.yaw
                     detScore[cand.index] = adopted[cand.index].score
                     boxX[cand.index] = adopted[cand.index].box.x
                     let box = adopted[cand.index].box
@@ -4158,7 +4158,7 @@ final class LibraryStore: ObservableObject {
                 remaining = remaining.filter { keepIdx.contains($0.index) }
                 let aegisHit = matches.first { $0.faceId == old.id }?.hits.first { $0.strategy == .aegis }
                 let liveYaw = remaining.max(by: { $0.iou < $1.iou }).flatMap { yawAbs[$0.index] }
-                let lookYaw = MatchMath.leftoverLookawayYawOf(oldYaw: abs(old.quality.yaw), liveYaw: liveYaw)
+                let lookYaw = MatchMath.leftoverLookawayYawOf(oldYaw: old.quality.yaw, liveYaw: liveYaw)
                 let lookEnrolled = namedTracks.contains(old.id) || enrolled.contains(old.id)
                 if MatchMath.leftoverLookawayHolds(yawAbs: lookYaw, enrolled: lookEnrolled) {
                     leftoverPins += 1
@@ -4180,7 +4180,7 @@ final class LibraryStore: ObservableObject {
                     // leftoverHoldSkipLookaway: EMA nicht mit Profil überschreiben. continue hält den Wert.
                     // leftoverHold[id] ist Frontal. ¾-Lookup nicht in die unbinned EMA.
                     if leftoverHold[old.id] == nil,
-                       MatchMath.leftoverHoldBin(yawAbs: lookYaw ?? abs(old.quality.yaw)) == 0
+                       MatchMath.leftoverHoldBin(yawAbs: lookYaw ?? old.quality.yaw) == 0
                     {
                         leftoverHold[old.id] = MatchMath.leftoverHoldLookupYaw(
                             hash: leftoverRankedHash(
@@ -4197,7 +4197,7 @@ final class LibraryStore: ObservableObject {
                             table: leftoverHoldByHash,
                             now: now,
                             ttl: leftoverHoldTTL,
-                            yawAbs: lookYaw ?? abs(old.quality.yaw),
+                            yawAbs: lookYaw ?? old.quality.yaw,
                             facesInFrame: adopted.count,
                             occupied: leftoverOccupiedHashes(except: old.id)
                         )
