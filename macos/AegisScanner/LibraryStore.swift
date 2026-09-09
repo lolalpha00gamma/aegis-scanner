@@ -2937,8 +2937,10 @@ final class LibraryStore: ObservableObject {
                 pw: size.vw, ph: size.vh
             )
             let locked = MatchMath.leftoverGhostAspectLock(
-                predX: held.box.x, predY: held.box.y, lastW: k.w, lastH: k.h,
-                predW: held.box.w, predH: held.box.h
+                predX: held.box.x, predY: held.box.y,
+                lastW: k.w, lastH: k.h,
+                predW: held.box.w, predH: held.box.h,
+                blend: 0.25
             )
             boxKalman[id] = (locked.x, locked.y, locked.w, locked.h, k.px, k.py, k.pw, k.ph)
             boxKalmanV[id] = (vx: held.px, vy: held.py)
@@ -4963,7 +4965,8 @@ final class LibraryStore: ObservableObject {
                 stored: leftoverCoastPrint,
                 stamped: leftoverCoastPrintAt,
                 liveIds: liveIds,
-                now: now
+                now: now,
+                skipPrints: skipPrints
             )
             leftoverCoastPrintAt = leftoverCoastPrintAt.filter { leftoverCoastPrint[$0.key] != nil }
             leftoverCoastAt = leftoverCoastAt.filter { liveIds.contains($0.key) || leftoverIds.contains($0.key) }
