@@ -4535,6 +4535,29 @@ enum MatchMathTests {
             )[twin] == nil,
             "Yaw Merge printedIds leer tot"
         )
+        let remintCommit = MatchMath.leftoverHoldRemintDrop(
+            hold: [ada: true], remap: [ada: twin]
+        )
+        ok(remintCommit[twin] == true && remintCommit[ada] == nil, "Commit Remint Drop")
+        ok(
+            abs((MatchMath.leftoverPrintYawMerge(
+                printed: [:],
+                live: [twin: 0.30],
+                skipPrints: false,
+                printedIds: Set(remintCommit.keys)
+            )[twin] ?? -1) - 0.30) < 1e-9,
+            "Yaw Merge Remint seed"
+        )
+        let remintVec = [Double](repeating: 1, count: 32)
+        ok(
+            MatchMath.leftoverCoastPrintMerge(
+                stored: [:],
+                live: [twin: remintVec],
+                skipPrints: false,
+                commitIds: Set(remintCommit.keys)
+            )[twin]?.count == 32,
+            "Coast Merge Remint Commit"
+        )
         ok(
             abs((MatchMath.leftoverPrintBudgetYawDeltaOf(printed: [ada: 0.05], live: 0.05, id: ada) ?? -1)) < 1e-9,
             "Yaw-Δ Ada 0"

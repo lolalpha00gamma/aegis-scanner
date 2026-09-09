@@ -3358,6 +3358,7 @@ final class LibraryStore: ObservableObject {
                             yaw: face.quality.yaw
                         )
                         printCommitted.insert(old.id)
+                        printCommitted.insert(face.id)
                     } else {
                         livePrintTrail[old.id] = trail
                         face.featurePrint = old.featurePrint
@@ -3788,6 +3789,12 @@ final class LibraryStore: ObservableObject {
         leftoverOverlayPeakHeld = MatchMath.leftoverHoldRemintDrop(hold: leftoverOverlayPeakHeld, remap: remintPlan)
         leftoverOverlayPeakRemain = MatchMath.leftoverHoldRemintDrop(hold: leftoverOverlayPeakRemain, remap: remintPlan)
         leftoverPrintYaw = MatchMath.leftoverHoldRemintDrop(hold: leftoverPrintYaw, remap: remintPlan)
+        printCommitted = Set(
+            MatchMath.leftoverHoldRemintDrop(
+                hold: Dictionary(uniqueKeysWithValues: printCommitted.map { ($0, true) }),
+                remap: remintPlan
+            ).keys
+        )
         leftoverHoldTrail = MatchMath.leftoverHoldRemintDrop(hold: leftoverHoldTrail, remap: remintPlan)
         liveSlotHold = MatchMath.leftoverHoldRemintDrop(hold: liveSlotHold, remap: remintPlan)
         leftoverSparkChipHeld = MatchMath.leftoverHoldRemintDrop(hold: leftoverSparkChipHeld, remap: remintPlan)
@@ -4941,7 +4948,7 @@ final class LibraryStore: ObservableObject {
                 printed: leftoverPrintYaw,
                 live: Dictionary(uniqueKeysWithValues: adopted.map { ($0.id, $0.quality.yaw) }),
                 skipPrints: skipPrints,
-                printedIds: []
+                printedIds: printCommitted
             )
             let livePrints = Dictionary(uniqueKeysWithValues: adopted.map {
                 ($0.id, $0.printVec.count >= 32 ? $0.printVec : FaceEngine.embedding(of: $0))
@@ -4971,7 +4978,9 @@ final class LibraryStore: ObservableObject {
             leftoverCoastPrintAt = leftoverCoastPrintAt.filter { leftoverCoastPrint[$0.key] != nil }
             leftoverCoastAt = leftoverCoastAt.filter { liveIds.contains($0.key) || leftoverIds.contains($0.key) }
             leftoverUnsureTicks = leftoverUnsureTicks.filter { liveIds.contains($0.key) || leftoverIds.contains($0.key) }
-            leftoverPrintYaw = leftoverPrintYaw.filter { liveIds.contains($0.key) || leftoverIds.contains($0.key) }
+            leftoverPrintYaw = leftoverPrintYaw.filter {
+                liveIds.contains($0.key) || leftoverIds.contains($0.key) || leftoverCoastPrint[$0.key] != nil
+            }
             leftoverHold = leftoverHold.filter { liveIds.contains($0.key) || leftoverIds.contains($0.key) }
             leftoverHoldBins = leftoverHoldBins.filter { row in
                 MatchMath.leftoverHoldId(from: row.key).map { liveIds.contains($0) || leftoverIds.contains($0) } ?? false
@@ -5014,7 +5023,9 @@ final class LibraryStore: ObservableObject {
                 liveIds.contains($0.key) || (leftoverIds.contains($0.key) && !used.contains($0.key))
             }
             leftoverLastHash = leftoverLastHash.filter {
-                liveIds.contains($0.key) || (leftoverIds.contains($0.key) && !used.contains($0.key))
+                liveIds.contains($0.key)
+                    || leftoverCoastPrint[$0.key] != nil
+                    || (leftoverIds.contains($0.key) && !used.contains($0.key))
             }
             leftoverJpegDelta = leftoverJpegDelta.filter {
                 liveIds.contains($0.key) || (leftoverIds.contains($0.key) && !used.contains($0.key))

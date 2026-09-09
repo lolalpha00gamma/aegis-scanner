@@ -1,3 +1,48 @@
+# Aegis Vorschläge — 2026-09-09 (Pass 47, 2.1.245)
+
+Stand 2.1.245 alpha. leftoverPrintYawMerge printCommitted + Remint. leftoverLastHash Coast-Wipe. Peak-Hold Helper.
+
+## Gelandet in 2.1.245
+
+- leftoverPrintYawMerge printedIds: printCommitted. Stamp-Miss seedet.
+- printCommitted leftoverHoldRemintDrop vor Merge.
+- leftoverLastHash nach leftoverCoastPrintWipe: live ∪ Coast ∪ leftover.
+- leftoverPrintYaw hält leftoverCoastPrint.
+- leftoverOverlayPeakGuest leftoverPeakHoldKeeps.
+
+## Erweiterung (neu)
+
+841. **CameraBroker XPC + IOSurface** mit Helios. P0.
+842. **VNImageRequestHandler(cvPixelBuffer:).** P1.
+843. **HNSW Gallery.**
+844. **LiveCapture off MainActor.**
+845. **leftoverHoldTrail Disk.**
+846. **Overlay CAMetalLayer.**
+847. **leftoverHoldsTrack leftoverPrintOk yawAbs live** (bewusst nil — Overlay-Hold Profil).
+848. **leftoverPrintBudgetYawDelta** global (Of sitzt per UUID).
+849. **Adaptive skipDetect** visionMs + stillFor, nicht hart every 4.
+850. **Privacy-Blur Unmatched.**
+851. **Session-Cluster nach Stop.**
+852. **Print-EMA 8 Hz.**
+853. **Glasses On/Off.**
+854. **3D-Yaw FaceShape3D.**
+855. **Kalman R aus VNFaceObservation.confidence.**
+856. **Identity-Merge-Wizard.**
+857. **FA-JSONL + Template-Aging.**
+858. **leftoverScore Twin-Penalty in leftoverPickArgmax raw.** Penalty sitzt, Rank bleibt Roh-Cosine.
+859. **HeliosAegisKit.**
+860. **leftoverOverlayLerp** zwischen Detect 4.
+861. **leftoverFaceTrackPredictHeld miss-scaled mix.**
+862. **leftoverYawVelocityFreeze** 3-Zeilen-Wire.
+863. **leftoverGhostAspectLock mix aus leftoverBoxIoU.** Detect-Snap 1,0 / Coast 0,25.
+864. **FourCC 420v leftoverSharpnessOf auto** ohne Continuity-Bool.
+865. **leftoverPredictBoxes 2D nicht an.** WHV würde regressen.
+866. **printCommitted leftoverHoldRemintKeys** statt Dummy-Dict Drop.
+867. **leftoverOccupiedOthers leftoverOccupiedGhostDrop** (jetzt LastHash-Prune, Others roh).
+868. **leftoverCoastAt hält leftoverCoastPrint** analog LastHash.
+
+P0: CameraBroker. Kein neues leftover*-Flag. Branch `bugfix` nicht mergen.
+
 # Aegis Vorschläge — 2026-09-09 (Pass 46, 2.1.244)
 
 Stand 2.1.244 alpha. leftoverPickSameShot Rank, leftoverAmbiguousBlocks Same-shot kein Schärfe-Ada.

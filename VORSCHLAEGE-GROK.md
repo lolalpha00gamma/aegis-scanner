@@ -1,3 +1,34 @@
+# Nachtrag 2026-09-09 — 2.1.245 / 1.6.98 (kein Merge von `bugfix`)
+
+Aegis `lolalpha00gamma/aegis-scanner` **2.1.245 alpha** (Build 270).
+Helios `lolalpha00gamma/Helios` **1.6.98** (Build 131).
+Nur `main`. leftoverPrintYawMerge printCommitted. Helios ROI 1,6 + Mutex sample-fresh.
+
+## Warum es schlecht wirkte (dieser Pass)
+
+1. **leftoverPrintYawMerge printedIds:[].** skip-print Yaw tot. printCommitted ohne Remint.
+2. **leftoverLastHash nach Coast-Wipe stale.** OccupiedOthers Ghost, Exact-Hold tot.
+3. Helios **ROI Scale 3** Continuity — Actor-Steal. **Mutex Date()** ohne Sample — Aegis skipPrints Hitch.
+
+## In 2.1.245 / 1.6.98 gelandet
+
+- leftoverPrintYawMerge printCommitted + Remint, leftoverLastHash Coast-Wipe, leftoverPeakHoldKeeps.
+- Helios visionRoiScale, hudLerp palmWidth, cameraMutexStampFresh Write, spaceMapSizeChanged.
+- Tests + VERSION = Models = MARKETING 2.1.245 (Build 270) / Helios 1.6.98 (Build 131). Schema 15 bleibt.
+
+Pass 47: Yaw-Merge, LastHash-Wipe, ROI 1,6, Mutex Hitch — 2.1.245 / 1.6.98.
+
+## Erweiterungen (neu, oben)
+
+1. **CameraBroker-XPC** — eine TCC, IOSurface an beide. P0.
+2. **leftoverOccupiedOthers leftoverOccupiedGhostDrop.**
+3. **LiveCapture off MainActor.**
+4. **HNSW Gallery.**
+5. **Overlay Metal 90 Hz.**
+6. **VNImageRequestHandler(cvPixelBuffer:).**
+7. **leftoverHoldTrail Disk.**
+8. **visionRoiScale lerp** 1,6↔3.
+
 # Nachtrag 2026-09-09 — 2.1.244 / 1.6.97 (kein Merge von `bugfix`)
 
 Aegis `lolalpha00gamma/aegis-scanner` **2.1.244 alpha** (Build 269).

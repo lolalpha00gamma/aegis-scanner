@@ -1,3 +1,43 @@
+# 2.1.245 — leftoverPrintYawMerge printCommitted, LastHash Coast-Wipe, skip ci.
+
+## In 2.1.245 wirklich im Code
+
+2.1.244 leftoverPrintYawMerge printedIds:[]. printCommitted ohne Remint. leftoverLastHash nach Coast-Wipe stale.
+
+1. **leftoverPrintYawMerge printedIds: printCommitted.** Stamp-Miss seedet.
+2. **printCommitted leftoverHoldRemintDrop.** Coast-Merge commitIds trifft Live-UUID.
+3. **leftoverLastHash nach leftoverCoastPrintWipe.** live ∪ Coast ∪ leftover.
+4. **leftoverPrintYaw hält leftoverCoastPrint.**
+5. **leftoverOverlayPeakGuest leftoverPeakHoldKeeps.**
+6. Tests + VERSION = Models = MARKETING 2.1.245 (Build 270). Schema 15 bleibt.
+
+leftoverScore Twin-Penalty unverändert (uniform, ändert Rank nicht). leftoverHoldsTrack yawAbs: nil bewusst.
+
+## Erweiterung (neu, 2.1.245)
+
+1. **CameraBroker XPC + IOSurface** mit Helios. P0.
+2. **VNImageRequestHandler(cvPixelBuffer:).**
+3. **HNSW Gallery.**
+4. **LiveCapture nicht @MainActor.**
+5. **leftoverHoldTrail Disk.**
+6. **Overlay CAMetalLayer.**
+7. **leftoverHoldsTrack leftoverPrintOk yawAbs live.**
+8. **leftoverPrintBudgetYawDelta** global (Of sitzt per UUID).
+9. **Adaptive skipDetect** visionMs + stillFor.
+10. **Privacy-Blur Unmatched.**
+11. **Session-Cluster nach Stop.**
+12. **Print-EMA 8 Hz.**
+13. **Glasses On/Off.**
+14. **3D-Yaw FaceShape3D.**
+15. **Kalman R aus Vision-Track-Confidence.**
+16. **Identity-Merge-Wizard.**
+17. **FA-JSONL + Template-Aging.**
+18. **leftoverScore Twin-Penalty in leftoverPickArgmax raw** (Penalty sitzt, Rank nicht).
+19. **HeliosAegisKit.**
+20. **leftoverOccupiedOthers leftoverOccupiedGhostDrop.**
+
+P0: CameraBroker. Kein neues leftover*-Flag. Branch `bugfix` nicht mergen.
+
 # 2.1.244 — leftoverPickSameShot Rank, AmbiguousBlocks Same-shot, skip ci.
 
 ## In 2.1.244 wirklich im Code

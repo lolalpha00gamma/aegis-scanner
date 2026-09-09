@@ -10068,7 +10068,8 @@ enum MatchMath {
         need: Int = 3
     ) -> (name: String, remaining: Int) {
         if !leftoverOverlayPeakIsUnsure(guest) { return (guest, need) }
-        if remaining > 0, let held, !leftoverOverlayPeakIsUnsure(held) {
+        let miss = max(0, need - remaining)
+        if leftoverPeakHoldKeeps(miss: miss, need: need), let held, !leftoverOverlayPeakIsUnsure(held) {
             return (held, remaining - 1)
         }
         return (guest, 0)
