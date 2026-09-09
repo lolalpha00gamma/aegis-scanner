@@ -1,4 +1,5 @@
-# Aegis **2.1.246 alpha**
+# Aegis **2.1.247 alpha**
+
 
 
 
@@ -7,7 +8,16 @@ Direkt laden:
 - [Releases](https://github.com/lolalpha00gamma/aegis-scanner/releases)
 
 Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
+## Neu in 2.1.247 alpha
+
+Warum Ada+Bob nach 2.1.246 weiter „?“ zeigte: twinPair fiel ohne 32-d Vec auf Gallery-Centroid 0,90. Walk-in 1 s (ROI Full/8 + skipDetect/4). Helios 1.6.100.
+
+- **leftoverPick twinPair nil** ohne Live-Paar.
+- **liveRoiPeriodicFull every: 2** + **leftoverDetectSkipTick every: 2.** Defaults 8 bleiben.
+- Tests + VERSION = Models = MARKETING 2.1.247 (Build 272). Schema 15 bleibt.
+
 ## Neu in 2.1.246 alpha
+
 
 leftoverPick twinPair Live (Ada+Bob 0,40 kein Gallery-Veto). Helios 1.6.99.
 

@@ -1,3 +1,37 @@
+# Aegis Vorschläge — 2026-09-09 (Pass 49, 2.1.247)
+
+Stand 2.1.247 alpha. leftoverPick kein Gallery-Fallback. ROI/skipDetect every 2.
+
+## Gelandet in 2.1.247
+
+- leftoverPick twinPair: nil ohne Live-Paar (kein Gallery-Centroid).
+- liveRoiPeriodicFull every: 2. leftoverDetectSkipTick every: 2. Defaults 8 bleiben.
+
+## Erweiterung (neu)
+
+883. **CameraBroker XPC + IOSurface** mit Helios. P0. Spec `docs/CameraBroker.md`.
+884. **VNImageRequestHandler(cvPixelBuffer:).** P1.
+885. **HNSW Gallery.**
+886. **LiveCapture off MainActor.**
+887. **Adaptive skipDetect.**
+888. **Overlay CAMetalLayer.**
+889. **leftoverHoldsTrack leftoverPrintOk yawAbs live** (bewusst nil).
+890. **leftoverPrintBudgetYawDelta** global (Of sitzt).
+891. **leftoverScore Twin-Penalty in leftoverPickArgmax raw.**
+892. **Privacy-Blur Unmatched.**
+893. **Per-Camera Gallery** Continuity ≠ Built-in.
+894. **Session-Cluster nach Stop.**
+895. **Glasses On/Off.**
+896. **3D-Yaw FaceShape3D.**
+897. **Kalman R aus VN confidence.**
+898. **Identity-Merge-Wizard.**
+899. **Template-Aging + FA-JSONL.**
+900. **Night-IR Continuity.**
+901. **HeliosAegisKit.**
+902. **enrollSMReady haveProfile.**
+
+P0: CameraBroker. Kein neues leftover*-Flag. Branch `bugfix` nicht mergen.
+
 # Aegis Vorschläge — 2026-09-09 (Pass 48, 2.1.246)
 
 Stand 2.1.246 alpha. leftoverPick twinPair Live.

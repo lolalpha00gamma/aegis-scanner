@@ -1,7 +1,7 @@
 # Aegis
 
 Lokaler Image- & Video-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**  
-Version **2.1.246 alpha**.
+Version **2.1.247 alpha**.
 
 ## Image-Datei
 
@@ -13,7 +13,12 @@ Version **2.1.246 alpha**.
 
 macOS 14 Sonoma oder neuer. Die Datei ist ad-hoc signiert (kein Apple-Developer-Account) — deshalb der Rechtsklick beim ersten Start.
 
+## Neu in 2.1.247 alpha
+
+leftoverPick twinPair nil ohne Live-Paar. liveRoi/skipDetect every 2. Helios 1.6.100.
+
 ## Neu in 2.1.246 alpha
+
 
 leftoverPick twinPair Live (Ada+Bob kein Gallery-Veto). Helios 1.6.99.
 

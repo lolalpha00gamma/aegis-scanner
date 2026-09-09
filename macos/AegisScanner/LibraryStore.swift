@@ -2637,7 +2637,7 @@ final class LibraryStore: ObservableObject {
             imageW: Double(image.width),
             imageH: Double(image.height)
         )
-        let skipRoi = liveRoiSkipOnce || MatchMath.liveRoiPeriodicFull(tick: liveRoiTick)
+        let skipRoi = liveRoiSkipOnce || MatchMath.liveRoiPeriodicFull(tick: liveRoiTick, every: 2)
         let liveIous = MatchMath.leftoverDetectSkipLiveIous(
             stored: leftoverLastIoU,
             live: kalmanSnap.map(\.id)
@@ -2648,7 +2648,7 @@ final class LibraryStore: ObservableObject {
                 need: max(1, kalmanSnap.count)
             ),
             tick: liveRoiTick,
-            every: 4
+            every: 2
         )
         let stillAll = !liveIds.isEmpty && skipIds.count == liveIds.count
         let split = MatchMath.leftoverDetectPrintSplit(
@@ -4344,27 +4344,24 @@ final class LibraryStore: ObservableObject {
                     yawAbs: yawAbs,
                     aspectOk: aspectOk,
                     twinPair: {
-                        if adopted.count >= 2 {
-                            let vecs: [[Double]] = adopted.compactMap { f in
-                                let v = MatchMath.leftoverCoastPrintVecOf(
-                                    live: f.printVec,
-                                    stored: leftoverCoastPrint[f.id] ?? []
-                                )
-                                return v.count >= 32 ? v : nil
-                            }
-                            if vecs.count >= 2 {
-                                var best: Double?
-                                for i in vecs.indices {
-                                    for j in vecs.indices where j > i {
-                                        if let c = MatchMath.leftoverCoastPrintCosine(live: vecs[i], stored: vecs[j]) {
-                                            best = max(best ?? c, c)
-                                        }
-                                    }
+                        guard adopted.count >= 2 else { return nil }
+                        let vecs: [[Double]] = adopted.compactMap { f in
+                            let v = MatchMath.leftoverCoastPrintVecOf(
+                                live: f.printVec,
+                                stored: leftoverCoastPrint[f.id] ?? []
+                            )
+                            return v.count >= 32 ? v : nil
+                        }
+                        guard vecs.count >= 2 else { return nil }
+                        var best: Double?
+                        for i in vecs.indices {
+                            for j in vecs.indices where j > i {
+                                if let c = MatchMath.leftoverCoastPrintCosine(live: vecs[i], stored: vecs[j]) {
+                                    best = max(best ?? c, c)
                                 }
-                                if let best { return best }
                             }
                         }
-                        return aegisHit?.pairCosine
+                        return best
                     }(),
                     holdPrev: storedHold,
                     liveIds: liveIds,

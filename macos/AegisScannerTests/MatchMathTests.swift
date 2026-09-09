@@ -1515,6 +1515,21 @@ enum MatchMathTests {
             ) == 0,
             "Same-shot fremd leftover darf"
         )
+        ok(
+            MatchMath.leftoverPick(
+                candidates: [(index: 0, iou: 0.50, cosine: 0.82)],
+                sharpness: [0: 0.40],
+                twinPair: nil,
+                facesInFrame: 2
+            ) == 0,
+            "ohne Live-Paar leftover darf"
+        )
+        ok(MatchMath.liveRoiPeriodicFull(tick: 0, every: 2), "ROI every 2 Tick 0 voll")
+        ok(!MatchMath.liveRoiPeriodicFull(tick: 1, every: 2), "ROI every 2 Tick 1 Crop")
+        ok(MatchMath.liveRoiPeriodicFull(tick: 2, every: 2), "ROI every 2 Tick 2 voll")
+        ok(MatchMath.leftoverDetectSkipTick(skip: true, tick: 1, every: 2), "Skip every 2 Tick 1")
+        ok(!MatchMath.leftoverDetectSkipTick(skip: true, tick: 2, every: 2), "Skip every 2 Tick 2 voll")
+        ok(!MatchMath.leftoverDetectSkipTick(skip: true, tick: 0, every: 2), "Skip every 2 Tick 0 voll")
 
         ok(MatchMath.leftoverUnknownHard(cosine: 0.55), "0,55 UNBEKANNT hart")
         ok(!MatchMath.leftoverUnknownHard(cosine: 0.45), "0,45 unter Open-Set")
