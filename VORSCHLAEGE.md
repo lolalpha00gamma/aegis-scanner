@@ -1,4 +1,52 @@
+# 2.1.234 — leftoverPrintFloor/score/baptize abs yaw, skip ci.
+
+## In 2.1.234 wirklich im Code
+
+2.1.233 FillX/Trail-Fold. Math `yaw >= floor` / `max(0, yaw / 0,50)` unsigned nach 2.1.232 signed Pick. ¾L Profil kein Floor, keine Taufe-Sperre, Score ohne Strafe. Overlay `abs(yaw)` → ¾R-Chip.
+
+1. **leftoverPrintFloor / leftoverPrintOk abs.**
+2. **leftoverBaptizeQuality / Product abs.**
+3. **leftoverScore / leftoverLiveWeight / centroidWeight abs.**
+4. **leftoverHoldLabel signed yaw** (Store nicht abs).
+5. Tests + VERSION = Models = MARKETING 2.1.234 (Build 259). Schema 15 bleibt.
+
+## Erweiterung (neu, 2.1.234)
+
+1. **CameraBroker XPC + IOSurface** mit Helios. Eine TCC. P0.
+2. **VNImageRequestHandler(cvPixelBuffer:)** Detect+Print ohne 420f→CGImage.
+3. **Gallery Index Pose-Bin + Name.** leftoverPick nicht O(n) alle Prints.
+4. **HNSW / ANN** nach dem Index.
+5. **LiveCapture nicht @MainActor.** Mutex-Beat auf outputQueue.
+6. **leftoverYawPenalty / 0,50** an leftoverPrintProfileYaw 0,45 koppeln — Profil saturiert bei 0,50, ¾ 0,28 nur 56 %.
+7. **FaceEngine decide/centroid abs()** nach leftoverPick signed — Math abs, Call-Site redundant.
+8. **geoVetoYawSkip tot.** geoVetoSkipPrint == geoVetoYawPrint == 80. ¾ 72–79 % noch Veto, obwohl Landmark-Median lügt.
+9. **leftoverHoldsTrack leftoverPrintOk ohne yaw** — Overlay 0,64 auf Profil hält Track. Optional Floor.
+10. **Print-Crop aus VNFaceObservation** der Detect — kein zweiter Landmarks+Print-Pass.
+11. **Template-Aging** Prints > N Tage runtergewichten.
+12. **FA-JSONL Kalibrierung** leftoverBaptizeFloor je Paar.
+13. **Glasses On/Off Twin-Templates.**
+14. **leftoverHoldTrail Disk persist** inkl. TTL.
+15. **Overlay CAMetalLayer 60 Hz**, Detect 8–24.
+16. **EAR + SM AND** Unnamed-Taufe.
+17. **Face-Print Versioning.**
+18. **gallery.json.bak .bak.1/.bak.2.**
+19. **Identity-Merge-Wizard.**
+20. **ReID-Graph** Hold-Trail.
+21. **UMAP Cluster-View.**
+22. **Export Embeddings JSONL.**
+23. **Continuity Night-IR eigene Galerie.**
+24. **Stereo Built-in + Continuity** Yaw-Prior.
+25. **HeliosAegisKit** Mutex-Protokoll einmal.
+26. **Spark-Chip Hash-Bin signed.**
+27. **Lookaway-Pin IoU-only** nicht leftoverPick.
+28. **Kalman-Vel leftoverFaceTrackKalmanVel** live.
+29. **enrollSMReady** Smile+Yaw-Gate vor Burst.
+30. **leftoverPredictBoxes** zwischen Detect-Ticks.
+
+P0: CameraBroker. Kein neues leftover*-Flag. Branch `bugfix` nicht mergen.
+
 # 2.1.233 — Assign FillX, Trail/Name-Fold, Empty-Streak, Overlay-Keep, NeedsPrint, skip ci.
+
 
 ## In 2.1.233 wirklich im Code
 

@@ -1,4 +1,4 @@
-# Aegis **2.1.233 alpha**
+# Aegis **2.1.234 alpha**
 
 
 
@@ -7,6 +7,16 @@ Direkt laden:
 - [Releases](https://github.com/lolalpha00gamma/aegis-scanner/releases)
 
 Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
+## Neu in 2.1.234 alpha
+
+Warum ¾L weiter taufte und Twins nach links höher scored: 2.1.232 hat leftoverPick/Spark signed gemacht, die Math las `yaw` unsigned (`yaw >= 0,45`, `max(0, yaw / 0,50)`). −0,50 Profil skippte Floor 0,70, Taufe-Sperre, Score-Strafe 0. Overlay-Chip `abs(yaw)` → ¾L zeigte ¾R.
+
+- **leftoverPrintFloor/leftoverPrintOk abs.** Profil L 0,62 tot wie R.
+- **leftoverBaptizeQuality abs.** Profil L tauft nicht. Quality-Produkt L=R.
+- **leftoverScore / leftoverLiveWeight / centroidWeight abs.** Yaw-Strafe symmetrisch.
+- **leftoverHoldLabel signed yaw.** Overlay-Chip ¾L.
+- Tests + VERSION = Models = MARKETING 2.1.234 (Build 259). Schema 15 bleibt.
+
 ## Neu in 2.1.233 alpha
 
 Warum Identitäten nach Dropout ohne Print tauschten und ¾-Trails doppelt lagen: `leftoverAssignFillX` war nur Tests — `leftoverAssignLive` füllte nil-Zeilen nicht per x-order bevor Twin-Drop. `leftoverTrailNowOf` und `leftoverHoldTrailOf` duplizierten Bin-Wahl. `leftoverShowsName` tot neben leftoverNameFromHold.

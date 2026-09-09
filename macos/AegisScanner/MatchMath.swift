@@ -221,7 +221,7 @@ enum MatchMath {
     static func geoVetoBlocks(geoAgrees: Bool, geoMix: Double, printPercent: Double, yawAbs: Double = 0) -> Bool {
         if geoAgrees { return false }
         if printPercent >= geoVetoSkipPrint { return false }
-        if yawAbs >= geoVetoYawSkip, printPercent >= geoVetoYawPrint { return false }
+        if abs(yawAbs) >= geoVetoYawSkip, printPercent >= geoVetoYawPrint { return false }
         if printPercent >= strongPrintFloor { return geoMix < 22 }
         return geoMix < 42 && printPercent < 94
     }
@@ -1800,7 +1800,7 @@ enum MatchMath {
         let s = max(0, min(1, sharpness ?? 1))
         let pose: Double
         if let y = yawAbs {
-            pose = max(0, 1 - y / leftoverPrintProfileYaw)
+            pose = max(0, 1 - abs(y) / leftoverPrintProfileYaw)
         } else {
             pose = 1
         }
@@ -1811,7 +1811,7 @@ enum MatchMath {
     /// Qualität: Blur / Blink / Profil sperren — Poster und Lid-Schluss taufen sonst den Nachbarn.
     static func leftoverBaptizeQuality(sharpness: Double? = nil, yawAbs: Double? = nil, blink: Bool = false, continuity: Bool = false) -> Bool {
         if blink { return false }
-        if let y = yawAbs, y >= leftoverPrintProfileYaw { return false }
+        if let y = yawAbs, abs(y) >= leftoverPrintProfileYaw { return false }
         if let s = sharpness, s < activeSharpnessFloor(continuity: continuity) { return false }
         return leftoverBaptizeQualityProduct(sharpness: sharpness, yawAbs: yawAbs, blink: blink) + 1e-12 >= leftoverBaptizeQualityFloorOf(continuity: continuity)
     }
@@ -1968,7 +1968,7 @@ enum MatchMath {
     /// Profil: Floor 0,70 — sonst Twin im ¾ mit 0,62 scharf.
     /// Schwelle 0,45 rad, nicht Lookaway 0,28 — sonst 16° schon Profil.
     static func leftoverPrintFloor(yawAbs: Double?) -> Double {
-        (yawAbs ?? 0) >= leftoverPrintProfileYaw ? leftoverPrintProfile : leftoverPrintGenuine
+        abs(yawAbs ?? 0) >= leftoverPrintProfileYaw ? leftoverPrintProfile : leftoverPrintGenuine
     }
 
     /// Indoor/Nacht: Floor −0,02 Cosine für 30 s Session. Twin im Dunkeln sonst tot.
@@ -5889,7 +5889,7 @@ enum MatchMath {
         } else {
             s = cosine
         }
-        s -= leftoverYawPenalty * min(1, max(0, yawAbs / 0.50))
+        s -= leftoverYawPenalty * min(1, max(0, abs(yawAbs) / 0.50))
         if let d = detScore {
             let n = d > 1 ? d / 100 : d
             s += leftoverDetBonus * min(1, max(0, n))
@@ -6081,7 +6081,7 @@ enum MatchMath {
     static func leftoverLiveWeight(sharpness: Double?, frontal: Double?, yawAbs: Double?) -> Double {
         let s = max(0, sharpness ?? 0)
         let f = max(0.15, frontal ?? 1)
-        let y = 1 - min(1, max(0, (yawAbs ?? 0) / 0.50))
+        let y = 1 - min(1, max(0, abs(yawAbs ?? 0) / 0.50))
         return s * f * max(0.15, y)
     }
 
@@ -6116,7 +6116,7 @@ enum MatchMath {
     /// Yaw-Skip hat ein Geo-Veto verhindert — Overlay/Labor sollen das sehen.
     static func geoVetoYawSkipped(geoAgrees: Bool, geoMix: Double, printPercent: Double, yawAbs: Double) -> Bool {
         if geoAgrees { return false }
-        if yawAbs < geoVetoYawSkip { return false }
+        if abs(yawAbs) < geoVetoYawSkip { return false }
         if printPercent < geoVetoYawPrint { return false }
         return geoVetoBlocks(geoAgrees: geoAgrees, geoMix: geoMix, printPercent: printPercent, yawAbs: 0)
     }
@@ -8809,7 +8809,7 @@ enum MatchMath {
     static func centroidWeight(capture: Double, sharpness: Double, frontal: Double = 1, yawAbs: Double = 0) -> Double {
         let base = max(0.08, capture * (0.35 + 0.65 * max(0, sharpness)))
         let front = max(0.15, frontal)
-        let yaw = 1 - min(1, max(0, yawAbs / 0.50))
+        let yaw = 1 - min(1, max(0, abs(yawAbs) / 0.50))
         return base * front * max(0.15, yaw)
     }
 

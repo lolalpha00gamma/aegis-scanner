@@ -6195,6 +6195,46 @@ enum MatchMathTests {
         ok(MatchMath.leftoverNeedsPrint(cosine: nil), "NeedsPrint cosine nil")
         ok(!MatchMath.leftoverNeedsPrint(cosine: 0.80), "NeedsPrint mit Hold tot")
 
+        near(MatchMath.leftoverPrintFloor(yawAbs: -0.50), MatchMath.leftoverPrintProfile, 1e-9, "Profil L Floor 0,70")
+        near(MatchMath.leftoverPrintFloor(yawAbs: 0.50), MatchMath.leftoverPrintProfile, 1e-9, "Profil R Floor 0,70")
+        near(MatchMath.leftoverPrintFloor(yawAbs: -0.30), MatchMath.leftoverPrintGenuine, 1e-9, "¾L Genuine 0,62")
+        ok(!MatchMath.leftoverPrintOk(cosine: 0.62, sharpness: 0.30, yawAbs: -0.50), "Profil L 0,62 tot")
+        ok(MatchMath.leftoverPrintOk(cosine: 0.71, sharpness: 0.30, yawAbs: -0.50), "Profil L 0,71 scharf")
+        ok(MatchMath.leftoverPrintOk(cosine: 0.62, sharpness: 0.30, yawAbs: -0.30), "¾L 0,62 scharf")
+        ok(!MatchMath.leftoverBaptizeQuality(sharpness: 0.40, yawAbs: -0.50), "Profil L keine Taufe")
+        ok(MatchMath.leftoverBaptizeQuality(sharpness: 0.40, yawAbs: -0.10), "frontal L Qualität")
+        near(
+            MatchMath.leftoverBaptizeQualityProduct(sharpness: 0.40, yawAbs: -0.50),
+            MatchMath.leftoverBaptizeQualityProduct(sharpness: 0.40, yawAbs: 0.50),
+            1e-12,
+            "Quality-Produkt L/R"
+        )
+        near(
+            MatchMath.leftoverScore(cosine: 0.80, sharpness: nil, yawAbs: -0.50),
+            MatchMath.leftoverScore(cosine: 0.80, sharpness: nil, yawAbs: 0.50),
+            1e-12,
+            "Score-Yaw L/R"
+        )
+        ok(
+            MatchMath.leftoverScore(cosine: 0.80, sharpness: nil, yawAbs: -0.50)
+                < MatchMath.leftoverScore(cosine: 0.80, sharpness: nil, yawAbs: 0),
+            "Profil L Yaw-Strafe"
+        )
+        near(
+            MatchMath.leftoverLiveWeight(sharpness: 0.50, frontal: 1, yawAbs: -0.40),
+            MatchMath.leftoverLiveWeight(sharpness: 0.50, frontal: 1, yawAbs: 0.40),
+            1e-12,
+            "LiveWeight L/R"
+        )
+        near(
+            MatchMath.centroidWeight(capture: 1, sharpness: 1, frontal: 1, yawAbs: -0.45),
+            MatchMath.centroidWeight(capture: 1, sharpness: 1, frontal: 1, yawAbs: 0.45),
+            1e-12,
+            "CentroidWeight L/R"
+        )
+        ok(MatchMath.leftoverHoldLabel(cosine: 0.64, yawAbs: -0.35) == "gehalten 0,64 · ¾L", "Hold-Chip ¾L signed")
+        ok(MatchMath.leftoverHoldLabel(cosine: 0.64, yawAbs: 0.35) == "gehalten 0,64 · ¾R", "Hold-Chip ¾R signed")
+
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)
             exit(1)

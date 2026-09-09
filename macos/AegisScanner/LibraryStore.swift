@@ -4612,7 +4612,7 @@ final class LibraryStore: ObservableObject {
                     now: now,
                     stillFor: stillFor,
                     sharpness: adopted[bestJ].quality.sharpness,
-                    yawAbs: abs(adopted[bestJ].quality.yaw),
+                    yawAbs: adopted[bestJ].quality.yaw,
                     blink: blinkBlocked,
                     jpegDelta: jpegDelta,
                     iou: boxIoU,
@@ -4629,7 +4629,7 @@ final class LibraryStore: ObservableObject {
                     now: now,
                     stillFor: stillFor,
                     sharpness: adopted[bestJ].quality.sharpness,
-                    yawAbs: abs(adopted[bestJ].quality.yaw),
+                    yawAbs: adopted[bestJ].quality.yaw,
                     blink: blinkBlocked,
                     jpegDelta: jpegDelta,
                     iou: boxIoU,
@@ -4641,7 +4641,7 @@ final class LibraryStore: ObservableObject {
                     leftoverPending[adopted[bestJ].id] = MatchMath.leftoverHoldLabel(
                         cosine: pinCos,
                         sharpness: adopted[bestJ].quality.sharpness,
-                        yawAbs: abs(adopted[bestJ].quality.yaw),
+                        yawAbs: adopted[bestJ].quality.yaw,
                         smooth: holdNow
                     )
                         ?? leftoverPending[adopted[bestJ].id]
