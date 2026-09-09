@@ -1,4 +1,4 @@
-# Aegis **2.1.236 alpha**
+# Aegis **2.1.237 alpha**
 
 
 
@@ -7,6 +7,14 @@ Direkt laden:
 - [Releases](https://github.com/lolalpha00gamma/aegis-scanner/releases)
 
 Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
+## Neu in 2.1.237 alpha
+
+Warum skipDetect-Overlay nach 2.1.236 weiter sprang: `kalmanBox == vision` ist bit-gleich. leftoverPredictHeld und der async-Snap sind nie identisch — der Zweig adoptete den alten Snap und wischte die Predict. overlayHint sagte „Profil“ erst ab 0,75, poseSlot ab 0,70.
+
+- **skipDetect IoU.** `leftoverDetectSkip(leftoverBoxIoU)` statt `==`. Coast 4‰ hält, Sprung adoptiert.
+- **overlayHint Profil 0,70.** Gleicher Slot wie poseSlot.
+- Tests + VERSION = Models = MARKETING 2.1.237 (Build 262). Schema 15 bleibt.
+
 ## Neu in 2.1.236 alpha
 
 Warum Overlay auf Continuity weiter fror und ¾ Geo-Veto kassierte: 2.1.235 verdrahtete Sleep-Vel und PredictBoxes, `skipDetect` blieb leer. `geoVetoYawPrint` war 80 wie SkipPrint. leftoverScore straffte `/ 0,50`.

@@ -1,4 +1,51 @@
+# 2.1.237 — skipDetect IoU, overlayHint 0,70, skip ci.
+
+## In 2.1.237 wirklich im Code
+
+2.1.236 skipDetect `kalmanBox == vision`. leftoverPredictHeld / async-Snap nie bit-gleich → Adopt wischt Predict. overlayHint Profil 0,75 vs poseSlot 0,70.
+
+1. **leftoverDetectSkip(leftoverBoxIoU).** Coast hält, Sprung adoptiert.
+2. **overlayHint Profil ≥ 0,70.** poseSlot-gleich.
+3. Tests + VERSION = Models = MARKETING 2.1.237 (Build 262). Schema 15 bleibt.
+
+## Erweiterung (neu, 2.1.237)
+
+1. **CameraBroker XPC + IOSurface** mit Helios. Eine TCC. P0.
+2. **VNImageRequestHandler(cvPixelBuffer:)** Detect+Print ohne 420f→CGImage.
+3. **Gallery Index Pose-Bin + Name.** leftoverPick nicht O(n).
+4. **HNSW / ANN** nach dem Index.
+5. **LiveCapture nicht @MainActor.**
+6. **Adaptive skipDetect.** Track-Konfidenz hoch → skip mehr.
+7. **Kalman R aus Vision-Track-Confidence.**
+8. **leftoverOpenSetEnergy als Unsure-Chip** statt Gast n+1.
+9. **leftoverTwinSameShot live** same-frame IoU.
+10. **Print-Cache Pose-Bin LRU.**
+11. **Print-Crop aus VNFaceObservation** der Detect.
+12. **Template-Aging.**
+13. **FA-JSONL Kalibrierung.**
+14. **Glasses On/Off Twin-Templates.**
+15. **leftoverHoldTrail Disk persist.**
+16. **Overlay CAMetalLayer 60 Hz.**
+17. **EAR + SM AND** Unnamed-Taufe.
+18. **Identity-Merge-Wizard.**
+19. **ReID-Graph.**
+20. **UMAP Cluster-View.**
+21. **Export Embeddings JSONL.**
+22. **Continuity Night-IR Galerie.**
+23. **Stereo Built-in + Continuity** Yaw-Prior.
+24. **HeliosAegisKit.**
+25. **Lookaway-Pin IoU-only.**
+26. **Detect-Skip every 4** bei Jitter.
+27. **Dual-Cam Yaw.**
+28. **Burst-Enroll nur leftoverCentroidOk frontal.**
+29. **boxKalmanW/H Vel** pw/ph aus leftoverFaceTrackKalmanVel.
+30. **enrollSMReady haveProfile** im Bool (Twins).
+31. **leftoverSessionCapture** an PrintOk-Call-Sites mit capture: nil.
+
+P0: CameraBroker. Kein neues leftover*-Flag. Branch `bugfix` nicht mergen.
+
 # 2.1.236 — geoVetoYawPrint 72, Yaw-Strafe ProfileYaw, skipDetect Kalman, skip ci.
+
 
 ## In 2.1.236 wirklich im Code
 

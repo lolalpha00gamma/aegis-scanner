@@ -923,7 +923,7 @@ enum FaceEngine {
             )
         }
         if face.quality.capture < 0.35 && face.quality.size < 0.16 { return "z zu klein" }
-        if abs(face.quality.yaw) > 0.75 { return "Profil" }
+        if abs(face.quality.yaw) >= 0.70 { return "Profil" }
         if face.quality.frontal < 0.22 { return "stark gedreht" }
         if face.quality.sharpness < MatchMath.activeSharpnessFloor(continuity: continuity) { return "unscharf" }
         let eyes = face.strokes.contains { $0.label.hasPrefix("Auge") && $0.points.count >= 4 }

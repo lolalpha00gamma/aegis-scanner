@@ -1,4 +1,49 @@
+# Aegis Vorschläge — 2026-09-09 (Pass 38, 2.1.237)
+
+Stand 2.1.237 alpha. skipDetect IoU statt ==. overlayHint Profil 0,70.
+
+## Gelandet in 2.1.237
+
+- leftoverDetectSkip(leftoverBoxIoU) in skipDetect
+- overlayHint Profil ≥ 0,70 = poseSlot
+
+## Erweiterung (neu)
+
+559. **CameraBroker XPC + IOSurface** mit Helios. P0.
+560. **VNImageRequestHandler(cvPixelBuffer:).** P1.
+561. **Gallery Index Pose-Bin + Name.**
+562. **HNSW Gallery.**
+563. **LiveCapture off MainActor.**
+564. **Adaptive skipDetect.**
+565. **Kalman R aus Vision-Track-Confidence.**
+566. **leftoverOpenSetEnergy Unsure-Chip.**
+567. **leftoverTwinSameShot live.**
+568. **Print-Cache Pose-Bin LRU.**
+569. **Print aus VNFaceObservation.**
+570. **Template-Aging.**
+571. **FA-JSONL.**
+572. **Glasses On/Off.**
+573. **leftoverHoldTrail Disk.**
+574. **Overlay CAMetalLayer.**
+575. **HeliosAegisKit.**
+576. **EAR + SM AND.**
+577. **Identity-Merge-Wizard.**
+578. **ReID-Graph.**
+579. **Continuity Night-IR.**
+580. **Stereo Yaw-Prior.**
+581. **Lookaway-Pin IoU-only.**
+582. **Detect-Skip every 4.**
+583. **Dual-Cam Yaw.**
+584. **UMAP Cluster-View.**
+585. **Export Embeddings JSONL.**
+586. **boxKalmanW/H Vel.**
+587. **enrollSMReady haveProfile.**
+588. **leftoverSessionCapture an PrintOk.**
+
+P0: CameraBroker. Kein neues leftover*-Flag. Branch `bugfix` nicht mergen.
+
 # Aegis Vorschläge — 2026-09-09 (Pass 37, 2.1.236)
+
 
 Stand 2.1.236 alpha. geoVetoYawPrint 72. Yaw-Strafe saturiert bei ProfileYaw. skipDetect Kalman-Coast.
 

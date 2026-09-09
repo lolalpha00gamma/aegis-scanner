@@ -3123,7 +3123,8 @@ final class LibraryStore: ObservableObject {
                 let t = now
                 let area = face.box.width * face.box.height
                 if skipDetect {
-                    // Overlay-Coast: Kalman-Seed → Predict, Vision-Track → adopt + Vel.
+                    // Overlay-Coast: IoU ≥ 0,92 → Predict (nicht bit-gleich).
+                    // Exact == snapte nach leftoverPredictHeld / async-Snap zurück.
                     let seed = boxKalman[old.id]
                     let vision = MatchMath.FaceTrackBox(
                         x: face.box.x, y: face.box.y, w: face.box.width, h: face.box.height
@@ -3131,7 +3132,13 @@ final class LibraryStore: ObservableObject {
                     let kalmanBox = seed.map {
                         MatchMath.FaceTrackBox(x: $0.x, y: $0.y, w: $0.w, h: $0.h)
                     }
-                    if kalmanBox == vision, let k = seed {
+                    let iou: Double? = kalmanBox.map {
+                        MatchMath.leftoverBoxIoU(
+                            ax: $0.x, ay: $0.y, aw: $0.w, ah: $0.h,
+                            bx: vision.x, by: vision.y, bw: vision.w, bh: vision.h
+                        )
+                    }
+                    if MatchMath.leftoverDetectSkip(iou: iou), let k = seed {
                         let raw = boxKalmanV[old.id] ?? (vx: 0, vy: 0)
                         let pred = MatchMath.leftoverFaceTrackKalmanPredict(
                             box: MatchMath.FaceTrackBox(x: k.x, y: k.y, w: k.w, h: k.h),

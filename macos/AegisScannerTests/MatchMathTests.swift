@@ -3706,6 +3706,19 @@ enum MatchMathTests {
         ok(MatchMath.leftoverDetectSkip(iou: 0.95), "Detect-Skip 0,95")
         ok(!MatchMath.leftoverDetectSkip(iou: 0.80), "Detect-Skip 0,80 tot")
         ok(!MatchMath.leftoverDetectSkip(iou: nil), "Detect-Skip nil tot")
+        let coastIoU = MatchMath.leftoverBoxIoU(
+            ax: 0.40, ay: 0.30, aw: 0.20, ah: 0.28,
+            bx: 0.404, by: 0.30, bw: 0.20, bh: 0.28
+        )
+        ok(coastIoU < 1 - 1e-9, "Coast-Box nicht bit-gleich")
+        ok(MatchMath.leftoverDetectSkip(iou: coastIoU), "skipDetect Coast IoU hält")
+        ok(
+            !MatchMath.leftoverDetectSkip(iou: MatchMath.leftoverBoxIoU(
+                ax: 0.40, ay: 0.30, aw: 0.20, ah: 0.28,
+                bx: 0.55, by: 0.30, bw: 0.20, bh: 0.28
+            )),
+            "skipDetect Sprung adopt"
+        )
         ok(MatchMath.leftoverDetectSkipAll(ious: [0.94, 0.93], need: 2), "Detect-Skip alle")
         ok(!MatchMath.leftoverDetectSkipAll(ious: [0.94, 0.40], need: 2), "Detect-Skip Misch tot")
         ok(MatchMath.leftoverDetectSkipTick(skip: true, tick: 1, every: 8), "Skip Tick 1")
