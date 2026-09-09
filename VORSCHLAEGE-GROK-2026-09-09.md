@@ -1,14 +1,13 @@
 # Aegis Vorschläge — 2026-09-09 (Pass 44, 2.1.243)
 
-Stand 2.1.243 alpha. Ghost Scale-Blend, 420v Sharp live, HashSolo vor x-Match, Coast skipPrints, Overlay-Dedup.
+Stand 2.1.243 alpha. Solo-Remint, Ghost Scale-Blend, 420v Sharp, Wake-ROI.
 
 ## Gelandet in 2.1.243
 
-- leftoverGhostAspectLock lastW Kalman, predW Predict, blend 0,25.
-- leftoverSharpnessOf FaceEngine videoRange: continuity || live. Mac 420v + Tiles.
-- leftoverHoldByHashSolo leftoverHoldRemint + Bins **vor leftoverHoldXMatch**.
-- leftoverCoastPrintWipe skipPrints TTL-Arm.
-- leftoverOverlayUniqueRows ContentView overlayRows.
+- leftoverHoldByHashSolo vor Rescue in leftoverHoldRemint + Bins
+- leftoverGhostAspectLock Scale-Blend mix 0,35
+- leftoverSharpnessOf detectOnce Continuity 420v
+- liveRoiSkipOnWake in noteDidWake
 
 ## Erweiterung (neu)
 
@@ -38,15 +37,20 @@ Stand 2.1.243 alpha. Ghost Scale-Blend, 420v Sharp live, HashSolo vor x-Match, C
 789. **UMAP Cluster-View.**
 790. **Export Embeddings JSONL.**
 791. **enrollSMReady haveProfile.**
-792. **leftoverPrintBudgetYawDelta** global (Of sitzt per UUID).
-793. **leftoverHoldsTrack leftoverPrintOk yawAbs live** (bewusst nil — Overlay-Hold Profil).
-794. **Ada? Streak 2 Overlay.**
-795. **leftoverOverlayPeak IoU-Adopt nach Wipe.** sitzt — prüfen Twin-Tie.
-796. **Privacy-Blur Unmatched.**
-797. **Session-Cluster nach Stop.**
-798. **Print-EMA 8 Hz.**
-799. **Watch-Alert Household.**
-800. **3D-Yaw FaceShape3D.**
+792. **leftoverPrintBudgetYawDelta** Wrapper live (Of sitzt, Wrapper tot).
+793. **leftoverOverlayUniqueRows** Overlay-ForEach. Ghost-Dup Ada fällt.
+794. **leftoverHoldsTrack leftoverPrintOk yawAbs live** (bewusst nil — Overlay-Hold Profil).
+795. **Ada? Streak 2 Overlay.**
+796. **leftoverOverlayPeak IoU-Adopt nach Wipe.**
+797. **leftoverCoastPrint skipPrints TTL-Arm.**
+798. **leftoverGhostAspectLock mix aus leftoverBoxIoU.** Detect-Snap 1,0 / Coast 0,35.
+799. **leftoverHoldByHashSolo vor x-Rescue** wenn storedHash Spatial ≠ live. Nah-Stale stiehlt per Pad.
+800. **leftoverCoastPrintWipe leftoverLastHash.** Coast Wipe Keys, LastHash stale bleibt.
+801. **FourCC 420v → leftoverSharpnessOf auto** ohne Continuity-Bool. USB-Webcam 420v sonst tot.
+802. **leftoverFaceTrackPredictHeld miss-scaled mix.** Ghost 3 Skip-Ticks sonst 0,73 zum Pred.
+803. **leftoverOverlayLerp** zwischen Detect 4.
+804. **leftoverYawVelocityFreeze** 3-Zeilen-Wire. Profil-Yaw rastet Hold-Bin.
+805. **leftoverPredictBoxes 2D nicht an.** WHV würde regressen.
 
 P0: CameraBroker. Kein neues leftover*-Flag. Branch `bugfix` nicht mergen.
 

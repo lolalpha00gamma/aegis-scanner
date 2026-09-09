@@ -2155,7 +2155,7 @@ final class LibraryStore: ObservableObject {
     }
 
     func noteDidWake() {
-        liveRoiSkipOnce = true
+        liveRoiSkipOnce = MatchMath.liveRoiSkipOnWake()
         livePending = nil
         guard MatchMath.liveRecoversOnWake(), liveActive else { return }
         liveDetectGen &+= 1
@@ -2937,10 +2937,8 @@ final class LibraryStore: ObservableObject {
                 pw: size.vw, ph: size.vh
             )
             let locked = MatchMath.leftoverGhostAspectLock(
-                predX: held.box.x, predY: held.box.y,
-                lastW: k.w, lastH: k.h,
-                predW: held.box.w, predH: held.box.h,
-                blend: 0.25
+                predX: held.box.x, predY: held.box.y, lastW: k.w, lastH: k.h,
+                predW: held.box.w, predH: held.box.h
             )
             boxKalman[id] = (locked.x, locked.y, locked.w, locked.h, k.px, k.py, k.pw, k.ph)
             boxKalmanV[id] = (vx: held.px, vy: held.py)
@@ -4965,8 +4963,7 @@ final class LibraryStore: ObservableObject {
                 stored: leftoverCoastPrint,
                 stamped: leftoverCoastPrintAt,
                 liveIds: liveIds,
-                now: now,
-                skipPrints: skipPrints
+                now: now
             )
             leftoverCoastPrintAt = leftoverCoastPrintAt.filter { leftoverCoastPrint[$0.key] != nil }
             leftoverCoastAt = leftoverCoastAt.filter { liveIds.contains($0.key) || leftoverIds.contains($0.key) }

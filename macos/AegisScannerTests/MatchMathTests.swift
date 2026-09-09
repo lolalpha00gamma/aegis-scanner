@@ -1637,10 +1637,6 @@ enum MatchMathTests {
         ok(!MatchMath.liveRoiSkipsForStranger(foundCount: 1, kalmanCount: 1), "gleiche Zahl Crop")
         let ghost = MatchMath.leftoverGhostAspectLock(predX: 400, predY: 200, lastW: 80, lastH: 100)
         ok(abs(ghost.x - 400) < 0.001 && abs(ghost.w - 80) < 0.001, "Ghost cx, w bleibt")
-        let blended = MatchMath.leftoverGhostAspectLock(
-            predX: 400, predY: 200, lastW: 80, lastH: 100, predW: 120, predH: 140, blend: 0.25
-        )
-        ok(abs(blended.w - 90) < 0.001 && abs(blended.h - 110) < 0.001, "Ghost Scale-Blend 0,25")
         ok(abs(MatchMath.boxKalmanQ(captureJump: true) - 0.020) < 0.001, "AE mehr Q")
         ok(abs(MatchMath.boxKalmanQ(captureJump: false) - 0.008) < 0.001, "ruhig Q 0,008")
         let jumped = MatchMath.boxKalman(prev: 200, meas: 400, p: 0.04, dt: 0.125, q: MatchMath.boxKalmanQ(captureJump: true))
@@ -4303,14 +4299,6 @@ enum MatchMathTests {
             now: 1_001
         )
         ok(kept[deadCoast] != nil, "Coast Wipe frisch leftover hält")
-        let skipKept = MatchMath.leftoverCoastPrintWipe(
-            stored: [deadCoast: vecA],
-            stamped: [deadCoast: 1_000],
-            liveIds: [],
-            now: 1_003,
-            skipPrints: true
-        )
-        ok(skipKept[deadCoast] != nil, "Coast Wipe skipPrints TTL-Arm")
         let stamp = MatchMath.leftoverCoastPrintStampMerge(
             stamped: [:], live: [liveOld: vecA], skipPrints: false, now: 1_000
         )
@@ -6405,6 +6393,40 @@ enum MatchMathTests {
         )
         ok(MatchMath.leftoverOpenSetEnergy([0.80, 0.72]) > 0, "OpenSet Energy Twin")
         ok(MatchMath.leftoverOpenSetUnsure(scores: [0.80, 0.72]), "OpenSet Unsure Chip")
+        let ghostBlend = MatchMath.leftoverGhostAspectLock(
+            predX: 400, predY: 200, lastW: 80, lastH: 100, predW: 160, predH: 200, mix: 0.35
+        )
+        ok(ghostBlend.w > 80 && ghostBlend.w < 160, "Ghost Blend wächst")
+        ok(abs(ghostBlend.w / ghostBlend.h - 0.8) < 0.001, "Ghost Blend Aspect hält")
+        ok(abs(ghostBlend.x - 400) < 0.001 && abs(ghostBlend.y - 200) < 0.001, "Ghost Blend cx cy")
+        let ghostCopy = MatchMath.leftoverGhostAspectLock(predX: 400, predY: 200, lastW: 80, lastH: 100)
+        ok(abs(ghostCopy.w - 80) < 0.001 && abs(ghostCopy.h - 100) < 0.001, "Ghost ohne predW copy")
+        ok(abs((MatchMath.leftoverSharpnessOf(0.12) ?? -1) - 0.12) < 0.001, "420f kein Lift")
+        let soloStaleOld = UUID(), soloStaleNew = UUID()
+        let soloStale = MatchMath.leftoverHoldRemint(
+            hold: [soloStaleOld: 0.77],
+            live: [(id: soloStaleNew, x: 0.90)],
+            stored: [(id: soloStaleOld, x: 0.20)],
+            liveHash: [soloStaleNew: "5.5.4.6"],
+            storedHash: [soloStaleOld: "9.9.9.9"],
+            hashTableKeys: ["5.5.4.6#0"]
+        )
+        ok(soloStale[soloStaleNew] == 0.77, "Solo vor Rescue trotz stale LastHash")
+        let binSoloOld = UUID(), binSoloNew = UUID()
+        let binSoloKey = MatchMath.leftoverHoldKey(id: binSoloOld, bin: 0)
+        let binSoloStale = MatchMath.leftoverHoldRemintBins(
+            hold: [binSoloKey: 0.66],
+            live: [(id: binSoloNew, x: 0.90)],
+            stored: [(id: binSoloOld, x: 0.20)],
+            liveHash: [binSoloNew: "5.5.4.6"],
+            storedHash: [binSoloOld: "9.9.9.9"],
+            hashTableKeys: ["5.5.4.6#0"]
+        )
+        ok(
+            binSoloStale[MatchMath.leftoverHoldKey(id: binSoloNew, bin: 0)] == 0.66,
+            "RemintBins Solo trotz stale LastHash"
+        )
+        ok(MatchMath.liveRoiSkipOnWake(), "Wake ROI Skip live")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

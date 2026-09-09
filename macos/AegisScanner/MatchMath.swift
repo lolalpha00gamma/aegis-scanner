@@ -4430,26 +4430,6 @@ enum MatchMath {
                 }
             }
         }
-        if !hashTableKeys.isEmpty, !liveHash.isEmpty {
-            let holdIDs = holds.map(\.id)
-            for row in live {
-                if hold[row.id] != nil { continue }
-                if out[row.id] != nil { continue }
-                guard let h = liveHash[row.id], !h.isEmpty else { continue }
-                guard let match = leftoverHoldByHashSolo(
-                    liveHash: h,
-                    holdIDs: holdIDs,
-                    tableKeys: hashTableKeys,
-                    facesInFrame: live.count
-                ) else { continue }
-                if match == row.id { continue }
-                if taken.contains(match) { continue }
-                if let v = hold[match] {
-                    out[row.id] = v
-                    taken.insert(match)
-                }
-            }
-        }
         for row in live {
             if hold[row.id] != nil { continue }
             if out[row.id] != nil { continue }
@@ -4465,6 +4445,24 @@ enum MatchMath {
         if !hashTableKeys.isEmpty, !liveHash.isEmpty {
             let storedH: [(id: UUID, hash: String)] = holds.map { s in
                 (s.id, storedHash[s.id] ?? "")
+            }
+            if live.count <= 1 {
+                for row in live {
+                    if hold[row.id] != nil { continue }
+                    if out[row.id] != nil { continue }
+                    guard let h = liveHash[row.id], !h.isEmpty else { continue }
+                    guard let match = leftoverHoldByHashSolo(
+                        liveHash: h,
+                        holdIDs: holds.map(\.id),
+                        tableKeys: hashTableKeys,
+                        facesInFrame: live.count
+                    ) else { continue }
+                    if match == row.id { continue }
+                    if let v = hold[match] {
+                        out[row.id] = v
+                        taken.insert(match)
+                    }
+                }
             }
             for row in live {
                 if hold[row.id] != nil { continue }
@@ -4583,27 +4581,6 @@ enum MatchMath {
                 taken.insert(match)
             }
         }
-        if !hashTableKeys.isEmpty, !liveHash.isEmpty {
-            let holdIDs = holds.map(\.id)
-            for row in live {
-                if present.contains(row.id) { continue }
-                if out.keys.contains(where: { leftoverHoldId(from: $0) == row.id }) { continue }
-                guard let h = liveHash[row.id], !h.isEmpty else { continue }
-                guard let match = leftoverHoldByHashSolo(
-                    liveHash: h,
-                    holdIDs: holdIDs,
-                    tableKeys: hashTableKeys,
-                    facesInFrame: live.count
-                ) else { continue }
-                if match == row.id { continue }
-                if taken.contains(match) { continue }
-                for (key, v) in hold {
-                    guard leftoverHoldId(from: key) == match, let bin = leftoverHoldBinFromKey(key) else { continue }
-                    out[leftoverHoldKey(id: row.id, bin: bin)] = v
-                }
-                taken.insert(match)
-            }
-        }
         for row in live {
             if present.contains(row.id) { continue }
             if out.keys.contains(where: { leftoverHoldId(from: $0) == row.id }) { continue }
@@ -4620,6 +4597,25 @@ enum MatchMath {
         if !hashTableKeys.isEmpty, !liveHash.isEmpty {
             let storedH: [(id: UUID, hash: String)] = holds.map { s in
                 (s.id, storedHash[s.id] ?? "")
+            }
+            if live.count <= 1 {
+                for row in live {
+                    if present.contains(row.id) { continue }
+                    if out.keys.contains(where: { leftoverHoldId(from: $0) == row.id }) { continue }
+                    guard let h = liveHash[row.id], !h.isEmpty else { continue }
+                    guard let match = leftoverHoldByHashSolo(
+                        liveHash: h,
+                        holdIDs: holds.map(\.id),
+                        tableKeys: hashTableKeys,
+                        facesInFrame: live.count
+                    ) else { continue }
+                    if match == row.id { continue }
+                    for (key, v) in hold {
+                        guard leftoverHoldId(from: key) == match, let bin = leftoverHoldBinFromKey(key) else { continue }
+                        out[leftoverHoldKey(id: row.id, bin: bin)] = v
+                    }
+                    taken.insert(match)
+                }
             }
             for row in live {
                 if present.contains(row.id) { continue }
@@ -4804,18 +4800,15 @@ enum MatchMath {
     }
 
     /// Coast-Keys nach TTL: leftoverOccupiedGhostDrop sonst hält Ghost-Hashes occupied.
-    /// skipPrints: Stamp freeze — TTL sonst wischt Coast während Budget-Skip.
     static func leftoverCoastPrintWipe(
         stored: [UUID: [Double]],
         stamped: [UUID: TimeInterval],
         liveIds: Set<UUID>,
         now: TimeInterval,
-        ttl: TimeInterval = leftoverCoastPrintTtl,
-        skipPrints: Bool = false
+        ttl: TimeInterval = leftoverCoastPrintTtl
     ) -> [UUID: [Double]] {
         stored.filter { id, vec in
             liveIds.contains(id)
-                || skipPrints
                 || !leftoverCoastPrintFresh(vec: vec, stamped: stamped[id], now: now, ttl: ttl).isEmpty
         }
     }
@@ -8839,7 +8832,7 @@ enum MatchMath {
         foundCount > kalmanCount && kalmanCount > 0
     }
 
-    /// Ghost-Predict ändert cx/cy. W/H: freeze (blend 0) oder Scale-Blend gegen Hash-Sprung.
+    /// Ghost-Predict ändert cx/cy, nicht w/h — sonst Hash-Sprung.
     static func leftoverGhostAspectLock(
         predX: Double,
         predY: Double,
@@ -8847,11 +8840,18 @@ enum MatchMath {
         lastH: Double,
         predW: Double? = nil,
         predH: Double? = nil,
-        blend: Double = 0
+        mix: Double = 0.35
     ) -> (x: Double, y: Double, w: Double, h: Double) {
-        let a = min(1, max(0, blend))
-        let w = lastW * (1 - a) + (predW ?? lastW) * a
-        let h = lastH * (1 - a) + (predH ?? lastH) * a
+        guard let pw = predW, let ph = predH, lastW > 1, lastH > 1, pw > 1, ph > 1 else {
+            return (predX, predY, lastW, lastH)
+        }
+        let a = min(1, max(0, mix))
+        let lastS = hypot(lastW, lastH)
+        let predS = hypot(pw, ph)
+        let s = lastS * (1 - a) + predS * a
+        let aspect = lastW / max(1e-6, lastH)
+        let h = s / hypot(aspect, 1)
+        let w = h * aspect
         return (predX, predY, w, h)
     }
 
