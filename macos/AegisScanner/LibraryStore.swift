@@ -3123,7 +3123,33 @@ final class LibraryStore: ObservableObject {
                 let t = now
                 let area = face.box.width * face.box.height
                 if skipDetect {
-                    // Overlay-Coast: face.box bleibt Predict. Kalman last-real, sonst Vel-Flip.
+                    // Overlay-Coast: Kalman-Seed → Predict, Vision-Track → adopt + Vel.
+                    let seed = boxKalman[old.id]
+                    let vision = MatchMath.FaceTrackBox(
+                        x: face.box.x, y: face.box.y, w: face.box.width, h: face.box.height
+                    )
+                    let kalmanBox = seed.map {
+                        MatchMath.FaceTrackBox(x: $0.x, y: $0.y, w: $0.w, h: $0.h)
+                    }
+                    if kalmanBox == vision, let k = seed {
+                        let raw = boxKalmanV[old.id] ?? (vx: 0, vy: 0)
+                        let pred = MatchMath.leftoverFaceTrackKalmanPredict(
+                            box: MatchMath.FaceTrackBox(x: k.x, y: k.y, w: k.w, h: k.h),
+                            px: raw.vx, py: raw.vy, dt: liveDt
+                        )
+                        face.box = FaceBox(x: pred.x, y: pred.y, width: pred.w, height: pred.h)
+                        boxKalman[old.id] = (pred.x, pred.y, pred.w, pred.h, k.px, k.py, k.pw, k.ph)
+                    } else {
+                        let vel = MatchMath.leftoverFaceTrackKalmanVel(
+                            prev: kalmanBox, live: vision, dt: liveDt
+                        )
+                        boxKalman[old.id] = (
+                            vision.x, vision.y, vision.w, vision.h,
+                            seed?.px ?? 0.04, seed?.py ?? 0.04, seed?.pw ?? 0.04, seed?.ph ?? 0.04
+                        )
+                        boxKalmanV[old.id] = (vx: vel.px, vy: vel.py)
+                        face.box = FaceBox(x: vision.x, y: vision.y, width: vision.w, height: vision.h)
+                    }
                 } else if MatchMath.boxKalmanUses(dt: liveDt) {
                     let prev = boxKalman[old.id]
                     let px0 = prev?.x ?? face.box.x

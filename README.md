@@ -1,4 +1,4 @@
-# Aegis **2.1.235 alpha**
+# Aegis **2.1.236 alpha**
 
 
 
@@ -7,6 +7,16 @@ Direkt laden:
 - [Releases](https://github.com/lolalpha00gamma/aegis-scanner/releases)
 
 Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
+## Neu in 2.1.236 alpha
+
+Warum Overlay auf Continuity weiter fror und ¾ Geo-Veto kassierte: 2.1.235 verdrahtete Sleep-Vel und PredictBoxes, `skipDetect` blieb leer. `geoVetoYawPrint` war 80 wie SkipPrint. leftoverScore straffte `/ 0,50`.
+
+- **geoVetoYawPrint 72.** ¾ 72–79 % kein Geo-Veto.
+- **Yaw-Strafe saturiert bei 0,45.**
+- **skipDetect Kalman-Coast.** Predict auf Seed, Vel auf Vision-Track.
+- **FaceEngine signed yaw.** Overlay-Hold 0,64 Profil hält Track.
+- Tests + VERSION = Models = MARKETING 2.1.236 (Build 261). Schema 15 bleibt.
+
 ## Neu in 2.1.235 alpha
 
 Warum Overlay nach Sleep sprintete, Ghosts zwischen Detect-Ticks klebten und Burst drei Frontals speicherte: `leftoverFaceTrackKalmanVel`, `leftoverPredictBoxes`, `enrollSMReady` nur Tests. `boxKalmanVelocity` ohne Sleep-Sperre. Burst-Replace vor SM.

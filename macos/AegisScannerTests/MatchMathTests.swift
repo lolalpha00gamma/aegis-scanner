@@ -387,11 +387,15 @@ enum MatchMathTests {
             "¾-Kante 80 % skip"
         )
         ok(
-            MatchMath.geoVetoBlocks(geoAgrees: false, geoMix: 15, printPercent: 79, yawAbs: 0.50),
-            "¾ + 79 % noch Veto"
+            !MatchMath.geoVetoBlocks(geoAgrees: false, geoMix: 15, printPercent: 79, yawAbs: 0.50),
+            "¾ + 79 % skip — Yaw-Zweig 72"
+        )
+        ok(
+            MatchMath.geoVetoBlocks(geoAgrees: false, geoMix: 15, printPercent: 71, yawAbs: 0.50),
+            "¾ + 71 % noch Veto"
         )
         near(MatchMath.geoVetoYawSkip, 0.28, 0.001, "Yaw-Skip 0,28 = ¾-Slot")
-        near(MatchMath.geoVetoYawPrint, 80, 0.01, "Yaw-Skip ab 80 % Print")
+        near(MatchMath.geoVetoYawPrint, 72, 0.01, "Yaw-Skip ab 72 % Print")
         ok(MatchMath.leftoverNamedTrack(hadName: true), "genannter Live-Track leftover")
         ok(!MatchMath.leftoverNamedTrack(hadName: false), "namenlos kein leftover")
         ok(MatchMath.leftoverNeedsPrint(cosine: nil), "ohne Print kein leftover-Pin")
@@ -1206,6 +1210,8 @@ enum MatchMathTests {
         ok(MatchMath.leftoverHoldsTrack(cosine: 0.70), "0,70 Hold ohne Steal")
         ok(MatchMath.leftoverHoldsTrack(cosine: 0.82), "0,82 ohne Smooth Overlay halten")
         ok(MatchMath.leftoverHoldsTrack(cosine: 0.82, holdPrev: 0.64), "Spike 0,82 nach 0,64 hält statt Steal")
+        ok(MatchMath.leftoverHoldsTrack(cosine: 0.64, yawAbs: 0.50), "Overlay 0,64 Profil hält Track")
+        ok(!MatchMath.leftoverPrintOk(cosine: 0.64, yawAbs: 0.50), "Pick 0,64 Profil tot")
         let tinyN = MatchMath.leftoverBoxHashNeighbors("1.2.0.0")
         ok(tinyN.contains("1.2.2.0"), "kleine Box w+2")
         ok(tinyN.contains("3.2.0.0"), "kleine Box cx+2")
@@ -6231,6 +6237,32 @@ enum MatchMathTests {
             MatchMath.centroidWeight(capture: 1, sharpness: 1, frontal: 1, yawAbs: 0.45),
             1e-12,
             "CentroidWeight L/R"
+        )
+        near(
+            MatchMath.leftoverScore(cosine: 0.80, sharpness: nil, yawAbs: 0.45),
+            MatchMath.leftoverScore(cosine: 0.80, sharpness: nil, yawAbs: 0.50),
+            1e-12,
+            "Score saturiert ab ProfileYaw 0,45"
+        )
+        near(
+            MatchMath.leftoverLiveWeight(sharpness: 0.50, frontal: 1, yawAbs: 0.45),
+            MatchMath.leftoverLiveWeight(sharpness: 0.50, frontal: 1, yawAbs: 0.50),
+            1e-12,
+            "LiveWeight saturiert ab ProfileYaw"
+        )
+        near(
+            MatchMath.centroidWeight(capture: 1, sharpness: 1, frontal: 1, yawAbs: 0.45),
+            MatchMath.centroidWeight(capture: 1, sharpness: 1, frontal: 1, yawAbs: 0.50),
+            1e-12,
+            "CentroidWeight saturiert ab ProfileYaw"
+        )
+        ok(
+            MatchMath.geoVetoYawSkipped(geoAgrees: false, geoMix: 15, printPercent: 79, yawAbs: 0.50),
+            "¾ + 79 % Yaw-Skip-Hinweis"
+        )
+        ok(
+            !MatchMath.geoVetoYawSkipped(geoAgrees: false, geoMix: 15, printPercent: 71, yawAbs: 0.50),
+            "¾ + 71 % kein Yaw-Skip"
         )
         ok(MatchMath.leftoverHoldLabel(cosine: 0.64, yawAbs: -0.35) == "gehalten 0,64 · ¾L", "Hold-Chip ¾L signed")
         ok(MatchMath.leftoverHoldLabel(cosine: 0.64, yawAbs: 0.35) == "gehalten 0,64 · ¾R", "Hold-Chip ¾R signed")

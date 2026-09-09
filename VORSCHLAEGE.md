@@ -1,3 +1,50 @@
+# 2.1.236 — geoVetoYawPrint 72, Yaw-Strafe ProfileYaw, skipDetect Kalman, skip ci.
+
+## In 2.1.236 wirklich im Code
+
+2.1.235 Kalman-Vel/PredictBoxes/enrollSMReady. geoVetoYawPrint == SkipPrint 80 → Yaw tot. leftoverScore `/ 0,50`. skipDetect-Zweig leer.
+
+1. **geoVetoYawPrint 72.** ¾ 72–79 % kein Geo-Veto.
+2. **leftoverScore / leftoverLiveWeight / centroidWeight** `/ leftoverPrintProfileYaw`.
+3. **skipDetect Kalman-Coast.** Seed → leftoverFaceTrackKalmanPredict, Vision → leftoverFaceTrackKalmanVel.
+4. **FaceEngine decide/centroid signed yaw.**
+5. Tests + VERSION = Models = MARKETING 2.1.236 (Build 261). Schema 15 bleibt.
+
+## Erweiterung (neu, 2.1.236)
+
+1. **CameraBroker XPC + IOSurface** mit Helios. Eine TCC. P0.
+2. **VNImageRequestHandler(cvPixelBuffer:)** Detect+Print ohne 420f→CGImage.
+3. **Gallery Index Pose-Bin + Name.** leftoverPick nicht O(n).
+4. **HNSW / ANN** nach dem Index.
+5. **LiveCapture nicht @MainActor.**
+6. **Adaptive skipDetect.** Track-Konfidenz hoch → skip mehr.
+7. **Kalman R aus Vision-Track-Confidence.**
+8. **overlayHint Profil 0,75** an leftoverPrintProfileYaw 0,45.
+9. **leftoverOpenSetEnergy als Unsure-Chip** statt Gast n+1.
+10. **leftoverTwinSameShot live** same-frame IoU.
+11. **Print-Cache Pose-Bin LRU.**
+12. **Print-Crop aus VNFaceObservation** der Detect.
+13. **Template-Aging.**
+14. **FA-JSONL Kalibrierung.**
+15. **Glasses On/Off Twin-Templates.**
+16. **leftoverHoldTrail Disk persist.**
+17. **Overlay CAMetalLayer 60 Hz.**
+18. **EAR + SM AND** Unnamed-Taufe.
+19. **Identity-Merge-Wizard.**
+20. **ReID-Graph.**
+21. **UMAP Cluster-View.**
+22. **Export Embeddings JSONL.**
+23. **Continuity Night-IR Galerie.**
+24. **Stereo Built-in + Continuity** Yaw-Prior.
+25. **HeliosAegisKit.**
+26. **Lookaway-Pin IoU-only.**
+27. **Detect-Skip every 4** bei Jitter.
+28. **Dual-Cam Yaw.**
+29. **Burst-Enroll nur leftoverCentroidOk frontal.**
+30. **Face-Print Versioning.**
+
+P0: CameraBroker. Kein neues leftover*-Flag. Branch `bugfix` nicht mergen.
+
 # 2.1.235 — Kalman-Vel, PredictBoxes, enrollSMReady, Hold ohne Yaw, skip ci.
 
 ## In 2.1.235 wirklich im Code

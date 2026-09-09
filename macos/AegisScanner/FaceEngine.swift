@@ -816,7 +816,7 @@ enum FaceEngine {
                 textureReliable: false,
                 evidence: best?.percent ?? 0,
                 floors: liveFloors,
-                yawAbs: abs(face.quality.yaw)
+                yawAbs: face.quality.yaw
             )
             var note: String = {
                 guard let capNote else { return decided.note }
@@ -835,7 +835,7 @@ enum FaceEngine {
                       MatchMath.unknownCentroid(
                         bestCosine: pv.count == vec.count ? cosine(pv, vec) : nil,
                         capture: face.quality.capture,
-                        yawAbs: abs(face.quality.yaw)
+                        yawAbs: face.quality.yaw
                       )
             {
                 decidedId = nil
@@ -1304,7 +1304,7 @@ enum FaceEngine {
         let frontalOk = pool0.filter {
             MatchMath.leftoverCentroidOk(
                 sharpness: $0.quality.sharpness,
-                yawAbs: abs($0.quality.yaw),
+                yawAbs: $0.quality.yaw,
                 frontal: $0.quality.frontal
             )
         }
@@ -1313,7 +1313,7 @@ enum FaceEngine {
             MatchMath.leftoverLiveWeight(
                 sharpness: $0.quality.sharpness,
                 frontal: $0.quality.frontal,
-                yawAbs: abs($0.quality.yaw)
+                yawAbs: $0.quality.yaw
             )
         }
         let bestW = liveW.max() ?? 0
@@ -1327,7 +1327,7 @@ enum FaceEngine {
                 capture: f.quality.capture,
                 sharpness: f.quality.sharpness,
                 frontal: f.quality.frontal,
-                yawAbs: abs(f.quality.yaw)
+                yawAbs: f.quality.yaw
             )
             if acc.isEmpty {
                 acc = v.map { $0 * w }
@@ -1381,7 +1381,7 @@ enum FaceEngine {
                 capture: f.quality.capture,
                 sharpness: f.quality.sharpness,
                 frontal: f.quality.frontal,
-                yawAbs: abs(f.quality.yaw)
+                yawAbs: f.quality.yaw
             )
             if acc.isEmpty {
                 acc = v.map { $0 * w }
@@ -1403,7 +1403,7 @@ enum FaceEngine {
                 capture: f.quality.capture,
                 sharpness: f.quality.sharpness,
                 frontal: f.quality.frontal,
-                yawAbs: abs(f.quality.yaw)
+                yawAbs: f.quality.yaw
             ) : 0
             return (f.id, w, poseSlot(f).titleDE)
         }
@@ -2528,7 +2528,7 @@ enum FaceEngine {
             )
         }
         // Profil als erste Referenz verdreht den L2-Centroid; spätere ¾-Shots sind ok.
-        if asFirstReference, MatchMath.printQualityBlocksEnroll(yawAbs: abs(face.quality.yaw)) {
+        if asFirstReference, MatchMath.printQualityBlocksEnroll(yawAbs: face.quality.yaw) {
             return String(
                 format: "Profil (Yaw %.0f°) — erste Referenz muss frontal sein, sonst verdreht der Centroid.",
                 face.quality.yaw * 180 / .pi

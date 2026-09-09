@@ -91,9 +91,9 @@ enum MatchMath {
     static let strongPrintFloor = 84.0
     /// Ab diesem Print-Wert vetoiert Kleidung/Haar nicht mehr. lookOf kappt ≥ 80 nie — Veto muss dasselbe tun.
     static let geoVetoSkipPrint = 80.0
-    /// ¾/Profil: Maße vs. Frontal-Centroid lügen. Print ≥ 80 nicht vetoen.
+    /// ¾/Profil: Maße vs. Frontal-Centroid lügen. Print ≥ 72 nicht vetoen.
     static let geoVetoYawSkip = 0.28
-    static let geoVetoYawPrint = 80.0
+    static let geoVetoYawPrint = 72.0
     /// gallery.json Schema neben printRevision. 15 = HashTrail remaining + KeepBoxes nach Survive.
     static let gallerySchema = 15
     /// gallery.json.bak + .bak.1 + .bak.2. Crash während Save hält drei Stände.
@@ -5877,6 +5877,7 @@ enum MatchMath {
 
     /// Scharfer Print gewinnt gegen leicht höheren unscharfen (0,72 scharf > 0,73 blur).
     /// Profil-Yaw zieht den Score — Twin im Profil tauft sonst den Frontal-Nachbarn.
+    /// Strafe saturiert bei leftoverPrintProfileYaw (0,45), nicht 0,50.
     static let leftoverSharpBonus = 0.05
     static let leftoverYawPenalty = 0.12
 
@@ -5889,7 +5890,7 @@ enum MatchMath {
         } else {
             s = cosine
         }
-        s -= leftoverYawPenalty * min(1, max(0, abs(yawAbs) / 0.50))
+        s -= leftoverYawPenalty * min(1, max(0, abs(yawAbs) / leftoverPrintProfileYaw))
         if let d = detScore {
             let n = d > 1 ? d / 100 : d
             s += leftoverDetBonus * min(1, max(0, n))
@@ -6081,7 +6082,7 @@ enum MatchMath {
     static func leftoverLiveWeight(sharpness: Double?, frontal: Double?, yawAbs: Double?) -> Double {
         let s = max(0, sharpness ?? 0)
         let f = max(0.15, frontal ?? 1)
-        let y = 1 - min(1, max(0, abs(yawAbs ?? 0) / 0.50))
+        let y = 1 - min(1, max(0, abs(yawAbs ?? 0) / leftoverPrintProfileYaw))
         return s * f * max(0.15, y)
     }
 
@@ -8295,6 +8296,7 @@ enum MatchMath {
     }
 
     /// 0,64–0,79: Overlay halten, UUID nicht stehlen, Live nicht zum Gast machen.
+    /// leftoverPrintOk yawAbs: nil — Overlay-Hold 0,64 auf Profil. leftoverPick hat Floor.
     static func leftoverHoldsTrack(
         cosine: Double?,
         holdPrev: Double? = nil,
@@ -8809,7 +8811,7 @@ enum MatchMath {
     static func centroidWeight(capture: Double, sharpness: Double, frontal: Double = 1, yawAbs: Double = 0) -> Double {
         let base = max(0.08, capture * (0.35 + 0.65 * max(0, sharpness)))
         let front = max(0.15, frontal)
-        let yaw = 1 - min(1, max(0, abs(yawAbs) / 0.50))
+        let yaw = 1 - min(1, max(0, abs(yawAbs) / leftoverPrintProfileYaw))
         return base * front * max(0.15, yaw)
     }
 
