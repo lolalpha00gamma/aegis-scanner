@@ -3296,7 +3296,13 @@ final class LibraryStore: ObservableObject {
                     if let h = leftoverLastHash[old.id] {
                         leftoverCaptureHistByHash = MatchMath.leftoverCaptureHistTablePut(
                             hash: h,
-                            hist: capHist,
+                            hist: MatchMath.leftoverCaptureHistPut(
+                                face.quality.capture,
+                                onto: MatchMath.leftoverCaptureHistLookup(
+                                    hash: h,
+                                    table: leftoverCaptureHistByHash
+                                ) ?? []
+                            ),
                             onto: leftoverCaptureHistByHash
                         )
                         leftoverCaptureHistAt = MatchMath.leftoverCaptureHistAtPut(
@@ -3409,7 +3415,13 @@ final class LibraryStore: ObservableObject {
                 if let h = leftoverLastHash[old.id] {
                     leftoverCaptureHistByHash = MatchMath.leftoverCaptureHistTablePut(
                         hash: h,
-                        hist: hist,
+                        hist: MatchMath.leftoverCaptureHistPut(
+                            face.quality.capture,
+                            onto: MatchMath.leftoverCaptureHistLookup(
+                                hash: h,
+                                table: leftoverCaptureHistByHash
+                            ) ?? []
+                        ),
                         onto: leftoverCaptureHistByHash
                     )
                     leftoverCaptureHistAt = MatchMath.leftoverCaptureHistAtPut(
@@ -4385,7 +4397,10 @@ final class LibraryStore: ObservableObject {
                         ($0.index, adopted[$0.index].quality.capture)
                     }),
                     imageW: Double(image.width),
-                    captureHist: liveCaptureHist[old.id] ?? [],
+                    captureHist: MatchMath.leftoverCaptureHistLookup(
+                        hash: leftoverLastHash[old.id] ?? "",
+                        table: leftoverCaptureHistByHash
+                    ) ?? liveCaptureHist[old.id] ?? [],
                     captureBoxHist: Dictionary(uniqueKeysWithValues: remaining.map {
                         ($0.index, liveCaptureHist[adopted[$0.index].id] ?? [])
                     }),

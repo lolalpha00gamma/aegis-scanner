@@ -1,4 +1,4 @@
-# Aegis **2.1.248 alpha**
+# Aegis **2.1.249 alpha**
 
 
 
@@ -8,6 +8,13 @@ Direkt laden:
 - [Releases](https://github.com/lolalpha00gamma/aegis-scanner/releases)
 
 Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
+## Neu in 2.1.249 alpha
+
+Warum Session-Capture nach 2.1.248 weiter den Floor senkte: `leftoverCaptureHistTablePut` kopierte das 3-Frame-Burst (`captureBurstFrames`) in `leftoverCaptureHistByHash`. `leftoverCaptureHistPut` (Cap 8) tot. AE-Flash 0,18 pollutet Median, leftoverPick „?“. Helios 1.6.102.
+
+- **leftoverCaptureHistPut Cap 8** in leftoverCaptureHistByHash. Burst 3 bleibt liveCaptureHist (AE-Jump). leftoverPick captureHist Lookup, nicht Burst.
+- Tests + VERSION = Models = MARKETING 2.1.249 (Build 274). Schema 15 bleibt.
+
 ## Neu in 2.1.248 alpha
 
 Warum Ghost-Boxen nach 2.1.247 beim Nähern den Hash sprangen und Detect @ 24 fps hitchte: leftoverGhostAspectLock blendete W/H unabhängig. leftoverTrailWriteHash tot. ROI/skipDetect every 2 = 12 Hz Detect. Helios 1.6.101.

@@ -1,3 +1,52 @@
+# Aegis Vorschläge — 2026-09-09 (Pass 51, 2.1.249)
+
+Stand 2.1.249 alpha. leftoverCaptureHistPut Cap 8 live. leftoverPick captureHist Lookup.
+
+## Gelandet in 2.1.249
+
+- leftoverCaptureHistPut Cap 8 in leftoverCaptureHistByHash. Burst 3 bleibt liveCaptureHist.
+- leftoverPick captureHist leftoverCaptureHistLookup, Fallback Burst.
+
+## Bewusst nicht
+
+- leftoverPrintBudgetYawDelta **global**: Of je UUID. Twin dreht, Ada still darf skippen.
+- leftoverScore Twin-Penalty in leftoverPickArgmax raw: twinPair ist frame-global.
+- leftoverHoldsTrack yawAbs: nil — Overlay-Policy, nicht Print-Policy.
+- leftoverCaptureHistOf Box-first (≥3): Gast erbt Annas Median nicht.
+
+## Erweiterung (neu)
+
+926. **leftoverCaptureHistOf leftover** wenn leftover.count > box.count. Burst-3 Flash nach 3 Frames senkt Median, Cap 8 wäre Tag.
+927. **leftoverPrintSkipSummary HUD** `Ada still · Twin print`. Chip sitzt per Face.
+928. **leftoverFaceTrackHoldChip** Overlay `hold`.
+929. **leftoverNameLockAdoptChip** `iou Ada`.
+930. **CameraBroker XPC + IOSurface** mit Helios. P0. Spec `docs/CameraBroker.md`.
+931. **VNImageRequestHandler(cvPixelBuffer:).** P1. 420v ohne CGImage-Hop.
+932. **HNSW Gallery.** leftoverHoldXMatch skaliert nicht.
+933. **LiveCapture off MainActor.** Overlay liest Snapshot.
+934. **Overlay CAMetalLayer.**
+935. **Glasses On/Off** zwei Templates, nicht eine EMA.
+936. **Privacy-Blur Unmatched.**
+937. **Per-Camera Gallery** Continuity ≠ Built-in.
+938. **Kalman R aus VNFaceObservation.confidence.**
+939. **Color-Space-Lock** Laplacian (sRGB vs Display-P3 Nacht).
+940. **Occlusion skipPrint** aus Helios Mutex-Palme.
+941. **Identity-Merge-Wizard** nach Session-Cluster.
+942. **Template-Aging** leftoverPrintAt > 14 d → Re-Enroll Chip.
+943. **Session-Cluster nach Stop.**
+944. **Face-Print Versioning.**
+945. **Watch-Alert Household** nur Firm-Name + Streak 3.
+946. **Dual-Cam Yaw** Built-in + Continuity.
+947. **Night-IR Continuity.**
+948. **ReID-Graph** leftoverTransfersId als Kante.
+949. **enrollSMReady haveProfile.** Burst nicht ready bei nur Frontal.
+950. **HeliosAegisKit.**
+951. **UMAP Cluster-View** + Export Embeddings JSONL.
+952. **leftoverHoldsTrack leftoverPrintOk yawAbs live** (bewusst nil bleibt, bis Overlay Profil halten soll).
+953. **leftoverBlinkStampIdentity** leftoverStampBlink setzt Identity schon — Helper schwach.
+
+P0: CameraBroker. Kein neues leftover*-Flag. Branch `bugfix` nicht mergen.
+
 # Aegis Vorschläge — 2026-09-09 (Pass 50, 2.1.248)
 
 Stand 2.1.248 alpha. leftoverGhostAspectLock hypot. leftoverTrailWriteHash live. roiEvery aus dt.

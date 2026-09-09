@@ -1928,6 +1928,24 @@ enum MatchMathTests {
             0.001,
             "Median nach Put bleibt Tag"
         )
+        var histCap8: [Double] = []
+        for _ in 0..<8 { histCap8 = MatchMath.leftoverCaptureHistPut(0.70, onto: histCap8) }
+        histCap8 = MatchMath.leftoverCaptureHistPut(0.18, onto: histCap8)
+        ok(histCap8.count == MatchMath.leftoverCaptureHistCap, "Capture-Hist Cap 8")
+        ok(MatchMath.captureBurstFrames == 3, "Burst-Fenster 3")
+        ok(MatchMath.leftoverCaptureHistEncode(Array(repeating: 0.70, count: 12)).count == 8, "Encode Cap 8")
+        near(
+            MatchMath.leftoverSessionCaptureBox(old: 0.70, live: 0.18, hist: histCap8) ?? -1,
+            0.70,
+            0.001,
+            "Cap-8 Median bleibt Tag"
+        )
+        near(
+            MatchMath.leftoverSessionCaptureBox(old: 0.70, live: 0.18, hist: [0.18, 0.18, 0.18]) ?? -1,
+            0.18,
+            0.001,
+            "Burst-3 Flash senkt Median"
+        )
         ok(MatchMath.leftoverHoldBinChip(0) == "BIN 0", "frontal Chip")
         ok(MatchMath.leftoverHoldBinChip(1) == "BIN 1", "¾ Chip")
         ok(MatchMath.leftoverHoldLabel(cosine: 0.64, yawAbs: 0.35) == "gehalten 0,64 · ¾R", "Hold + Twin ¾R")
