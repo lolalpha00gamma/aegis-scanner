@@ -828,7 +828,14 @@ final class LiveCapture: NSObject {
     }
 
     func recoverAfterWake() {
-        applyCenterStage(force: true)
+        if #available(macOS 12.3, *) {
+            applyCenterStage(force: MatchMath.reconnectCenterStageOff(
+                continuity: isContinuity,
+                enabled: AVCaptureDevice.isCenterStageEnabled
+            ))
+        } else {
+            applyCenterStage(force: true)
+        }
         if let s = session, !s.isRunning {
             outputQueue.async { s.startRunning() }
         }

@@ -1567,7 +1567,9 @@ final class LibraryStore: ObservableObject {
                         haveRight: smBins.contains(1),
                         haveBlink: leftoverBlinkSeen(faceId: face.id, identityId: identities[idx].id)
                     ) && MatchMath.enrollSMReadyFromChip(enrollSMChip, needProfile: !twinSplits.isEmpty)
-                    if smReady, MatchMath.enrollBurstReplace(
+                    if smReady,
+                       MatchMath.enrollBurstReady(count: identities[idx].faceIds.count),
+                       MatchMath.enrollBurstReplace(
                         incomingSharp: face.quality.sharpness,
                         existingSharp: old.quality.sharpness
                     ) {
@@ -4699,7 +4701,11 @@ final class LibraryStore: ObservableObject {
                     jpegRequired: printReady,
                     nameLockUntil: nameLock,
                     jump: jumpCam,
-                    continuity: liveCapture.isContinuity
+                    continuity: liveCapture.isContinuity,
+                    capture: MatchMath.leftoverSessionCapture(
+                        old: old.quality.capture,
+                        live: [adopted[bestJ].quality.capture]
+                    )
                 ) {
                     leftoverPending[adopted[bestJ].id] = MatchMath.leftoverHoldLabel(
                         cosine: pinCos,

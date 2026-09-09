@@ -1,3 +1,47 @@
+# 2.1.238 — leftoverHoldsTrack capture, Burst 3, Wake CS, skip ci.
+
+## In 2.1.238 wirklich im Code
+
+2.1.237 skipDetect IoU. leftoverHoldsTrack leftoverPrintOk ohne capture. Burst-Replace vor 3 Refs. Wake CS immer force.
+
+1. **leftoverHoldsTrack capture.** leftoverSessionCapture → leftoverPrintOk. Nacht-Floor.
+2. **enrollBurstReady** vor Burst-Replace (faceIds ≥ 3).
+3. **reconnectCenterStageOff** in recoverAfterWake.
+4. Tests + VERSION = Models = MARKETING 2.1.238 (Build 263). Schema 15 bleibt.
+
+## Erweiterung (neu, 2.1.238)
+
+1. **CameraBroker XPC + IOSurface** mit Helios. Eine TCC. P0.
+2. **VNImageRequestHandler(cvPixelBuffer:)** Detect+Print ohne 420f→CGImage.
+3. **Gallery Index Pose-Bin + Name.** leftoverPick nicht O(n).
+4. **HNSW / ANN** nach dem Index.
+5. **LiveCapture nicht @MainActor.**
+6. **Adaptive skipDetect.** Track-Konfidenz hoch → skip mehr.
+7. **Kalman R aus Vision-Track-Confidence.**
+8. **leftoverOpenSetEnergy als Unsure-Chip** statt Gast n+1.
+9. **leftoverTwinSameShot live** same-frame IoU.
+10. **Print-Cache Pose-Bin LRU.**
+11. **Print-Crop aus VNFaceObservation** der Detect.
+12. **Template-Aging.**
+13. **FA-JSONL Kalibrierung.**
+14. **Glasses On/Off Twin-Templates.**
+15. **leftoverHoldTrail Disk persist.**
+16. **Overlay CAMetalLayer 60 Hz.**
+17. **EAR + SM AND** Unnamed-Taufe.
+18. **Identity-Merge-Wizard.**
+19. **ReID-Graph.**
+20. **UMAP Cluster-View.**
+21. **Export Embeddings JSONL.**
+22. **Continuity Night-IR Galerie.**
+23. **Stereo Built-in + Continuity** Yaw-Prior.
+24. **HeliosAegisKit.**
+25. **Lookaway-Pin IoU-only.**
+26. **Detect-Skip every 4** bei Jitter.
+27. **Dual-Cam Yaw.**
+28. **leftoverBaptizeQuality live Overlay-Name.**
+29. **yawVelocityFreeze in leftoverPick.**
+30. **AE-Lock nach startRunning** wie Helios 1.6.91.
+
 # 2.1.237 — skipDetect IoU, overlayHint 0,70, skip ci.
 
 ## In 2.1.237 wirklich im Code

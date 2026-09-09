@@ -1,3 +1,51 @@
+# Aegis Vorschläge — 2026-09-09 (Pass 39, 2.1.238)
+
+Stand 2.1.238 alpha. leftoverHoldsTrack capture. Burst 3. Wake CS Continuity.
+
+## Gelandet in 2.1.238
+
+- leftoverHoldsTrack leftoverPrintOk(capture: leftoverSessionCapture)
+- enrollBurstReady vor Burst-Replace
+- reconnectCenterStageOff in recoverAfterWake
+
+## Erweiterung (neu)
+
+589. **CameraBroker XPC + IOSurface** mit Helios. P0.
+590. **VNImageRequestHandler(cvPixelBuffer:).** P1.
+591. **Gallery Index Pose-Bin + Name.**
+592. **HNSW Gallery.**
+593. **LiveCapture off MainActor.**
+594. **Adaptive skipDetect.**
+595. **Kalman R aus Vision-Track-Confidence.**
+596. **leftoverOpenSetEnergy Unsure-Chip** statt Gast n+1 (Pick sitzt).
+597. **leftoverTwinSameShot live.**
+598. **Print-Cache Pose-Bin LRU.**
+599. **Print aus VNFaceObservation.**
+600. **Template-Aging.**
+601. **FA-JSONL.**
+602. **Glasses On/Off.**
+603. **leftoverHoldTrail Disk.**
+604. **Overlay CAMetalLayer.**
+605. **HeliosAegisKit.**
+606. **EAR + SM AND.**
+607. **Identity-Merge-Wizard.**
+608. **ReID-Graph.**
+609. **Continuity Night-IR.**
+610. **Stereo Yaw-Prior.**
+611. **Lookaway-Pin IoU-only.**
+612. **Detect-Skip every 4.**
+613. **Dual-Cam Yaw.**
+614. **UMAP Cluster-View.**
+615. **Export Embeddings JSONL.**
+616. **boxKalmanW/H Vel.**
+617. **enrollSMReady haveProfile.**
+618. **leftoverBaptizeQuality live Overlay-Name.**
+619. **yawVelocityFreeze in leftoverPick.**
+620. **leftoverOverlayLerp DisplayLink 60 Hz.**
+621. **AE-Lock nach startRunning** (Helios 1.6.91, Aegis applyBestFormat vor Unlock).
+
+P0: CameraBroker. Kein neues leftover*-Flag. Branch `bugfix` nicht mergen.
+
 # Aegis Vorschläge — 2026-09-09 (Pass 38, 2.1.237)
 
 Stand 2.1.237 alpha. skipDetect IoU statt ==. overlayHint Profil 0,70.

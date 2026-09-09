@@ -6279,6 +6279,32 @@ enum MatchMathTests {
         )
         ok(MatchMath.leftoverHoldLabel(cosine: 0.64, yawAbs: -0.35) == "gehalten 0,64 · ¾L", "Hold-Chip ¾L signed")
         ok(MatchMath.leftoverHoldLabel(cosine: 0.64, yawAbs: 0.35) == "gehalten 0,64 · ¾R", "Hold-Chip ¾R signed")
+        ok(
+            MatchMath.leftoverHoldsTrack(cosine: 0.61, sharpness: 0.30, capture: 0.18),
+            "Nacht 0,61 Overlay halten"
+        )
+        ok(
+            !MatchMath.leftoverHoldsTrack(cosine: 0.61, sharpness: 0.30),
+            "Tag 0,61 kein Hold"
+        )
+        near(
+            MatchMath.leftoverSessionCapture(old: 0.70, live: [0.18]) ?? -1,
+            0.18,
+            1e-12,
+            "Session Capture Live-Nacht"
+        )
+        ok(MatchMath.enrollBurstReady(count: 3), "Burst 3 Ready")
+        ok(!MatchMath.enrollBurstReady(count: 1), "Burst 1 tot")
+        ok(
+            MatchMath.reconnectCenterStageOff(continuity: true, enabled: true),
+            "Wake Continuity CS aus"
+        )
+        ok(
+            !MatchMath.reconnectCenterStageOff(continuity: false, enabled: true),
+            "Wake Built-in CS reconnect tot"
+        )
+        ok(MatchMath.leftoverOpenSetEnergy([0.80, 0.72]) > 0, "OpenSet Energy Twin")
+        ok(MatchMath.leftoverOpenSetUnsure(scores: [0.80, 0.72]), "OpenSet Unsure Chip")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

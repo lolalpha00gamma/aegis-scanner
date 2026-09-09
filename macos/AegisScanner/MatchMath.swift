@@ -8312,11 +8312,12 @@ enum MatchMath {
         jpegRequired: Bool = false,
         nameLockUntil: TimeInterval? = nil,
         jump: Double = leftoverIoUJump,
-        continuity: Bool = false
+        continuity: Bool = false,
+        capture: Double? = nil
     ) -> Bool {
         if leftoverIoUJumpBlocks(iou, jump: jump) { return false }
         if leftoverNameLockBlocks(until: nameLockUntil, now: now) { return true }
-        return leftoverPrintOk(cosine: cosine, sharpness: sharpness, yawAbs: nil) && !leftoverTransfersId(
+        return leftoverPrintOk(cosine: cosine, sharpness: sharpness, yawAbs: nil, capture: capture) && !leftoverTransfersId(
             cosine: cosine, holdPrev: holdPrev, trail: trail, tapUntil: tapUntil, now: now, stillFor: stillFor,
             sharpness: sharpness, yawAbs: yawAbs, blink: blink, jpegDelta: jpegDelta, iou: iou,
             jpegRequired: jpegRequired, nameLockUntil: nameLockUntil, jump: jump, continuity: continuity

@@ -1,4 +1,4 @@
-# Aegis **2.1.237 alpha**
+# Aegis **2.1.238 alpha**
 
 
 
@@ -7,6 +7,15 @@ Direkt laden:
 - [Releases](https://github.com/lolalpha00gamma/aegis-scanner/releases)
 
 Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
+## Neu in 2.1.238 alpha
+
+Warum Overlay nachts den Twin fallen ließ und Burst die erste Referenz fraß: `leftoverHoldsTrack` rief `leftoverPrintOk` ohne capture. `enrollBurstReady` tot — SM-Cache aus leftover-Prints war ready. Wake schaltete Center Stage immer `force: true`.
+
+- **Nacht-Floor am Overlay-Hold.** leftoverSessionCapture → leftoverPrintOk.
+- **Burst erst ab 3 Refs.** SM-Cache allein ersetzt nicht.
+- **Wake CS nur Continuity-Reconnect.** Built-in über needsReassert.
+- Tests + VERSION = Models = MARKETING 2.1.238 (Build 263). Schema 15 bleibt.
+
 ## Neu in 2.1.237 alpha
 
 Warum skipDetect-Overlay nach 2.1.236 weiter sprang: `kalmanBox == vision` ist bit-gleich. leftoverPredictHeld und der async-Snap sind nie identisch — der Zweig adoptete den alten Snap und wischte die Predict. overlayHint sagte „Profil“ erst ab 0,75, poseSlot ab 0,70.
