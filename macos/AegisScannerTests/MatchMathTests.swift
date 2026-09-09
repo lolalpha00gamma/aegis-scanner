@@ -6165,6 +6165,36 @@ enum MatchMathTests {
         ok(setEnc == MatchMath.leftoverPrintCacheEncode(["z#0", "a#0"] as Set<String>), "Set-Encode ohne Sort stabil-ish")
         ok(setEnc.count == 2, "Set-Encode ohne lex Sort drop keine Keys")
 
+        let trailFold = MatchMath.leftoverTrailNowOf(idTrail: [0.80], binTrail: [0.64], yawAbs: 0.35)
+        ok(trailFold == MatchMath.leftoverHoldTrailOf(uuidTrail: [0.80], yawAbs: 0.35, binTrail: [0.64]), "Trail fold ¾")
+        ok(MatchMath.leftoverTrailNowOf(idTrail: [0.80], binTrail: [0.64], yawAbs: 0) == [0.80], "Trail fold frontal")
+        ok(MatchMath.leftoverTrailNowOf(idTrail: [0.80], binTrail: [0.64], yawAbs: -0.40) == [0.64], "Trail fold ¾L signed")
+        ok(
+            MatchMath.leftoverNameFromHold(hasHold: true, hold: 0.90)
+                == MatchMath.leftoverShowsName(cosine: 0.90),
+            "ShowsName fold baptize"
+        )
+        ok(
+            MatchMath.leftoverNameFromHold(hasHold: true, hold: 0.40)
+                == MatchMath.leftoverShowsName(cosine: 0.40),
+            "ShowsName fold unsicher"
+        )
+        ok(MatchMath.leftoverEmptyKeepsStreak(liveEmpty: true), "Empty Streak live")
+        ok(MatchMath.leftoverEmptyKeepsOverlay(liveEmpty: true), "Empty Overlay live")
+        let fillAfter = MatchMath.leftoverAssignLive(
+            scores: [[nil, nil], [nil, nil]],
+            liveX: [0.20, 0.80],
+            holdX: [0.22, 0.78]
+        )
+        ok(fillAfter[0] == 0 && fillAfter[1] == 1, "AssignLive FillX ohne Print")
+        ok(
+            MatchMath.leftoverEmptyKeepsOverlay(liveEmpty: true)
+                && !MatchMath.leftoverEmptyKeepsOverlay(liveEmpty: false),
+            "Empty Overlay keep nur empty"
+        )
+        ok(MatchMath.leftoverNeedsPrint(cosine: nil), "NeedsPrint cosine nil")
+        ok(!MatchMath.leftoverNeedsPrint(cosine: 0.80), "NeedsPrint mit Hold tot")
+
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)
             exit(1)

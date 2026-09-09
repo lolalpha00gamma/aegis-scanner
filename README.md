@@ -1,4 +1,4 @@
-# Aegis **2.1.232 alpha**
+# Aegis **2.1.233 alpha**
 
 
 
@@ -7,6 +7,18 @@ Direkt laden:
 - [Releases](https://github.com/lolalpha00gamma/aegis-scanner/releases)
 
 Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
+## Neu in 2.1.233 alpha
+
+Warum Identitäten nach Dropout ohne Print tauschten und ¾-Trails doppelt lagen: `leftoverAssignFillX` war nur Tests — `leftoverAssignLive` füllte nil-Zeilen nicht per x-order bevor Twin-Drop. `leftoverTrailNowOf` und `leftoverHoldTrailOf` duplizierten Bin-Wahl. `leftoverShowsName` tot neben leftoverNameFromHold.
+
+- **leftoverAssignFillX in leftoverAssignLive.** Vor DropAmbiguous, Restart/Dropout ohne Embedding bindet x-order.
+- **leftoverTrailNowOf → leftoverHoldTrailOf.** Ein ¾/Frontal-Trail.
+- **leftoverNameFromHold → leftoverShowsName.** Baptize einmal.
+- **leftoverEmptyKeepsStreak** an leftoverHoldSurvive.
+- **leftoverEmptyKeepsOverlay** vor leftoverPending-Wipe (2.1.78 Ghost).
+- **leftoverNeedsPrint** trotz Print-Budget wenn cosine nil.
+- Tests + VERSION = Models = MARKETING 2.1.233 (Build 258). Schema 15 bleibt.
+
 ## Installieren
 
 1. [Aegis.dmg](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg) öffnen

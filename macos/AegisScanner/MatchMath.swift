@@ -3882,18 +3882,23 @@ enum MatchMath {
         }
         assigned = leftoverAssignDropAmbiguous(
             scores: scores,
-            assigned: leftoverAssignHungarianX(
+            assigned: leftoverAssignFillX(
                 assigned: leftoverAssignHungarianX(
-                    assigned: assigned,
+                    assigned: leftoverAssignHungarianX(
+                        assigned: assigned,
+                        liveX: liveX,
+                        holdX: holdX,
+                        pad: leftoverFillXPadPref(padFill),
+                        scores: scores
+                    ),
                     liveX: liveX,
                     holdX: holdX,
-                    pad: leftoverFillXPadPref(padFill),
+                    pad: leftoverFillXRescuePref(pad),
                     scores: scores
                 ),
                 liveX: liveX,
                 holdX: holdX,
-                pad: leftoverFillXRescuePref(pad),
-                scores: scores
+                pad: leftoverFillXPadPref(padFill)
             )
         )
         return leftoverAssignHungarianXDropForbidden(
@@ -7127,8 +7132,7 @@ enum MatchMath {
 
     /// ¾ liest nicht den Frontal-UUID-Trail. Sonst trailMean 0,81 tauft den Twin.
     static func leftoverTrailNowOf(idTrail: [Double], binTrail: [Double] = [], yawAbs: Double? = nil) -> [Double] {
-        if leftoverHoldBinSigned(yaw: yawAbs ?? 0) != 0 { return binTrail }
-        return idTrail
+        leftoverHoldTrailOf(uuidTrail: idTrail, yawAbs: yawAbs, binTrail: binTrail)
     }
 
     static func leftoverHoldBinWriteOk(sharpness: Double?, yawAbs: Double = 0) -> Bool {
@@ -8545,10 +8549,8 @@ enum MatchMath {
     /// Overlay: ohne leftover Live-Pin. Mit leftover nur wenn diese Pose tauft — ¾ ohne Bin nicht Frontal-Name.
     static func leftoverNameFromHold(hasHold: Bool, hold: Double?, yawAbs: Double? = nil) -> Bool {
         if !hasHold { return true }
-        if leftoverHoldBin(yawAbs: yawAbs ?? 0) != 0 {
-            return leftoverBaptize(cosine: hold)
-        }
-        return leftoverBaptize(cosine: hold)
+        _ = yawAbs
+        return leftoverShowsName(cosine: hold)
     }
 
     static func unknownStickyName(index: Int) -> String {

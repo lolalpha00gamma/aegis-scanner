@@ -1,3 +1,57 @@
+# 2.1.233 — Assign FillX, Trail/Name-Fold, Empty-Streak, Overlay-Keep, NeedsPrint, skip ci.
+
+## In 2.1.233 wirklich im Code
+
+2.1.232 Spark/Pick signed. leftoverAssignFillX tot. Trail doppelt. ShowsName tot. Overlay-Wipe vor Miss-Coast. Print-Budget skippt cosine-nil.
+
+1. **leftoverAssignFillX in leftoverAssignLive** vor DropAmbiguous.
+2. **leftoverTrailNowOf → leftoverHoldTrailOf.**
+3. **leftoverNameFromHold → leftoverShowsName.**
+4. **leftoverEmptyKeepsStreak** an leftoverHoldSurvive.
+5. **leftoverEmptyKeepsOverlay** vor leftoverPending-Wipe.
+6. **leftoverNeedsPrint** filtert skipIdsAll.
+7. Tests + VERSION = Models = MARKETING 2.1.233 (Build 258). Schema 15 bleibt.
+
+## Erweiterung (neu, 2.1.233)
+
+1. **CameraBroker XPC + IOSurface** mit Helios. Eine TCC. P0.
+2. **VNImageRequestHandler(cvPixelBuffer:)** Detect+Print ohne 420f→CGImage.
+3. **Gallery Index Pose-Bin + Name.** leftoverPick nicht O(n) alle Prints.
+4. **HNSW / ANN** nach dem Index.
+5. **LiveCapture nicht @MainActor.** Mutex-Beat auf outputQueue.
+6. **Print-Crop aus VNFaceObservation** der Detect — kein zweiter Landmarks+Print-Pass.
+7. **Template-Aging** Prints > N Tage runtergewichten.
+8. **FA-JSONL Kalibrierung** leftoverBaptizeFloor je Paar.
+9. **Glasses On/Off Twin-Templates.**
+10. **leftoverHoldTrail Disk persist** inkl. TTL.
+11. **Overlay CAMetalLayer 60 Hz**, Detect 8–24.
+12. **EAR + SM AND** Unnamed-Taufe.
+13. **Face-Print Versioning.**
+14. **gallery.json.bak .bak.1/.bak.2.**
+15. **Identity-Merge-Wizard.**
+16. **ReID-Graph** Hold-Trail.
+17. **UMAP Cluster-View.**
+18. **Export Embeddings JSONL.**
+19. **Continuity Night-IR eigene Galerie.**
+20. **Stereo Built-in + Continuity** Yaw-Prior.
+21. **Per-Camera WB-Lock.**
+22. **gemeinsamer CVPixelBuffer** Detect+Print.
+23. **HeliosAegisKit** Mutex-Protokoll einmal.
+24. **Spark-Chip Hash-Bin signed** in leftoverSparkChipHashPut.
+25. **Lookaway-Pin IoU-only** nicht leftoverPick.
+26. **leftoverAssignFillX Pad** Continuity weiter als Built-in.
+27. **Kalman-Vel leftoverFaceTrackKalmanVel** live, Overlay nicht 8-Hz-Sprung.
+28. **enrollSMReady** nicht nur FromChip — Smile+Yaw-Gate vor Burst.
+29. **leftoverPredictBoxes** zwischen Detect-Ticks, nicht nur Miss-Coast.
+30. **Print-Bank leftoverPrintCacheDecode** nach App-Restart, nicht kalt.
+31. **Twin-Yaw-Prior** leftoverAssignTwinYawCull härter bei 2L+2R.
+32. **leftoverBaptizeQuality** live vor Taufe, nicht nur Tests.
+33. **leftoverOverlayLerp** zwischen 8-Hz-Detect, Kiste nicht teleport.
+34. **leftoverOpenSetUnsure** statt Gast n+1 bei Gap.
+35. **leftoverCoastPrintVecOf** skipPrints ohne Vec nicht leftoverHold tot.
+
+P0: CameraBroker. Kein neues leftover*-Flag. Branch `bugfix` nicht mergen.
+
 # 2.1.232 — Spark/Pick signed yaw, Lookaway abs, skip ci.
 
 ## In 2.1.232 wirklich im Code

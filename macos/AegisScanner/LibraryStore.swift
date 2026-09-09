@@ -2585,7 +2585,8 @@ final class LibraryStore: ObservableObject {
             }
             return row.id
         })
-        let skipIdsAll = skipIds.union(skipPrintCached)
+        var skipIdsAll = skipIds.union(skipPrintCached)
+        skipIdsAll = Set(skipIdsAll.filter { !MatchMath.leftoverNeedsPrint(cosine: leftoverHold[$0]) })
         let roiKalman = MatchMath.liveRoiTracks(tracks: kalmanSnap, skipIds: skipIdsAll)
         let roiTuple = MatchMath.liveRoiBox(
             kalman: roiKalman,
@@ -3004,7 +3005,7 @@ final class LibraryStore: ObservableObject {
         let emptyFor = leftoverEmptySince.map { now - $0 } ?? 0
         let emptyLatch = emptyLike && MatchMath.leftoverLatchKeeps(emptyFor: emptyFor)
         let emptyChip = emptyLike && MatchMath.leftoverLatchChipKeeps(emptyFor: emptyFor)
-        if !emptyChip {
+        if !emptyChip && !MatchMath.leftoverEmptyKeepsOverlay(liveEmpty: emptyLike) {
             leftoverPending = [:]
         }
         var adopted: [FaceObservation] = []
@@ -3820,12 +3821,12 @@ final class LibraryStore: ObservableObject {
             leftoverOverlayPeakHeld = advanced.held
             leftoverOverlayPeakRemain = advanced.remain
         }
-        leftoverHold = MatchMath.leftoverHoldSurvive(hold: leftoverHold, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)
-        leftoverHoldBins = MatchMath.leftoverHoldSurviveBins(hold: leftoverHoldBins, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)
-        leftoverHoldTrail = MatchMath.leftoverHoldSurvive(hold: leftoverHoldTrail, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)
-        leftoverHoldTrailBins = MatchMath.leftoverHoldSurviveBinMap(hold: leftoverHoldTrailBins, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)
-        liveSlotHold = MatchMath.leftoverHoldSurvive(hold: liveSlotHold, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)
-        leftoverMissFrames = MatchMath.leftoverHoldSurvive(hold: leftoverMissFrames, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)
+        leftoverHold = MatchMath.leftoverHoldSurvive(hold: leftoverHold, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: MatchMath.leftoverEmptyKeepsStreak(liveEmpty: emptyLike) && emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)
+        leftoverHoldBins = MatchMath.leftoverHoldSurviveBins(hold: leftoverHoldBins, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: MatchMath.leftoverEmptyKeepsStreak(liveEmpty: emptyLike) && emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)
+        leftoverHoldTrail = MatchMath.leftoverHoldSurvive(hold: leftoverHoldTrail, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: MatchMath.leftoverEmptyKeepsStreak(liveEmpty: emptyLike) && emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)
+        leftoverHoldTrailBins = MatchMath.leftoverHoldSurviveBinMap(hold: leftoverHoldTrailBins, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: MatchMath.leftoverEmptyKeepsStreak(liveEmpty: emptyLike) && emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)
+        liveSlotHold = MatchMath.leftoverHoldSurvive(hold: liveSlotHold, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: MatchMath.leftoverEmptyKeepsStreak(liveEmpty: emptyLike) && emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)
+        leftoverMissFrames = MatchMath.leftoverHoldSurvive(hold: leftoverMissFrames, ghosts: ghostIds, live: liveIds + adopted.map(\.id), emptyKeeps: MatchMath.leftoverEmptyKeepsStreak(liveEmpty: emptyLike) && emptyLatch, emptyFor: emptyFor, locked: lockedIds, missCoast: missCoast)
         let keepBoxes = MatchMath.leftoverKeepBoxes(
             used: used,
             dropped: dropped,
