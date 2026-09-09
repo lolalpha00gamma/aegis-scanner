@@ -2149,6 +2149,22 @@ enum MatchMathTests {
         ok(!MatchMath.leftoverBaptizeQuality(sharpness: 0.08, yawAbs: 0.10), "Blur keine Taufe")
         ok(!MatchMath.leftoverBaptizeQuality(sharpness: 0.40, yawAbs: 0.50), "Profil keine Taufe")
         ok(!MatchMath.leftoverBaptizeQuality(sharpness: 0.40, yawAbs: 0.10, blink: true), "Blink keine Taufe")
+        ok(
+            !MatchMath.leftoverBaptizeQuality(sharpness: 0.14, yawAbs: 0),
+            "Tag Laplacian 0,14 Produkt tot"
+        )
+        ok(
+            MatchMath.leftoverBaptizeQuality(sharpness: 0.14, yawAbs: 0, capture: 0.18),
+            "Nacht Laplacian 0,14 Taufe"
+        )
+        ok(
+            !MatchMath.leftoverTransfersId(cosine: 0.82, holdPrev: 0.80, sharpness: 0.14),
+            "Tag Transfer 0,14 tot"
+        )
+        ok(
+            MatchMath.leftoverTransfersId(cosine: 0.82, holdPrev: 0.80, sharpness: 0.14, capture: 0.18),
+            "Nacht Transfer 0,14"
+        )
         ok(!MatchMath.leftoverBaptizeBoth(raw: 0.82, smooth: 0.80, sharpness: 0.08), "Blur leftoverBaptizeBoth")
         ok(MatchMath.leftoverBaptizeBoth(raw: 0.82, smooth: 0.80, sharpness: 0.40), "scharf leftoverBaptizeBoth")
         var ticks = MatchMath.leftoverScoreTickPut(0.70, onto: [])
@@ -3177,13 +3193,16 @@ enum MatchMathTests {
         let kEncId = persistOld
         let kEnc = MatchMath.leftoverHoldKalmanEncode(
             [kEncId: (x: 0.20, y: 0.30, w: 0.10, h: 0.12, px: 0.04, py: 0.04, pw: 0.04, ph: 0.04)],
-            vel: [kEncId: (vx: 0.08, vy: -0.02)]
+            vel: [kEncId: (vx: 0.08, vy: -0.02)],
+            whv: [kEncId: (vw: 0.05, vh: -0.01)]
         )
         let kDec = MatchMath.leftoverHoldKalmanDecode(kEnc)
         near(kDec.kalman[kEncId]?.x ?? 0, 0.20, 0.001, "Kalman persist x")
         near(kDec.kalman[kEncId]?.h ?? 0, 0.12, 0.001, "Kalman persist h")
         near(kDec.vel[kEncId]?.vx ?? 0, 0.08, 0.001, "Kalman persist vx")
+        near(kDec.whv[kEncId]?.vw ?? 0, 0.05, 0.001, "Kalman persist vw")
         ok(MatchMath.leftoverHoldKalmanDecode(nil).kalman.isEmpty, "Kalman persist nil")
+        ok(MatchMath.leftoverHoldKalmanDecode(nil).whv.isEmpty, "Kalman persist nil WHV")
         ok(!MatchMath.leftoverHoldMissHit(live: 0, adopted: 0), "Miss Hit tot")
         ok(MatchMath.leftoverHoldMissHit(live: 1, adopted: 0), "Miss Hit live")
         ok(MatchMath.leftoverHoldMissHit(live: 0, adopted: 1), "Miss Hit adopted")
@@ -4334,6 +4353,10 @@ enum MatchMathTests {
             box: liveBox, px: 0.20, py: 0, dt: 0.10, miss: 1
         )
         ok(abs(held.box.x - 0.14) < 1e-9 && held.px == 0.20, "PredictHeld Miss 1")
+        let heldWH = MatchMath.leftoverFaceTrackPredictHeld(
+            box: liveBox, px: 0.20, py: 0, dt: 0.10, miss: 1, pw: 0.20, ph: 0.20
+        )
+        ok(abs(heldWH.box.w - 0.32) < 1e-9 && heldWH.pw == 0.20, "PredictHeld W/H")
         let decayed = MatchMath.leftoverFaceTrackPredictHeld(
             box: liveBox, px: 1, py: 0, dt: 0.10, miss: 2
         )
@@ -5154,6 +5177,14 @@ enum MatchMathTests {
         )
         ok(MatchMath.leftoverAssignPrintOk(cosine: 0.77, continuity: true), "Continuity 0,77 Assign")
         ok(!MatchMath.leftoverAssignPrintOk(cosine: 0.77, continuity: false), "Webcam 0,77 Assign tot")
+        ok(
+            !MatchMath.leftoverAssignPrintOk(cosine: 0.81, sharpness: 0.14),
+            "Tag Assign 0,14 tot"
+        )
+        ok(
+            MatchMath.leftoverAssignPrintOk(cosine: 0.81, sharpness: 0.14, capture: 0.18),
+            "Nacht Assign 0,14"
+        )
         ok(MatchMath.leftoverPrintOk(cosine: 0.64) && !MatchMath.leftoverAssignPrintOk(cosine: 0.64), "Hold ≠ Taufe")
         let twinOv = MatchMath.leftoverBoxOverlapX(a: (0.10, 0.20), b: (0.15, 0.20))
         ok(twinOv + 1e-12 >= 0.45, "Twin Overlap ~0,60")
@@ -5302,6 +5333,11 @@ enum MatchMathTests {
         ok(MatchMath.leftoverOverlayFirmName(storeName: "Ada", cosine: 0.81, yawAbs: 0.50) == nil, "Firm Profil tot")
         ok(MatchMath.leftoverOverlayFirmName(storeName: "Ada", cosine: 0.81, yawAbs: 0.10) == "Ada", "Firm frontal")
         ok(MatchMath.leftoverOverlayFirmName(storeName: "Ada", cosine: 0.81, sharpness: 0.08) == nil, "Firm Blur tot")
+        ok(MatchMath.leftoverOverlayFirmName(storeName: "Ada", cosine: 0.81, sharpness: 0.14) == nil, "Firm Tag 0,14 tot")
+        ok(
+            MatchMath.leftoverOverlayFirmName(storeName: "Ada", cosine: 0.81, sharpness: 0.14, capture: 0.18) == "Ada",
+            "Firm Nacht 0,14"
+        )
         ok(MatchMath.holdStillRingWidth(dt: 0.125) > MatchMath.holdStillRingWidth(dt: 0.016), "8 fps Still-Ring dicker")
         ok(MatchMath.leftoverPrintEmaNeed(dt: 0.125) == 2, "8 fps EMA 2")
         ok(MatchMath.leftoverPrintEmaNeed(dt: 0.04) == 3, "24 fps EMA 3")

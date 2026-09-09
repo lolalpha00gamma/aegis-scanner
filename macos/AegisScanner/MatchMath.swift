@@ -1790,8 +1790,9 @@ enum MatchMath {
 
     static let leftoverBaptizeQualityFloor = 0.18
 
-    static func leftoverBaptizeQualityFloorOf(continuity: Bool) -> Double {
-        continuity ? 0.06 : leftoverBaptizeQualityFloor
+    static func leftoverBaptizeQualityFloorOf(continuity: Bool, capture: Double? = nil) -> Double {
+        if continuity || leftoverSessionLumaLow(capture) { return 0.06 }
+        return leftoverBaptizeQualityFloor
     }
 
     /// Produkt Blur × Pose. Blink = 0. OR-Gates allein ließen weichen Blur + leichten Yaw durch.
@@ -1809,11 +1810,12 @@ enum MatchMath {
 
     /// Taufe roh ≥ 0,80 UND smooth ≥ 0,80. nil Smooth ist Dropout, nicht Taufe.
     /// Qualität: Blur / Blink / Profil sperren — Poster und Lid-Schluss taufen sonst den Nachbarn.
-    static func leftoverBaptizeQuality(sharpness: Double? = nil, yawAbs: Double? = nil, blink: Bool = false, continuity: Bool = false) -> Bool {
+    static func leftoverBaptizeQuality(sharpness: Double? = nil, yawAbs: Double? = nil, blink: Bool = false, continuity: Bool = false, capture: Double? = nil) -> Bool {
         if blink { return false }
         if let y = yawAbs, abs(y) >= leftoverPrintProfileYaw { return false }
-        if let s = sharpness, s < activeSharpnessFloor(continuity: continuity) { return false }
-        return leftoverBaptizeQualityProduct(sharpness: sharpness, yawAbs: yawAbs, blink: blink) + 1e-12 >= leftoverBaptizeQualityFloorOf(continuity: continuity)
+        let floor = leftoverSessionLumaLow(capture) ? leftoverPrintSharpOf(capture: capture, continuity: continuity) : activeSharpnessFloor(continuity: continuity)
+        if let s = sharpness, s < floor { return false }
+        return leftoverBaptizeQualityProduct(sharpness: sharpness, yawAbs: yawAbs, blink: blink) + 1e-12 >= leftoverBaptizeQualityFloorOf(continuity: continuity, capture: capture)
     }
 
     static func leftoverBaptizeBoth(
@@ -1822,11 +1824,12 @@ enum MatchMath {
         sharpness: Double? = nil,
         yawAbs: Double? = nil,
         blink: Bool = false,
-        continuity: Bool = false
+        continuity: Bool = false,
+        capture: Double? = nil
     ) -> Bool {
         leftoverBaptize(cosine: raw, continuity: continuity)
             && leftoverBaptize(cosine: smooth, continuity: continuity)
-            && leftoverBaptizeQuality(sharpness: sharpness, yawAbs: yawAbs, blink: blink, continuity: continuity)
+            && leftoverBaptizeQuality(sharpness: sharpness, yawAbs: yawAbs, blink: blink, continuity: continuity, capture: capture)
     }
 
     static func leftoverBaptizeGate(
@@ -1837,9 +1840,10 @@ enum MatchMath {
         blink: Bool = false,
         jpegDelta: Double? = nil,
         jpegRequired: Bool = false,
-        continuity: Bool = false
+        continuity: Bool = false,
+        capture: Double? = nil
     ) -> Bool {
-        leftoverBaptizeBoth(raw: raw, smooth: smooth, sharpness: sharpness, yawAbs: yawAbs, blink: blink, continuity: continuity)
+        leftoverBaptizeBoth(raw: raw, smooth: smooth, sharpness: sharpness, yawAbs: yawAbs, blink: blink, continuity: continuity, capture: capture)
             && leftoverBaptizeJpegOk(jpegDelta, required: jpegRequired)
     }
 
@@ -1848,10 +1852,11 @@ enum MatchMath {
         cosine: Double?,
         sharpness: Double? = nil,
         yawAbs: Double? = nil,
-        continuity: Bool = false
+        continuity: Bool = false,
+        capture: Double? = nil
     ) -> Bool {
         leftoverBaptize(cosine: cosine, continuity: continuity)
-            && leftoverBaptizeQuality(sharpness: sharpness, yawAbs: yawAbs, continuity: continuity)
+            && leftoverBaptizeQuality(sharpness: sharpness, yawAbs: yawAbs, continuity: continuity, capture: capture)
     }
 
     /// Score-Zelle: Taufe bleibt Cosine. Gemessen unter Taufe = 0. nil = kein Vec (Remint).
@@ -1864,7 +1869,8 @@ enum MatchMath {
         twinOtherCosine: Double? = nil,
         twinYawDelta: Double = 0,
         alreadyNamed: Bool = false,
-        blinkOk: Bool = true
+        blinkOk: Bool = true,
+        capture: Double? = nil
     ) -> Double? {
         guard let cosine else { return nil }
         if !leftoverTwinLockBaptizeOk(
@@ -1875,7 +1881,7 @@ enum MatchMath {
             return 0
         }
         let printOk = leftoverAssignPrintOk(
-            cosine: cosine, sharpness: sharpness, yawAbs: yawAbs, continuity: continuity
+            cosine: cosine, sharpness: sharpness, yawAbs: yawAbs, continuity: continuity, capture: capture
         )
         if !leftoverAssignBlinkOk(printOk: printOk, blinkOk: blinkOk, alreadyNamed: false) {
             return 0
@@ -1926,22 +1932,23 @@ enum MatchMath {
         jpegRequired: Bool = false,
         nameLockUntil: TimeInterval? = nil,
         jump: Double = leftoverIoUJump,
-        continuity: Bool = false
+        continuity: Bool = false,
+        capture: Double? = nil
     ) -> Bool {
         if tapNameLockBlocks(until: tapUntil, now: now) { return false }
         if leftoverNameLockBlocks(until: nameLockUntil, now: now) { return false }
         if leftoverBaptizeStillBlocks(stillFor: stillFor, cosine: cosine, holdPrev: holdPrev, continuity: continuity) { return false }
         if leftoverIoUJumpBlocks(iou, jump: jump) { return false }
         guard leftoverBaptize(cosine: cosine, continuity: continuity) else { return false }
-        if !leftoverBaptizeQuality(sharpness: sharpness, yawAbs: yawAbs, blink: blink, continuity: continuity) { return false }
+        if !leftoverBaptizeQuality(sharpness: sharpness, yawAbs: yawAbs, blink: blink, continuity: continuity, capture: capture) { return false }
         if !leftoverBaptizeJpegOk(jpegDelta, required: jpegRequired) { return false }
         if printMADBlocks(trail) { return false }
         let trailMean: Double? = trail.isEmpty ? nil : trail.reduce(0, +) / Double(trail.count)
         if leftoverBaptizeSpike(raw: cosine, prev: holdPrev, continuity: continuity) {
             let n = trail.filter { leftoverBaptize(cosine: $0, continuity: continuity) }.count
-            return n >= 3 && leftoverBaptizeGate(raw: cosine, smooth: trailMean, sharpness: sharpness, yawAbs: yawAbs, blink: blink, jpegDelta: jpegDelta, jpegRequired: jpegRequired, continuity: continuity)
+            return n >= 3 && leftoverBaptizeGate(raw: cosine, smooth: trailMean, sharpness: sharpness, yawAbs: yawAbs, blink: blink, jpegDelta: jpegDelta, jpegRequired: jpegRequired, continuity: continuity, capture: capture)
         }
-        return leftoverBaptizeGate(raw: cosine, smooth: holdPrev, sharpness: sharpness, yawAbs: yawAbs, blink: blink, jpegDelta: jpegDelta, jpegRequired: jpegRequired, continuity: continuity)
+        return leftoverBaptizeGate(raw: cosine, smooth: holdPrev, sharpness: sharpness, yawAbs: yawAbs, blink: blink, jpegDelta: jpegDelta, jpegRequired: jpegRequired, continuity: continuity, capture: capture)
     }
 
     static let leftoverBaptizeStillNeed: TimeInterval = 0.45
@@ -4963,10 +4970,16 @@ enum MatchMath {
         px: Double,
         py: Double,
         dt: Double,
-        miss: Int
-    ) -> (box: FaceTrackBox, px: Double, py: Double) {
+        miss: Int,
+        pw: Double = 0,
+        ph: Double = 0
+    ) -> (box: FaceTrackBox, px: Double, py: Double, pw: Double, ph: Double) {
         let v = leftoverHoldKalmanVelDecay(vx: px, vy: py, miss: miss)
-        return (leftoverFaceTrackKalmanPredict(box: box, px: v.vx, py: v.vy, dt: dt), v.vx, v.vy)
+        let s = leftoverHoldKalmanVelDecay(vx: pw, vy: ph, miss: miss)
+        return (
+            leftoverFaceTrackKalmanPredict(box: box, px: v.vx, py: v.vy, dt: dt, pw: s.vx, ph: s.vy),
+            v.vx, v.vy, s.vx, s.vy
+        )
     }
 
     static func leftoverFaceTrackVelFromKalman(
@@ -5425,11 +5438,13 @@ enum MatchMath {
     /// Kalman RAM-only tot nach Restart. Schema 12 x/y/w/h/p + vel.
     static func leftoverHoldKalmanEncode(
         _ table: [UUID: (x: Double, y: Double, w: Double, h: Double, px: Double, py: Double, pw: Double, ph: Double)],
-        vel: [UUID: (vx: Double, vy: Double)] = [:]
+        vel: [UUID: (vx: Double, vy: Double)] = [:],
+        whv: [UUID: (vw: Double, vh: Double)] = [:]
     ) -> [String: [Double]] {
         Dictionary(uniqueKeysWithValues: table.map { id, k in
             let v = vel[id] ?? (vx: 0, vy: 0)
-            return (id.uuidString, [k.x, k.y, k.w, k.h, k.px, k.py, k.pw, k.ph, v.vx, v.vy])
+            let s = whv[id] ?? (vw: 0, vh: 0)
+            return (id.uuidString, [k.x, k.y, k.w, k.h, k.px, k.py, k.pw, k.ph, v.vx, v.vy, s.vw, s.vh])
         })
     }
 
@@ -5437,19 +5452,24 @@ enum MatchMath {
         _ raw: [String: [Double]]?
     ) -> (
         kalman: [UUID: (x: Double, y: Double, w: Double, h: Double, px: Double, py: Double, pw: Double, ph: Double)],
-        vel: [UUID: (vx: Double, vy: Double)]
+        vel: [UUID: (vx: Double, vy: Double)],
+        whv: [UUID: (vw: Double, vh: Double)]
     ) {
-        guard let raw else { return ([:], [:]) }
+        guard let raw else { return ([:], [:], [:]) }
         var kalman: [UUID: (x: Double, y: Double, w: Double, h: Double, px: Double, py: Double, pw: Double, ph: Double)] = [:]
         var vel: [UUID: (vx: Double, vy: Double)] = [:]
+        var whv: [UUID: (vw: Double, vh: Double)] = [:]
         for (k, v) in raw {
             guard let id = UUID(uuidString: k), v.count >= 8 else { continue }
             kalman[id] = (x: v[0], y: v[1], w: v[2], h: v[3], px: v[4], py: v[5], pw: v[6], ph: v[7])
             if v.count >= 10 {
                 vel[id] = (vx: v[8], vy: v[9])
             }
+            if v.count >= 12 {
+                whv[id] = (vw: v[10], vh: v[11])
+            }
         }
-        return (kalman, vel)
+        return (kalman, vel, whv)
     }
 
     /// Remint kopiert Kalman auf neue UUID. IoU-Sprung = Reset, sonst Box klebt am Ghost.
@@ -8322,7 +8342,7 @@ enum MatchMath {
         return leftoverPrintOk(cosine: cosine, sharpness: sharpness, yawAbs: nil, capture: capture) && !leftoverTransfersId(
             cosine: cosine, holdPrev: holdPrev, trail: trail, tapUntil: tapUntil, now: now, stillFor: stillFor,
             sharpness: sharpness, yawAbs: yawAbs, blink: blink, jpegDelta: jpegDelta, iou: iou,
-            jpegRequired: jpegRequired, nameLockUntil: nameLockUntil, jump: jump, continuity: continuity
+            jpegRequired: jpegRequired, nameLockUntil: nameLockUntil, jump: jump, continuity: continuity, capture: capture
         )
     }
 
@@ -9853,9 +9873,10 @@ enum MatchMath {
         cosine: Double?,
         continuity: Bool = false,
         sharpness: Double? = nil,
-        yawAbs: Double? = nil
+        yawAbs: Double? = nil,
+        capture: Double? = nil
     ) -> String? {
-        guard leftoverAssignPrintOk(cosine: cosine, sharpness: sharpness, yawAbs: yawAbs, continuity: continuity) else { return nil }
+        guard leftoverAssignPrintOk(cosine: cosine, sharpness: sharpness, yawAbs: yawAbs, continuity: continuity, capture: capture) else { return nil }
         guard let n = storeName, !n.isEmpty else { return nil }
         return n
     }

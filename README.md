@@ -1,4 +1,4 @@
-# Aegis **2.1.240 alpha**
+# Aegis **2.1.241 alpha**
 
 
 
@@ -7,6 +7,17 @@ Direkt laden:
 - [Releases](https://github.com/lolalpha00gamma/aegis-scanner/releases)
 
 Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
+## Neu in 2.1.241 alpha
+
+Warum Nacht-Taufe und Ghost-Größe nach 2.1.240 weiter tot waren: leftoverHoldsTrack hat SessionCapture, leftoverTransfersId / leftoverAssignPrintCell / leftoverBaptizeQuality nicht. Produkt 0,14 < Floor 0,18. leftoverGhostAspectLock bekam k.w/k.h — WHV decayte, Box wuchs nicht. Kalman-Persist nur vx/vy. LiveCapture lockt AE vor startRunning — Continuity setzt continuous.
+
+- **leftoverSessionCapture in leftoverTransfersId + leftoverAssignPrintCell.** Nacht-Floor 0,06.
+- **leftoverBaptizeQuality capture.** leftoverPrintSharpOf nachts, Produkt-Floor 0,06.
+- **leftoverFaceTrackPredictHeld pw/ph live.** leftoverGhostAspectLock lastW/H = Predict.
+- **Kalman WHV persist.** Encode 12, Decode restores boxKalmanWHV.
+- **AE/WB nach startRunning.** wie Helios 1.6.91. Wake reassert.
+- Tests + VERSION = Models = MARKETING 2.1.241 (Build 266). Schema 15 bleibt.
+
 ## Neu in 2.1.240 alpha
 
 Warum leftoverPick nachts weiter taufte und Exact-Hold nach Coast tot war: leftoverHoldsTrack hat SessionCapture, leftoverPick nahm Ghost-Capture. leftoverOccupiedLiveOnly / leftoverHoldSkipLookaway / leftoverGhostIds nur Tests.

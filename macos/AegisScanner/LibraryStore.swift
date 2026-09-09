@@ -390,6 +390,7 @@ final class LibraryStore: ObservableObject {
             let kal = MatchMath.leftoverHoldKalmanDecode(extra.leftoverHoldKalman)
             boxKalman = kal.kalman
             boxKalmanV = kal.vel
+            boxKalmanWHV = kal.whv
             leftoverKalmanRestoredAgo = boxKalman.isEmpty ? 99 : 0
             let coast = MatchMath.leftoverCoastPrintAgeDecode(
                 vecs: extra.leftoverCoastPrint,
@@ -525,7 +526,7 @@ final class LibraryStore: ObservableObject {
                 now: Date().timeIntervalSince1970,
                 ttl: jpegProbeTTL
             ),
-            leftoverHoldKalman: MatchMath.leftoverHoldKalmanEncode(boxKalman, vel: boxKalmanV),
+            leftoverHoldKalman: MatchMath.leftoverHoldKalmanEncode(boxKalman, vel: boxKalmanV, whv: boxKalmanWHV),
             leftoverHoldHashRemaining: MatchMath.leftoverHashHoldRemainingEncode(
                 leftoverHoldByHash,
                 now: Date().timeIntervalSince1970,
@@ -701,6 +702,7 @@ final class LibraryStore: ObservableObject {
             let kal = MatchMath.leftoverHoldKalmanDecode(extra.leftoverHoldKalman)
             boxKalman = kal.kalman
             boxKalmanV = kal.vel
+            boxKalmanWHV = kal.whv
             leftoverKalmanRestoredAgo = boxKalman.isEmpty ? 99 : 0
             let coast = MatchMath.leftoverCoastPrintAgeDecode(
                 vecs: extra.leftoverCoastPrint,
@@ -1836,14 +1838,17 @@ final class LibraryStore: ObservableObject {
     func leftoverOverlayGuestRaw(for id: UUID) -> String {
         let hist = liveNameHist[id] ?? []
         let need = MatchMath.nameTemporalNeed(family: false, dt: 0.125)
-        let sharpness = faces.first(where: { $0.id == id })?.quality.sharpness
+        let faceQ = faces.first(where: { $0.id == id })?.quality
+        let sharpness = faceQ?.sharpness
+        let capture = faceQ?.capture
         return MatchMath.leftoverOverlayGuestOf(
             storeName: MatchMath.leftoverOverlayFirmName(
                 storeName: leftoverStoreName(for: id),
                 cosine: leftoverHold[id],
                 continuity: liveCapture.isContinuity,
                 sharpness: sharpness,
-                yawAbs: liveYaw[id]
+                yawAbs: liveYaw[id],
+                capture: capture
             ),
             voted: MatchMath.nameTemporalVote(hist, dt: 0.125, family: false),
             hist: hist,
@@ -1855,7 +1860,8 @@ final class LibraryStore: ObservableObject {
                 cosine: leftoverHold[id],
                 continuity: liveCapture.isContinuity,
                 sharpness: sharpness,
-                yawAbs: liveYaw[id]
+                yawAbs: liveYaw[id],
+                capture: capture
             )
         )
     }
@@ -2915,27 +2921,21 @@ final class LibraryStore: ObservableObject {
 
     private func leftoverPredictHeld(keep: Set<UUID>, skip: Set<UUID>, miss: Int = 0) {
         let ids = keep.filter { !skip.contains($0) }
-        var boxes: [UUID: (x: Double, y: Double)] = [:]
-        var vel: [UUID: (vx: Double, vy: Double)] = [:]
         for id in ids {
             guard let k = boxKalman[id] else { continue }
             let raw = boxKalmanV[id] ?? (vx: 0, vy: 0)
-            let decayed = MatchMath.leftoverHoldKalmanVelDecay(vx: raw.vx, vy: raw.vy, miss: miss)
-            boxes[id] = (k.x, k.y)
-            vel[id] = decayed
-        }
-        let predicted = MatchMath.leftoverPredictBoxes(boxes: boxes, vel: vel, dt: liveDt)
-        for id in ids {
-            guard let k = boxKalman[id], let p = predicted[id] else { continue }
-            let raw = boxKalmanV[id] ?? (vx: 0, vy: 0)
-            boxKalmanV[id] = MatchMath.leftoverHoldKalmanVelDecay(vx: raw.vx, vy: raw.vy, miss: miss)
             let size = boxKalmanWHV[id] ?? (vw: 0, vh: 0)
-            let sizeDecay = MatchMath.leftoverHoldKalmanVelDecay(vx: size.vw, vy: size.vh, miss: miss)
-            boxKalmanWHV[id] = (vw: sizeDecay.vx, vh: sizeDecay.vy)
+            let held = MatchMath.leftoverFaceTrackPredictHeld(
+                box: MatchMath.FaceTrackBox(x: k.x, y: k.y, w: k.w, h: k.h),
+                px: raw.vx, py: raw.vy, dt: liveDt, miss: miss,
+                pw: size.vw, ph: size.vh
+            )
             let locked = MatchMath.leftoverGhostAspectLock(
-                predX: p.x, predY: p.y, lastW: k.w, lastH: k.h
+                predX: held.box.x, predY: held.box.y, lastW: held.box.w, lastH: held.box.h
             )
             boxKalman[id] = (locked.x, locked.y, locked.w, locked.h, k.px, k.py, k.pw, k.ph)
+            boxKalmanV[id] = (vx: held.px, vy: held.py)
+            boxKalmanWHV[id] = (vw: held.pw, vh: held.ph)
             if let i = liveGhosts.firstIndex(where: { $0.face.id == id }) {
                 var g = liveGhosts[i]
                 g.face.box = FaceBox(x: locked.x, y: locked.y, width: locked.w, height: locked.h)
@@ -3541,7 +3541,11 @@ final class LibraryStore: ObservableObject {
                                 twinOtherCosine: c,
                                 twinYawDelta: abs(face.quality.yaw - old.quality.yaw),
                                 alreadyNamed: true,
-                                blinkOk: leftoverBlinkSeen(faceId: face.id)
+                                blinkOk: leftoverBlinkSeen(faceId: face.id),
+                                capture: MatchMath.leftoverSessionCapture(
+                                    old: old.quality.capture,
+                                    live: [face.quality.capture]
+                                )
                             ))
                         } else {
                             row.append(nil)
@@ -4724,7 +4728,11 @@ final class LibraryStore: ObservableObject {
                     jpegRequired: printReady,
                     nameLockUntil: nameLock,
                     jump: jumpCam,
-                    continuity: liveCapture.isContinuity
+                    continuity: liveCapture.isContinuity,
+                    capture: MatchMath.leftoverSessionCapture(
+                        old: old.quality.capture,
+                        live: [adopted[bestJ].quality.capture]
+                    )
                 )
                 if MatchMath.leftoverHoldsTrack(
                     cosine: pinCos,

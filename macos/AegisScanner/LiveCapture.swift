@@ -274,7 +274,10 @@ final class LiveCapture: NSObject {
             RunLoop.main.add(beat, forMode: .common)
             mutexBeat = beat
         }
-        outputQueue.async { session.startRunning() }
+        outputQueue.async { [continuity = isContinuity] in
+            session.startRunning()
+            Self.applyCaptureLocks(device, continuity: continuity)
+        }
         installSessionWatch(session)
         onReady?()
     }
@@ -317,9 +320,7 @@ final class LiveCapture: NSObject {
         sessionPauseUntil = 0
         claimCameraMutex()
         if MatchMath.cameraMutexPauseArmed(workPending: sessionPauseWork != nil) { return }
-        if let s = session, !s.isRunning {
-            outputQueue.async { s.startRunning() }
-        }
+        startSessionLocked()
     }
 
     private var tap: FrameTap?
@@ -795,16 +796,47 @@ final class LiveCapture: NSObject {
                 let chip = MatchMath.captureBandChip(osType: osType, lo: lo, hi: hi)
                 Task { @MainActor in self.formatChip = chip }
             }
-            if MatchMath.captureLocksAE(continuity: self.isContinuity) {
-                if device.isExposureModeSupported(.locked) {
-                    device.exposureMode = .locked
-                }
-                if device.isWhiteBalanceModeSupported(.locked) {
-                    device.whiteBalanceMode = .locked
-                }
+            device.unlockForConfiguration()
+        } catch { }
+    }
+
+    /// Continuity setzt nach startRunning wieder continuous AE — Lock erst danach.
+    nonisolated static func applyCaptureLocks(_ device: AVCaptureDevice, continuity: Bool) {
+        guard MatchMath.captureLocksAE(continuity: continuity) else { return }
+        do {
+            try device.lockForConfiguration()
+            if device.isExposureModeSupported(.locked) {
+                device.exposureMode = .locked
+            }
+            if device.isWhiteBalanceModeSupported(.locked) {
+                device.whiteBalanceMode = .locked
             }
             device.unlockForConfiguration()
         } catch { }
+    }
+
+    private func sessionDevice() -> AVCaptureDevice? {
+        session?.inputs.compactMap { ($0 as? AVCaptureDeviceInput)?.device }.first
+    }
+
+    private func startSessionLocked() {
+        guard let s = session, !s.isRunning else { return }
+        let device = sessionDevice()
+        let continuity = isContinuity
+        outputQueue.async {
+            s.startRunning()
+            if let device {
+                Self.applyCaptureLocks(device, continuity: continuity)
+            }
+        }
+    }
+
+    private func reassertCaptureLocks() {
+        guard let device = sessionDevice() else { return }
+        let continuity = isContinuity
+        outputQueue.async {
+            Self.applyCaptureLocks(device, continuity: continuity)
+        }
     }
 
     private func applyCenterStage(force: Bool = false) {
@@ -837,9 +869,12 @@ final class LiveCapture: NSObject {
             applyCenterStage(force: true)
         }
         if let s = session, !s.isRunning {
-            outputQueue.async { s.startRunning() }
+            startSessionLocked()
+        } else {
+            reassertCaptureLocks()
         }
         reselectFormat()
+        reassertCaptureLocks()
         tap?.markConsumed()
     }
 

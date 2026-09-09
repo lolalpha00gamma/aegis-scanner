@@ -1,3 +1,29 @@
+# 2.1.241 — leftoverTransfersId capture, Kalman WHV persist, AE nach Start, skip ci.
+
+## In 2.1.241 wirklich im Code
+
+2.1.240 leftoverPick SessionCapture. leftoverTransfersId ohne capture. Ghost-W/H freeze. Kalman WHV RAM-only. AE vor startRunning.
+
+1. **leftoverBaptizeQuality capture.** Nacht-Floor 0,06.
+2. **leftoverTransfersId + leftoverAssignPrintCell leftoverSessionCapture.**
+3. **leftoverFaceTrackPredictHeld pw/ph.** leftoverPredictHeld live.
+4. **Kalman Encode 12 WHV.**
+5. **applyCaptureLocks nach startRunning.**
+6. Tests + VERSION = Models = MARKETING 2.1.241 (Build 266). Schema 15 bleibt.
+
+## Erweiterung (neu, 2.1.241)
+
+1. **CameraBroker XPC + IOSurface** mit Helios. P0.
+2. **VNImageRequestHandler(cvPixelBuffer:).**
+3. **HNSW Gallery.**
+4. **LiveCapture nicht @MainActor.**
+5. **leftoverSessionCaptureBox Hist-Median.**
+6. **leftoverSessionCapturePrefersFrame.**
+7. **leftoverCoastPrintFresh Key-Wipe.**
+8. **leftoverOpenSetEnergy Unsure-Chip.**
+9. **leftoverHoldTrail Disk.**
+10. **Overlay CAMetalLayer.**
+
 # 2.1.240 — leftoverPick SessionCapture, OccupiedLiveOnly, SkipLookaway, GhostIds, skip ci.
 
 ## In 2.1.240 wirklich im Code
