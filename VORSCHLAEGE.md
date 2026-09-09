@@ -1,3 +1,28 @@
+# 2.1.240 — leftoverPick SessionCapture, OccupiedLiveOnly, SkipLookaway, GhostIds, skip ci.
+
+## In 2.1.240 wirklich im Code
+
+2.1.239 Kalman W/H, Firm-Name yaw, skip 4. leftoverPick Ghost-Capture. OccupiedLiveOnly / SkipLookaway / GhostIds tot.
+
+1. **leftoverSessionCapture in leftoverPick.** Live-min.
+2. **leftoverOccupiedLiveOnly** nach Coast-TTL.
+3. **leftoverHoldSkipLookaway** vor unbinned EMA.
+4. **leftoverGhostIds** Dropout-Union.
+5. Tests + VERSION = Models = MARKETING 2.1.240 (Build 265). Schema 15 bleibt.
+
+## Erweiterung (neu, 2.1.240)
+
+1. **CameraBroker XPC + IOSurface** mit Helios. P0.
+2. **VNImageRequestHandler(cvPixelBuffer:).**
+3. **HNSW Gallery.**
+4. **LiveCapture nicht @MainActor.**
+5. **leftoverSessionCaptureBox Hist-Median.**
+6. **leftoverSessionCapturePrefersFrame.**
+7. **leftoverCoastPrintFresh Key-Wipe.**
+8. **leftoverOpenSetEnergy Unsure-Chip.**
+9. **leftoverHoldTrail Disk.**
+10. **Overlay CAMetalLayer.**
+
 # 2.1.239 — Kalman W/H, Firm-Name yaw, skip every 4, skip ci.
 
 ## In 2.1.239 wirklich im Code

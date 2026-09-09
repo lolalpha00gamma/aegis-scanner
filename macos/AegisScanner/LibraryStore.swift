@@ -173,12 +173,20 @@ final class LibraryStore: ObservableObject {
         }
         var liveIDs = Set(leftoverLiveHashTick.keys)
         if let id { liveIDs.remove(id) }
-        let stored = MatchMath.leftoverOccupiedGhostDrop(
+        let storedDropped = MatchMath.leftoverOccupiedGhostDrop(
             stored: storedRowsAll,
             liveIDs: liveIDs,
             coastIDs: Set(leftoverCoastPrint.keys)
         )
-        let merged = MatchMath.leftoverOccupiedMergeYaw(stored: stored, live: liveYawRows)
+        let coastExpired = leftoverCoastPrint.isEmpty || leftoverCoastPrint.allSatisfy { id, vec in
+            MatchMath.leftoverCoastPrintFresh(
+                vec: vec, stamped: leftoverCoastPrintAt[id], now: liveLastStamp
+            ).isEmpty
+        }
+        let storedKept = coastExpired
+            ? MatchMath.leftoverOccupiedLiveOnly(stored: storedDropped, live: [], coastExpired: true)
+            : storedDropped
+        let merged = MatchMath.leftoverOccupiedMergeYaw(stored: storedKept, live: liveYawRows)
         guard let id else { return merged }
         let hash = leftoverLiveHashTick[id] ?? leftoverLastHash[id] ?? ""
         let x = boxKalman[id]?.x ?? faces.first(where: { $0.id == id })?.box.x ?? 0
@@ -3631,7 +3639,10 @@ final class LibraryStore: ObservableObject {
             liveGhosts.removeAll { $0.face.id == old.id }
             liveGhosts.append((old, now + leftoverHoldTTL))
         }
-        let ghostIds = liveGhosts.map(\.face.id)
+        let ghostIds = MatchMath.leftoverGhostIds(
+            previous: Array(dropped),
+            ghosts: liveGhosts.map(\.face.id)
+        )
         let liveIds = Array(used)
         let remintLive = adopted.map { (id: $0.id, x: $0.box.x) }
         let remintStored = MatchMath.leftoverHoldRemintRows(
@@ -4271,7 +4282,8 @@ final class LibraryStore: ObservableObject {
                     // leftoverHoldSkipLookaway: EMA nicht mit Profil überschreiben. continue hält den Wert.
                     // leftoverHold[id] ist Frontal. ¾-Lookup nicht in die unbinned EMA.
                     if leftoverHold[old.id] == nil,
-                       MatchMath.leftoverHoldBin(yawAbs: lookYaw ?? old.quality.yaw) == 0
+                       MatchMath.leftoverHoldBin(yawAbs: lookYaw ?? old.quality.yaw) == 0,
+                       !MatchMath.leftoverHoldSkipLookaway(enrolled: lookEnrolled, yawAbs: lookYaw)
                     {
                         leftoverHold[old.id] = MatchMath.leftoverHoldLookupYaw(
                             hash: leftoverRankedHash(
@@ -4325,7 +4337,10 @@ final class LibraryStore: ObservableObject {
                     boxX: boxX,
                     leftoverX: old.box.x,
                     otherX: adopted.filter { $0.id != old.id }.map { $0.box.x },
-                    sessionCapture: old.quality.capture,
+                    sessionCapture: MatchMath.leftoverSessionCapture(
+                        old: old.quality.capture,
+                        live: remaining.map { adopted[$0.index].quality.capture }
+                    ),
                     capture: Dictionary(uniqueKeysWithValues: remaining.map {
                         ($0.index, adopted[$0.index].quality.capture)
                     }),

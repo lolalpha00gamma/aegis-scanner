@@ -1,4 +1,4 @@
-# Aegis **2.1.239 alpha**
+# Aegis **2.1.240 alpha**
 
 
 
@@ -7,6 +7,16 @@ Direkt laden:
 - [Releases](https://github.com/lolalpha00gamma/aegis-scanner/releases)
 
 Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
+## Neu in 2.1.240 alpha
+
+Warum leftoverPick nachts weiter taufte und Exact-Hold nach Coast tot war: leftoverHoldsTrack hat SessionCapture, leftoverPick nahm Ghost-Capture. leftoverOccupiedLiveOnly / leftoverHoldSkipLookaway / leftoverGhostIds nur Tests.
+
+- **leftoverSessionCapture in leftoverPick.** Live-min, nicht Ghost-Tag 0,70.
+- **leftoverOccupiedLiveOnly** nach Coast-TTL. Exact-Hold frei.
+- **leftoverHoldSkipLookaway** vor unbinned EMA.
+- **leftoverGhostIds** Dropout-Union.
+- Tests + VERSION = Models = MARKETING 2.1.240 (Build 265). Schema 15 bleibt.
+
 ## Neu in 2.1.239 alpha
 
 Warum skipDetect-Overlay nach 2.1.238 weiter sprang und Profil „Ada“ zeigte: Kalman predicted nur x/y. leftoverOverlayFirmName ohne leftoverBaptizeQuality. Detect every 8 freeze. Nacht Laplacian 0,14 tot gegen leftoverPrintSharp 0,22.
