@@ -1,3 +1,50 @@
+# 2.1.235 — Kalman-Vel, PredictBoxes, enrollSMReady, Hold ohne Yaw, skip ci.
+
+## In 2.1.235 wirklich im Code
+
+2.1.234 abs yaw. leftoverFaceTrackKalmanVel / leftoverPredictBoxes / enrollSMReady tot. Sleep-Vel coaste. Burst vor SM. leftoverPrintOk ohne explizites yawAbs: nil.
+
+1. **leftoverFaceTrackKalmanVel** Sleep-Zero vor boxKalmanV.
+2. **leftoverPredictBoxes** in leftoverPredictHeld.
+3. **enrollSMReady** AND FromChip — Burst + leftoverLiveNameAnd.
+4. **leftoverHoldsTrack leftoverPrintOk(yawAbs: nil).** Overlay 0,64 Profil.
+5. Tests + VERSION = Models = MARKETING 2.1.235 (Build 260). Schema 15 bleibt.
+
+## Erweiterung (neu, 2.1.235)
+
+1. **CameraBroker XPC + IOSurface** mit Helios. Eine TCC. P0.
+2. **VNImageRequestHandler(cvPixelBuffer:)** Detect+Print ohne 420f→CGImage.
+3. **Gallery Index Pose-Bin + Name.** leftoverPick nicht O(n) alle Prints.
+4. **HNSW / ANN** nach dem Index.
+5. **LiveCapture nicht @MainActor.** Mutex-Beat auf outputQueue.
+6. **leftoverYawPenalty / 0,50** an leftoverPrintProfileYaw 0,45 koppeln.
+7. **FaceEngine decide/centroid abs()** nach leftoverPick signed.
+8. **geoVetoYawSkip tot.** skipPrint == yawPrint == 80.
+9. **Print-Crop aus VNFaceObservation** der Detect.
+10. **Template-Aging** Prints > N Tage runtergewichten.
+11. **FA-JSONL Kalibrierung** leftoverBaptizeFloor je Paar.
+12. **Glasses On/Off Twin-Templates.**
+13. **leftoverHoldTrail Disk persist** inkl. TTL.
+14. **Overlay CAMetalLayer 60 Hz**, Detect 8–24.
+15. **EAR + SM AND** Unnamed-Taufe.
+16. **Face-Print Versioning.**
+17. **gallery.json.bak .bak.1/.bak.2.**
+18. **Identity-Merge-Wizard.**
+19. **ReID-Graph** Hold-Trail.
+20. **UMAP Cluster-View.**
+21. **Export Embeddings JSONL.**
+22. **Continuity Night-IR eigene Galerie.**
+23. **Stereo Built-in + Continuity** Yaw-Prior.
+24. **HeliosAegisKit** Mutex-Protokoll einmal.
+25. **Spark-Chip Hash-Bin signed.**
+26. **Lookaway-Pin IoU-only** nicht leftoverPick.
+27. **leftoverBaptizeQuality** live vor Taufe (Call-Site Overlay).
+28. **leftoverOverlayLerp** zwischen Detect-Ticks in ContentView.
+29. **leftoverOpenSetUnsure** statt Gast n+1.
+30. **leftoverCoastPrintVecOf** skipPrints ohne Vec.
+
+P0: CameraBroker. Kein neues leftover*-Flag. Branch `bugfix` nicht mergen.
+
 # 2.1.234 — leftoverPrintFloor/score/baptize abs yaw, skip ci.
 
 ## In 2.1.234 wirklich im Code

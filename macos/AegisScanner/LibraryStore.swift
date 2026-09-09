@@ -1256,6 +1256,13 @@ final class LibraryStore: ObservableObject {
         livePoseAt = livePoseAt.filter { liveFaceIds.contains($0.key) }
         freezeAxis = freezeAxis.filter { liveFaceIds.contains($0.key) }
         let frameNow = liveLastStamp > 0 ? liveLastStamp : Date().timeIntervalSince1970
+        let smBins = MatchMath.enrollSMCacheBins(cache: Set(leftoverPrintCache), liveHashes: [])
+        let smFlags = MatchMath.enrollSMReady(
+            haveFrontal: smBins.contains(0),
+            haveLeft: smBins.contains(-1),
+            haveRight: smBins.contains(1),
+            haveBlink: true
+        )
         for i in matches.indices {
             let fid = matches[i].faceId
             guard liveFaceIds.contains(fid),
@@ -1337,7 +1344,7 @@ final class LibraryStore: ObservableObject {
                 need: need,
                 locked: MatchMath.leftoverNameLockBlocks(until: leftoverNameLockUntil[fid], now: frameNow),
                 held: liveNameLock[fid]?.uuidString,
-                enrollReady: MatchMath.enrollSMReadyFromChip(enrollSMChip, needProfile: !twinSplits.isEmpty),
+                enrollReady: MatchMath.enrollSMReadyFromChip(enrollSMChip, needProfile: !twinSplits.isEmpty) && smFlags,
                 alreadyNamed: liveNameLock[fid] != nil
             )
             if let voted, !voted.isEmpty {
@@ -1553,7 +1560,14 @@ final class LibraryStore: ObservableObject {
                     cosine: c,
                     within: age
                 ) {
-                    if MatchMath.enrollBurstReplace(
+                    let smBins = MatchMath.enrollSMCacheBins(cache: Set(leftoverPrintCache), liveHashes: [])
+                    let smReady = MatchMath.enrollSMReady(
+                        haveFrontal: smBins.contains(0),
+                        haveLeft: smBins.contains(-1),
+                        haveRight: smBins.contains(1),
+                        haveBlink: leftoverBlinkSeen(faceId: face.id, identityId: identities[idx].id)
+                    ) && MatchMath.enrollSMReadyFromChip(enrollSMChip, needProfile: !twinSplits.isEmpty)
+                    if smReady, MatchMath.enrollBurstReplace(
                         incomingSharp: face.quality.sharpness,
                         existingSharp: old.quality.sharpness
                     ) {
@@ -2881,16 +2895,23 @@ final class LibraryStore: ObservableObject {
     }
 
     private func leftoverPredictHeld(keep: Set<UUID>, skip: Set<UUID>, miss: Int = 0) {
-        for id in keep where !skip.contains(id) {
+        let ids = keep.filter { !skip.contains($0) }
+        var boxes: [UUID: (x: Double, y: Double)] = [:]
+        var vel: [UUID: (vx: Double, vy: Double)] = [:]
+        for id in ids {
             guard let k = boxKalman[id] else { continue }
             let raw = boxKalmanV[id] ?? (vx: 0, vy: 0)
-            let step = MatchMath.leftoverFaceTrackPredictHeld(
-                box: MatchMath.FaceTrackBox(x: k.x, y: k.y, w: k.w, h: k.h),
-                px: raw.vx, py: raw.vy, dt: liveDt, miss: miss
-            )
-            boxKalmanV[id] = (vx: step.px, vy: step.py)
+            let decayed = MatchMath.leftoverHoldKalmanVelDecay(vx: raw.vx, vy: raw.vy, miss: miss)
+            boxes[id] = (k.x, k.y)
+            vel[id] = decayed
+        }
+        let predicted = MatchMath.leftoverPredictBoxes(boxes: boxes, vel: vel, dt: liveDt)
+        for id in ids {
+            guard let k = boxKalman[id], let p = predicted[id] else { continue }
+            let raw = boxKalmanV[id] ?? (vx: 0, vy: 0)
+            boxKalmanV[id] = MatchMath.leftoverHoldKalmanVelDecay(vx: raw.vx, vy: raw.vy, miss: miss)
             let locked = MatchMath.leftoverGhostAspectLock(
-                predX: step.box.x, predY: step.box.y, lastW: step.box.w, lastH: step.box.h
+                predX: p.x, predY: p.y, lastW: k.w, lastH: k.h
             )
             boxKalman[id] = (locked.x, locked.y, locked.w, locked.h, k.px, k.py, k.pw, k.ph)
             if let i = liveGhosts.firstIndex(where: { $0.face.id == id }) {
@@ -3118,10 +3139,19 @@ final class LibraryStore: ObservableObject {
                     face.box = FaceBox(x: x.x, y: y.x, width: w.x, height: h.x)
                     boxKalman[old.id] = (x.x, y.x, w.x, h.x, x.p, y.p, w.p, h.p)
                     let prevV = boxKalmanV[old.id]
-                    boxKalmanV[old.id] = (
-                        vx: MatchMath.boxKalmanVelocity(prev: px0, next: x.x, dt: liveDt, prevV: prevV?.vx ?? 0),
-                        vy: MatchMath.boxKalmanVelocity(prev: py0, next: y.x, dt: liveDt, prevV: prevV?.vy ?? 0)
+                    let kv = MatchMath.leftoverFaceTrackKalmanVel(
+                        prev: prev.map { MatchMath.FaceTrackBox(x: $0.x, y: $0.y, w: $0.w, h: $0.h) },
+                        live: MatchMath.FaceTrackBox(x: x.x, y: y.x, w: w.x, h: h.x),
+                        dt: liveDt
                     )
+                    if kv.px == 0, kv.py == 0, kv.pw == 0, kv.ph == 0, liveDt >= 2 {
+                        boxKalmanV[old.id] = (vx: 0, vy: 0)
+                    } else {
+                        boxKalmanV[old.id] = (
+                            vx: MatchMath.boxKalmanVelocity(prev: px0, next: x.x, dt: liveDt, prevV: prevV?.vx ?? 0),
+                            vy: MatchMath.boxKalmanVelocity(prev: py0, next: y.x, dt: liveDt, prevV: prevV?.vy ?? 0)
+                        )
+                    }
                 } else {
                     var euro = boxEuro[old.id] ?? (
                         MatchMath.OneEuro(), MatchMath.OneEuro(), MatchMath.OneEuro(), MatchMath.OneEuro()

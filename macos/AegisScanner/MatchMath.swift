@@ -8314,7 +8314,7 @@ enum MatchMath {
     ) -> Bool {
         if leftoverIoUJumpBlocks(iou, jump: jump) { return false }
         if leftoverNameLockBlocks(until: nameLockUntil, now: now) { return true }
-        return leftoverPrintOk(cosine: cosine, sharpness: sharpness) && !leftoverTransfersId(
+        return leftoverPrintOk(cosine: cosine, sharpness: sharpness, yawAbs: nil) && !leftoverTransfersId(
             cosine: cosine, holdPrev: holdPrev, trail: trail, tapUntil: tapUntil, now: now, stillFor: stillFor,
             sharpness: sharpness, yawAbs: yawAbs, blink: blink, jpegDelta: jpegDelta, iou: iou,
             jpegRequired: jpegRequired, nameLockUntil: nameLockUntil, jump: jump, continuity: continuity

@@ -1,4 +1,4 @@
-# Aegis **2.1.234 alpha**
+# Aegis **2.1.235 alpha**
 
 
 
@@ -7,6 +7,16 @@ Direkt laden:
 - [Releases](https://github.com/lolalpha00gamma/aegis-scanner/releases)
 
 Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
+## Neu in 2.1.235 alpha
+
+Warum Overlay nach Sleep sprintete, Ghosts zwischen Detect-Ticks klebten und Burst drei Frontals speicherte: `leftoverFaceTrackKalmanVel`, `leftoverPredictBoxes`, `enrollSMReady` nur Tests. `boxKalmanVelocity` ohne Sleep-Sperre. Burst-Replace vor SM.
+
+- **leftoverFaceTrackKalmanVel** Sleep dt ≥ 2 → Vel 0. Live bleibt EMA.
+- **leftoverPredictBoxes** Batch-Coast in leftoverPredictHeld.
+- **enrollSMReady** AND FromChip. Burst und leftoverLiveNameAnd erst nach Front+¾+Blink.
+- **leftoverHoldsTrack leftoverPrintOk(yawAbs: nil).** Overlay 0,64 Profil hält Track.
+- Tests + VERSION = Models = MARKETING 2.1.235 (Build 260). Schema 15 bleibt.
+
 ## Neu in 2.1.234 alpha
 
 Warum ¾L weiter taufte und Twins nach links höher scored: 2.1.232 hat leftoverPick/Spark signed gemacht, die Math las `yaw` unsigned (`yaw >= 0,45`, `max(0, yaw / 0,50)`). −0,50 Profil skippte Floor 0,70, Taufe-Sperre, Score-Strafe 0. Overlay-Chip `abs(yaw)` → ¾L zeigte ¾R.
