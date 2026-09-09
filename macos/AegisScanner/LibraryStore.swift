@@ -1862,14 +1862,20 @@ final class LibraryStore: ObservableObject {
                 sharpness: sharpness,
                 yawAbs: liveYaw[id],
                 capture: capture
-            )
+            ),
+            openSetUnsure: (leftoverUnsureTicks[id] ?? 0) >= 1
         )
     }
 
     func leftoverOverlayGuest(for id: UUID) -> String {
-        MatchMath.leftoverOverlayPeakName(
-            guest: leftoverOverlayGuestRaw(for: id),
-            held: leftoverOverlayPeakHeld[id]
+        let raw = leftoverOverlayGuestRaw(for: id)
+        if leftoverUnsureTicks[id] ?? 0 >= 1 {
+            return raw
+        }
+        return MatchMath.leftoverOverlayPeakName(
+            guest: raw,
+            held: leftoverOverlayPeakHeld[id],
+            remaining: leftoverOverlayPeakRemain[id] ?? 0
         )
     }
 
@@ -4386,8 +4392,11 @@ final class LibraryStore: ObservableObject {
                     leftoverName: leftoverHeldName,
                     candNames: candNames
                 ) else {
-                    if holdUnsure {
-                        if let best = remaining.max(by: { $0.iou < $1.iou }) {
+                    let openUnsure = MatchMath.leftoverOpenSetUnsure(
+                        scores: remaining.compactMap(\.cosine)
+                    )
+                    if holdUnsure || openUnsure {
+                        if holdUnsure, let best = remaining.max(by: { $0.iou < $1.iou }) {
                             leftoverPending[adopted[best.index].id] = MatchMath.leftoverHoldLookupUnsureNote()
                         }
                         let ticks = MatchMath.leftoverUnsureStreakAdvance(
@@ -4949,7 +4958,12 @@ final class LibraryStore: ObservableObject {
                 stored: prevCoast,
                 commitIds: printCommitted
             )
-            leftoverCoastPrint = leftoverCoastPrint.filter { liveIds.contains($0.key) || leftoverIds.contains($0.key) }
+            leftoverCoastPrint = MatchMath.leftoverCoastPrintWipe(
+                stored: leftoverCoastPrint,
+                stamped: leftoverCoastPrintAt,
+                liveIds: liveIds,
+                now: now
+            )
             leftoverCoastPrintAt = leftoverCoastPrintAt.filter { leftoverCoastPrint[$0.key] != nil }
             leftoverCoastAt = leftoverCoastAt.filter { liveIds.contains($0.key) || leftoverIds.contains($0.key) }
             leftoverUnsureTicks = leftoverUnsureTicks.filter { liveIds.contains($0.key) || leftoverIds.contains($0.key) }

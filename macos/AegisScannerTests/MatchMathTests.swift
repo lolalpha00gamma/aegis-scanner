@@ -4284,6 +4284,21 @@ enum MatchMathTests {
             MatchMath.leftoverCoastPrintFresh(vec: vecA, stamped: nil, now: 1_001).isEmpty,
             "Coast TTL ohne Stamp tot"
         )
+        let deadCoast = UUID()
+        let wiped = MatchMath.leftoverCoastPrintWipe(
+            stored: [liveOld: vecA, deadCoast: vecA],
+            stamped: [liveOld: 1_000, deadCoast: 1_000],
+            liveIds: [liveOld],
+            now: 1_003
+        )
+        ok(wiped[liveOld] != nil && wiped[deadCoast] == nil, "Coast Wipe stale Key")
+        let kept = MatchMath.leftoverCoastPrintWipe(
+            stored: [deadCoast: vecA],
+            stamped: [deadCoast: 1_000],
+            liveIds: [],
+            now: 1_001
+        )
+        ok(kept[deadCoast] != nil, "Coast Wipe frisch leftover hält")
         let stamp = MatchMath.leftoverCoastPrintStampMerge(
             stamped: [:], live: [liveOld: vecA], skipPrints: false, now: 1_000
         )
@@ -4679,6 +4694,20 @@ enum MatchMathTests {
         )
         ok(
             MatchMath.leftoverOverlayGuestOf(
+                storeName: "Ada", voted: nil, hist: ["Ada"], need: 3, guest: "Gast 1",
+                streak: 1, openSetUnsure: true
+            ) == "?",
+            "OpenSet Unsure-Chip vor StoreName"
+        )
+        ok(
+            MatchMath.leftoverOverlayGuestOf(
+                storeName: "Ada", voted: nil, hist: ["Ada"], need: 3, guest: "Gast 1",
+                streak: 2, openSetUnsure: true
+            ) == "??",
+            "OpenSet Unsure-Chip ??"
+        )
+        ok(
+            MatchMath.leftoverOverlayGuestOf(
                 storeName: nil, voted: nil, hist: [], need: 3, guest: "Gast 1"
             ) == "?",
             "Overlay ohne Store ?"
@@ -4839,6 +4868,7 @@ enum MatchMathTests {
         ok(MatchMath.leftoverOverlayPeakName(guest: "Ada", held: "Bert") == "Ada", "Peak Name live")
         ok(MatchMath.leftoverOverlayPeakName(guest: "?", held: nil) == "?", "Peak Name tot")
         ok(MatchMath.leftoverOverlayPeakName(guest: "??", held: "Ada") == "Ada", "Peak Name ??")
+        ok(MatchMath.leftoverOverlayPeakName(guest: "?", held: "Ada", remaining: 0) == "?", "Peak Name remain 0")
         let fromId = UUID(), toId = UUID()
         let peakMoved = MatchMath.leftoverAssignAtomic(hold: [fromId: "Ada"], from: fromId, to: toId)
         ok(peakMoved[toId] == "Ada" && peakMoved[fromId] == nil, "Peak Assign remint")

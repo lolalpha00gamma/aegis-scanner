@@ -1,4 +1,4 @@
-# Aegis **2.1.241 alpha**
+# Aegis **2.1.242 alpha**
 
 
 
@@ -7,6 +7,16 @@ Direkt laden:
 - [Releases](https://github.com/lolalpha00gamma/aegis-scanner/releases)
 
 Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
+## Neu in 2.1.242 alpha
+
+Warum Overlay nach leftoverPick-OpenSet weiter „Ada“ zeigte: leftoverOpenSetUnsure gibt nil, leftoverUnsureTicks nur bei holdUnsure. leftoverOverlayGuestOf StoreName zuerst. leftoverOverlayPeakName ignoriert remain=0. leftoverCoastPrint Keys nach TTL halten leftoverOccupiedGhostDrop occupied.
+
+- **leftoverOverlayGuestOf openSetUnsure.** ? / ?? vor StoreName.
+- **leftoverUnsureTicks** bei leftoverOpenSetUnsure, nicht nur holdUnsure.
+- **leftoverOverlayPeakName remaining.** remain=0 kein Ada. Overlay skip Peak bei Unsure.
+- **leftoverCoastPrintWipe.** stale Keys weg, Live bleibt.
+- Tests + VERSION = Models = MARKETING 2.1.242 (Build 267). Schema 15 bleibt.
+
 ## Neu in 2.1.241 alpha
 
 Warum Nacht-Taufe und Ghost-Größe nach 2.1.240 weiter tot waren: leftoverHoldsTrack hat SessionCapture, leftoverTransfersId / leftoverAssignPrintCell / leftoverBaptizeQuality nicht. Produkt 0,14 < Floor 0,18. leftoverGhostAspectLock bekam k.w/k.h — WHV decayte, Box wuchs nicht. Kalman-Persist nur vx/vy. LiveCapture lockt AE vor startRunning — Continuity setzt continuous.

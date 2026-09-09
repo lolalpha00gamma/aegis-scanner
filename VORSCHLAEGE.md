@@ -1,3 +1,30 @@
+# 2.1.242 — OpenSet Unsure-Chip, PeakGuest remain, Coast Key-Wipe, skip ci.
+
+## In 2.1.242 wirklich im Code
+
+2.1.241 leftoverTransfersId capture. leftoverPick Open-Set nil zeigte Ada. PeakName ignorierte remain. Coast-Keys nach TTL occupied.
+
+1. **leftoverOverlayGuestOf openSetUnsure.** leftoverUnsureChip vor StoreName.
+2. **leftoverUnsureTicks** leftoverOpenSetUnsure live.
+3. **leftoverOverlayPeakName remaining.** leftoverOverlayGuest skip Peak bei Unsure.
+4. **leftoverCoastPrintWipe.** leftoverOccupiedGhostDrop ohne stale Keys.
+5. Tests + VERSION = Models = MARKETING 2.1.242 (Build 267). Schema 15 bleibt.
+
+leftoverSessionCaptureBox Median + leftoverSessionCapturePrefersFrame sitzen in leftoverPick seit 2.1.240/241 — Liste war stale.
+
+## Erweiterung (neu, 2.1.242)
+
+1. **CameraBroker XPC + IOSurface** mit Helios. P0.
+2. **VNImageRequestHandler(cvPixelBuffer:).**
+3. **HNSW Gallery.**
+4. **LiveCapture nicht @MainActor.**
+5. **leftoverHoldTrail Disk.**
+6. **Overlay CAMetalLayer.**
+7. **leftoverTwinSameShot live.**
+8. **leftoverHoldsTrack leftoverPrintOk yawAbs live.**
+9. **leftoverGhostAspectLock Scale-Blend.**
+10. **leftoverHoldByHashSolo nach Occupied-Wipe.**
+
 # 2.1.241 — leftoverTransfersId capture, Kalman WHV persist, AE nach Start, skip ci.
 
 ## In 2.1.241 wirklich im Code

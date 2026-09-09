@@ -4762,6 +4762,20 @@ enum MatchMath {
         return vec
     }
 
+    /// Coast-Keys nach TTL: leftoverOccupiedGhostDrop sonst hält Ghost-Hashes occupied.
+    static func leftoverCoastPrintWipe(
+        stored: [UUID: [Double]],
+        stamped: [UUID: TimeInterval],
+        liveIds: Set<UUID>,
+        now: TimeInterval,
+        ttl: TimeInterval = leftoverCoastPrintTtl
+    ) -> [UUID: [Double]] {
+        stored.filter { id, vec in
+            liveIds.contains(id)
+                || !leftoverCoastPrintFresh(vec: vec, stamped: stamped[id], now: now, ttl: ttl).isEmpty
+        }
+    }
+
     static func leftoverCoastPrintStampMerge(
         stamped: [UUID: TimeInterval],
         live: [UUID: [Double]],
@@ -9919,8 +9933,12 @@ enum MatchMath {
         need: Int,
         guest: String,
         streak: Int = 0,
-        sticky: String? = nil
+        sticky: String? = nil,
+        openSetUnsure: Bool = false
     ) -> String {
+        if openSetUnsure {
+            return leftoverUnsureChip(voted: voted, hist: [], need: need, streak: streak) ?? "?"
+        }
         if let n = storeName, !n.isEmpty { return n }
         let tokens = hist.filter { !$0.isEmpty }
         if let name = leftoverLiveNameHolds(tokens, need: need) { return name }
@@ -9997,10 +10015,8 @@ enum MatchMath {
     }
 
     /// Display: PeakGuest dekrementiert. SwiftUI nach Advance — remain=0 hielte Ada tot.
-    static func leftoverOverlayPeakName(guest: String, held: String?) -> String {
-        if !leftoverOverlayPeakIsUnsure(guest) { return guest }
-        if let held, !leftoverOverlayPeakIsUnsure(held) { return held }
-        return guest
+    static func leftoverOverlayPeakName(guest: String, held: String?, remaining: Int = 3) -> String {
+        leftoverOverlayPeakGuest(guest: guest, held: held, remaining: remaining).name
     }
 
     static func leftoverOverlayPeakAdvance(
