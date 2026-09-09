@@ -1,3 +1,39 @@
+# Aegis Vorschläge — 2026-09-09 (Pass 46, 2.1.244)
+
+Stand 2.1.244 alpha. leftoverPickSameShot Rank, leftoverAmbiguousBlocks Same-shot kein Schärfe-Ada.
+
+## Gelandet in 2.1.244
+
+- leftoverPickSameShot facesInFrame ≥ 2.
+- leftoverAmbiguousBlocks(..., facesInFrame) Same-shot immer Block bei Spread < 0,08.
+- leftoverPickArgmax sameShot kein Score-Tie-Break.
+- leftoverOpenSetUnsure auch sameShot.
+
+## Erweiterung (neu)
+
+821. **CameraBroker XPC + IOSurface** mit Helios. P0.
+822. **VNImageRequestHandler(cvPixelBuffer:).** P1.
+823. **HNSW Gallery.**
+824. **LiveCapture off MainActor.**
+825. **leftoverHoldTrail Disk.**
+826. **Overlay CAMetalLayer.**
+827. **leftoverPrintYawMerge printedIds: printCommitted** (jetzt `[]` = no-op by design).
+828. **leftoverHoldsTrack leftoverPrintOk yawAbs live** (bewusst nil — Overlay-Hold Profil).
+829. **leftoverPrintBudgetYawDelta** global (Of sitzt per UUID).
+830. **Adaptive skipDetect** visionMs + stillFor, nicht hart every 4.
+831. **Privacy-Blur Unmatched.**
+832. **Session-Cluster nach Stop.**
+833. **Print-EMA 8 Hz.**
+834. **Glasses On/Off.**
+835. **3D-Yaw FaceShape3D.**
+836. **Kalman R aus VNFaceObservation.confidence.**
+837. **Identity-Merge-Wizard.**
+838. **FA-JSONL + Template-Aging.**
+839. **leftoverScore Twin-Penalty in leftoverPickArgmax raw.** Penalty sitzt, Rank bleibt Roh-Cosine.
+840. **HeliosAegisKit.**
+
+P0: CameraBroker. Kein neues leftover*-Flag. Branch `bugfix` nicht mergen.
+
 # Aegis Vorschläge — 2026-09-09 (Pass 44, 2.1.243)
 
 Stand 2.1.243 alpha. Ghost Scale-Blend, 420v Sharp live, HashSolo vor x-Match, Coast skipPrints, Overlay-Dedup, Wake-ROI.

@@ -1,3 +1,36 @@
+# Nachtrag 2026-09-09 — 2.1.244 / 1.6.97 (kein Merge von `bugfix`)
+
+Aegis `lolalpha00gamma/aegis-scanner` **2.1.244 alpha** (Build 269).
+Helios `lolalpha00gamma/Helios` **1.6.97** (Build 130).
+Nur `main`. leftoverPickSameShot Rank. Helios hudCoastCapPalm + pinchAnalog Mix-Lerp.
+
+## Warum es schlecht wirkte (dieser Pass)
+
+1. **leftoverTwinSameShot nur HardVeto.** leftoverAmbiguousBlocks Schärfe → Ada unter zwei Live-Kisten.
+2. Helios **hudCoastCapScaled** ignorierte palmWidth — ferne Palme 8-Hz-Warp.
+3. Helios **pinchAnalog** ohne Kontakt; hartes `if k>0` wäre Cliff.
+
+## In 2.1.244 / 1.6.97 gelandet
+
+- leftoverPickSameShot, leftoverAmbiguousBlocks facesInFrame, leftoverPickArgmax sameShot, leftoverOpenSetUnsure sameShot.
+- Helios hudCoastCapPalm, pinchAnalog contact Mix-Lerp.
+- Tests + VERSION = Models = MARKETING 2.1.244 (Build 269). Schema 15 bleibt.
+
+Pass 46: Twin Rank, Coast-Palme, Analog-Kontakt — 2.1.244 / 1.6.97.
+
+## Erweiterungen (neu, oben)
+
+1. **CameraBroker-XPC** — eine TCC, IOSurface an beide. P0.
+2. **leftoverPrintYawMerge printedIds: printCommitted.**
+3. **LiveCapture off MainActor.**
+4. **HNSW Gallery.**
+5. **Overlay Metal 90 Hz.**
+6. **VNImageRequestHandler(cvPixelBuffer:).**
+7. **leftoverHoldTrail Disk.**
+8. **Helios Overlay palmWidth Lerp.**
+9. **sampleCursorYieldsToCoast.**
+10. **IOHID Event-Tap / AX SetPosition / Per-App Gain** (`bugfix`, opt-in, neu schreiben).
+
 # Nachtrag 2026-09-08 — 2.1.203 / 1.6.41 (kein Merge von `bugfix`)
 
 Aegis `lolalpha00gamma/aegis-scanner` **2.1.203 alpha** (Build 228).

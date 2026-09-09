@@ -1,3 +1,42 @@
+# 2.1.244 — leftoverPickSameShot Rank, AmbiguousBlocks Same-shot, skip ci.
+
+## In 2.1.244 wirklich im Code
+
+2.1.243 leftoverTwinSameShot nur HardVeto. leftoverAmbiguousBlocks Schärfe-Pick unter zwei Live-Kisten. leftoverOpenSetUnsure nur arg==rawBest.
+
+1. **leftoverPickSameShot.** facesInFrame ≥ 2.
+2. **leftoverAmbiguousBlocks facesInFrame.** Same-shot Spread < 0,08 immer Block.
+3. **leftoverPickArgmax sameShot.** Kein Score-Tie-Break.
+4. **leftoverOpenSetUnsure** sameShot auch wenn arg≠rawBest.
+5. Tests + VERSION = Models = MARKETING 2.1.244 (Build 269). Schema 15 bleibt.
+
+leftoverScore Twin-Penalty unverändert (uniform, ändert Rank nicht). leftoverPrintYawMerge printedIds:[] bewusst no-op (Stamp committet). leftoverHoldsTrack yawAbs: nil bewusst.
+
+## Erweiterung (neu, 2.1.244)
+
+1. **CameraBroker XPC + IOSurface** mit Helios. P0.
+2. **VNImageRequestHandler(cvPixelBuffer:).**
+3. **HNSW Gallery.**
+4. **LiveCapture nicht @MainActor.**
+5. **leftoverHoldTrail Disk.**
+6. **Overlay CAMetalLayer.**
+7. **leftoverPrintYawMerge printedIds: printCommitted** (jetzt `[]` = no-op).
+8. **leftoverHoldsTrack leftoverPrintOk yawAbs live.**
+9. **leftoverPrintBudgetYawDelta** global (Of sitzt per UUID).
+10. **Adaptive skipDetect** visionMs + stillFor.
+11. **Privacy-Blur Unmatched.**
+12. **Session-Cluster nach Stop.**
+13. **Print-EMA 8 Hz.**
+14. **Glasses On/Off.**
+15. **3D-Yaw FaceShape3D.**
+16. **Kalman R aus Vision-Track-Confidence.**
+17. **Identity-Merge-Wizard.**
+18. **FA-JSONL + Template-Aging.**
+19. **leftoverScore Twin-Penalty in leftoverPickArgmax raw** (Penalty sitzt, Rank nicht).
+20. **HeliosAegisKit.**
+
+P0: CameraBroker. Kein neues leftover*-Flag. Branch `bugfix` nicht mergen.
+
 # 2.1.243 — Ghost Scale-Blend, 420v Sharp, HashSolo vor x-Match, Coast skipPrints, Overlay-Dedup, skip ci.
 
 ## In 2.1.243 wirklich im Code

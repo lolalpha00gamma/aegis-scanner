@@ -860,6 +860,20 @@ enum MatchMathTests {
             "Schärfe dreht Sieger → kein Twin-Block"
         )
         ok(
+            MatchMath.leftoverAmbiguousBlocks(raw: [0.73, 0.72], scored: [0.73, 0.77], facesInFrame: 2),
+            "Same-shot Schärfe kein Rank"
+        )
+        ok(MatchMath.leftoverPickSameShot(facesInFrame: 2), "Same-shot 2 Faces")
+        ok(!MatchMath.leftoverPickSameShot(facesInFrame: 1), "ein Gesicht kein Same-shot")
+        ok(
+            MatchMath.leftoverPick(
+                candidates: [(0, 0.40, 0.73), (1, 0.40, 0.72)],
+                sharpness: [0: 0.22, 1: 0.42],
+                facesInFrame: 2
+            ) == nil,
+            "Same-shot leftoverPick Schärfe kein Ada"
+        )
+        ok(
             MatchMath.leftoverAmbiguousBlocks(raw: [0.70, 0.69], scored: [0.70, 0.69]),
             "gleicher Sieger + Spread = Block"
         )

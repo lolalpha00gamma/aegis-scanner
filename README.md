@@ -1,4 +1,4 @@
-# Aegis **2.1.243 alpha**
+# Aegis **2.1.244 alpha**
 
 
 
@@ -7,6 +7,16 @@ Direkt laden:
 - [Releases](https://github.com/lolalpha00gamma/aegis-scanner/releases)
 
 Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
+## Neu in 2.1.244 alpha
+
+Warum Twin nach 2.1.243 weiter Ada stahl: leftoverTwinSameShot nur HardVeto (pairCosine ≥ 0,88). leftoverAmbiguousBlocks ließ Schärfe den Sieger drehen — 0,72 scharf schlägt 0,73 blur, Ada unter zwei Live-Kisten. leftoverOpenSetUnsure nur wenn arg==rawBest.
+
+- **leftoverPickSameShot.** facesInFrame ≥ 2.
+- **leftoverAmbiguousBlocks facesInFrame.** Same-shot Spread < 0,08 immer Block, keine Schärfe-Wahl.
+- **leftoverPickArgmax sameShot.** Kein Score-Tie-Break.
+- **leftoverOpenSetUnsure** auch sameShot.
+- Tests + VERSION = Models = MARKETING 2.1.244 (Build 269). Schema 15 bleibt.
+
 ## Neu in 2.1.243 alpha
 
 Warum Overlay nach 2.1.242 weiter sprang, Nacht-Prints dunkel blieben und Restart den Hold verlor: leftoverGhostAspectLock bekam Predict als lastW. leftoverSharpnessOf tot. leftoverHoldByHashSolo tot nach x-Match. leftoverCoastPrintWipe während skipPrints TTL. Overlay-Row Ghost+Live doppelt.

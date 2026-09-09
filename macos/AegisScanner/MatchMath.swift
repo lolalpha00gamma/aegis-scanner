@@ -465,12 +465,13 @@ enum MatchMath {
         let floorRaw = pool.map {
             leftoverPickFloor(raw: origRaw[$0.index], smoothed: $0.cosine)
         }
-        if leftoverAmbiguousBlocks(raw: floorRaw, scored: scored) { return nil }
+        if leftoverAmbiguousBlocks(raw: floorRaw, scored: scored, facesInFrame: facesInFrame) { return nil }
         if leftoverSoftmaxBlocks(leftoverScoreSoftmax(scored, gallery: gallery), capture: session) { return nil }
         if lookalikeNegativeScores(floorRaw) { return nil }
-        let arg = leftoverPickArgmax(raw: floorRaw, scored: scored)
+        let sameShot = leftoverPickSameShot(facesInFrame: facesInFrame)
+        let arg = leftoverPickArgmax(raw: floorRaw, scored: scored, sameShot: sameShot)
         let rawBest = floorRaw.indices.max(by: { floorRaw[$0] < floorRaw[$1] })
-        if arg == rawBest, leftoverOpenSetUnsure(scores: floorRaw) { return nil }
+        if leftoverOpenSetUnsure(scores: floorRaw), arg == rawBest || sameShot { return nil }
         let topYaw = floorRaw.enumerated().max(by: { $0.element < $1.element }).flatMap { yawAbs[pool[$0.offset].index] }
         if leftoverOpenSetGalleryFloor(floorRaw, floor: leftoverSessionFloor(yawAbs: topYaw, capture: session)) { return nil }
         if let i = arg {
@@ -497,9 +498,11 @@ enum MatchMath {
 
     /// Argmax auf Roh-Cosine. leftoverScore nur Tie-Break wenn Spread ≤ 0,08.
     /// Score-Inflation (Schärfe/Yaw/Heat) darf den Nachbarn mit 0,50 vs 0,70 nicht wählen.
-    static func leftoverPickArgmax(raw: [Double], scored: [Double], tie: Double = 0.08) -> Int? {
+    /// Same-shot: kein Score-Tie-Break — leftoverOpenSetUnsure / leftoverAmbiguousBlocks entscheiden.
+    static func leftoverPickArgmax(raw: [Double], scored: [Double], tie: Double = 0.08, sameShot: Bool = false) -> Int? {
         guard !raw.isEmpty, raw.count == scored.count else { return nil }
         guard let rawBest = raw.indices.max(by: { raw[$0] < raw[$1] }) else { return nil }
+        if sameShot { return rawBest }
         let maxRaw = raw[rawBest]
         var best = rawBest
         for i in raw.indices {
@@ -636,12 +639,19 @@ enum MatchMath {
     }
 
     /// Spread < 0,08 blockt, außer Schärfe dreht den Sieger (0,72 scharf > 0,73 blur).
-    static func leftoverAmbiguousBlocks(raw: [Double], scored: [Double]) -> Bool {
+    /// Same-shot (2 Live-Kisten): Schärfe darf Ada nicht wählen — leftoverPickSameShot.
+    static func leftoverAmbiguousBlocks(raw: [Double], scored: [Double], facesInFrame: Int = 1) -> Bool {
         guard leftoverAmbiguous(scores: raw) else { return false }
+        if leftoverPickSameShot(facesInFrame: facesInFrame) { return true }
         guard raw.count == scored.count, raw.count >= 2 else { return true }
         let rawBest = raw.enumerated().max(by: { $0.element < $1.element })?.offset
         let scoreBest = scored.enumerated().max(by: { $0.element < $1.element })?.offset
         return rawBest == scoreBest
+    }
+
+    /// Zwei Live-Gesichter: Rank-Loch, nicht nur leftoverTwinSameShot HardVeto.
+    static func leftoverPickSameShot(facesInFrame: Int) -> Bool {
+        facesInFrame >= 2
     }
 
     static let twinPairCosine = 0.90

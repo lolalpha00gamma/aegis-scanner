@@ -1,22 +1,22 @@
-# Analyse Helios 1.6.96 + Aegis 2.1.243 — 2026-09-09
+# Analyse Helios 1.6.97 + Aegis 2.1.244 — 2026-09-09
 
-Kein Merge von `bugfix`. Kein Version-Bump. Swift unangetastet (kein macOS-Compiler hier).
+Kein Merge von `bugfix`. Predict bleibt 0. Kein neues *Need(dt). Kein neues leftover*-Flag.
 
 ## Helios — warum Gesten schlecht wirken
 
-1. Continuity liefert ~8 Hz. Relativer Zeiger, One-Euro, HUD-Lerp und Coast sind verdrahtet. Der Cursor coaste korrekt, fühlt sich aber nach Ruckeln an, weil Samples 125 ms auseinanderliegen. Predict bleibt absichtlich 0.
-2. Pinch ist ein Skalar (`pinchClosednessSmooth`). Faust, Schnabel und echte Pinzette teilen dieselbe Achse. analogClosed Hysterese 0,58/0,48 hält den Hold, startet aber keinen Zug — gut. Fehlt: Per-Finger-Kontakt.
-3. ROI: Miss-1 hält lastRoi, jedes 4. Tick Full. Zweite Hand außerhalb des Crops kommt erst nach 500 ms. Rand-Palme kann den Actor noch stehlen, wenn Full und Track gleichzeitig kommen.
-4. Zwei Apps, eine Kamera. AE-Lock nach `startRunning` und Wake-Reassert sitzen. Sleep ohne Stop lässt die Session laufen — Format fällt auf Preset, nicht auf stored 540/360, wenn configureAndRun den falschen Pfad nimmt.
-5. GestureEngine ist ~95 kB eine Datei. Call-Sites waren jahrelang tot (Tests grün, Tick ignorierte sie). Das Muster wiederholt sich: neue Helfer ohne Wiring.
+1. Continuity ~8 Hz. HUD-Lerp/Coast + palmWidth-Cap sitzen. Samples 125 ms. Predict bleibt 0.
+2. analogClosed Mix lerp't Closedness×z×Kontakt. Faust/Schnabel/Pinzette teilen eine Achse.
+3. ROI Miss-1 + Full/4, Scale 3. Zweite Hand außerhalb des Crops erst nach 500 ms.
+4. Zwei Apps, eine Kamera. Mutex+TERM. Ohne CameraBroker zwei Vision, zwei TCC.
+5. `bugfix` (Helios 1.6.15 / Aegis 2.1.15) ~80 Versionen hinter main — Merge wäre ein Wipe.
 
 ## Aegis — warum Identitäten schlecht wirken
 
-1. LiveCapture `@MainActor`. Detect, Print, Kalman, Overlay in einem Tick. skipDetect every 4 friert 3/4 Frames. Ghost Scale-Blend 0,25 weicht den Sprung, ersetzt keine echten Detects.
-2. Nacht / 420v: Laplacian war 0. Jetzt `videoRange: continuity || live`. Baptize-Floor 0,06 nachts. Overlay hält 0,62 bei Sharp 0,14 — das ist Policy, kein Detect-Fehler. Nutzer liest „erkennt nicht“.
-3. OpenSet Unsure-Chip sitzt. Twin Same-Shot 0,88 nur im HardVeto, nicht in leftoverPick Rank. Zwei Gesichter gleicher Cosine → Ada bleibt, obwohl Spread < 0,08.
-4. Gallery linear. HashSolo vor x-Match rettet Restart einer Person. Haushalt + Profil-Bins explodiert in leftoverHoldXMatch.
-5. leftoverHoldTrail nur RAM. Stop → weg. Nächster Start tauft neu.
+1. Twin Rank: leftoverTwinSameShot war nur HardVeto. leftoverAmbiguousBlocks ließ Schärfe Ada wählen. Pass 46: leftoverPickSameShot + leftoverAmbiguousBlocks facesInFrame. pairCosine bleibt Gallery-Centroid, nicht zwei Live-Gesichter.
+2. leftoverPrintYawMerge `printedIds: []` bewusst no-op. Stamp auf Commit. skipPrints-Yaw stale, nicht falsch.
+3. leftoverHoldsTrack `yawAbs: nil` bewusst: Overlay-Hold 0,64 auf Profil. leftoverPick hat Floor.
+4. LiveCapture `@MainActor`. Detect+Print+Overlay ein Tick. skipDetect every 4. Gallery linear. CameraBroker fehlt.
+5. leftoverScore Twin-Penalty uniform — leftoverPickArgmax rankt Roh-Cosine, Penalty ändert Tie nicht.
 
 ## Ineffizienzen (beide)
 
@@ -25,16 +25,20 @@ Kein Merge von `bugfix`. Kein Version-Bump. Swift unangetastet (kein macOS-Compi
 - Mutex-Datei statt XPC/IOSurface.
 - Semantische Duplikate: VORSCHLAEGE-Dateien listen dieselben 30 Ideen jeder Pass neu.
 
-## Bugfix-Protokoll (Review, kein Swift)
+## Bugfix-Protokoll (Pass 46)
 
-Pass 1 — Befund: keine neuen Crash-Bugs in den gelesenen Pfaden (Twin-Veto, printBudgetSkipIds, overlayRows Dedup, pinchClosednessSmooth, visionRoiHolds). Offene Löcher sind Wiring/Architektur, nicht Off-by-One.
+Pass 1 — Befund: leftoverAmbiguousBlocks Schärfe-Pick = Rank-Loch bei zwei Live-Kisten. Fix: leftoverPickSameShot.
 
-Pass 2 — Befund: leftoverPrintBudgetYawDelta global ungenutzt; Of sitzt per UUID in printBudgetSkipIds. Kein Fix ohne Tick-Änderung.
+Pass 2 — Befund: pinchAnalog `if k>0` Mix-Switch = Mini-Kontakt-Cliff. Fix: Mix lerp't.
 
-Pass 3 — Befund: unverändert. Drei Review-Pässe ohne neuen Code-Bug. Loop für Swift-Fixes stoppt hier, weil ungebaute Patches die Call-Site-Geschichte wiederholen würden.
+Pass 3 — Befund: leftoverPrintYawMerge printedIds:[] und leftoverHoldsTrack yawAbs:nil bewusst. Nicht verdrahten.
 
-## Nächster sinnvoller Code-Pass (wenn macOS da ist)
+## Nächster sinnvoller Code-Pass
 
-1. Helios: `hudCoastCap` aus `palmWidth`. Klein, testbar.
-2. Aegis: leftoverTwinSameShot in leftoverPick Rank.
-3. Gemeinsam: CameraBroker Spezifikation (eine Datei, kein Feature-Fleisch).
+1. CameraBroker Spezifikation (eine Datei, kein Feature-Fleisch). P0.
+2. leftoverPrintYawMerge printedIds: printCommitted, falls Stamp-Pfad miss.
+3. LiveCapture off MainActor.
+4. Overlay palmWidth Lerp prev→next.
+5. HNSW Gallery.
+
+P0: CameraBroker. Branch `bugfix` nicht mergen.
