@@ -1,3 +1,34 @@
+# 2.1.243 — Ghost Scale-Blend, 420v Sharp, HashSolo vor x-Match, Coast skipPrints, Overlay-Dedup, skip ci.
+
+## In 2.1.243 wirklich im Code
+
+2.1.242 leftoverCoastPrintWipe ohne skipPrints. Ghost lastW = Predict. leftoverSharpnessOf tot. leftoverHoldByHashSolo tot. Overlay-Row Ghost+Live.
+
+1. **leftoverGhostAspectLock Scale-Blend.** lastW Kalman, predW Predict, blend 0,25.
+2. **leftoverSharpnessOf** FaceEngine continuity || live (Mac 420v).
+3. **leftoverHoldByHashSolo** leftoverHoldRemint + Bins **vor leftoverHoldXMatch**.
+4. **leftoverCoastPrintWipe skipPrints.** TTL-Arm.
+5. **leftoverOverlayUniqueRows** ContentView overlayRows.
+6. Tests + VERSION = Models = MARKETING 2.1.243 (Build 268). Schema 15 bleibt.
+
+## Erweiterung (neu, 2.1.243)
+
+1. **CameraBroker XPC + IOSurface** mit Helios. P0.
+2. **VNImageRequestHandler(cvPixelBuffer:).**
+3. **HNSW Gallery.**
+4. **LiveCapture nicht @MainActor.**
+5. **leftoverHoldTrail Disk.**
+6. **Overlay CAMetalLayer.**
+7. **leftoverTwinSameShot live.**
+8. **leftoverHoldsTrack leftoverPrintOk yawAbs live.**
+9. **leftoverPrintBudgetYawDelta** global (Of sitzt per UUID).
+10. **Privacy-Blur Unmatched.** Unbekannte Gesichter im Overlay weich.
+11. **Session-Cluster nach Stop.** UMAP + leftoverHoldBins → Merge-Vorschlag.
+12. **Print-EMA 8 Hz.** Ein Sample 0,40 nach 0,72 tauft nicht.
+13. **Watch-Alert Person.** Household-ID im Frame, haptisch.
+14. **FAIR-JSONL Export** False-Accept pro Session.
+15. **3D-Yaw aus FaceShape3D** statt 2D-Landmark.
+
 # 2.1.242 — OpenSet Unsure-Chip, PeakGuest remain, Coast Key-Wipe, skip ci.
 
 ## In 2.1.242 wirklich im Code

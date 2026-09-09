@@ -41,7 +41,7 @@ enum FaceEngine {
             work = image
             cropOrigin = (0, 0)
         }
-        var out = try detectOnce(in: work, mediaId: mediaId, originX: cropOrigin.x, originY: cropOrigin.y, imageWidth: w, imageHeight: h, orientation: orientation, cheapGraph: cheapGraph)
+        var out = try detectOnce(in: work, mediaId: mediaId, originX: cropOrigin.x, originY: cropOrigin.y, imageWidth: w, imageHeight: h, orientation: orientation, cheapGraph: cheapGraph, continuity: continuity, live: live)
         let stats = lumaStats(image)
         if stats.dark || out.isEmpty, let lifted = equalize(image) {
             let extra = try detectOnce(
@@ -53,7 +53,9 @@ enum FaceEngine {
                 imageHeight: h,
                 minConfidence: out.isEmpty ? 0.12 : 0.15,
                 orientation: orientation,
-                cheapGraph: cheapGraph
+                cheapGraph: cheapGraph,
+                continuity: continuity,
+                live: live
             )
             if stats.dark {
                 out = extra + out
@@ -89,7 +91,9 @@ enum FaceEngine {
                     imageHeight: h,
                     minConfidence: stats.dark ? 0.12 : 0.15,
                     orientation: orientation,
-                    cheapGraph: cheapGraph
+                    cheapGraph: cheapGraph,
+                    continuity: continuity,
+                    live: live
                 )
                 out.append(contentsOf: found)
             }
@@ -108,7 +112,9 @@ enum FaceEngine {
         imageHeight: Double,
         minConfidence: Float = 0.15,
         orientation: CGImagePropertyOrientation = .up,
-        cheapGraph: Bool = false
+        cheapGraph: Bool = false,
+        continuity: Bool = false,
+        live: Bool = false
     ) throws -> [FaceObservation] {
         let handler = VNImageRequestHandler(cgImage: image, orientation: orientation, options: [:])
         let facesReq = VNDetectFaceRectanglesRequest()
@@ -198,7 +204,8 @@ enum FaceEngine {
             let frontal = frame.map(frontalScore) ?? frontalScore(points)
             let size = min(1, (box.width * box.height) / max(1, imageWidth * imageHeight) / 0.12)
             let faceCrop = crop(image, box: vnToPixels(face.boundingBox, width: w, height: h))
-            let sharpness = sharpnessScore(faceCrop)
+            let rawSharp = sharpnessScore(faceCrop)
+            let sharpness = MatchMath.leftoverSharpnessOf(rawSharp, videoRange: continuity || live) ?? rawSharp
             let structure = sharpnessScore(equalize(faceCrop) ?? faceCrop)
             let edge = max(structure, sharpness * 0.4)
             let capture = clamp01(

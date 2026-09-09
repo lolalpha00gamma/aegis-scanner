@@ -895,7 +895,8 @@ struct FaceOverlay: View {
                     seen.insert(rid)
                     out.append((face, rid))
                 }
-                return out
+                let unique = MatchMath.leftoverOverlayUniqueRows(out.map(\.row))
+                return unique.compactMap { id in out.first { $0.row == id } }
             }()
             ZStack(alignment: .topLeading) {
                 Image(nsImage: ns)

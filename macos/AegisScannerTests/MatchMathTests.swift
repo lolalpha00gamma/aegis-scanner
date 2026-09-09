@@ -1637,6 +1637,10 @@ enum MatchMathTests {
         ok(!MatchMath.liveRoiSkipsForStranger(foundCount: 1, kalmanCount: 1), "gleiche Zahl Crop")
         let ghost = MatchMath.leftoverGhostAspectLock(predX: 400, predY: 200, lastW: 80, lastH: 100)
         ok(abs(ghost.x - 400) < 0.001 && abs(ghost.w - 80) < 0.001, "Ghost cx, w bleibt")
+        let blended = MatchMath.leftoverGhostAspectLock(
+            predX: 400, predY: 200, lastW: 80, lastH: 100, predW: 120, predH: 140, blend: 0.25
+        )
+        ok(abs(blended.w - 90) < 0.001 && abs(blended.h - 110) < 0.001, "Ghost Scale-Blend 0,25")
         ok(abs(MatchMath.boxKalmanQ(captureJump: true) - 0.020) < 0.001, "AE mehr Q")
         ok(abs(MatchMath.boxKalmanQ(captureJump: false) - 0.008) < 0.001, "ruhig Q 0,008")
         let jumped = MatchMath.boxKalman(prev: 200, meas: 400, p: 0.04, dt: 0.125, q: MatchMath.boxKalmanQ(captureJump: true))
@@ -4299,6 +4303,14 @@ enum MatchMathTests {
             now: 1_001
         )
         ok(kept[deadCoast] != nil, "Coast Wipe frisch leftover hält")
+        let skipKept = MatchMath.leftoverCoastPrintWipe(
+            stored: [deadCoast: vecA],
+            stamped: [deadCoast: 1_000],
+            liveIds: [],
+            now: 1_003,
+            skipPrints: true
+        )
+        ok(skipKept[deadCoast] != nil, "Coast Wipe skipPrints TTL-Arm")
         let stamp = MatchMath.leftoverCoastPrintStampMerge(
             stamped: [:], live: [liveOld: vecA], skipPrints: false, now: 1_000
         )

@@ -1,4 +1,4 @@
-# Aegis **2.1.242 alpha**
+# Aegis **2.1.243 alpha**
 
 
 
@@ -7,6 +7,17 @@ Direkt laden:
 - [Releases](https://github.com/lolalpha00gamma/aegis-scanner/releases)
 
 Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
+## Neu in 2.1.243 alpha
+
+Warum Overlay nach 2.1.242 weiter sprang, Nacht-Prints dunkel blieben und Restart den Hold verlor: leftoverGhostAspectLock bekam Predict als lastW. leftoverSharpnessOf tot. leftoverHoldByHashSolo tot nach x-Match. leftoverCoastPrintWipe während skipPrints TTL. Overlay-Row Ghost+Live doppelt.
+
+- **leftoverGhostAspectLock Scale-Blend.** Kalman lastW, Predict predW, blend 0,25.
+- **leftoverSharpnessOf 420v.** Continuity **und** Mac-Live Laplacian +16/219. Tiles gleich.
+- **leftoverHoldByHashSolo** remint **vor leftoverHoldXMatch**, sonst Far-Steal.
+- **leftoverCoastPrintWipe skipPrints.** Coast während Budget-Skip bleibt.
+- **leftoverOverlayUniqueRows** Overlay-ForEach.
+- Tests + VERSION = Models = MARKETING 2.1.243 (Build 268). Schema 15 bleibt.
+
 ## Neu in 2.1.242 alpha
 
 Warum Overlay nach leftoverPick-OpenSet weiter „Ada“ zeigte: leftoverOpenSetUnsure gibt nil, leftoverUnsureTicks nur bei holdUnsure. leftoverOverlayGuestOf StoreName zuerst. leftoverOverlayPeakName ignoriert remain=0. leftoverCoastPrint Keys nach TTL halten leftoverOccupiedGhostDrop occupied.

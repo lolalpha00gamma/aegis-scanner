@@ -1,3 +1,55 @@
+# Aegis Vorschläge — 2026-09-09 (Pass 44, 2.1.243)
+
+Stand 2.1.243 alpha. Ghost Scale-Blend, 420v Sharp live, HashSolo vor x-Match, Coast skipPrints, Overlay-Dedup.
+
+## Gelandet in 2.1.243
+
+- leftoverGhostAspectLock lastW Kalman, predW Predict, blend 0,25.
+- leftoverSharpnessOf FaceEngine videoRange: continuity || live. Mac 420v + Tiles.
+- leftoverHoldByHashSolo leftoverHoldRemint + Bins **vor leftoverHoldXMatch**.
+- leftoverCoastPrintWipe skipPrints TTL-Arm.
+- leftoverOverlayUniqueRows ContentView overlayRows.
+
+## Erweiterung (neu)
+
+766. **CameraBroker XPC + IOSurface** mit Helios. P0.
+767. **VNImageRequestHandler(cvPixelBuffer:).** P1.
+768. **Gallery Index Pose-Bin + Name.**
+769. **HNSW Gallery.**
+770. **LiveCapture off MainActor.**
+771. **Adaptive skipDetect.**
+772. **Kalman R aus Vision-Track-Confidence.**
+773. **leftoverTwinSameShot live.**
+774. **Print-Cache Pose-Bin LRU.**
+775. **Print aus VNFaceObservation.**
+776. **Template-Aging.**
+777. **FA-JSONL.**
+778. **Glasses On/Off.**
+779. **leftoverHoldTrail Disk.**
+780. **Overlay CAMetalLayer.**
+781. **HeliosAegisKit.**
+782. **EAR + SM AND.**
+783. **Identity-Merge-Wizard.**
+784. **ReID-Graph.**
+785. **Continuity Night-IR.**
+786. **Stereo Yaw-Prior.**
+787. **Lookaway-Pin IoU-only.**
+788. **Dual-Cam Yaw.**
+789. **UMAP Cluster-View.**
+790. **Export Embeddings JSONL.**
+791. **enrollSMReady haveProfile.**
+792. **leftoverPrintBudgetYawDelta** global (Of sitzt per UUID).
+793. **leftoverHoldsTrack leftoverPrintOk yawAbs live** (bewusst nil — Overlay-Hold Profil).
+794. **Ada? Streak 2 Overlay.**
+795. **leftoverOverlayPeak IoU-Adopt nach Wipe.** sitzt — prüfen Twin-Tie.
+796. **Privacy-Blur Unmatched.**
+797. **Session-Cluster nach Stop.**
+798. **Print-EMA 8 Hz.**
+799. **Watch-Alert Household.**
+800. **3D-Yaw FaceShape3D.**
+
+P0: CameraBroker. Kein neues leftover*-Flag. Branch `bugfix` nicht mergen.
+
 # Aegis Vorschläge — 2026-09-09 (Pass 43, 2.1.242)
 
 Stand 2.1.242 alpha. OpenSet Unsure-Chip, Peak remain, Coast Wipe.

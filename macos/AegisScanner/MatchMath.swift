@@ -4430,6 +4430,26 @@ enum MatchMath {
                 }
             }
         }
+        if !hashTableKeys.isEmpty, !liveHash.isEmpty {
+            let holdIDs = holds.map(\.id)
+            for row in live {
+                if hold[row.id] != nil { continue }
+                if out[row.id] != nil { continue }
+                guard let h = liveHash[row.id], !h.isEmpty else { continue }
+                guard let match = leftoverHoldByHashSolo(
+                    liveHash: h,
+                    holdIDs: holdIDs,
+                    tableKeys: hashTableKeys,
+                    facesInFrame: live.count
+                ) else { continue }
+                if match == row.id { continue }
+                if taken.contains(match) { continue }
+                if let v = hold[match] {
+                    out[row.id] = v
+                    taken.insert(match)
+                }
+            }
+        }
         for row in live {
             if hold[row.id] != nil { continue }
             if out[row.id] != nil { continue }
@@ -4556,6 +4576,27 @@ enum MatchMath {
                     liveHash: h, stored: storedH, occupied: taken, facesInFrame: live.count
                 ) else { continue }
                 if match == row.id { continue }
+                for (key, v) in hold {
+                    guard leftoverHoldId(from: key) == match, let bin = leftoverHoldBinFromKey(key) else { continue }
+                    out[leftoverHoldKey(id: row.id, bin: bin)] = v
+                }
+                taken.insert(match)
+            }
+        }
+        if !hashTableKeys.isEmpty, !liveHash.isEmpty {
+            let holdIDs = holds.map(\.id)
+            for row in live {
+                if present.contains(row.id) { continue }
+                if out.keys.contains(where: { leftoverHoldId(from: $0) == row.id }) { continue }
+                guard let h = liveHash[row.id], !h.isEmpty else { continue }
+                guard let match = leftoverHoldByHashSolo(
+                    liveHash: h,
+                    holdIDs: holdIDs,
+                    tableKeys: hashTableKeys,
+                    facesInFrame: live.count
+                ) else { continue }
+                if match == row.id { continue }
+                if taken.contains(match) { continue }
                 for (key, v) in hold {
                     guard leftoverHoldId(from: key) == match, let bin = leftoverHoldBinFromKey(key) else { continue }
                     out[leftoverHoldKey(id: row.id, bin: bin)] = v
@@ -4763,15 +4804,18 @@ enum MatchMath {
     }
 
     /// Coast-Keys nach TTL: leftoverOccupiedGhostDrop sonst hält Ghost-Hashes occupied.
+    /// skipPrints: Stamp freeze — TTL sonst wischt Coast während Budget-Skip.
     static func leftoverCoastPrintWipe(
         stored: [UUID: [Double]],
         stamped: [UUID: TimeInterval],
         liveIds: Set<UUID>,
         now: TimeInterval,
-        ttl: TimeInterval = leftoverCoastPrintTtl
+        ttl: TimeInterval = leftoverCoastPrintTtl,
+        skipPrints: Bool = false
     ) -> [UUID: [Double]] {
         stored.filter { id, vec in
             liveIds.contains(id)
+                || skipPrints
                 || !leftoverCoastPrintFresh(vec: vec, stamped: stamped[id], now: now, ttl: ttl).isEmpty
         }
     }
@@ -8795,14 +8839,20 @@ enum MatchMath {
         foundCount > kalmanCount && kalmanCount > 0
     }
 
-    /// Ghost-Predict ändert cx/cy, nicht w/h — sonst Hash-Sprung.
+    /// Ghost-Predict ändert cx/cy. W/H: freeze (blend 0) oder Scale-Blend gegen Hash-Sprung.
     static func leftoverGhostAspectLock(
         predX: Double,
         predY: Double,
         lastW: Double,
-        lastH: Double
+        lastH: Double,
+        predW: Double? = nil,
+        predH: Double? = nil,
+        blend: Double = 0
     ) -> (x: Double, y: Double, w: Double, h: Double) {
-        (predX, predY, lastW, lastH)
+        let a = min(1, max(0, blend))
+        let w = lastW * (1 - a) + (predW ?? lastW) * a
+        let h = lastH * (1 - a) + (predH ?? lastH) * a
+        return (predX, predY, w, h)
     }
 
     /// AE jagt: mehr Process-Noise, sonst Overlay klebt am alten Print.
