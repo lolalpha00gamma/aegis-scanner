@@ -6094,6 +6094,13 @@ enum MatchMathTests {
         ok(MatchMath.cameraMutexStampPick(lockPts: 1_700_000_000, stampPts: 1_700_000_080) == 1_700_000_080, "Stamp neuer PTS")
         ok(MatchMath.cameraMutexStampPick(lockPts: nil, stampPts: 1_700_000_000) == 1_700_000_000, "Stamp ohne Lock")
         ok(MatchMath.cameraMutexStampPick(lockPts: 12.4, stampPts: nil) == nil, "Stamp Media-PTS tot")
+        let stampLine = MatchMath.cameraMutexLine(
+            owner: "helios", pid: 1, now: 1_700_000_000.08, gen: 1, pts: 1_700_000_000
+        )
+        ok(MatchMath.cameraMutexStampFresh(stampLine, now: 1_700_000_000.20), "Stamp Fresh 120 ms")
+        ok(!MatchMath.cameraMutexStampFresh(stampLine, now: 1_700_000_000.50), "Stamp Stale 420 ms tot")
+        ok(!MatchMath.cameraMutexStampFresh("helios 1 12.4 0 12.4 v2", now: 20), "Stamp Media-Zeit tot")
+        ok(abs(MatchMath.cameraMutexStampTtl() - 0.25) < 1e-9, "Stamp TTL 250 ms")
         let encFifo = MatchMath.leftoverPrintCacheEncode((0..<70).map { "k\($0)#0" } as [String])
         ok(encFifo.count == MatchMath.leftoverHashHoldCapN, "Encode FIFO cap")
         ok(encFifo.first == "k6#0", "Encode FIFO drop oldest")

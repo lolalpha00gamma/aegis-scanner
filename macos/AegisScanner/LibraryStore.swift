@@ -2561,11 +2561,12 @@ final class LibraryStore: ObservableObject {
             dt: dt,
             continuity: cont
         )
+        let printCacheSet = Set(leftoverPrintCache)
         for id in liveIds {
             guard let yaw = liveYaw[id] else { continue }
             let hash = leftoverLiveHashTick[id] ?? leftoverLastHash[id]
             guard let hash, !hash.isEmpty else { continue }
-            let personBins = MatchMath.leftoverPrintCacheBins(Set(leftoverPrintCache), hash: hash)
+            let personBins = MatchMath.leftoverPrintCacheBins(printCacheSet, hash: hash)
             if MatchMath.enrollSMSkipCapture(
                 yaw: yaw,
                 haveFrontal: personBins.contains(0),
@@ -2579,7 +2580,7 @@ final class LibraryStore: ObservableObject {
         let skipPrintCached: Set<UUID> = Set(kalmanSnap.compactMap { row in
             guard let yaw = liveYaw[row.id] else { return nil }
             let hash = leftoverLiveHashTick[row.id] ?? leftoverLastHash[row.id]
-            guard MatchMath.leftoverPrintCacheHits(hash: hash, yaw: yaw, cached: Set(leftoverPrintCache), cam: cameraUniqueID) else {
+            guard MatchMath.leftoverPrintCacheHits(hash: hash, yaw: yaw, cached: printCacheSet, cam: cameraUniqueID) else {
                 return nil
             }
             return row.id

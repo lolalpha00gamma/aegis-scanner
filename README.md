@@ -1,4 +1,4 @@
-# Aegis **2.1.230 alpha**
+# Aegis **2.1.231 alpha**
 
 
 
@@ -14,6 +14,16 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
 
 macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+
+## Neu in 2.1.231 alpha
+
+Warum Gesichter unter toter Helios-Palme verschwanden und Live-Detect jitterte: Stamp-Palmen galten 12 s nach Crash. Print-Cache baute `Set()` je Kalman-Zeile. Burst-Reject ohne Lock auf `Task.detached`. skipPrint zweimal pro Gesicht.
+
+- **Stamp-TTL 250 ms.** Tote Palmen-UV skippt nicht. Fill-PTS 0 wenn Helios weg.
+- **Print-Cache Set einmal** pro Frame (Bins+Hits), nicht pro Track.
+- **Burst-Reject unter nmsLock.**
+- **skipPrint einmal** rechnen, nicht Detect+Map.
+- Tests + VERSION = Models = MARKETING 2.1.231 (Build 256). Schema 15 bleibt.
 
 ## Neu in 2.1.230 alpha
 

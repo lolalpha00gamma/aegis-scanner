@@ -16,6 +16,8 @@ enum FaceEngine {
 
     private static func burstRejects(_ box: FaceBox, imageW: Double, imageH: Double) -> Bool {
         let h = MatchMath.leftoverBoxHash(box, imageW: imageW, imageH: imageH)
+        nmsLock.lock()
+        defer { nmsLock.unlock() }
         let now = CFAbsoluteTimeGetCurrent()
         let dtMs = burstAt == 0 ? 9_999 : (now - burstAt) * 1_000
         let tick = MatchMath.burstRejectTick(
@@ -1718,17 +1720,20 @@ enum FaceEngine {
                 return next
             }
         }
-        let needPrint = faces.contains { face in
-            !MatchMath.leftoverPrintSkipHits(face: face.box, skipBoxes: skipPrintBoxes, palm: skipPrintPalm, palms: skipPrintPalms)
+        let skipHit: [Bool] = faces.map {
+            MatchMath.leftoverPrintSkipHits(face: $0.box, skipBoxes: skipPrintBoxes, palm: skipPrintPalm, palms: skipPrintPalms)
+        }
+        let needPrint = zip(faces, skipHit).contains { face, skip in
+            !skip
                 && !MatchMath.skipPrint(sharpness: face.quality.sharpness, continuity: continuity, yaw: face.quality.yaw)
                 && !MatchMath.printCaptureQualitySkip(face.quality.capture)
                 && face.quality.sharpness >= minSharpness
         }
         let found = needPrint ? facePrintsInImage(image, orientation: orientation) : []
         var used = Set<Int>()
-        return faces.map { face in
+        return faces.enumerated().map { i, face in
             var next = face
-            if MatchMath.leftoverPrintSkipHits(face: face.box, skipBoxes: skipPrintBoxes, palm: skipPrintPalm, palms: skipPrintPalms)
+            if skipHit[i]
                 || MatchMath.skipPrint(sharpness: face.quality.sharpness, continuity: continuity, yaw: face.quality.yaw)
                 || MatchMath.printCaptureQualitySkip(face.quality.capture)
                 || burstRejects(face.box, imageW: Double(image.width), imageH: Double(image.height))

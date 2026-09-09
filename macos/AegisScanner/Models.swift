@@ -2,10 +2,10 @@ import CoreGraphics
 import Foundation
 
 enum AppVersion {
-    static let marketing = "2.1.230"
-    static let build = 255
+    static let marketing = "2.1.231"
+    static let build = 256
     static let channel = "alpha"
-    static let display = "2.1.230 alpha"
+    static let display = "2.1.231 alpha"
 }
 
 enum StrategyTrack: String, CaseIterable, Identifiable {

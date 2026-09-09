@@ -1253,6 +1253,17 @@ enum MatchMath {
         }
     }
 
+    /// Palmen/PTS aus der Stamp-Datei. 12 s Parse-Stale ließ tote Helios-UV skipPrinten.
+    static func cameraMutexStampTtl() -> TimeInterval { 0.25 }
+
+    static func cameraMutexStampFresh(_ text: String, now: TimeInterval, ttl: TimeInterval = 0.25) -> Bool {
+        let parts = text.split(whereSeparator: { $0 == " " || $0 == "\n" }).map(String.init)
+        guard parts.count >= 3, let stamp = TimeInterval(parts[2]), stamp.isFinite, stamp > 1_000_000 else {
+            return false
+        }
+        return now - stamp <= ttl
+    }
+
     /// Int(now) = Sekundenraster: Claim 12,9 / Parse 13,0 = 1 s tot. %.3f hält ms.
     /// Protokoll v2: immer 5 Felder + Suffix. 3-/4-Zeile bleibt lesbar (v1).
     static func cameraMutexProtocolVersion() -> Int { 2 }

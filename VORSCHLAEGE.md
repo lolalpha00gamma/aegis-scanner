@@ -1,4 +1,45 @@
+# 2.1.231 — Stamp-TTL, Print-Cache Set einmal, Burst-Lock, skipPrint einmal.
+
+## In 2.1.231 wirklich im Code
+
+2.1.230 Palme in skipBoxes, Set-Encode, Frontal `#103`. Stamp-Palmen 12 s tot. Set() je Track. Burst ohne Lock. skipPrint doppelt.
+
+1. **cameraMutexStampFresh 250 ms.** Palmen/PTS nur frisch.
+2. **Print-Cache Set hoist** vor liveIds-Loop und compactMap.
+3. **Burst-Reject nmsLock.**
+4. **skipPrint-Hit-Array** einmal.
+5. Tests + VERSION = Models = MARKETING 2.1.231 (Build 256). Schema 15 bleibt.
+
+## Erweiterung (neu, 2.1.231)
+
+1. **CameraBroker XPC + IOSurface** mit Helios. Eine TCC. P0.
+2. **VNImageRequestHandler(cvPixelBuffer:)** Detect+Print ohne 420f→CGImage.
+3. **Gallery Index Pose-Bin + Name.** leftoverPick nicht O(n) alle Prints.
+4. **HNSW / ANN** nach dem Index.
+5. **LiveCapture nicht @MainActor.** Mutex-Beat auf outputQueue.
+6. **Print-Crop aus VNFaceObservation** der Detect — kein zweiter Landmarks+Print-Pass.
+7. **Template-Aging** Prints > N Tage runtergewichten.
+8. **FA-JSONL Kalibrierung** leftoverBaptizeFloor je Paar.
+9. **Glasses On/Off Twin-Templates.**
+10. **leftoverHoldTrail Disk persist** inkl. TTL.
+11. **Overlay CAMetalLayer 60 Hz**, Detect 8–24.
+12. **EAR + SM AND** Unnamed-Taufe.
+13. **Face-Print Versioning.**
+14. **gallery.json.bak .bak.1/.bak.2.**
+15. **Identity-Merge-Wizard.**
+16. **ReID-Graph** Hold-Trail.
+17. **UMAP Cluster-View.**
+18. **Export Embeddings JSONL.**
+19. **Continuity Night-IR eigene Galerie.**
+20. **Stereo Built-in + Continuity** Yaw-Prior.
+21. **Per-Camera WB-Lock.**
+22. **gemeinsamer CVPixelBuffer** Detect+Print.
+23. **HeliosAegisKit** Mutex-Protokoll einmal.
+
+P0: CameraBroker. Kein neues leftover*-Flag. Branch `bugfix` nicht mergen.
+
 # 2.1.230 — skipPrint Palme in skipBoxes, Set-Encode ohne Sort, Frontal nextRank.
+
 
 ## In 2.1.230 wirklich im Code
 

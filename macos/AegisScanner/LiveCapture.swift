@@ -421,20 +421,26 @@ final class LiveCapture: NSObject {
         let lockPts = MatchMath.cameraMutexPts(text)
         let stampText = try? String(contentsOf: cameraMutexStampURL(), encoding: .utf8)
         let stampPts = stampText.flatMap { MatchMath.cameraMutexPts($0) }
-        if let pts = MatchMath.cameraMutexStampPick(lockPts: lockPts, stampPts: stampPts) {
+        let stampFresh = stampText.map { MatchMath.cameraMutexStampFresh($0, now: now) } ?? false
+        let lockFresh = MatchMath.cameraMutexStampFresh(text, now: now)
+        if stampFresh, let stampText, let pts = MatchMath.cameraMutexPts(stampText) {
             tap?.mutexPts = pts
-        } else if let lockPts {
+        } else if lockFresh, let lockPts, lockPts > 1_000_000 {
             tap?.mutexPts = lockPts
+        } else if let pts = MatchMath.cameraMutexStampPick(lockPts: lockPts, stampPts: stampPts),
+                  stampFresh || lockFresh {
+            tap?.mutexPts = pts
         } else {
             tap?.mutexPts = 0
         }
-        let stampNewer = (stampPts ?? 0) > (lockPts ?? 0)
-        if stampNewer, let stampText, !stampText.isEmpty {
+        if stampFresh, let stampText, !stampText.isEmpty {
             lastMutexPalms = MatchMath.cameraMutexPalms(stampText)
-        } else {
+        } else if lockFresh {
             lastMutexPalms = MatchMath.cameraMutexPalms(text)
+        } else {
+            lastMutexPalms = []
         }
-        let holderSrc = stampNewer ? (stampText ?? text) : text
+        let holderSrc = stampFresh ? (stampText ?? text) : text
         let holder = MatchMath.cameraMutexParse(holderSrc, now: now, pidLive: live)
         mutexHolder = holder
         return (holder, MatchMath.cameraMutexGen(text))
@@ -444,6 +450,11 @@ final class LiveCapture: NSObject {
         guard let stampText = try? String(contentsOf: cameraMutexStampURL(), encoding: .utf8),
               !stampText.isEmpty
         else { return false }
+        guard MatchMath.cameraMutexStampFresh(stampText, now: now) else {
+            lastMutexPalms = []
+            tap?.mutexPts = 0
+            return false
+        }
         let pid = MatchMath.cameraMutexPid(stampText)
         let live = pid.map { p in p > 0 && (kill(p, 0) == 0 || errno == EPERM) }
         if let pts = MatchMath.cameraMutexPts(stampText) {
