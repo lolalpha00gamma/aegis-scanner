@@ -4343,7 +4343,29 @@ final class LibraryStore: ObservableObject {
                     sameSlot: sameSlot,
                     yawAbs: yawAbs,
                     aspectOk: aspectOk,
-                    twinPair: aegisHit?.pairCosine,
+                    twinPair: {
+                        if adopted.count >= 2 {
+                            let vecs: [[Double]] = adopted.compactMap { f in
+                                let v = MatchMath.leftoverCoastPrintVecOf(
+                                    live: f.printVec,
+                                    stored: leftoverCoastPrint[f.id] ?? []
+                                )
+                                return v.count >= 32 ? v : nil
+                            }
+                            if vecs.count >= 2 {
+                                var best: Double?
+                                for i in vecs.indices {
+                                    for j in vecs.indices where j > i {
+                                        if let c = MatchMath.leftoverCoastPrintCosine(live: vecs[i], stored: vecs[j]) {
+                                            best = max(best ?? c, c)
+                                        }
+                                    }
+                                }
+                                if let best { return best }
+                            }
+                        }
+                        return aegisHit?.pairCosine
+                    }(),
                     holdPrev: storedHold,
                     liveIds: liveIds,
                     leftoverId: old.id,

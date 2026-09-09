@@ -1,4 +1,4 @@
-# Aegis **2.1.245 alpha**
+# Aegis **2.1.246 alpha**
 
 
 
@@ -7,6 +7,10 @@ Direkt laden:
 - [Releases](https://github.com/lolalpha00gamma/aegis-scanner/releases)
 
 Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
+## Neu in 2.1.246 alpha
+
+leftoverPick twinPair Live (Ada+Bob 0,40 kein Gallery-Veto). Helios 1.6.99.
+
 ## Neu in 2.1.245 alpha
 
 Warum skip-print Yaw nach 2.1.244 tot blieb und Exact-Hold nach Coast-TTL klebte: leftoverPrintYawMerge `printedIds: []` nie seedete. printCommitted überlebte Remint nicht — Coast-Merge skippte die neue UUID. leftoverLastHash nach leftoverCoastPrintWipe stale, leftoverOccupiedOthers belegte Ghost-Hashes. leftoverPeakHoldKeeps tot (Peak Guest `remaining>0`). leftoverPrintYaw Filter droppte Coast-Keys.

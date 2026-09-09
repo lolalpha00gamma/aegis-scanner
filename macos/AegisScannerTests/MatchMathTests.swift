@@ -1499,6 +1499,22 @@ enum MatchMathTests {
             facesInFrame: 2
         )
         ok(twinPick == nil, "zwei Gesichter TWIN? 0,90 kein Adopt")
+        ok(
+            !MatchMath.leftoverTwinHardBlocks(
+                pairCosine: 0.40,
+                veto: MatchMath.leftoverTwinHardVetoNow(facesInFrame: 2)
+            ),
+            "Same-shot Ada+Bob 0,40 kein Twin"
+        )
+        ok(
+            MatchMath.leftoverPick(
+                candidates: [(index: 0, iou: 0.50, cosine: 0.82)],
+                sharpness: [0: 0.40],
+                twinPair: 0.40,
+                facesInFrame: 2
+            ) == 0,
+            "Same-shot fremd leftover darf"
+        )
 
         ok(MatchMath.leftoverUnknownHard(cosine: 0.55), "0,55 UNBEKANNT hart")
         ok(!MatchMath.leftoverUnknownHard(cosine: 0.45), "0,45 unter Open-Set")

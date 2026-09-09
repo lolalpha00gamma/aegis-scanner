@@ -1,3 +1,36 @@
+# Aegis Vorschläge — 2026-09-09 (Pass 48, 2.1.246)
+
+Stand 2.1.246 alpha. leftoverPick twinPair Live.
+
+## Gelandet in 2.1.246
+
+- leftoverPick twinPair: max paarweise Live-Print wenn faces ≥ 2. Gallery-Centroid nur Fallback.
+
+## Erweiterung (neu)
+
+863. **CameraBroker XPC + IOSurface** mit Helios. P0.
+864. **VNImageRequestHandler(cvPixelBuffer:).** P1.
+865. **HNSW Gallery.**
+866. **LiveCapture off MainActor.**
+867. **Adaptive skipDetect.**
+868. **Overlay CAMetalLayer.**
+869. **leftoverHoldsTrack leftoverPrintOk yawAbs live** (bewusst nil).
+870. **leftoverPrintBudgetYawDelta** global (Of sitzt).
+871. **leftoverScore Twin-Penalty in leftoverPickArgmax raw.**
+872. **Privacy-Blur Unmatched.**
+873. **Per-Camera Gallery** Continuity ≠ Built-in.
+874. **Session-Cluster nach Stop.**
+875. **Glasses On/Off.**
+876. **3D-Yaw FaceShape3D.**
+877. **Kalman R aus VN confidence.**
+878. **Identity-Merge-Wizard.**
+879. **Template-Aging + FA-JSONL.**
+880. **Night-IR Continuity.**
+881. **HeliosAegisKit.**
+882. **enrollSMReady haveProfile.**
+
+P0: CameraBroker. Kein neues leftover*-Flag. Branch `bugfix` nicht mergen.
+
 # Aegis Vorschläge — 2026-09-09 (Pass 47, 2.1.245)
 
 Stand 2.1.245 alpha. leftoverPrintYawMerge printCommitted + Remint. leftoverLastHash Coast-Wipe. Peak-Hold Helper.

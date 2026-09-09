@@ -1,3 +1,39 @@
+# 2.1.246 — leftoverPick Live-Twin, skip ci.
+
+## In 2.1.246 wirklich im Code
+
+2.1.245 leftoverPick twinPair = Gallery-Centroid. Zwei Live-Kisten + Familien-Paar 0,90 → Hard-Veto.
+
+1. **leftoverPick twinPair Live.** Max paarweise Live-Print, Gallery nur Fallback.
+2. Tests + VERSION = Models = MARKETING 2.1.246 (Build 271). Schema 15 bleibt.
+
+leftoverHoldsTrack yawAbs: nil bewusst. leftoverScore Twin-Penalty Rank unverändert. leftoverPrintYawMerge printCommitted sitzt (2.1.245).
+
+## Erweiterung (neu, 2.1.246)
+
+1. **CameraBroker XPC + IOSurface** mit Helios. P0.
+2. **VNImageRequestHandler(cvPixelBuffer:).**
+3. **HNSW Gallery.**
+4. **LiveCapture nicht @MainActor.**
+5. **Adaptive skipDetect.**
+6. **leftoverHoldTrail Disk.**
+7. **Overlay CAMetalLayer.**
+8. **leftoverHoldsTrack leftoverPrintOk yawAbs live.**
+9. **leftoverPrintBudgetYawDelta** global.
+10. **leftoverScore Twin-Penalty in leftoverPickArgmax raw.**
+11. **Privacy-Blur Unmatched.**
+12. **Per-Camera Gallery.**
+13. **Session-Cluster nach Stop.**
+14. **Glasses On/Off.**
+15. **3D-Yaw FaceShape3D.**
+16. **Kalman R aus Vision-Confidence.**
+17. **Identity-Merge-Wizard.**
+18. **Template-Aging + FA-JSONL.**
+19. **Night-IR Continuity.**
+20. **HeliosAegisKit.**
+
+P0: CameraBroker. Kein neues leftover*-Flag. Branch `bugfix` nicht mergen.
+
 # 2.1.245 — leftoverPrintYawMerge printCommitted, LastHash Coast-Wipe, skip ci.
 
 ## In 2.1.245 wirklich im Code
