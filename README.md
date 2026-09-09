@@ -1,4 +1,4 @@
-# Aegis **2.1.238 alpha**
+# Aegis **2.1.239 alpha**
 
 
 
@@ -7,6 +7,16 @@ Direkt laden:
 - [Releases](https://github.com/lolalpha00gamma/aegis-scanner/releases)
 
 Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
+## Neu in 2.1.239 alpha
+
+Warum skipDetect-Overlay nach 2.1.238 weiter sprang und Profil „Ada“ zeigte: Kalman predicted nur x/y. leftoverOverlayFirmName ohne leftoverBaptizeQuality. Detect every 8 freeze. Nacht Laplacian 0,14 tot gegen leftoverPrintSharp 0,22.
+
+- **Kalman W/H.** boxKalmanWHV, skipDetect leftoverFaceTrackKalmanPredict pw/ph. Ghost-Aspect bleibt freeze.
+- **Firm-Name yaw.** leftoverAssignPrintOk leftoverBaptizeQuality. Profil 0,50 / Blur 0,08 kein „Ada“. Ada? Streak 2 bleibt.
+- **Detect every 4.** mehr Detect, Default 8.
+- **Nacht Sharp 0,12.** leftoverHoldsTrack 0,62 / Laplacian 0,14 hält.
+- Tests + VERSION = Models = MARKETING 2.1.239 (Build 264). Schema 15 bleibt.
+
 ## Neu in 2.1.238 alpha
 
 Warum Overlay nachts den Twin fallen ließ und Burst die erste Referenz fraß: `leftoverHoldsTrack` rief `leftoverPrintOk` ohne capture. `enrollBurstReady` tot — SM-Cache aus leftover-Prints war ready. Wake schaltete Center Stage immer `force: true`.

@@ -144,6 +144,7 @@ final class LibraryStore: ObservableObject {
     private var leftoverDisagree: [UUID: Int] = [:]
     private var boxKalman: [UUID: (x: Double, y: Double, w: Double, h: Double, px: Double, py: Double, pw: Double, ph: Double)] = [:]
     private var boxKalmanV: [UUID: (vx: Double, vy: Double)] = [:]
+    private var boxKalmanWHV: [UUID: (vw: Double, vh: Double)] = [:]
     private var leftoverHoldTrail: [UUID: [Double]] = [:]
     private var leftoverHoldTrailBins: [String: [Double]] = [:]
     private var leftoverHoldByHash: [String: (cosine: Double, at: TimeInterval)] = [:]
@@ -711,6 +712,7 @@ final class LibraryStore: ObservableObject {
             leftoverJpegByHash = [:]
             boxKalman = [:]
             boxKalmanV = [:]
+            boxKalmanWHV = [:]
             leftoverKalmanRestoredAgo = 99
         }
         liveGhosts = []
@@ -1826,11 +1828,14 @@ final class LibraryStore: ObservableObject {
     func leftoverOverlayGuestRaw(for id: UUID) -> String {
         let hist = liveNameHist[id] ?? []
         let need = MatchMath.nameTemporalNeed(family: false, dt: 0.125)
+        let sharpness = faces.first(where: { $0.id == id })?.quality.sharpness
         return MatchMath.leftoverOverlayGuestOf(
             storeName: MatchMath.leftoverOverlayFirmName(
                 storeName: leftoverStoreName(for: id),
                 cosine: leftoverHold[id],
-                continuity: liveCapture.isContinuity
+                continuity: liveCapture.isContinuity,
+                sharpness: sharpness,
+                yawAbs: liveYaw[id]
             ),
             voted: MatchMath.nameTemporalVote(hist, dt: 0.125, family: false),
             hist: hist,
@@ -1840,7 +1845,9 @@ final class LibraryStore: ObservableObject {
             sticky: MatchMath.leftoverOverlayFirmName(
                 storeName: leftoverNameLockHeld[id],
                 cosine: leftoverHold[id],
-                continuity: liveCapture.isContinuity
+                continuity: liveCapture.isContinuity,
+                sharpness: sharpness,
+                yawAbs: liveYaw[id]
             )
         )
     }
@@ -2477,6 +2484,7 @@ final class LibraryStore: ObservableObject {
                 self.boxEuro.removeAll()
                 self.boxKalman.removeAll()
                 self.boxKalmanV.removeAll()
+                self.boxKalmanWHV.removeAll()
                 self.boxJumpPending.removeAll()
                 self.livePrintTrail.removeAll()
                 self.livePrintTrailSlot.removeAll()
@@ -2619,7 +2627,8 @@ final class LibraryStore: ObservableObject {
                 ious: liveIous,
                 need: max(1, kalmanSnap.count)
             ),
-            tick: liveRoiTick
+            tick: liveRoiTick,
+            every: 4
         )
         let stillAll = !liveIds.isEmpty && skipIds.count == liveIds.count
         let split = MatchMath.leftoverDetectPrintSplit(
@@ -2912,6 +2921,9 @@ final class LibraryStore: ObservableObject {
             guard let k = boxKalman[id], let p = predicted[id] else { continue }
             let raw = boxKalmanV[id] ?? (vx: 0, vy: 0)
             boxKalmanV[id] = MatchMath.leftoverHoldKalmanVelDecay(vx: raw.vx, vy: raw.vy, miss: miss)
+            let size = boxKalmanWHV[id] ?? (vw: 0, vh: 0)
+            let sizeDecay = MatchMath.leftoverHoldKalmanVelDecay(vx: size.vw, vy: size.vh, miss: miss)
+            boxKalmanWHV[id] = (vw: sizeDecay.vx, vh: sizeDecay.vy)
             let locked = MatchMath.leftoverGhostAspectLock(
                 predX: p.x, predY: p.y, lastW: k.w, lastH: k.h
             )
@@ -2946,6 +2958,7 @@ final class LibraryStore: ObservableObject {
     private func boxKalmanDrop(_ id: UUID) {
         boxKalman.removeValue(forKey: id)
         boxKalmanV.removeValue(forKey: id)
+        boxKalmanWHV.removeValue(forKey: id)
     }
 
     private func applyLiveFaces(
@@ -3142,9 +3155,11 @@ final class LibraryStore: ObservableObject {
                     }
                     if MatchMath.leftoverDetectSkip(iou: iou), let k = seed {
                         let raw = boxKalmanV[old.id] ?? (vx: 0, vy: 0)
+                        let size = boxKalmanWHV[old.id] ?? (vw: 0, vh: 0)
                         let pred = MatchMath.leftoverFaceTrackKalmanPredict(
                             box: MatchMath.FaceTrackBox(x: k.x, y: k.y, w: k.w, h: k.h),
-                            px: raw.vx, py: raw.vy, dt: liveDt
+                            px: raw.vx, py: raw.vy, dt: liveDt,
+                            pw: size.vw, ph: size.vh
                         )
                         face.box = FaceBox(x: pred.x, y: pred.y, width: pred.w, height: pred.h)
                         boxKalman[old.id] = (pred.x, pred.y, pred.w, pred.h, k.px, k.py, k.pw, k.ph)
@@ -3157,6 +3172,7 @@ final class LibraryStore: ObservableObject {
                             seed?.px ?? 0.04, seed?.py ?? 0.04, seed?.pw ?? 0.04, seed?.ph ?? 0.04
                         )
                         boxKalmanV[old.id] = (vx: vel.px, vy: vel.py)
+                        boxKalmanWHV[old.id] = (vw: vel.pw, vh: vel.ph)
                         face.box = FaceBox(x: vision.x, y: vision.y, width: vision.w, height: vision.h)
                     }
                 } else if MatchMath.boxKalmanUses(dt: liveDt) {
@@ -3181,10 +3197,15 @@ final class LibraryStore: ObservableObject {
                     )
                     if kv.px == 0, kv.py == 0, kv.pw == 0, kv.ph == 0, liveDt >= 2 {
                         boxKalmanV[old.id] = (vx: 0, vy: 0)
+                        boxKalmanWHV[old.id] = (vw: 0, vh: 0)
                     } else {
                         boxKalmanV[old.id] = (
                             vx: MatchMath.boxKalmanVelocity(prev: px0, next: x.x, dt: liveDt, prevV: prevV?.vx ?? 0),
                             vy: MatchMath.boxKalmanVelocity(prev: py0, next: y.x, dt: liveDt, prevV: prevV?.vy ?? 0)
+                        )
+                        boxKalmanWHV[old.id] = (
+                            vw: MatchMath.boxKalmanVelocity(prev: pw0, next: w.x, dt: liveDt, prevV: boxKalmanWHV[old.id]?.vw ?? 0),
+                            vh: MatchMath.boxKalmanVelocity(prev: ph0, next: h.x, dt: liveDt, prevV: boxKalmanWHV[old.id]?.vh ?? 0)
                         )
                     }
                 } else {
@@ -3639,7 +3660,7 @@ final class LibraryStore: ObservableObject {
             Set(leftoverWipeUntil.keys), Set(leftoverPairLast.keys), Set(leftoverPairStreak.keys),
             Set(leftoverPairCommit.keys), Set(leftoverPairCommitMiss.keys), Set(leftoverDisagree.keys),
             Set(leftoverStreak.keys), Set(leftoverStreakBox.keys), Set(leftoverStreakSince.keys),
-            Set(boxKalman.keys), Set(boxKalmanV.keys), Set(freezeAxis.keys),
+            Set(boxKalman.keys), Set(boxKalmanV.keys), Set(boxKalmanWHV.keys), Set(freezeAxis.keys),
             Set(liveYaw.keys), Set(livePitch.keys), Set(liveRoll.keys),
             Set(livePrintTrail.keys), Set(livePrintTrailSlot.keys), Set(liveStillFor.keys),
             Set(livePrintDrift.keys), Set(liveNameHist.keys), Set(liveNameLock.keys),
@@ -3796,6 +3817,7 @@ final class LibraryStore: ObservableObject {
             px: MatchMath.leftoverMapPick(unpacked.velX, fallback: faceMaps.px),
             py: MatchMath.leftoverMapPick(unpacked.velY, fallback: faceMaps.py)
         )
+        boxKalmanWHV = MatchMath.leftoverHoldRemintDrop(hold: boxKalmanWHV, remap: remintPlan)
         for face in adopted {
             if let k = boxKalman[face.id] {
                 let kb = FaceBox(x: k.x, y: k.y, width: k.w, height: k.h)
@@ -3813,6 +3835,7 @@ final class LibraryStore: ObservableObject {
         )
         boxKalman = MatchMath.leftoverHoldKalmanKeep(kalman: boxKalman, live: adopted.map(\.id), missCoast: predictOnly)
         boxKalmanV = MatchMath.leftoverHoldKalmanKeep(kalman: boxKalmanV, live: adopted.map(\.id), missCoast: predictOnly)
+        boxKalmanWHV = MatchMath.leftoverHoldKalmanKeep(kalman: boxKalmanWHV, live: adopted.map(\.id), missCoast: predictOnly)
         let keepIds = Set(remintLive.map(\.id)).union(Set(identities.map(\.id)))
         let holdIds = MatchMath.leftoverUUIDUUIDMapDropHold(
             hold: Set(leftoverHold.keys),
@@ -3907,6 +3930,7 @@ final class LibraryStore: ObservableObject {
         boxEuro = boxEuro.filter { keepBoxes.contains($0.key) }
         boxKalman = boxKalman.filter { keepBoxes.contains($0.key) }
         boxKalmanV = boxKalmanV.filter { keepBoxes.contains($0.key) }
+        boxKalmanWHV = boxKalmanWHV.filter { keepBoxes.contains($0.key) }
         boxJumpPending = boxJumpPending.filter { keepBoxes.contains($0.key) }
         livePrintTrail = livePrintTrail.filter { keepBoxes.contains($0.key) }
         livePrintTrailSlot = livePrintTrailSlot.filter { keepBoxes.contains($0.key) }
@@ -3971,6 +3995,7 @@ final class LibraryStore: ObservableObject {
                 leftoverWipeUntil = [:]
                 boxKalman = [:]
                 boxKalmanV = [:]
+                boxKalmanWHV = [:]
                 liveStillFor = [:]
                 liveExposureUntil = [:]
                 livePosterJitter = [:]

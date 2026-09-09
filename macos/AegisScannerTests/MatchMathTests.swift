@@ -3724,6 +3724,8 @@ enum MatchMathTests {
         ok(MatchMath.leftoverDetectSkipTick(skip: true, tick: 1, every: 8), "Skip Tick 1")
         ok(!MatchMath.leftoverDetectSkipTick(skip: true, tick: 8, every: 8), "Skip Tick 8 voll")
         ok(!MatchMath.leftoverDetectSkipTick(skip: false, tick: 1), "Skip tot")
+        ok(MatchMath.leftoverDetectSkipTick(skip: true, tick: 1, every: 4), "Skip every 4 Tick 1")
+        ok(!MatchMath.leftoverDetectSkipTick(skip: true, tick: 4, every: 4), "Skip every 4 Tick 4 voll")
         ok(!MatchMath.cameraMutexYieldsNow(holder: "aegis", owner: "aegis", wasYielded: true), "Yield löst wenn wir halten")
         ok(MatchMath.cameraMutexYieldReconfigure(yielded: true, isContinuity: true), "Yield → Built-in")
         ok(!MatchMath.cameraMutexYieldReconfigure(yielded: true, isContinuity: false), "Yield Built-in bleibt")
@@ -4192,6 +4194,15 @@ enum MatchMathTests {
         ok(abs(pred.x - 0.14) < 1e-9, "Kalman Predict")
         let sleepVel = MatchMath.leftoverFaceTrackKalmanVel(prev: prevBox, live: liveBox, dt: 3)
         ok(sleepVel.px == 0 && sleepVel.py == 0, "Kalman Vel Sleep tot")
+        ok(sleepVel.pw == 0 && sleepVel.ph == 0, "Kalman Vel Sleep W/H tot")
+        let growPrev = MatchMath.FaceTrackBox(x: 0.10, y: 0.20, w: 0.30, h: 0.40)
+        let growLive = MatchMath.FaceTrackBox(x: 0.12, y: 0.20, w: 0.32, h: 0.42)
+        let growVel = MatchMath.leftoverFaceTrackKalmanVel(prev: growPrev, live: growLive, dt: 0.10)
+        ok(abs(growVel.pw - 0.20) < 1e-9 && abs(growVel.ph - 0.20) < 1e-9, "Kalman Vel pw/ph")
+        let growPred = MatchMath.leftoverFaceTrackKalmanPredict(
+            box: growLive, px: growVel.px, py: growVel.py, dt: 0.10, pw: growVel.pw, ph: growVel.ph
+        )
+        ok(abs(growPred.w - 0.34) < 1e-9 && abs(growPred.h - 0.44) < 1e-9, "Kalman Predict W/H")
         let packVel = MatchMath.leftoverFaceTrackPack(
             hold: [liveNew: 0.72],
             pending: [:],
@@ -5288,6 +5299,9 @@ enum MatchMathTests {
         ok(MatchMath.leftoverOverlayFirmName(storeName: "Ada", cosine: 0.64) == nil, "0,64 kein Firm-Name")
         ok(MatchMath.leftoverOverlayFirmName(storeName: "Ada", cosine: 0.81) == "Ada", "0,81 Firm")
         ok(MatchMath.leftoverOverlayFirmName(storeName: nil, cosine: 0.81) == nil, "Firm ohne Name tot")
+        ok(MatchMath.leftoverOverlayFirmName(storeName: "Ada", cosine: 0.81, yawAbs: 0.50) == nil, "Firm Profil tot")
+        ok(MatchMath.leftoverOverlayFirmName(storeName: "Ada", cosine: 0.81, yawAbs: 0.10) == "Ada", "Firm frontal")
+        ok(MatchMath.leftoverOverlayFirmName(storeName: "Ada", cosine: 0.81, sharpness: 0.08) == nil, "Firm Blur tot")
         ok(MatchMath.holdStillRingWidth(dt: 0.125) > MatchMath.holdStillRingWidth(dt: 0.016), "8 fps Still-Ring dicker")
         ok(MatchMath.leftoverPrintEmaNeed(dt: 0.125) == 2, "8 fps EMA 2")
         ok(MatchMath.leftoverPrintEmaNeed(dt: 0.04) == 3, "24 fps EMA 3")
@@ -6286,6 +6300,14 @@ enum MatchMathTests {
         ok(
             !MatchMath.leftoverHoldsTrack(cosine: 0.61, sharpness: 0.30),
             "Tag 0,61 kein Hold"
+        )
+        ok(
+            MatchMath.leftoverHoldsTrack(cosine: 0.62, sharpness: 0.14, capture: 0.18),
+            "Nacht 0,62 Laplacian 0,14 Overlay halten"
+        )
+        ok(
+            !MatchMath.leftoverHoldsTrack(cosine: 0.62, sharpness: 0.14),
+            "Tag 0,62 Laplacian 0,14 tot"
         )
         near(
             MatchMath.leftoverSessionCapture(old: 0.70, live: [0.18]) ?? -1,

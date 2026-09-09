@@ -1,3 +1,57 @@
+# 2.1.239 — Kalman W/H, Firm-Name yaw, skip every 4, skip ci.
+
+## In 2.1.239 wirklich im Code
+
+2.1.238 leftoverHoldsTrack capture. Kalman nur x/y. Firm-Name ohne leftoverBaptizeQuality. Detect every 8 freeze.
+
+1. **boxKalmanWHV.** skipDetect leftoverFaceTrackKalmanPredict pw/ph. Drop/Remint/Keep/Filter mit V.
+2. **leftoverOverlayFirmName yawAbs + sharpness.** leftoverAssignPrintOk leftoverBaptizeQuality. Profil/Blur kein Firm-Ada.
+3. **leftoverDetectSkipTick every: 4.** Function-Default 8.
+4. **leftoverPrintSharpOf Nacht.** leftoverHoldsTrack 0,62 / 0,14 hält.
+5. Tests + VERSION = Models = MARKETING 2.1.239 (Build 264). Schema 15 bleibt.
+
+leftoverGhostAspectLock bleibt. leftoverHoldsTrack leftoverPrintOk yawAbs: nil. Ada? Streak 2 unangetastet.
+
+## Erweiterung (neu, 2.1.239)
+
+1. **CameraBroker XPC + IOSurface** mit Helios. Eine TCC. P0.
+2. **VNImageRequestHandler(cvPixelBuffer:)** Detect+Print ohne 420f→CGImage.
+3. **Gallery Index Pose-Bin + Name.** leftoverPick nicht O(n).
+4. **HNSW / ANN** nach dem Index.
+5. **LiveCapture nicht @MainActor.**
+6. **Adaptive skipDetect.** IoU hoch every 8, Jitter every 2.
+7. **Kalman R aus Vision-Track-Confidence.**
+8. **leftoverOpenSetEnergy als Unsure-Chip** statt Gast n+1.
+9. **leftoverTwinSameShot live** same-frame IoU.
+10. **Print-Cache Pose-Bin LRU.**
+11. **Print-Crop aus VNFaceObservation** der Detect.
+12. **Template-Aging.**
+13. **FA-JSONL Kalibrierung.**
+14. **Glasses On/Off Twin-Templates.**
+15. **leftoverHoldTrail Disk persist.**
+16. **Overlay CAMetalLayer 60 Hz.**
+17. **EAR + SM AND** Unnamed-Taufe.
+18. **Identity-Merge-Wizard.**
+19. **ReID-Graph.**
+20. **UMAP Cluster-View.**
+21. **Export Embeddings JSONL.**
+22. **Continuity Night-IR Galerie.**
+23. **Stereo Built-in + Continuity** Yaw-Prior.
+24. **HeliosAegisKit.**
+25. **Lookaway-Pin IoU-only.**
+26. **Dual-Cam Yaw.**
+27. **enrollSMReady haveProfile** im Bool (Twins).
+28. **leftoverSessionCapture leftoverTransfersId** bleibt nil.
+29. **leftoverFaceTrackPredictHeld pw/ph** nur wenn leftoverGhostAspectLock aus.
+30. **leftoverOverlayLerp** in ContentView.
+31. **leftoverCoastPrintVecOf** live.
+32. **leftoverAssignPrintOk capture.**
+33. **leftoverHoldKalmanEncode WHV** persist.
+34. **yawVelocityFreeze in leftoverPick.**
+35. **AE-Lock nach startRunning** wie Helios 1.6.91.
+
+P0: CameraBroker. Kein neues leftover*-Flag. Branch `bugfix` nicht mergen.
+
 # 2.1.238 — leftoverHoldsTrack capture, Burst 3, Wake CS, skip ci.
 
 ## In 2.1.238 wirklich im Code

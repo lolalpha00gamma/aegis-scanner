@@ -4945,13 +4945,15 @@ enum MatchMath {
         px: Double,
         py: Double,
         dt: Double,
-        cap: Double = 0.12
+        cap: Double = 0.12,
+        pw: Double = 0,
+        ph: Double = 0
     ) -> FaceTrackBox {
         FaceTrackBox(
             x: boxKalmanPredict(x: box.x, v: px, dt: dt, cap: cap),
             y: boxKalmanPredict(x: box.y, v: py, dt: dt, cap: cap),
-            w: box.w,
-            h: box.h
+            w: max(0.02, boxKalmanPredict(x: box.w, v: pw, dt: dt, cap: cap)),
+            h: max(0.02, boxKalmanPredict(x: box.h, v: ph, dt: dt, cap: cap))
         )
     }
 
@@ -9849,9 +9851,11 @@ enum MatchMath {
     static func leftoverOverlayFirmName(
         storeName: String?,
         cosine: Double?,
-        continuity: Bool = false
+        continuity: Bool = false,
+        sharpness: Double? = nil,
+        yawAbs: Double? = nil
     ) -> String? {
-        guard leftoverAssignPrintOk(cosine: cosine, continuity: continuity) else { return nil }
+        guard leftoverAssignPrintOk(cosine: cosine, sharpness: sharpness, yawAbs: yawAbs, continuity: continuity) else { return nil }
         guard let n = storeName, !n.isEmpty else { return nil }
         return n
     }
