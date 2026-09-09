@@ -1,3 +1,47 @@
+# Aegis Vorschläge — 2026-09-09 (Pass 50, 2.1.248)
+
+Stand 2.1.248 alpha. leftoverGhostAspectLock hypot. leftoverTrailWriteHash live. roiEvery aus dt.
+
+## Gelandet in 2.1.248
+
+- leftoverGhostAspectLock hypot-Aspect (last Ratio, Size-Blend). Linear W/H tot.
+- leftoverTrailWriteHash in leftoverLiveHash.
+- roiEvery dt ≥100 ms → 2, sonst 4. Detect + Full gleiche Ticks.
+
+## Bewusst nicht
+
+- leftoverPrintBudgetYawDelta **global**: Of je UUID. Twin dreht, Ada still darf skippen.
+- leftoverScore Twin-Penalty in leftoverPickArgmax raw: twinPair ist frame-global, Argmax unverändert. leftoverPickSameShot + leftoverAmbiguousBlocks sitzen.
+- leftoverHoldsTrack yawAbs: nil — Overlay-Policy, nicht Print-Policy.
+
+## Erweiterung (neu)
+
+903. **CameraBroker XPC + IOSurface** mit Helios. P0. Spec `docs/CameraBroker.md`.
+904. **VNImageRequestHandler(cvPixelBuffer:).** P1. 420v ohne CGImage-Hop.
+905. **HNSW Gallery.** leftoverHoldXMatch skaliert nicht.
+906. **LiveCapture off MainActor.** Overlay liest Snapshot.
+907. **Overlay CAMetalLayer.**
+908. **Glasses On/Off** zwei Templates, nicht eine EMA.
+909. **Privacy-Blur Unmatched.**
+910. **Per-Camera Gallery** Continuity ≠ Built-in. Cosine-Kalibrierung je Cam.
+911. **Kalman R aus VNFaceObservation.confidence.**
+912. **Color-Space-Lock** Laplacian (sRGB vs Display-P3 Nacht).
+913. **Occlusion skipPrint** aus Helios Mutex-Palme (Hand vor Gesicht).
+914. **Identity-Merge-Wizard** nach Session-Cluster.
+915. **Template-Aging** leftoverPrintAt > 14 d → Re-Enroll Chip.
+916. **Session-Cluster nach Stop.**
+917. **Face-Print Versioning.**
+918. **Watch-Alert Household** nur Firm-Name + Streak 3.
+919. **Dual-Cam Yaw** Built-in + Continuity.
+920. **Night-IR Continuity.**
+921. **ReID-Graph** leftoverTransfersId als Kante.
+922. **enrollSMReady haveProfile.** Burst nicht ready bei nur Frontal.
+923. **HeliosAegisKit.**
+924. **UMAP Cluster-View** + Export Embeddings JSONL.
+925. **leftoverHoldsTrack leftoverPrintOk yawAbs live** (bewusst nil bleibt, bis Overlay Profil halten soll).
+
+P0: CameraBroker. Kein neues leftover*-Flag. Branch `bugfix` nicht mergen.
+
 # Aegis Vorschläge — 2026-09-09 (Pass 49, 2.1.247)
 
 Stand 2.1.247 alpha. leftoverPick kein Gallery-Fallback. ROI/skipDetect every 2.

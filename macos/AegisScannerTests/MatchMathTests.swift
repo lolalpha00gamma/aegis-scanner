@@ -1685,7 +1685,12 @@ enum MatchMathTests {
         let blended = MatchMath.leftoverGhostAspectLock(
             predX: 400, predY: 200, lastW: 80, lastH: 100, predW: 120, predH: 140, blend: 0.25
         )
-        ok(abs(blended.w - 90) < 0.001 && abs(blended.h - 110) < 0.001, "Ghost Scale-Blend 0,25")
+        ok(abs(blended.w / blended.h - 0.80) < 0.001, "Ghost hypot hält Aspect 0,80")
+        ok(abs(blended.w - 88.80) < 0.05 && abs(blended.h - 111.0) < 0.05, "Ghost hypot Size-Blend 0,25")
+        let stretch = MatchMath.leftoverGhostAspectLock(
+            predX: 400, predY: 200, lastW: 80, lastH: 100, predW: 160, predH: 80, blend: 0.25
+        )
+        ok(abs(stretch.w / stretch.h - 0.80) < 0.001, "Ghost hypot kein Stretch")
         ok(abs(MatchMath.boxKalmanQ(captureJump: true) - 0.020) < 0.001, "AE mehr Q")
         ok(abs(MatchMath.boxKalmanQ(captureJump: false) - 0.008) < 0.001, "ruhig Q 0,008")
         let jumped = MatchMath.boxKalman(prev: 200, meas: 400, p: 0.04, dt: 0.125, q: MatchMath.boxKalmanQ(captureJump: true))

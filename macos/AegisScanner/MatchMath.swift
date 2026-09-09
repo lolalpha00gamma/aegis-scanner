@@ -8849,7 +8849,8 @@ enum MatchMath {
         foundCount > kalmanCount && kalmanCount > 0
     }
 
-    /// Ghost-Predict ändert cx/cy. W/H: freeze (blend 0) oder Scale-Blend gegen Hash-Sprung.
+    /// Ghost-Predict ändert cx/cy. W/H: freeze (blend 0) oder hypot-Aspect (last Aspect, Size-Blend).
+    /// Lineares W/H unabhängig dehnte die Box beim Nähern (Hash-Sprung).
     static func leftoverGhostAspectLock(
         predX: Double,
         predY: Double,
@@ -8860,9 +8861,13 @@ enum MatchMath {
         blend: Double = 0
     ) -> (x: Double, y: Double, w: Double, h: Double) {
         let a = min(1, max(0, blend))
-        let w = lastW * (1 - a) + (predW ?? lastW) * a
-        let h = lastH * (1 - a) + (predH ?? lastH) * a
-        return (predX, predY, w, h)
+        let lastD = hypot(lastW, lastH)
+        if lastD < 1e-9 || a <= 0 {
+            return (predX, predY, lastW, lastH)
+        }
+        let predD = hypot(predW ?? lastW, predH ?? lastH)
+        let d = lastD * (1 - a) + predD * a
+        return (predX, predY, lastW * d / lastD, lastH * d / lastD)
     }
 
     /// AE jagt: mehr Process-Noise, sonst Overlay klebt am alten Print.

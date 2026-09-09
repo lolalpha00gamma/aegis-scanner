@@ -1,4 +1,8 @@
-# 2.1.247 — leftoverPick kein Gallery-Fallback, ROI/skipDetect every 2, skip ci.
+# 2.1.248 — hypot-Aspect Ghost, leftoverTrailWriteHash, roiEvery aus dt, skip ci.
+
+## In 2.1.248 wirklich im Code
+
+leftoverGhostAspectLock hypot-Aspect. leftoverTrailWriteHash leftoverLiveHash. roiEvery dt ≥100 ms → 2 / sonst 4.
 
 ## In 2.1.247 wirklich im Code
 

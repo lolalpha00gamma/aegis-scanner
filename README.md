@@ -1,4 +1,4 @@
-# Aegis **2.1.247 alpha**
+# Aegis **2.1.248 alpha**
 
 
 
@@ -8,6 +8,15 @@ Direkt laden:
 - [Releases](https://github.com/lolalpha00gamma/aegis-scanner/releases)
 
 Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
+## Neu in 2.1.248 alpha
+
+Warum Ghost-Boxen nach 2.1.247 beim Nähern den Hash sprangen und Detect @ 24 fps hitchte: leftoverGhostAspectLock blendete W/H unabhängig. leftoverTrailWriteHash tot. ROI/skipDetect every 2 = 12 Hz Detect. Helios 1.6.101.
+
+- **leftoverGhostAspectLock hypot-Aspect.** last Ratio, Size-Blend. Linear Stretch tot.
+- **leftoverTrailWriteHash** leftoverLiveHash.
+- **roiEvery aus dt.** 8 Hz /2, 24 Hz /4. Detect + Full gleiche Ticks.
+- Tests + VERSION = Models = MARKETING 2.1.248 (Build 273). Schema 15 bleibt.
+
 ## Neu in 2.1.247 alpha
 
 Warum Ada+Bob nach 2.1.246 weiter „?“ zeigte: twinPair fiel ohne 32-d Vec auf Gallery-Centroid 0,90. Walk-in 1 s (ROI Full/8 + skipDetect/4). Helios 1.6.100.
