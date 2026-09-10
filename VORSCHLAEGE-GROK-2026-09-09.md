@@ -1,4 +1,21 @@
+# Aegis Vorschläge — 2026-09-10 (Pass 54, 2.1.251)
+
+Stand 2.1.251 alpha. leftoverPick unknownCentroid Swift-6 `$0` + Roh-Cosine. FacePrint bleibt.
+
+## Gelandet in Pass 54
+
+- leftoverPick `allSatisfy({ row in unknownCentroid(origRaw[row.index]) })`.
+- origRaw einmal vor unknownCentroid und Gallery-Floor.
+- SIGNING.md: `APPLE_APP_PASSWORD` ist das gesetzte Notary-Alias.
+
+## Offen (200 Repos)
+
+FacePrint ist kein 1:N-Recognizer. Nächster Embedder: Vision Detect + 5-Punkt 112×112 + ArcFace/SFace CoreML, Cosine, printRevision-Bump. HasBrain/FaceUnlock, jonnyoo/glance, opencv SFace (Apache-2). Nicht dieser Pass.
+
+CameraBroker XPC. HNSW. LiveCapture off MainActor.
+
 # Aegis Vorschläge — 2026-09-10 (Pass 53, 2.1.251)
+
 
 Stand 2.1.251 alpha. Compile-Fix + Developer-ID P12-Key + leftoverPick session Hist. FacePrint bleibt.
 

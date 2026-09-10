@@ -15,7 +15,8 @@ macOS 14 Sonoma oder neuer. CI signiert mit Developer ID, wenn die Secrets sitze
 
 ## Neu in 2.1.251 alpha
 
-Compile-Fix leftoverPrintSkipHits + JSONL-split + Test-lets. leftoverPick sessionCapture aus leftover-Hist. Developer-ID P12 inkl. Key. Xcode höchste Version.
+leftoverPick unknownCentroid auf Roh-Cosine (`origRaw`), Swift-6 `row` statt `$0` in nested Closure. leftoverPrintSkipHits + JSONL-split + Test-lets. leftoverPick sessionCapture aus leftover-Hist. Developer-ID P12 inkl. Key. Xcode höchste Version.
+
 
 ## Neu in 2.1.250 alpha
 

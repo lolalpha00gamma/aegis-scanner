@@ -394,22 +394,21 @@ enum MatchMath {
             }
         }
         guard !printable.isEmpty else { return nil }
-        if !iouOnly, printable.allSatisfy({
+        let origRaw = Dictionary(uniqueKeysWithValues: candidates.map {
+            ($0.index, leftoverPickPrint(raw: $0.cosine, smoothed: holdOf($0.index), holdOnlyUnsure: holdOnlyUnsure) ?? -1.0)
+        })
+        if !iouOnly, printable.allSatisfy({ row in
             unknownCentroid(
-                bestCosine: leftoverPickPrint(
-                    raw: candidates.first(where: { c in c.index == $0.index })?.cosine,
-                    smoothed: $0.cosine,
-                    holdOnlyUnsure: holdOnlyUnsure
-                ),
+                bestCosine: origRaw[row.index],
                 capture: leftoverSessionCaptureBox(
                     old: session,
-                    live: liveCap($0.index),
+                    live: liveCap(row.index),
                     hist: leftoverCaptureHistOf(
-                        box: captureBoxHist[$0.index],
+                        box: captureBoxHist[row.index],
                         leftover: captureHist
                     )
                 ),
-                yawAbs: yawAbs[$0.index]
+                yawAbs: yawAbs[row.index]
             )
         }) {
             return nil
@@ -463,9 +462,6 @@ enum MatchMath {
             }
             return nil
         }
-        let origRaw = Dictionary(uniqueKeysWithValues: candidates.map {
-            ($0.index, leftoverPickPrint(raw: $0.cosine, smoothed: holdOf($0.index), holdOnlyUnsure: holdOnlyUnsure) ?? -1.0)
-        })
         let floorRaw = pool.map {
             leftoverPickFloor(raw: origRaw[$0.index], smoothed: $0.cosine)
         }

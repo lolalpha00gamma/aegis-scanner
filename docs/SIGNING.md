@@ -39,13 +39,14 @@ App Store Connect API (bevorzugt):
 oder Apple-ID:
 
 - `APPLE_ID` (gesetzt im Runner 2.1.250)
-- `APPLE_APP_SPECIFIC_PASSWORD` — **fehlt noch**, sonst `mode=developer-id-unnotarized`
+- `APPLE_APP_PASSWORD` (gesetzt im Runner 2.1.251) **oder** `APPLE_APP_SPECIFIC_PASSWORD`
 - `APPLE_TEAM_ID`
 
-Aliase für das App-Passwort: `APPLE_PASSWORD`, `AC_PASSWORD`, `APPLEIDPASS`,
-`NOTARY_PASSWORD`.
+Aliase für das App-Passwort: `APPLE_APP_PASSWORD`, `APPLE_PASSWORD`, `AC_PASSWORD`,
+`APPLEIDPASS`, `NOTARY_PASSWORD`, `APPLE_ID_PASSWORD`.
 
-Ohne dieses Passwort bleibt die Datei Developer-ID-signiert, Gatekeeper
+`macos/ci-sign.sh` nimmt das erste nicht-leere Alias. Ohne Passwort bleibt die
+Datei Developer-ID-signiert (`mode=developer-id-unnotarized`), Gatekeeper
 beim ersten Start ggf. Rechtsklick → Öffnen.
 
 ## Ablauf

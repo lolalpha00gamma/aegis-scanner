@@ -3908,6 +3908,12 @@ enum MatchMathTests {
         let smHold = MatchMath.leftoverHoldSmooth(raw: 0.70, prev: 0.50) ?? 0
         ok(smHold < MatchMath.leftoverPrintGenuine, "Smooth 0,70/0,50 unter Genuine")
         ok(
+            !MatchMath.unknownCentroid(
+                bestCosine: MatchMath.leftoverPickPrint(raw: 0.70, smoothed: smHold)
+            ),
+            "unknownCentroid leftoverPickPrint roh 0,70 nicht EMA"
+        )
+        ok(
             MatchMath.leftoverPick(candidates: [(0, 0.50, 0.70)], holdPrev: 0.50) == 0,
             "Gallery-Floor auf Roh, nicht Smooth"
         )

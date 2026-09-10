@@ -12,6 +12,7 @@ Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Py
 
 2.1.250 baute nicht: `leftoverPrintSkipHits` `if skipBoxes.contains { } {` (Swift 6), `falseAcceptJSONLTrim` Argument-Reihenfolge, `MatchMathTests.main` doppelte `let`. Titel zeigte 2.1.249. `sessionCapture` = min aller Live-Lumas — Gast 0,18 senkte Adas Floor. P12-Import `-t cert` ohne Schlüssel. Xcode-Picker landete auf 16.4 statt 26.3.
 
+- **leftoverPick unknownCentroid** `allSatisfy({ row in … origRaw[row.index] })` — Roh-Cosine, nicht leftoverHoldSmooth (0,70/0,50 EMA 0,57). Swift 6 nested `$0` tot.
 - **leftoverPrintSkipHits** for-in, kein trailing `contains`.
 - **falseAcceptJSONLTrim** `omittingEmptySubsequences` vor `whereSeparator`.
 - **MatchMathTests** Unique `let` in `main`.
