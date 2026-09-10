@@ -470,7 +470,7 @@ final class LibraryStore: ObservableObject {
                 isGuest: guest,
                 enrolledAt: enrolled,
                 now: now,
-                lastSeen: leftoverStreakSince[ident.id.uuidString]
+                lastSeen: leftoverStreakSince[ident.id]
             ) {
                 if nearest == nil || remain < nearest! { nearest = remain }
             }
@@ -478,7 +478,7 @@ final class LibraryStore: ObservableObject {
                 isGuest: guest,
                 enrolledAt: enrolled,
                 now: now,
-                lastSeen: leftoverStreakSince[ident.id.uuidString]
+                lastSeen: leftoverStreakSince[ident.id]
             )
         }
         guestTTLChip = MatchMath.guestTTLChip(remain: nearest) ?? "—"
@@ -4291,6 +4291,12 @@ final class LibraryStore: ObservableObject {
                 var detScore: [Int: Double] = [:]
                 var boxX: [Int: Double] = [:]
                 let old = item.old
+                let storedHold = MatchMath.leftoverHoldRemintLookup(
+                    hold: leftoverHold, id: old.id, remap: remintPlan
+                )
+                let holdViaLookup = MatchMath.leftoverHoldViaLookup(
+                    hold: leftoverHold, id: old.id, remap: remintPlan
+                )
                 if leftoverTried.contains(old.id) { continue }
                 let oldRaw = FaceEngine.poseSlot(old).rawValue
                 let oldHeld = liveSlotHold[old.id]
@@ -4353,7 +4359,7 @@ final class LibraryStore: ObservableObject {
                     // leftoverHoldSkipLookaway: EMA nicht mit Profil überschreiben. continue hält den Wert.
                     // leftoverHold[id] ist Frontal. ¾-Lookup nicht in die unbinned EMA.
                     if leftoverHold[old.id] == nil,
-                       MatchMath.leftoverHoldBin(yawAbs: lookYaw ?? old.quality.yaw) == 0,
+                       MatchMath.leftoverHoldBin(yawAbs: lookYaw) == 0,
                        !MatchMath.leftoverHoldSkipLookaway(enrolled: lookEnrolled, yawAbs: lookYaw)
                     {
                         leftoverHold[old.id] = MatchMath.leftoverHoldLookupYaw(
@@ -4371,7 +4377,7 @@ final class LibraryStore: ObservableObject {
                             table: leftoverHoldByHash,
                             now: now,
                             ttl: leftoverHoldTTL,
-                            yawAbs: lookYaw ?? old.quality.yaw,
+                            yawAbs: lookYaw,
                             facesInFrame: adopted.count,
                             occupied: leftoverOccupiedHashes(except: old.id)
                         )
@@ -5545,7 +5551,7 @@ final class LibraryStore: ObservableObject {
                 if MatchMath.peopleAlbumFetchAny(limited: limited) {
                     subtype = .any
                 } else {
-                    subtype = PHAssetCollectionSubtype(rawValue: UInt(MatchMath.peopleAlbumSubtypeRaw)) ?? .albumSyncedFaces
+                    subtype = PHAssetCollectionSubtype(rawValue: MatchMath.peopleAlbumSubtypeRaw) ?? .albumSyncedFaces
                 }
                 let cols = PHAssetCollection.fetchAssetCollections(with: .album, subtype: subtype, options: nil)
                 var seeded = 0
@@ -5681,7 +5687,9 @@ final class LibraryStore: ObservableObject {
                 contentMode: .aspectFill,
                 options: opts
             ) { img, _ in
-                if let cg = img?.cgImage { out.append(cg) }
+                if let img, let cg = img.cgImage(forProposedRect: nil, context: nil, hints: nil) {
+                    out.append(cg)
+                }
             }
         }
         return out

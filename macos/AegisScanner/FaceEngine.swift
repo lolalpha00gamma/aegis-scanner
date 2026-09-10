@@ -1886,7 +1886,7 @@ enum FaceEngine {
             let bytes = n * MemoryLayout<Double>.size
             guard raw.count >= bytes else { return [] }
             var vals = [Double](repeating: 0, count: n)
-            vals.withUnsafeMutableBytes { dest in
+            _ = vals.withUnsafeMutableBytes { dest in
                 raw.copyBytes(to: dest, count: bytes)
             }
             return vals
@@ -1894,7 +1894,7 @@ enum FaceEngine {
         let bytes = n * MemoryLayout<Float>.size
         guard raw.count >= bytes else { return [] }
         var vals = [Float](repeating: 0, count: n)
-        vals.withUnsafeMutableBytes { dest in
+        _ = vals.withUnsafeMutableBytes { dest in
             raw.copyBytes(to: dest, count: bytes)
         }
         return vals.map { Double($0) }
@@ -3054,7 +3054,9 @@ enum FaceEngine {
             req.trackingLevel = .fast
             do {
                 try handler.perform([req], on: image)
-                if let r = req.results?.first, MatchMath.overlayTrackVisionOk(confidence: r.confidence) {
+                if let r = req.results?.first as? VNDetectedObjectObservation,
+                   MatchMath.overlayTrackVisionOk(confidence: r.confidence)
+                {
                     nextObs.append(r)
                     out.append(vnToPixels(r.boundingBox, width: w, height: h))
                 } else {
