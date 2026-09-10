@@ -20,12 +20,40 @@ concurrency:
 
 jobs:
   package:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-15, macos-26]
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 50
+    runs-on: macos-15
+    timeout-minutes: 20
+    env:
+      APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+      BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+      P12_BASE64: ${{ secrets.P12_BASE64 }}
+      CERTIFICATE_BASE64: ${{ secrets.CERTIFICATE_BASE64 }}
+      MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+      CSC_LINK: ${{ secrets.CSC_LINK }}
+      P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
+      CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      TEAM_ID: ${{ secrets.TEAM_ID }}
+      APPLE_CODESIGN_IDENTITY: ${{ secrets.APPLE_CODESIGN_IDENTITY }}
+      CODESIGN_IDENTITY: ${{ secrets.CODESIGN_IDENTITY }}
+      APPLE_IDENTITY: ${{ secrets.APPLE_IDENTITY }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_ID_USERNAME: ${{ secrets.APPLE_ID_USERNAME }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+      NOTARY_PASSWORD: ${{ secrets.NOTARY_PASSWORD }}
+      APP_SPECIFIC_PASSWORD: ${{ secrets.APP_SPECIFIC_PASSWORD }}
+      APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+      APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+      API_KEY_P8: ${{ secrets.API_KEY_P8 }}
+      APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+      APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+      API_KEY_ID: ${{ secrets.API_KEY_ID }}
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      APPLE_ISSUER_ID: ${{ secrets.APPLE_ISSUER_ID }}
+      ISSUER_ID: ${{ secrets.ISSUER_ID }}
+      KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
 
@@ -84,39 +112,42 @@ jobs:
             ENABLE_HARDENED_RUNTIME=YES \
             build
 
-      - name: Sign and make disk image
+      - name: Sign app, make disk image, notarize
         run: |
           set -euo pipefail
+          chmod +x macos/ci-sign.sh
           APP=".derived/Build/Products/Release/Aegis.app"
           test -d "$APP"
           rm -rf dmgroot Aegis.dmg
           mkdir dmgroot
           cp -R "$APP" dmgroot/Aegis.app
-          codesign --force --sign - \
-            --options runtime \
-            --timestamp=none \
-            --entitlements macos/AegisScanner.entitlements \
-            dmgroot/Aegis.app
+          macos/ci-sign.sh app dmgroot/Aegis.app
           ln -s /Applications dmgroot/Applications
           hdiutil create \
             -volname Aegis \
             -srcfolder dmgroot \
             -ov \
             -format UDZO \
-            -fs HFS+
+            -fs HFS+ \
             Aegis.dmg
           test -f Aegis.dmg
           test ! -d Aegis.dmg
+          macos/ci-sign.sh dmg Aegis.dmg
           file Aegis.dmg
           ls -lh Aegis.dmg
+          cat signing.txt 2>/dev/null || cat dmgroot/signing.txt 2>/dev/null || true
+          if [ -f dmgroot/signing.txt ] && [ ! -f signing.txt ]; then
+            cp dmgroot/signing.txt signing.txt
+          fi
 
       - name: Upload Aegis.dmg artifact
         uses: actions/upload-artifact@v4
         with:
-          name: dmg-${{ matrix.os }}
+          name: dmg-macos-15
           path: |
             Aegis.dmg
             marketing.txt
+            signing.txt
           if-no-files-found: error
 
   publish:
@@ -146,18 +177,30 @@ jobs:
             exit 1
           fi
           MARKETING=$(cat "$(dirname "$DMG")/marketing.txt" 2>/dev/null || echo "2.1.154")
+          SIGN_MODE=$(awk -F= '/^mode=/{print $2; exit}' "$(dirname "$DMG")/signing.txt" 2>/dev/null || echo adhoc)
           TAG="v${MARKETING}-alpha"
           TITLE="Aegis ${MARKETING} alpha"
           cp "$DMG" Aegis.dmg
           file Aegis.dmg
+          case "$SIGN_MODE" in
+            notarized)
+              SIGN_NOTE="Die Datei ist mit Developer ID signiert und notarisiert. Gatekeeper lässt den Start zu."
+              ;;
+            developer-id|developer-id-unnotarized)
+              SIGN_NOTE="Die Datei ist mit Developer ID signiert. Notarisierung steht noch aus — beim ersten Start ggf. Rechtsklick → Öffnen."
+              ;;
+            *)
+              SIGN_NOTE="Die Datei ist ad-hoc signiert (kein Zertifikat im Runner). Beim ersten Start: Rechtsklick auf Aegis → Öffnen."
+              ;;
+          esac
           NOTES="$(cat <<EOF
           Aegis ${MARKETING} alpha — macOS-Image, kein Xcode, kein Python, kein Browser.
 
           1. Aegis.dmg öffnen
           2. Aegis in den Ordner Programme ziehen
-          3. Beim ersten Start: Rechtsklick auf Aegis → Öffnen
+          3. ${SIGN_NOTE}
 
-          Die Datei ist ad-hoc signiert (kein Apple-Developer-Account).
+          Signatur: ${SIGN_MODE}.
           EOF
           )"
           if gh release view "$TAG" >/dev/null 2>&1; then

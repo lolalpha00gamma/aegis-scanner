@@ -5449,7 +5449,7 @@ enum MatchMath {
 
     static func overlayChipKeep(_ chip: String) -> Int {
         let u = chip.uppercased()
-        if u.hasPrefix("JUMP") || u.hasPrefix("LOCK") || u.hasPrefix("TWIN") || u.hasPrefix("NBR") || u.hasPrefix("HOLD") { return 0 }
+        if u.hasPrefix("JUMP") || u.hasPrefix("LOCK") || u.hasPrefix("TWIN") || u.hasPrefix("NBR") || u.hasPrefix("HOLD") || u.hasPrefix("IOU") { return 0 }
         if u.hasPrefix("HASH") || u.hasPrefix("JPEG") { return 1 }
         if u.hasPrefix("STILL") || u.hasPrefix("PRINT") { return 1 }
         return 2
@@ -7296,9 +7296,13 @@ enum MatchMath {
     }
 
     /// Gast mit eigener Hist (3+) erbt Annas Median nicht. Flash ohne Box-Hist: leftover bleibt.
+    /// Cap-8 leftover länger als Burst-3: AE-Flash 0,18 pollutet den Tag-Median nicht.
     static func leftoverCaptureHistOf(box: [Double]?, leftover: [Double]?) -> [Double] {
-        if let box, box.count >= 3 { return box }
-        return leftover ?? []
+        let b = box ?? []
+        let l = leftover ?? []
+        if l.count > b.count { return l }
+        if b.count >= 3 { return b }
+        return l
     }
 
     /// Trail-Append dieselbe Schwelle. Roh 0,70 blur pollutet MAD.

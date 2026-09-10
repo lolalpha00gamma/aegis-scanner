@@ -1,4 +1,43 @@
+# Analyse Helios 1.6.102 + Aegis 2.1.250 — 2026-09-10 (Pass 52)
+
+Kein Merge von `bugfix`. Predict bleibt 0. Kein neues leftover*-Flag.
+
+## Aegis vs. 200 FR-Repos (Detect → Align → Embed → Cosine)
+
+Die Liste (`face-recognition-repos-200.md`) teilt eine Pipeline: 5-Punkt Similarity → 112×112 → trainierter Embedder → L2-Norm → ein Cosine.
+
+Aegis bleibt auf `VNGenerateFacePrintRequest`. Das ist das Personen-Album, kein Angular-Margin-Recognizer. Drei Lücken, die FaceUnlock/glance/Immich schließen:
+
+1. **Embedding.** FacePrint statt ArcFace/SFace. Ohne `printRevision`-Bump und CoreML-Weights kein Tausch in diesem Pass. buffalo_l = InsightFace non-commercial. Kommerziell: YuNet+SFace (Apache-2).
+2. **Align.** Vision richtet intern aus. Warped 256px Crops haben FacePrint schon einmal zum Jacket-Print gemacht — deshalb kein 5-Punkt-Warp vor FacePrint.
+3. **Match.** Ein Cosine plus kalibrierter Operating Point. Geometry-Veto gegen den Embedder bleibt Aegis-Policy (`lookOf`), nicht NIST-1:N.
+
+P0 bleibt CameraBroker. P1 Embedder = SFace/ArcFace CoreML, 5-Punkt 112×112, LFW in `bench/` gegen FacePrint.
+
+## Warum Identitäten nach 2.1.249 weiter rutschten
+
+1. leftoverCaptureHistOf Box-first (≥3). Burst-3 Flash senkt Median. Pass 52: leftover wenn länger.
+2. Skip-Summary / Hold-Chip / IoU-Adopt Tests-only. Pass 52 verdrahtet HUD + Overlay.
+3. DMG ad-hoc. Secrets da, Workflow las sie nicht. Pass 52: `macos/ci-sign.sh`.
+
+## Bugfix-Protokoll (Pass 52)
+
+Pass 1 — Burst-3 Flash vor Cap-8 leftover. Fix: leftoverCaptureHistOf l.count > b.count.
+
+Pass 2 — HUD tot. Fix: leftoverPrintSkipSummary + leftoverFaceTrackHoldChip + leftoverNameLockAdoptChip.
+
+Pass 3 — Ad-hoc DMG. Fix: Developer ID Import, Notarize, ein macos-15 Runner.
+
+## Nächster sinnvoller Code-Pass
+
+1. CameraBroker XPC + IOSurface. P0.
+2. FaceEmbedder Protocol + SFace/ArcFace CoreML, printRevision.
+3. VNImageRequestHandler(cvPixelBuffer:).
+4. leftoverHoldsTrack yawAbs live (bewusst nil).
+5. HNSW Gallery.
+
 # Analyse Helios 1.6.102 + Aegis 2.1.249 — 2026-09-09 (Pass 51)
+
 
 Kein Merge von `bugfix`. Predict bleibt 0. Kein neues *Need(dt). Kein neues leftover*-Flag.
 

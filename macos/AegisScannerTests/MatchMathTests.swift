@@ -1998,6 +1998,20 @@ enum MatchMathTests {
             MatchMath.leftoverCaptureHistOf(box: [], leftover: [0.70, 0.70, 0.70]) == [0.70, 0.70, 0.70],
             "Flash ohne Box-Hist leftover"
         )
+        let cap8Tag = Array(repeating: 0.70, count: 8)
+        ok(
+            MatchMath.leftoverCaptureHistOf(box: [0.18, 0.18, 0.18], leftover: cap8Tag) == cap8Tag,
+            "Cap-8 leftover vor Burst-3 Flash"
+        )
+        let burstFlashPick = MatchMath.leftoverPick(
+            candidates: [(0, 0.50, 0.61)],
+            sharpness: [0: 0.40],
+            sessionCapture: 0.70,
+            capture: [0: 0.18],
+            captureHist: cap8Tag,
+            captureBoxHist: [0: [0.18, 0.18, 0.18]]
+        )
+        ok(burstFlashPick == nil, "Burst-3 Flash vs Cap-8 leftover: 0,61 tot")
         let smClear = MatchMath.leftoverScoreSoftmax([0.80, 0.70])
         ok((smClear.max() ?? 0) > 0.70, "0,80 vs 0,70 Softmax klar")
         ok(!MatchMath.leftoverSoftmaxBlocks(smClear), "0,80 vs 0,70 kein Block")
@@ -6521,6 +6535,14 @@ enum MatchMathTests {
             "RemintBins Solo trotz stale LastHash"
         )
         ok(MatchMath.liveRoiSkipOnWake(), "Wake ROI Skip")
+        ok(MatchMath.overlayChipKeep("iou Ada") == 0, "IOU-Chip Keep")
+        ok(
+            MatchMath.leftoverCaptureHistOf(
+                box: [0.18, 0.18],
+                leftover: [0.70, 0.70, 0.70, 0.70]
+            ) == [0.70, 0.70, 0.70, 0.70],
+            "leftover länger als Box gewinnt"
+        )
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

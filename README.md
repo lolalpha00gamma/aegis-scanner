@@ -1,4 +1,4 @@
-# Aegis **2.1.249 alpha**
+# Aegis **2.1.250 alpha**
 
 
 
@@ -8,6 +8,15 @@ Direkt laden:
 - [Releases](https://github.com/lolalpha00gamma/aegis-scanner/releases)
 
 Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
+## Neu in 2.1.250 alpha
+
+Warum leftoverPick nach 2.1.249 weiter den Nacht-Floor zog: `leftoverCaptureHistOf` nahm Burst-3 (3+) vor Cap-8 leftover. AE-Flash 0,18 senkte den Median, 0,61 taufte. Skip-Summary / Hold-Chip / IoU-Adopt-Chip nur Tests. DMG ad-hoc — Gatekeeper-Rechtsklick.
+
+- **leftoverCaptureHistOf** leftover wenn länger als Box. Burst-3 Flash, Cap-8 Tag.
+- **leftoverPrintSkipSummary** HUD. leftoverFaceTrackHoldChip + leftoverNameLockAdoptChip Overlay.
+- **Developer ID + Notarize** in `.github/workflows/release-dmg.yml` + `macos/ci-sign.sh`. Ein Runner `macos-15`, Timeout 20. Secrets: `docs/SIGNING.md`.
+- Tests + VERSION = Models = MARKETING 2.1.250 (Build 275). Schema 15 bleibt.
+
 ## Neu in 2.1.249 alpha
 
 Warum Session-Capture nach 2.1.248 weiter den Floor senkte: `leftoverCaptureHistTablePut` kopierte das 3-Frame-Burst (`captureBurstFrames`) in `leftoverCaptureHistByHash`. `leftoverCaptureHistPut` (Cap 8) tot. AE-Flash 0,18 pollutet Median, leftoverPick „?“. Helios 1.6.102.
@@ -174,9 +183,9 @@ Warum Identitäten nach Dropout ohne Print tauschten und ¾-Trails doppelt lagen
 
 1. [Aegis.dmg](https://github.com/lolalpha00gamma/aegis-scanner/releases/latest/download/Aegis.dmg) öffnen
 2. **Aegis** in den Ordner Programme ziehen
-3. Beim ersten Start: Rechtsklick auf Aegis → **Öffnen**
+3. Beim ersten Start: notarisiert direkt öffnen, sonst Rechtsklick → **Öffnen**
 
-macOS 14 Sonoma oder neuer. Ad-hoc signiert. CI auf **macos-15** (Fallback macos-26) baut das Image nach jedem Push auf `main`.
+macOS 14 Sonoma oder neuer. CI auf **macos-15** signiert mit Developer ID, wenn die Repo-Secrets sitzen (`docs/SIGNING.md`), sonst Ad-hoc.
 
 ## Neu in 2.1.232 alpha
 

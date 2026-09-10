@@ -59,6 +59,7 @@ final class LibraryStore: ObservableObject {
     @Published var guestTTLChip: String = "—"
     @Published var enrollQualityChip: String = "Q —"
     @Published var captureSparkChip: String = "CQ —"
+    @Published var printSkipSummaryChip: String = ""
     @Published var faReplayChip: String = "FA —"
     @Published var faReplayMatrix: String = "FA —"
     @Published var overlayBeat: TimeInterval = 0
@@ -238,6 +239,7 @@ final class LibraryStore: ObservableObject {
     private var leftoverDetectAt: TimeInterval = 0
     private var leftoverPrintAt: TimeInterval = 0
     private var leftoverPrintSkipIds: Set<UUID> = []
+    private var nameLockAdoptChip: [UUID: String] = [:]
     private var leftoverSparkChipHeld: [UUID: (chip: String, hold: Int)] = [:]
     private var leftoverSparkChipByHash: [String: String] = [:]
     private var leftoverJpegDelta: [UUID: Double] = [:]
@@ -1969,6 +1971,20 @@ final class LibraryStore: ObservableObject {
         if leftoverPrintSkipIds.contains(faceId), let chip = MatchMath.leftoverPrintSkipChip(skipped: true) {
             bits.append(chip)
         }
+        if let chip = MatchMath.leftoverFaceTrackHoldChip(
+            track: MatchMath.FaceTrack(
+                hold: leftoverHold[faceId] ?? 0,
+                nameHeld: leftoverNameLockHeld[faceId] ?? "",
+                nameUntil: leftoverNameLockUntil[faceId] ?? 0,
+                poseAt: livePoseAt[faceId] ?? 0
+            ),
+            now: liveLastStamp
+        ) {
+            bits.append(chip)
+        }
+        if let chip = nameLockAdoptChip[faceId] {
+            bits.append(chip)
+        }
         let capped = MatchMath.overlayChipCap(bits)
         return capped.isEmpty ? nil : capped.joined(separator: " · ")
     }
@@ -2428,6 +2444,8 @@ final class LibraryStore: ObservableObject {
         leftoverJpegDelta = [:]
         leftoverLastIoU = [:]
         leftoverPrintSkipIds = []
+        printSkipSummaryChip = ""
+        nameLockAdoptChip = [:]
         yawCoverageChip = "YAW —"
         enrollSMChip = "ENROLL —"
         enrollQualityChip = "Q —"
@@ -2515,6 +2533,8 @@ final class LibraryStore: ObservableObject {
                 self.leftoverPrintAt = 0
                 self.leftoverPrintCache = []
                 self.yawCoverageChip = "YAW —"
+                self.printSkipSummaryChip = ""
+                self.nameLockAdoptChip = [:]
                 self.liveDetectGen &+= 1
             }
             self.lastCameraUniqueID = uid
@@ -2746,6 +2766,16 @@ final class LibraryStore: ObservableObject {
                 self.liveFormatChip = self.liveCapture.formatChip
                 self.mutexChip = self.liveCapture.mutexChip
                 self.leftoverPrintSkipIds = skipIdsAll
+                self.printSkipSummaryChip = MatchMath.leftoverPrintSkipSummary(
+                    still: skipIdsAll.compactMap { id in
+                        let n = self.leftoverNameLockHeld[id] ?? self.leftoverStoreName(for: id)
+                        return (n?.isEmpty == false) ? n : nil
+                    },
+                    printing: liveIds.filter { !skipIdsAll.contains($0) }.compactMap { id in
+                        let n = self.leftoverNameLockHeld[id] ?? self.leftoverStoreName(for: id)
+                        return (n?.isEmpty == false) ? n : nil
+                    }
+                ) ?? ""
                 if !self.liveActive || self.liveMediaId != mediaId {
                     self.liveBusy = false
                     self.livePending = nil
@@ -3913,6 +3943,14 @@ final class LibraryStore: ObservableObject {
             stored: adoptStored,
             floor: adoptFloor
         )
+        nameLockAdoptChip = [:]
+        for (nid, name) in namedAdopt.held {
+            let isNew = leftoverNameLockHeld[nid] == nil
+            let fromOld = leftoverNameLockHeld.contains { $0.key != nid && $0.value == name }
+            if isNew, fromOld, let chip = MatchMath.leftoverNameLockAdoptChip(did: true, name: name) {
+                nameLockAdoptChip[nid] = chip
+            }
+        }
         leftoverNameLockHeld = namedAdopt.held
         leftoverNameLockUntil = namedAdopt.until
         let lockedIds = MatchMath.leftoverNameLockLive(until: leftoverNameLockUntil, now: now)

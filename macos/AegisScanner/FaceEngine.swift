@@ -1634,6 +1634,8 @@ enum FaceEngine {
     /// Apple face-identity print on a natural crop. Never image-print.
     /// Vision aligns internally; strong roll (|θ| ≥ 8°) is deskewed first so
     /// the crop isn't sideways before Vision sees it.
+    /// ArcFace 5-Punkt 112×112 wäre der nächste Embedder (printRevision-Bump).
+    /// Warped 256px patches made FacePrint fail and silently stored a jacket print.
     private static func identityPrint(of image: CGImage?) -> Data? {
         facePrintOnly(of: image)
     }

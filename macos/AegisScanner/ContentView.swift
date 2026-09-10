@@ -78,6 +78,12 @@ struct ContentView: View {
                     .foregroundStyle(.orange)
                     .help("Capture-Format. BGRA 8 = Continuity tot.")
             }
+            if store.liveActive, !store.printSkipSummaryChip.isEmpty {
+                Text(store.printSkipSummaryChip)
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(.orange)
+                    .help("Print-Budget: still = Skip, print = Stamp. Ada still · Twin print.")
+            }
             if store.liveActive, store.yawCoverageChip != "YAW —" {
                 Text(store.yawCoverageChip)
                     .font(.system(.caption, design: .monospaced))

@@ -1,4 +1,39 @@
+# Aegis Vorschläge — 2026-09-10 (Pass 52, 2.1.250)
+
+Stand 2.1.250 alpha. leftoverCaptureHistOf Cap-8 vor Burst-3. Skip-HUD. Developer-ID DMG.
+
+## Gelandet in 2.1.250
+
+- leftoverCaptureHistOf leftover wenn länger als Box. Burst-3 Flash, Cap-8 Tag. Gast 3=3 Box.
+- leftoverPrintSkipSummary HUD. leftoverFaceTrackHoldChip Overlay. leftoverNameLockAdoptChip IoU.
+- macos/ci-sign.sh Developer ID + Notarize. Ein Runner macos-15. Timeout 20.
+
+## Bewusst nicht
+
+- leftoverPrintBudgetYawDelta **global**: Of je UUID.
+- leftoverHoldsTrack yawAbs: nil — Overlay-Policy.
+- ArcFace 5-Punkt 112×112: printRevision + Weights. FacePrint bleibt.
+- CameraBroker: Spec only.
+
+## Erweiterung (neu)
+
+954. **FaceEmbedder Protocol** Vision-Detect + SFace/ArcFace CoreML, 5-Punkt 112×112, Cosine. printRevision bump. LFW in `bench/` gegen FacePrint. P1 nach CameraBroker.
+955. **leftoverCaptureHistOf leftover** sitzt. Burst-3 bleibt liveCaptureHist für AE-Jump.
+956. **CameraBroker XPC + IOSurface** mit Helios. P0. Spec `docs/CameraBroker.md`.
+957. **VNImageRequestHandler(cvPixelBuffer:).** P1.
+958. **HNSW Gallery.** leftoverHoldXMatch skaliert nicht.
+959. **LiveCapture off MainActor.** Overlay liest Snapshot.
+960. **Overlay CAMetalLayer.**
+961. **Glasses On/Off** zwei Templates.
+962. **Privacy-Blur Unmatched.**
+963. **Per-Camera Gallery** Continuity ≠ Built-in.
+964. **Kalman R aus VNFaceObservation.confidence.**
+965. **leftoverHoldsTrack leftoverPrintOk yawAbs live** (bewusst nil bleibt).
+
+P0: CameraBroker. P1: FaceEmbedder. Kein neues leftover*-Flag. Branch `bugfix` nicht mergen.
+
 # Aegis Vorschläge — 2026-09-09 (Pass 51, 2.1.249)
+
 
 Stand 2.1.249 alpha. leftoverCaptureHistPut Cap 8 live. leftoverPick captureHist Lookup.
 

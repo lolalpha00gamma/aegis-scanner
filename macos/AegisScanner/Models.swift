@@ -2,8 +2,8 @@ import CoreGraphics
 import Foundation
 
 enum AppVersion {
-    static let marketing = "2.1.249"
-    static let build = 274
+    static let marketing = "2.1.250"
+    static let build = 275
     static let channel = "alpha"
     static let display = "2.1.249 alpha"
 }
