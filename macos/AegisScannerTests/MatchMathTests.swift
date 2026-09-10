@@ -5652,9 +5652,9 @@ enum MatchMathTests {
         ok(remintedOther[liveT]?.yaw == 0.35, "Tracks Yaw überlebt Remint")
         ok(remintedOther[liveT]?.velX == 0.02, "Tracks Kalman-Vx überlebt Remint")
         ok(remintedOther[liveT]?.blink == true, "Tracks Blink überlebt Remint")
-        let pickedEmpty = MatchMath.leftoverPairLastPick(unpacked2: [:], faceMaps: [adaT: bobT])
+        let pickedEmpty = MatchMath.leftoverPairLastPick(unpacked: [:], faceMaps: [adaT: bobT])
         ok(pickedEmpty[adaT] == bobT, "PairLastPick leer → faceMaps")
-        let pickedUnpack = MatchMath.leftoverPairLastPick(unpacked2: [liveT: bobT], faceMaps: [adaT: adaT])
+        let pickedUnpack = MatchMath.leftoverPairLastPick(unpacked: [liveT: bobT], faceMaps: [adaT: adaT])
         ok(pickedUnpack[liveT] == bobT, "PairLastPick Unpack gewinnt")
 
         let gal = [
@@ -6030,7 +6030,7 @@ enum MatchMathTests {
         ok(MatchMath.mergeUndoHolds(mergedAt: Date().timeIntervalSince1970 - 10, now: Date().timeIntervalSince1970), "Undo 10 s hält")
         ok(!MatchMath.mergeUndoHolds(mergedAt: Date().timeIntervalSince1970 - 40, now: Date().timeIntervalSince1970), "Undo 40 s tot")
         ok(!MatchMath.mergeUndoHolds(mergedAt: nil, now: Date().timeIntervalSince1970), "Undo ohne Stamp tot")
-        ok(MatchMath.mergeUndoChip(kept3: "Ada", skipped: "Ada 2") == "UNDO Ada 2→Ada 30s", "Undo chip")
+        ok(MatchMath.mergeUndoChip(kept: "Ada", skipped: "Ada 2") == "UNDO Ada 2→Ada 30s", "Undo chip")
         ok(MatchMath.mergeUndoNeed() == 30, "Undo 30 s")
         ok(MatchMath.captureQualitySpark(0.20).contains("skip"), "CQ skip")
         ok(MatchMath.captureQualitySpark(0.50) == "CQ 50", "CQ 50")
@@ -6050,8 +6050,8 @@ enum MatchMathTests {
             (expected: "Ada", decided: "Ben")
         ])
         let split = MatchMath.twinAutoSplit(heat: heatSplit)
-        ok(split?.kept3 == "Ada" && split?.split == "Ben", "Twin-Split Ada/Ben")
-        ok(MatchMath.twinAutoSplitChip(kept3: "Ada", split: "Ben") == "SPLIT Ben≠Ada", "Twin-Split chip")
+        ok(split?.kept == "Ada" && split?.split == "Ben", "Twin-Split Ada/Ben")
+        ok(MatchMath.twinAutoSplitChip(kept: "Ada", split: "Ben") == "SPLIT Ben≠Ada", "Twin-Split chip")
         ok(MatchMath.twinAutoSplit(heat: [(pair: "Ada→Ben", n: 2)]) == nil, "Twin-Split 2 tot")
         ok(MatchMath.twinAutoSplitNeed() == 3, "Twin-Split Need 3")
         ok(MatchMath.maskTwinVeto(probeMasked: true, refMasked: false, cosine: 0.64), "Mask 0,64 veto")
@@ -6094,7 +6094,7 @@ enum MatchMathTests {
         ok(MatchMath.enrollYawCompass(yaw: -0.80) == "YAW PL", "Kompass PL")
         ok(MatchMath.twinSplitKey("Ben", "Ada") == "Ada≠Ben", "Twin key sort")
         ok(MatchMath.twinSplitKey("Ada", "Ben") == "Ada≠Ben", "Twin key same")
-        let splits = MatchMath.twinSplitInsert(kept3: "Ada", split: "Ben", splits: [])
+        let splits = MatchMath.twinSplitInsert(kept: "Ada", split: "Ben", splits: [])
         ok(MatchMath.twinSplitBlocks(a: "Ada", b: "Ben", splits: splits), "Twin blocks Ada/Ben")
         ok(MatchMath.twinSplitBlocks(a: "Ben", b: "Ada", splits: splits), "Twin blocks reverse")
         ok(!MatchMath.twinSplitBlocks(a: "Ada", b: "Cara", splits: splits), "Twin Cara frei")
@@ -6111,18 +6111,18 @@ enum MatchMathTests {
         ok(
             MatchMath.leftoverPick(
                 candidates: [(0, 0.50, 0.85)],
+                twinSplits: splits,
                 leftoverName: "Ada",
-                candNames: [0: "Ben"],
-                twinSplits: splits
+                candNames: [0: "Ben"]
             ) == nil,
             "Pick culls Twin"
         )
         ok(
             MatchMath.leftoverPick(
                 candidates: [(0, 0.50, 0.85)],
+                twinSplits: splits,
                 leftoverName: "Ada",
-                candNames: [0: "Ada"],
-                twinSplits: splits
+                candNames: [0: "Ada"]
             ) == 0,
             "Pick hält Ada"
         )
@@ -6493,7 +6493,7 @@ enum MatchMathTests {
             "Tag 0,62 Laplacian 0,14 tot"
         )
         near(
-            MatchMath.leftoverSessionCapture(old3: 0.70, live: [0.18]) ?? -1,
+            MatchMath.leftoverSessionCapture(old: 0.70, live: [0.18]) ?? -1,
             0.18,
             1e-12,
             "Session Capture Live-Nacht"
