@@ -473,7 +473,21 @@ enum MatchMath {
         let rawBest = floorRaw.indices.max(by: { floorRaw[$0] < floorRaw[$1] })
         if leftoverOpenSetUnsure(scores: floorRaw), arg == rawBest || sameShot { return nil }
         let topYaw = floorRaw.enumerated().max(by: { $0.element < $1.element }).flatMap { yawAbs[pool[$0.offset].index] }
-        if leftoverOpenSetGalleryFloor(floorRaw, floor: leftoverSessionFloor(yawAbs: topYaw, capture: session)) { return nil }
+        let rawForGallery = pool.map { origRaw[$0.index] ?? -1 }
+        let capForGallery: Double?
+        if let i = arg {
+            capForGallery = leftoverSessionCaptureBox(
+                old: session,
+                live: liveCap(pool[i].index),
+                hist: leftoverCaptureHistOf(
+                    box: captureBoxHist[pool[i].index],
+                    leftover: captureHist
+                )
+            )
+        } else {
+            capForGallery = session
+        }
+        if leftoverOpenSetGalleryFloor(rawForGallery, floor: leftoverSessionFloor(yawAbs: topYaw, capture: capForGallery)) { return nil }
         if let i = arg {
             let idx = pool[i].index
             if !conflictTickAgrees(
@@ -4169,6 +4183,8 @@ enum MatchMath {
             t.hold = hold
             if let prev = t.pairLast {
                 t.pairLast = holdToLive[prev] ?? prev
+            } else {
+                t.pairLast = hold
             }
             out[live] = t
         }
@@ -6049,7 +6065,7 @@ enum MatchMath {
     static let leftoverOpenSetEnergyFloor: Double = 0.04
 
     static func leftoverOpenSetGapNow(top: Double, second: Double, floor: Double = leftoverOpenSetGap) -> Bool {
-        top - second <= floor
+        top - second <= floor + 1e-12
     }
 
     /// logΣexp / t. Klare 1-Klasse ≈ 0. Zwei nahe Scores → größer. Unsure wenn > Floor.
@@ -8795,8 +8811,12 @@ enum MatchMath {
         pad: Double = 1.8
     ) -> (x: Double, y: Double, w: Double, h: Double)? {
         guard !kalman.isEmpty, imageW > 1, imageH > 1 else { return nil }
+        let norm = kalman.allSatisfy { $0.x <= 1.5 && $0.y <= 1.5 && $0.w <= 1.5 && $0.h <= 1.5 }
+        let boxes: [(x: Double, y: Double, w: Double, h: Double)] = norm
+            ? kalman.map { (x: $0.x * imageW, y: $0.y * imageH, w: $0.w * imageW, h: $0.h * imageH) }
+            : kalman
         var minX = Double.infinity, minY = Double.infinity, maxX = -Double.infinity, maxY = -Double.infinity
-        for b in kalman {
+        for b in boxes {
             minX = min(minX, b.x)
             minY = min(minY, b.y)
             maxX = max(maxX, b.x + b.w)
@@ -9377,7 +9397,9 @@ enum MatchMath {
         let used = leftoverHoldTTLPref(ttl)
         var out: [UUID: TimeInterval] = [:]
         for (id, v) in leftoverStreakSinceDecode(raw) {
-            if v > 100 {
+            if v > 1_000_000 {
+                out[id] = now
+            } else if v > 100 {
                 out[id] = v > now ? v : now
             } else if v > 0 {
                 out[id] = now - (used - v)
