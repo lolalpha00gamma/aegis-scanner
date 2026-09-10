@@ -396,7 +396,11 @@ enum MatchMath {
         guard !printable.isEmpty else { return nil }
         if !iouOnly, printable.allSatisfy({
             unknownCentroid(
-                bestCosine: $0.cosine,
+                bestCosine: leftoverPickPrint(
+                    raw: candidates.first(where: { c in c.index == $0.index })?.cosine,
+                    smoothed: $0.cosine,
+                    holdOnlyUnsure: holdOnlyUnsure
+                ),
                 capture: leftoverSessionCaptureBox(
                     old: session,
                     live: liveCap($0.index),
