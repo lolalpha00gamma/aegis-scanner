@@ -25,6 +25,8 @@ jobs:
     env:
       APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
       BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+      APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+      BUILD_CERTIFICATE: ${{ secrets.BUILD_CERTIFICATE }}
       P12_BASE64: ${{ secrets.P12_BASE64 }}
       CERTIFICATE_BASE64: ${{ secrets.CERTIFICATE_BASE64 }}
       MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
@@ -33,6 +35,7 @@ jobs:
       APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
       CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
       CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+      CERT_PASSWORD: ${{ secrets.CERT_PASSWORD }}
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       TEAM_ID: ${{ secrets.TEAM_ID }}
       APPLE_CODESIGN_IDENTITY: ${{ secrets.APPLE_CODESIGN_IDENTITY }}
@@ -40,8 +43,16 @@ jobs:
       APPLE_IDENTITY: ${{ secrets.APPLE_IDENTITY }}
       APPLE_ID: ${{ secrets.APPLE_ID }}
       APPLE_ID_USERNAME: ${{ secrets.APPLE_ID_USERNAME }}
+      APPLEID: ${{ secrets.APPLEID }}
       APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
       APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+      APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+      AC_PASSWORD: ${{ secrets.AC_PASSWORD }}
+      APPLEIDPASS: ${{ secrets.APPLEIDPASS }}
+      APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+      NOTARYTOOL_PASSWORD: ${{ secrets.NOTARYTOOL_PASSWORD }}
+      APP_PASSWORD: ${{ secrets.APP_PASSWORD }}
+      APPLE_ID_APP_PASSWORD: ${{ secrets.APPLE_ID_APP_PASSWORD }}
       NOTARY_PASSWORD: ${{ secrets.NOTARY_PASSWORD }}
       APP_SPECIFIC_PASSWORD: ${{ secrets.APP_SPECIFIC_PASSWORD }}
       APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
@@ -63,23 +74,26 @@ jobs:
           ls /Applications | grep -i xcode || true
           set +e
           PICK=""
-          for p in \
-            /Applications/Xcode_27.app \
-            /Applications/Xcode_27.0.app \
-            /Applications/Xcode_27.0.0.app \
-            /Applications/Xcode_26.6.app \
-            /Applications/Xcode_26.5.app \
-            /Applications/Xcode_26.app \
-            /Applications/Xcode.app
-          do
-            if [ -d "$p/Contents/Developer" ]; then
+          BEST=""
+          for p in /Applications/Xcode*.app; do
+            if [ ! -d "$p/Contents/Developer" ]; then
+              continue
+            fi
+            ver=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$p/Contents/Info.plist" 2>/dev/null || echo 0)
+            if [ -z "$BEST" ]; then
+              BEST="$ver"
               PICK="$p"
-              break
+              continue
+            fi
+            top=$(printf '%s\n%s\n' "$BEST" "$ver" | sort -V | tail -n 1)
+            if [ "$top" = "$ver" ] && [ "$ver" != "$BEST" ]; then
+              BEST="$ver"
+              PICK="$p"
             fi
           done
           if [ -n "$PICK" ]; then
             sudo xcode-select -s "$PICK/Contents/Developer"
-            echo "Using $PICK"
+            echo "Using $PICK ($BEST)"
           fi
           xcodebuild -version
           xcrun --show-sdk-version
@@ -152,7 +166,7 @@ jobs:
 
   publish:
     needs: package
-    if: always() && github.event_name != 'pull_request'
+    if: success() && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4

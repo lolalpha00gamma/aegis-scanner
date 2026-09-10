@@ -1,4 +1,4 @@
-# Aegis **2.1.250 alpha**
+# Aegis **2.1.251 alpha**
 
 
 
@@ -8,7 +8,22 @@ Direkt laden:
 - [Releases](https://github.com/lolalpha00gamma/aegis-scanner/releases)
 
 Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
+## Neu in 2.1.251 alpha
+
+2.1.250 baute nicht: `leftoverPrintSkipHits` `if skipBoxes.contains { } {` (Swift 6), `falseAcceptJSONLTrim` Argument-Reihenfolge, `MatchMathTests.main` doppelte `let`. Titel zeigte 2.1.249. `sessionCapture` = min aller Live-Lumas — Gast 0,18 senkte Adas Floor. P12-Import `-t cert` ohne Schlüssel. Xcode-Picker landete auf 16.4 statt 26.3.
+
+- **leftoverPrintSkipHits** for-in, kein trailing `contains`.
+- **falseAcceptJSONLTrim** `omittingEmptySubsequences` vor `whereSeparator`.
+- **MatchMathTests** Unique `let` in `main`.
+- **leftoverPick sessionCapture** leftover-Hist, nicht min der Szene.
+- **ci-sign.sh** P12 inkl. Key, `default-keychain`. Xcode höchste Version.
+- Fenster-Titel `AppVersion.display` = 2.1.251.
+- Tests + VERSION = Models = MARKETING 2.1.251 (Build 276). Schema 15 bleibt.
+
+FacePrint bleibt (`printRevision`). Kein ArcFace/CoreML dieser Pass. 200-Repo-Abgleich: Detect→5-Punkt-112×112→ArcFace ist der nächste Embedder, nicht dieser Build.
+
 ## Neu in 2.1.250 alpha
+
 
 Warum leftoverPick nach 2.1.249 weiter den Nacht-Floor zog: `leftoverCaptureHistOf` nahm Burst-3 (3+) vor Cap-8 leftover. AE-Flash 0,18 senkte den Median, 0,61 taufte. Skip-Summary / Hold-Chip / IoU-Adopt-Chip nur Tests. DMG ad-hoc — Gatekeeper-Rechtsklick.
 

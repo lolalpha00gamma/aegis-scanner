@@ -7,22 +7,26 @@ Dieser Ordner ist der offene Teil: Workflow + Script lesen die Namen, Werte nie.
 
 Eines der Zertifikat-Aliase, Base64 vom `.p12`:
 
+- `BUILD_CERTIFICATE_BASE64` (gesetzt im Runner 2.1.250)
 - `APPLE_CERTIFICATE`
-- `BUILD_CERTIFICATE_BASE64`
+- `APPLE_CERTIFICATE_BASE64`
 - `P12_BASE64`
 - `CERTIFICATE_BASE64`
 - `MACOS_CERTIFICATE`
 
 Passwort zum P12, eines von:
 
-- `P12_PASSWORD`
+- `P12_PASSWORD` (gesetzt im Runner 2.1.250)
 - `APPLE_CERTIFICATE_PASSWORD`
 - `CERTIFICATE_PASSWORD`
 
 Optional, überschreibt die Identity-Erkennung:
 
 - `APPLE_CODESIGN_IDENTITY` — `Developer ID Application: Name (TEAMID)`
-- `APPLE_TEAM_ID`
+- `APPLE_TEAM_ID` (gesetzt im Runner 2.1.250)
+
+`macos/ci-sign.sh` importiert das P12 **mit Schlüssel** (nicht `-t cert`).
+Ohne privaten Schlüssel fällt CI auf Ad-hoc zurück.
 
 ## Notarisierung (Gatekeeper ohne Rechtsklick)
 
@@ -34,9 +38,15 @@ App Store Connect API (bevorzugt):
 
 oder Apple-ID:
 
-- `APPLE_ID`
-- `APPLE_APP_SPECIFIC_PASSWORD`
+- `APPLE_ID` (gesetzt im Runner 2.1.250)
+- `APPLE_APP_SPECIFIC_PASSWORD` — **fehlt noch**, sonst `mode=developer-id-unnotarized`
 - `APPLE_TEAM_ID`
+
+Aliase für das App-Passwort: `APPLE_PASSWORD`, `AC_PASSWORD`, `APPLEIDPASS`,
+`NOTARY_PASSWORD`.
+
+Ohne dieses Passwort bleibt die Datei Developer-ID-signiert, Gatekeeper
+beim ersten Start ggf. Rechtsklick → Öffnen.
 
 ## Ablauf
 
@@ -48,3 +58,4 @@ Ohne Zertifikat fällt CI auf Ad-hoc zurück und schreibt `mode=adhoc`
 nach `signing.txt`. Release-Notes lesen denselben Mode.
 
 Ein Image (`macos-15`). Timeout 20. Kein zweiter macOS-Job.
+Xcode: höchste installierte Version (nicht fest `Xcode.app` = 16.4).

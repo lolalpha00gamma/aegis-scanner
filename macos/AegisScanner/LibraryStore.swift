@@ -4427,9 +4427,13 @@ final class LibraryStore: ObservableObject {
                     boxX: boxX,
                     leftoverX: old.box.x,
                     otherX: adopted.filter { $0.id != old.id }.map { $0.box.x },
-                    sessionCapture: MatchMath.leftoverSessionCapture(
+                    sessionCapture: MatchMath.leftoverSessionCaptureBox(
                         old: old.quality.capture,
-                        live: remaining.map { adopted[$0.index].quality.capture }
+                        live: nil,
+                        hist: MatchMath.leftoverCaptureHistLookup(
+                            hash: leftoverLastHash[old.id] ?? "",
+                            table: leftoverCaptureHistByHash
+                        ) ?? liveCaptureHist[old.id] ?? []
                     ),
                     capture: Dictionary(uniqueKeysWithValues: remaining.map {
                         ($0.index, adopted[$0.index].quality.capture)

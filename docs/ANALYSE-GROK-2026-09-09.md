@@ -1,4 +1,11 @@
+# Analyse Helios 1.6.102 + Aegis 2.1.251 — 2026-09-10 (Pass 53)
+
+2.1.250 CI tot: Swift 6 `contains` + split-Args + Test-lets. P12 `-t cert` ohne Key. Xcode 16.4 statt 26.3. leftoverPick session min() über alle Gesichter.
+
+200 Repos (Detect→Align 112×112→ArcFace/FaceNet/dlib/SFace): Aegis FacePrint. Kein Gewicht dieser Pass.
+
 # Analyse Helios 1.6.102 + Aegis 2.1.250 — 2026-09-10 (Pass 52)
+
 
 Kein Merge von `bugfix`. Predict bleibt 0. Kein neues leftover*-Flag.
 

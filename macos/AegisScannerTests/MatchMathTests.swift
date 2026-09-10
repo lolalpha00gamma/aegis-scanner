@@ -1682,11 +1682,11 @@ enum MatchMathTests {
         ok(!MatchMath.liveRoiSkipsForStranger(foundCount: 1, kalmanCount: 1), "gleiche Zahl Crop")
         let ghost = MatchMath.leftoverGhostAspectLock(predX: 400, predY: 200, lastW: 80, lastH: 100)
         ok(abs(ghost.x - 400) < 0.001 && abs(ghost.w - 80) < 0.001, "Ghost cx, w bleibt")
-        let blended = MatchMath.leftoverGhostAspectLock(
+        let blended2 = MatchMath.leftoverGhostAspectLock(
             predX: 400, predY: 200, lastW: 80, lastH: 100, predW: 120, predH: 140, blend: 0.25
         )
-        ok(abs(blended.w / blended.h - 0.80) < 0.001, "Ghost hypot hält Aspect 0,80")
-        ok(abs(blended.w - 88.80) < 0.05 && abs(blended.h - 111.0) < 0.05, "Ghost hypot Size-Blend 0,25")
+        ok(abs(blended2.w / blended2.h - 0.80) < 0.001, "Ghost hypot hält Aspect 0,80")
+        ok(abs(blended2.w - 88.80) < 0.05 && abs(blended2.h - 111.0) < 0.05, "Ghost hypot Size-Blend 0,25")
         let stretch = MatchMath.leftoverGhostAspectLock(
             predX: 400, predY: 200, lastW: 80, lastH: 100, predW: 160, predH: 80, blend: 0.25
         )
@@ -2659,26 +2659,26 @@ enum MatchMathTests {
         ok(MatchMath.leftoverHoldXMatch(liveX: 0.22, holds: [(id: xa2, x: 0.30), (id: xb2, x: 0.20)]) == xb2, "HoldX näherer nach relativem Spread")
         let reminted = MatchMath.leftoverAssignRemint(liveX: [0.20, 0.80], holdX: [0.22, 0.78])
         ok(reminted[0] == 0 && reminted[1] == 1, "Remint x-order")
-        let idOld = UUID(), idNew = UUID(), idStale = UUID()
+        let idOld2 = UUID(), idNew2 = UUID(), idStale = UUID()
         let remint = MatchMath.leftoverHoldRemint(
-            hold: [idOld: 0.72],
-            live: [(id: idNew, x: 0.20)],
-            stored: [(id: idStale, x: 0.205), (id: idOld, x: 0.22)]
+            hold: [idOld2: 0.72],
+            live: [(id: idNew2, x: 0.20)],
+            stored: [(id: idStale, x: 0.205), (id: idOld2, x: 0.22)]
         )
-        ok(remint[idNew] == 0.72 && remint[idOld] == 0.72, "Hold Remint skippt Stale")
-        let binOld = MatchMath.leftoverHoldKey(id: idOld, bin: 1)
+        ok(remint[idNew2] == 0.72 && remint[idOld2] == 0.72, "Hold Remint skippt Stale")
+        let binOld = MatchMath.leftoverHoldKey(id: idOld2, bin: 1)
         let remintBins = MatchMath.leftoverHoldRemintBins(
             hold: [binOld: 0.68],
-            live: [(id: idNew, x: 0.21)],
-            stored: [(id: idOld, x: 0.20)]
+            live: [(id: idNew2, x: 0.21)],
+            stored: [(id: idOld2, x: 0.20)]
         )
-        ok(remintBins[MatchMath.leftoverHoldKey(id: idNew, bin: 1)] == 0.68, "Remint Bins ¾")
+        ok(remintBins[MatchMath.leftoverHoldKey(id: idNew2, bin: 1)] == 0.68, "Remint Bins ¾")
         ok(MatchMath.leftoverHoldBinFromKey(binOld) == 1, "BinFromKey")
         ok(MatchMath.leftoverAssignLiveGate(unnamed: 1, unused: 1), "1+1 Gate")
         ok(!MatchMath.leftoverAssignLiveGate(unnamed: 0, unused: 1), "ohne Live tot")
         ok(!MatchMath.leftoverAssignLiveGate(unnamed: 1, unused: 0), "ohne Hold tot")
-        let one = MatchMath.leftoverAssignLive(scores: [[nil]], liveX: [0.21], holdX: [0.22])
-        ok(one[0] == 0, "1 Hold 1 Live x-Fill")
+        let one2 = MatchMath.leftoverAssignLive(scores: [[nil]], liveX: [0.21], holdX: [0.22])
+        ok(one2[0] == 0, "1 Hold 1 Live x-Fill")
         let pairOld = UUID(), pairNew = UUID()
         let pairRemint = MatchMath.leftoverHoldRemint(
             hold: [pairOld: pairOld],
@@ -2949,9 +2949,9 @@ enum MatchMathTests {
             arm: 1.2
         )
         ok(abs((armOnly[persistId] ?? 0) - 101.2) < 0.001, "NameLock Arm ohne remaining")
-        let trailEnc = MatchMath.leftoverUUIDTrailEncode([persistId: [0.20, 0.22]])
-        let trailDec = MatchMath.leftoverUUIDTrailDecode(trailEnc)
-        ok(trailDec[persistId] == [0.20, 0.22], "HoldTrail UUID persist")
+        let trailEnc2 = MatchMath.leftoverUUIDTrailEncode([persistId: [0.20, 0.22]])
+        let trailDec2 = MatchMath.leftoverUUIDTrailDecode(trailEnc2)
+        ok(trailDec2[persistId] == [0.20, 0.22], "HoldTrail UUID persist")
         let atomicOld = UUID(), atomicNew = UUID()
         let atomic = MatchMath.leftoverAssignAtomic(
             hold: [atomicOld: 0.81, atomicNew: 0.10],
@@ -2959,14 +2959,14 @@ enum MatchMathTests {
             to: atomicNew
         )
         ok(atomic[atomicNew] == 0.81 && atomic[atomicOld] == nil, "AssignAtomic überschreibt Dest")
-        let binOld = MatchMath.leftoverHoldKey(id: atomicOld, bin: 0)
+        let binOld2 = MatchMath.leftoverHoldKey(id: atomicOld, bin: 0)
         let binMoved = MatchMath.leftoverHoldMoveBins(
-            hold: [binOld: 0.66, MatchMath.leftoverHoldKey(id: atomicNew, bin: 0): 0.10],
+            hold: [binOld2: 0.66, MatchMath.leftoverHoldKey(id: atomicNew, bin: 0): 0.10],
             from: atomicOld,
             to: atomicNew
         )
         ok(binMoved[MatchMath.leftoverHoldKey(id: atomicNew, bin: 0)] == 0.66, "HoldMoveBins überschreibt Dest")
-        ok(binMoved[binOld] == nil, "HoldMoveBins from tot")
+        ok(binMoved[binOld2] == nil, "HoldMoveBins from tot")
         near(MatchMath.leftoverFillXRescuePref(0.10), 0.16, 0.001, "FillX Floor 0,16")
         near(MatchMath.leftoverFillXRescuePref(0.50), 0.36, 0.001, "FillX Cap 0,36")
         near(MatchMath.leftoverFillXRescuePref(0.28), 0.28, 0.001, "FillX Default 0,28")
@@ -3427,10 +3427,10 @@ enum MatchMathTests {
             live: []
         )
         ok(emptyLiveOcc.contains("5.5.4.6#101"), "Occupied stored Rank Restore")
-        let pairId = UUID()
+        let pairId2 = UUID()
         ok(MatchMath.leftoverUUIDUUIDMapDecode(
-            MatchMath.leftoverUUIDUUIDMapEncode([pairId: pairId])
-        )[pairId] == pairId, "PairCommit dest==key roundtrip")
+            MatchMath.leftoverUUIDUUIDMapEncode([pairId2: pairId2])
+        )[pairId2] == pairId2, "PairCommit dest==key roundtrip")
         ok(MatchMath.leftoverPairCommitHold(committed: majKeep, proposed: UUID(), miss: 0), "Hold miss 0")
         ok(MatchMath.leftoverPairCommitHold(committed: majKeep, proposed: UUID(), miss: 2), "Hold miss 2")
         ok(!MatchMath.leftoverPairCommitHold(committed: majKeep, proposed: UUID(), miss: 3), "Hold miss 3 tot")
@@ -3450,8 +3450,8 @@ enum MatchMathTests {
         ok(MatchMath.leftoverPairCommitHoldLabel(miss: 1) == "HOLD 1/3", "HOLD-Label")
         ok(MatchMath.leftoverPairCommitHoldLabel(miss: 0) == nil, "HOLD 0 tot")
         ok(MatchMath.leftoverPairCommitHoldLabel(miss: 3) == nil, "HOLD ready tot")
-        let binKey = MatchMath.leftoverHoldKey(id: kid, bin: 0)
-        ok(MatchMath.leftoverHoldBinsDecode([binKey: 0.70])[binKey] == 0.70, "Bins UUID.bin hält")
+        let binKey2 = MatchMath.leftoverHoldKey(id: kid, bin: 0)
+        ok(MatchMath.leftoverHoldBinsDecode([binKey2: 0.70])[binKey2] == 0.70, "Bins UUID.bin hält")
         ok(MatchMath.leftoverHoldBinsDecode(["6.6.4.6#101": 0.81])["6.6.4.6"] == 0.81, "Bins Rank Rebase")
         ok(MatchMath.leftoverHoldBinsDecode(["6.6.4.6#101": 0.81])["6.6.4.6#101"] == nil, "Bins Rank tot")
         let trailBin = MatchMath.leftoverHoldTrailBinsDecode(["6.6.4.6#101": [0.80]])
@@ -3632,10 +3632,10 @@ enum MatchMathTests {
         ok(MatchMath.leftoverHoldMissCoast(miss: 1, need: 2), "Miss-Coast 1")
         ok(MatchMath.leftoverHoldMissCoast(miss: 2, need: 2), "Miss-Coast 2")
         ok(!MatchMath.leftoverHoldMissCoast(miss: 3, need: 2), "Miss-Coast 3 tot")
-        let hashLive = UUID(), hashOld = UUID()
+        let hashLive = UUID(), hashOld2 = UUID()
         ok(
             MatchMath.leftoverSparkChipTickKeeps(
-                id: hashOld,
+                id: hashOld2,
                 live: [hashLive],
                 hold: [],
                 lastHash: "ab12",
@@ -3645,7 +3645,7 @@ enum MatchMathTests {
         )
         ok(
             !MatchMath.leftoverSparkChipTickKeeps(
-                id: hashOld,
+                id: hashOld2,
                 live: [hashLive],
                 hold: [],
                 lastHash: "ab12",
@@ -3655,7 +3655,7 @@ enum MatchMathTests {
         )
         ok(
             MatchMath.leftoverSparkChipTickDest(
-                id: hashOld,
+                id: hashOld2,
                 live: [hashLive],
                 lastHash: "ab12",
                 liveByHash: ["ab12": hashLive]
@@ -3673,11 +3673,11 @@ enum MatchMathTests {
         )
         ok(
             MatchMath.leftoverSparkChipTickDest(
-                id: hashOld,
+                id: hashOld2,
                 live: [hashLive],
                 lastHash: "ab12",
                 liveByHash: ["zz99": hashLive]
-            ) == hashOld,
+            ) == hashOld2,
             "Spark dest mismatch hält alt"
         )
         let oldId = UUID()
@@ -3690,12 +3690,12 @@ enum MatchMathTests {
         let pairHold = [oldId: oldId]
         let pairOut = MatchMath.leftoverHoldRemintApplyId(hold: pairHold, remap: remap)
         ok(pairOut[liveId] == liveId, "RemintApplyId Value+Key")
-        var hashTab: [String: String] = [:]
-        hashTab = MatchMath.leftoverSparkChipHashPut(table: hashTab, hash: "ab12", chip: "BIN 3")
-        ok(MatchMath.leftoverSparkChipHashGet(table: hashTab, hash: "ab12") == "BIN 3", "Spark Hash persist")
+        var hashTab2: [String: String] = [:]
+        hashTab2 = MatchMath.leftoverSparkChipHashPut(table: hashTab2, hash: "ab12", chip: "BIN 3")
+        ok(MatchMath.leftoverSparkChipHashGet(table: hashTab2, hash: "ab12") == "BIN 3", "Spark Hash persist")
         ok(
             MatchMath.leftoverSparkChipTickKeeps(
-                id: UUID(), live: [liveId], hold: [], lastHash: "ab12", liveHash: ["ab12"], hashTable: hashTab
+                id: UUID(), live: [liveId], hold: [], lastHash: "ab12", liveHash: ["ab12"], hashTable: hashTab2
             ),
             "Spark tick hashTable"
         )
@@ -3735,8 +3735,8 @@ enum MatchMathTests {
         )
         ok(remapPlan[mapA] == mapC, "RemintMap stored→live")
         ok(remapPlan[mapC] == nil, "RemintMap skip identity")
-        let binKey = MatchMath.leftoverHoldKey(id: oldId, bin: 0)
-        let binsApplied = MatchMath.leftoverHoldRemintApplyBins(hold: [binKey: 0.64], remap: remap)
+        let binKey3 = MatchMath.leftoverHoldKey(id: oldId, bin: 0)
+        let binsApplied = MatchMath.leftoverHoldRemintApplyBins(hold: [binKey3: 0.64], remap: remap)
         ok(binsApplied[MatchMath.leftoverHoldKey(id: liveId, bin: 0)] == 0.64, "RemintApplyBins")
         ok(MatchMath.leftoverBaptizeQuality(sharpness: 0.10, yawAbs: 0, continuity: true), "Continuity quality 0,10")
         ok(!MatchMath.leftoverBaptizeQuality(sharpness: 0.10, yawAbs: 0, continuity: false), "Webcam quality 0,10 tot")
@@ -3779,12 +3779,12 @@ enum MatchMathTests {
             table: [:], hash: hashLive.uuidString, chip: "NO"
         )
         ok(hashSkip.isEmpty, "Spark Hash Put skip UUID")
-        let liveTwin = MatchMath.leftoverAssignLive(
+        let liveTwin2 = MatchMath.leftoverAssignLive(
             scores: [[0.40, 0.90], [0.88, 0.41]],
             liveX: [0.21, 0.23],
             holdX: [0.20, 0.24]
         )
-        ok(liveTwin[0] == 1 && liveTwin[1] == 0, "AssignLive Print Twin")
+        ok(liveTwin2[0] == 1 && liveTwin2[1] == 0, "AssignLive Print Twin")
         ok(MatchMath.leftoverAssignHungarianXHasPrint([[0.40, 0.90]]), "Print da")
         ok(!MatchMath.leftoverAssignHungarianXHasPrint([[nil, nil]]), "Print leer tot")
         ok(!MatchMath.leftoverAssignHungarianXHasPrint(nil), "Print nil tot")
@@ -3864,27 +3864,27 @@ enum MatchMathTests {
             scores: cycleScores
         )
         ok(cycle[0] == 1 && cycle[1] == 2 && cycle[2] == 3 && cycle[3] == 0, "HungarianX 4-Zyklus Print")
-        let oldId = UUID()
-        let liveId = UUID()
-        let packed = MatchMath.leftoverFaceTrackPack(
-            hold: [oldId: 0.72],
-            pending: [oldId: "Ada"],
-            streak: [oldId: 3],
-            lastHash: [oldId: "ab12"],
-            lastIoU: [oldId: 0.91],
-            nameHeld: [oldId: "Ada"],
-            nameUntil: [oldId: 9],
+        let oldId2 = UUID()
+        let liveId2 = UUID()
+        let packed2 = MatchMath.leftoverFaceTrackPack(
+            hold: [oldId2: 0.72],
+            pending: [oldId2: "Ada"],
+            streak: [oldId2: 3],
+            lastHash: [oldId2: "ab12"],
+            lastIoU: [oldId2: 0.91],
+            nameHeld: [oldId2: "Ada"],
+            nameUntil: [oldId2: 9],
             miss: [:]
         )
-        ok(packed[oldId]?.pending == "Ada" && packed[oldId]?.streak == 3, "FaceTrack Pack")
-        let reminted = MatchMath.leftoverFaceTrackRemint(packed, remap: [oldId: liveId])
-        ok(reminted[liveId]?.hold == 0.72, "FaceTrack Remint kopiert")
-        ok(reminted[oldId] == nil, "FaceTrack Remint canonical räumt Source")
-        let dropped = MatchMath.leftoverHoldRemintDrop(hold: [oldId: 0.72], remap: [oldId: liveId])
-        ok(dropped[liveId] == 0.72, "RemintDrop kopiert")
-        ok(dropped[oldId] == nil, "RemintDrop räumt Source")
-        let faceDrop = MatchMath.leftoverFaceTrackRemintDrop(packed, remap: [oldId: liveId])
-        ok(faceDrop[liveId]?.hold == 0.72 && faceDrop[oldId] == nil, "FaceTrack Drop")
+        ok(packed2[oldId2]?.pending == "Ada" && packed2[oldId2]?.streak == 3, "FaceTrack Pack")
+        let reminted2 = MatchMath.leftoverFaceTrackRemint(packed2, remap: [oldId2: liveId2])
+        ok(reminted2[liveId2]?.hold == 0.72, "FaceTrack Remint kopiert")
+        ok(reminted2[oldId2] == nil, "FaceTrack Remint canonical räumt Source")
+        let dropped2 = MatchMath.leftoverHoldRemintDrop(hold: [oldId2: 0.72], remap: [oldId2: liveId2])
+        ok(dropped2[liveId2] == 0.72, "RemintDrop kopiert")
+        ok(dropped2[oldId2] == nil, "RemintDrop räumt Source")
+        let faceDrop = MatchMath.leftoverFaceTrackRemintDrop(packed2, remap: [oldId2: liveId2])
+        ok(faceDrop[liveId2]?.hold == 0.72 && faceDrop[oldId2] == nil, "FaceTrack Drop")
         let z1 = UUID()
         let z2 = UUID()
         let liveIous = MatchMath.leftoverDetectSkipLiveIous(
@@ -3954,43 +3954,43 @@ enum MatchMathTests {
             ) == nil,
             "Aegis LockedLine tot"
         )
-        let binKey = MatchMath.leftoverHoldKey(id: oldId, bin: 0)
-        let binsDropped = MatchMath.leftoverHoldRemintDropBins(hold: [binKey: 0.64], remap: [oldId: liveId])
-        ok(binsDropped[MatchMath.leftoverHoldKey(id: liveId, bin: 0)] == 0.64, "DropBins kopiert")
-        ok(binsDropped[binKey] == nil, "DropBins räumt Source")
-        let pairHold: [UUID: UUID] = [oldId: oldId]
-        let pairDrop = MatchMath.leftoverHoldRemintDropId(hold: pairHold, remap: [oldId: liveId])
-        ok(pairDrop[liveId] == liveId, "DropId Value")
-        ok(pairDrop[oldId] == nil, "DropId Source tot")
-        let unpacked = MatchMath.leftoverFaceTrackUnpack(faceDrop)
-        ok(unpacked.hold[liveId] == 0.72 && unpacked.pending[liveId] == "Ada", "FaceTrack Unpack")
-        ok(unpacked.hold[oldId] == nil, "FaceTrack Unpack drop")
+        let binKey4 = MatchMath.leftoverHoldKey(id: oldId2, bin: 0)
+        let binsDropped = MatchMath.leftoverHoldRemintDropBins(hold: [binKey4: 0.64], remap: [oldId2: liveId2])
+        ok(binsDropped[MatchMath.leftoverHoldKey(id: liveId2, bin: 0)] == 0.64, "DropBins kopiert")
+        ok(binsDropped[binKey4] == nil, "DropBins räumt Source")
+        let pairHold2: [UUID: UUID] = [oldId2: oldId2]
+        let pairDrop = MatchMath.leftoverHoldRemintDropId(hold: pairHold2, remap: [oldId2: liveId2])
+        ok(pairDrop[liveId2] == liveId2, "DropId Value")
+        ok(pairDrop[oldId2] == nil, "DropId Source tot")
+        let unpacked2 = MatchMath.leftoverFaceTrackUnpack(faceDrop)
+        ok(unpacked2.hold[liveId2] == 0.72 && unpacked2.pending[liveId2] == "Ada", "FaceTrack Unpack")
+        ok(unpacked2.hold[oldId2] == nil, "FaceTrack Unpack drop")
         let box = MatchMath.FaceTrackBox(x: 0.10, y: 0.20, w: 0.30, h: 0.40)
-        let kal = MatchMath.FaceTrackBox(x: 0.11, y: 0.21, w: 0.31, h: 0.41)
+        let kal2 = MatchMath.FaceTrackBox(x: 0.11, y: 0.21, w: 0.31, h: 0.41)
         let packedLive = MatchMath.leftoverFaceTrackPack(
-            hold: [oldId: 0.72],
-            pending: [oldId: "Ada"],
-            streak: [oldId: 3],
-            lastHash: [oldId: "ab12"],
-            lastIoU: [oldId: 0.91],
-            nameHeld: [oldId: "Ada"],
-            nameUntil: [oldId: 9],
+            hold: [oldId2: 0.72],
+            pending: [oldId2: "Ada"],
+            streak: [oldId2: 3],
+            lastHash: [oldId2: "ab12"],
+            lastIoU: [oldId2: 0.91],
+            nameHeld: [oldId2: "Ada"],
+            nameUntil: [oldId2: 9],
             miss: [:],
-            streakBox: [oldId: box],
-            kalman: [oldId: kal],
-            pairLast: [oldId: liveId],
-            pairStreak: [oldId: 2]
+            streakBox: [oldId2: box],
+            kalman: [oldId2: kal2],
+            pairLast: [oldId2: liveId2],
+            pairStreak: [oldId2: 2]
         )
-        ok(packedLive[oldId]?.streakBox?.x == 0.10, "FaceTrack StreakBox")
-        ok(packedLive[oldId]?.kalman?.y == 0.21, "FaceTrack Kalman")
-        ok(packedLive[oldId]?.pairLast == liveId && packedLive[oldId]?.pairStreak == 2, "FaceTrack Pair")
-        let liveDrop = MatchMath.leftoverFaceTrackRemintDrop(packedLive, remap: [oldId: liveId])
+        ok(packedLive[oldId2]?.streakBox?.x == 0.10, "FaceTrack StreakBox")
+        ok(packedLive[oldId2]?.kalman?.y == 0.21, "FaceTrack Kalman")
+        ok(packedLive[oldId2]?.pairLast == liveId2 && packedLive[oldId2]?.pairStreak == 2, "FaceTrack Pair")
+        let liveDrop = MatchMath.leftoverFaceTrackRemintDrop(packedLive, remap: [oldId2: liveId2])
         let liveMaps = MatchMath.leftoverFaceTrackUnpack(liveDrop)
-        ok(liveMaps.streakBox[liveId]?.w == 0.30 && liveMaps.streakBox[oldId] == nil, "FaceTrack StreakBox Drop")
-        ok(liveMaps.kalman[liveId]?.h == 0.41, "FaceTrack Kalman Drop")
-        ok(liveMaps.pairLast[liveId] == liveId && liveMaps.pairStreak[liveId] == 2, "FaceTrack Pair Drop")
+        ok(liveMaps.streakBox[liveId2]?.w == 0.30 && liveMaps.streakBox[oldId2] == nil, "FaceTrack StreakBox Drop")
+        ok(liveMaps.kalman[liveId2]?.h == 0.41, "FaceTrack Kalman Drop")
+        ok(liveMaps.pairLast[liveId2] == liveId2 && liveMaps.pairStreak[liveId2] == 2, "FaceTrack Pair Drop")
         let packedSelf = MatchMath.leftoverFaceTrackPack(
-            hold: [oldId: 0.72],
+            hold: [oldId2: 0.72],
             pending: [:],
             streak: [:],
             lastHash: [:],
@@ -3998,11 +3998,11 @@ enum MatchMathTests {
             nameHeld: [:],
             nameUntil: [:],
             miss: [:],
-            pairLast: [oldId: oldId]
+            pairLast: [oldId2: oldId2]
         )
-        let selfDrop = MatchMath.leftoverFaceTrackRemintDrop(packedSelf, remap: [oldId: liveId])
-        ok(selfDrop[liveId]?.pairLast == liveId, "FaceTrack PairLast Value Remint")
-        ok(selfDrop[oldId] == nil, "FaceTrack PairLast Source tot")
+        let selfDrop = MatchMath.leftoverFaceTrackRemintDrop(packedSelf, remap: [oldId2: liveId2])
+        ok(selfDrop[liveId2]?.pairLast == liveId2, "FaceTrack PairLast Value Remint")
+        ok(selfDrop[oldId2] == nil, "FaceTrack PairLast Source tot")
         ok(MatchMath.galleryBakRotate() == 3, "gallery.bak rotate 3")
         ok(MatchMath.galleryBakName(0) == "gallery.json.bak", "bak 0")
         ok(MatchMath.galleryBakName(2) == "gallery.json.bak.2", "bak 2")
@@ -4292,12 +4292,12 @@ enum MatchMathTests {
             "Pick IoU-only nicht Hold"
         )
         let prevBox = MatchMath.FaceTrackBox(x: 0.10, y: 0.20, w: 0.30, h: 0.40)
-        let liveBox = MatchMath.FaceTrackBox(x: 0.12, y: 0.20, w: 0.30, h: 0.40)
-        let vel = MatchMath.leftoverFaceTrackKalmanVel(prev: prevBox, live: liveBox, dt: 0.10)
+        let liveBox2 = MatchMath.FaceTrackBox(x: 0.12, y: 0.20, w: 0.30, h: 0.40)
+        let vel = MatchMath.leftoverFaceTrackKalmanVel(prev: prevBox, live: liveBox2, dt: 0.10)
         ok(abs(vel.px - 0.20) < 1e-9 && abs(vel.py) < 1e-9, "Kalman Vel px")
-        let pred = MatchMath.leftoverFaceTrackKalmanPredict(box: liveBox, px: vel.px, py: vel.py, dt: 0.10)
-        ok(abs(pred.x - 0.14) < 1e-9, "Kalman Predict")
-        let sleepVel = MatchMath.leftoverFaceTrackKalmanVel(prev: prevBox, live: liveBox, dt: 3)
+        let pred2 = MatchMath.leftoverFaceTrackKalmanPredict(box: liveBox2, px: vel.px, py: vel.py, dt: 0.10)
+        ok(abs(pred2.x - 0.14) < 1e-9, "Kalman Predict")
+        let sleepVel = MatchMath.leftoverFaceTrackKalmanVel(prev: prevBox, live: liveBox2, dt: 3)
         ok(sleepVel.px == 0 && sleepVel.py == 0, "Kalman Vel Sleep tot")
         ok(sleepVel.pw == 0 && sleepVel.ph == 0, "Kalman Vel Sleep W/H tot")
         let growPrev = MatchMath.FaceTrackBox(x: 0.10, y: 0.20, w: 0.30, h: 0.40)
@@ -4459,23 +4459,23 @@ enum MatchMathTests {
         ok(freshStamp[liveOld] == 1_005, "Coast Stamp neuer Print")
 
         let held = MatchMath.leftoverFaceTrackPredictHeld(
-            box: liveBox, px: 0.20, py: 0, dt: 0.10, miss: 1
+            box: liveBox2, px: 0.20, py: 0, dt: 0.10, miss: 1
         )
         ok(abs(held.box.x - 0.14) < 1e-9 && held.px == 0.20, "PredictHeld Miss 1")
         let heldWH = MatchMath.leftoverFaceTrackPredictHeld(
-            box: liveBox, px: 0.20, py: 0, dt: 0.10, miss: 1, pw: 0.20, ph: 0.20
+            box: liveBox2, px: 0.20, py: 0, dt: 0.10, miss: 1, pw: 0.20, ph: 0.20
         )
         ok(abs(heldWH.box.w - 0.32) < 1e-9 && heldWH.pw == 0.20, "PredictHeld W/H")
         let decayed = MatchMath.leftoverFaceTrackPredictHeld(
-            box: liveBox, px: 1, py: 0, dt: 0.10, miss: 2
+            box: liveBox2, px: 1, py: 0, dt: 0.10, miss: 2
         )
         ok(abs(decayed.px - 0.82) < 1e-9, "PredictHeld Decay")
         let fromV = MatchMath.leftoverFaceTrackVelFromKalman([liveOld: (vx: 0.20, vy: -0.10)])
         ok(fromV.px[liveOld] == 0.20 && fromV.py[liveOld] == -0.10, "VelFromKalman")
-        let merged = MatchMath.leftoverFaceTrackVelMerge(
+        let merged2 = MatchMath.leftoverFaceTrackVelMerge(
             vel: [liveOld: (vx: 0, vy: 0)], px: [liveNew: 0.30], py: [liveNew: 0.05]
         )
-        ok(merged[liveNew]?.vx == 0.30 && merged[liveNew]?.vy == 0.05, "VelMerge Remint")
+        ok(merged2[liveNew]?.vx == 0.30 && merged2[liveNew]?.vy == 0.05, "VelMerge Remint")
         let packCoast = MatchMath.leftoverFaceTrackPack(
             hold: [liveNew: 0.72],
             pending: [:],
@@ -4492,14 +4492,14 @@ enum MatchMathTests {
         ok(packCoast[liveNew]?.coastAt == 1_000 && packCoast[liveNew]?.unsureTicks == 2, "FaceTrack Coast Pack")
         let dropCoast = MatchMath.leftoverFaceTrackRemintDrop(packCoast, remap: [liveNew: liveOld])
         ok(dropCoast[liveOld]?.coastAt == 1_000 && dropCoast[liveNew] == nil, "FaceTrack Coast RemintDrop")
-        let encoded = MatchMath.leftoverCoastPrintVecEncode([liveOld: vecA])
-        ok(encoded[liveOld.uuidString]?.count == 32, "Coast Vec Encode")
+        let encoded2 = MatchMath.leftoverCoastPrintVecEncode([liveOld: vecA])
+        ok(encoded2[liveOld.uuidString]?.count == 32, "Coast Vec Encode")
         let aged = MatchMath.leftoverCoastPrintAgeEncode(
             vecs: [liveOld: vecA], stamped: [liveOld: 1_000], now: 1_000.5
         )
         ok(aged[liveOld.uuidString]! > 1.4 && aged[liveOld.uuidString]! <= 2, "Coast Age frisch")
         let restored = MatchMath.leftoverCoastPrintAgeDecode(
-            vecs: encoded, remaining: aged, now: 2_000
+            vecs: encoded2, remaining: aged, now: 2_000
         )
         ok(restored.print[liveOld]?.count == 32, "Coast Age Decode Vec")
         ok(abs((restored.at[liveOld] ?? 0) - (2_000 - (2 - aged[liveOld.uuidString]!))) < 1e-6, "Coast Age Decode At")
@@ -4677,7 +4677,7 @@ enum MatchMathTests {
             "Enroll P nicht ¾"
         )
         let trackId = UUID()
-        let packed = MatchMath.leftoverFaceTrackPack(
+        let packed3 = MatchMath.leftoverFaceTrackPack(
             hold: [trackId: 0.80],
             pending: [:],
             streak: [:],
@@ -4687,10 +4687,10 @@ enum MatchMathTests {
             nameUntil: [trackId: 1_010],
             miss: [:]
         )
-        ok(MatchMath.leftoverFaceTrackLookup(tracks: packed, id: trackId)?.nameHeld == "Ada", "FaceTrack Lookup")
-        ok(MatchMath.leftoverFaceTrackHolds(track: packed[trackId], now: 1_005), "FaceTrack Hold")
-        ok(!MatchMath.leftoverFaceTrackHolds(track: packed[trackId], now: 1_011), "FaceTrack TTL tot")
-        ok(MatchMath.leftoverFaceTrackHoldChip(track: packed[trackId], now: 1_005) == "hold", "FaceTrack Chip")
+        ok(MatchMath.leftoverFaceTrackLookup(tracks: packed3, id: trackId)?.nameHeld == "Ada", "FaceTrack Lookup")
+        ok(MatchMath.leftoverFaceTrackHolds(track: packed3[trackId], now: 1_005), "FaceTrack Hold")
+        ok(!MatchMath.leftoverFaceTrackHolds(track: packed3[trackId], now: 1_011), "FaceTrack TTL tot")
+        ok(MatchMath.leftoverFaceTrackHoldChip(track: packed3[trackId], now: 1_005) == "hold", "FaceTrack Chip")
         ok(MatchMath.leftoverPrintPruneDup(cosine: 0.99), "Prune 0,99")
         ok(!MatchMath.leftoverPrintPruneDup(cosine: 0.90), "Prune 0,90 tot")
         ok(MatchMath.leftoverPairCommitWALFresh(stamped: 1_000, now: 1_001), "WAL frisch")
@@ -4767,12 +4767,12 @@ enum MatchMathTests {
         ok(MatchMath.cameraMutexHeartbeatKillSignal(termSentAt: 10, now: 12.1) == 9, "Kill SIGKILL nach 2 s")
         ok(MatchMath.cameraMutexHeartbeatKillChip(signal: 15) == "SIGTERM", "Chip TERM")
         let trackHold = MatchMath.leftoverFaceTrackStoreGet(
-            tracks: packed, id: trackId, now: 1_005
+            tracks: packed3, id: trackId, now: 1_005
         )
         ok(trackHold?.nameHeld == "Ada", "FaceTrack Store Get")
-        ok(MatchMath.leftoverFaceTrackStoreGet(tracks: packed, id: trackId, now: 1_011) == nil, "FaceTrack Store TTL")
-        ok(MatchMath.leftoverFaceTrackStoreName(tracks: packed, id: trackId, now: 1_005) == "Ada", "FaceTrack Store Name")
-        ok(MatchMath.leftoverFaceTrackStoreName(tracks: packed, id: trackId, now: 1_011) == nil, "Store Name TTL tot")
+        ok(MatchMath.leftoverFaceTrackStoreGet(tracks: packed3, id: trackId, now: 1_011) == nil, "FaceTrack Store TTL")
+        ok(MatchMath.leftoverFaceTrackStoreName(tracks: packed3, id: trackId, now: 1_005) == "Ada", "FaceTrack Store Name")
+        ok(MatchMath.leftoverFaceTrackStoreName(tracks: packed3, id: trackId, now: 1_011) == nil, "Store Name TTL tot")
         ok(
             MatchMath.leftoverFaceTrackHolds(
                 track: MatchMath.FaceTrack(
@@ -4986,11 +4986,11 @@ enum MatchMathTests {
         ok(MatchMath.leftoverOverlayPeakName(guest: "?", held: nil) == "?", "Peak Name tot")
         ok(MatchMath.leftoverOverlayPeakName(guest: "??", held: "Ada") == "Ada", "Peak Name ??")
         ok(MatchMath.leftoverOverlayPeakName(guest: "?", held: "Ada", remaining: 0) == "?", "Peak Name remain 0")
-        let fromId = UUID(), toId = UUID()
-        let peakMoved = MatchMath.leftoverAssignAtomic(hold: [fromId: "Ada"], from: fromId, to: toId)
-        ok(peakMoved[toId] == "Ada" && peakMoved[fromId] == nil, "Peak Assign remint")
-        let remainMoved = MatchMath.leftoverAssignAtomic(hold: [fromId: 2], from: fromId, to: toId)
-        ok(remainMoved[toId] == 2 && remainMoved[fromId] == nil, "Peak Remain remint")
+        let fromId2 = UUID(), toId2 = UUID()
+        let peakMoved = MatchMath.leftoverAssignAtomic(hold: [fromId2: "Ada"], from: fromId2, to: toId2)
+        ok(peakMoved[toId2] == "Ada" && peakMoved[fromId2] == nil, "Peak Assign remint")
+        let remainMoved = MatchMath.leftoverAssignAtomic(hold: [fromId2: 2], from: fromId2, to: toId2)
+        ok(remainMoved[toId2] == 2 && remainMoved[fromId2] == nil, "Peak Remain remint")
         let iouHit = MatchMath.leftoverBoxIoU(
             ax: 0.10, ay: 0.10, aw: 0.20, ah: 0.20,
             bx: 0.12, by: 0.12, bw: 0.20, bh: 0.20
@@ -5091,13 +5091,13 @@ enum MatchMathTests {
         )
         near(filled[fillId] ?? 0, 51.20, 0.01, "Until-Fill Ada")
         let keepId = UUID()
-        let kept = MatchMath.leftoverNameLockUntilFillHeld(
+        let kept2 = MatchMath.leftoverNameLockUntilFillHeld(
             held: [keepId: "Ada"],
             until: [keepId: 90],
             now: 50,
             arm: 1.20
         )
-        near(kept[keepId] ?? 0, 90, 0.01, "Until-Fill hält")
+        near(kept2[keepId] ?? 0, 90, 0.01, "Until-Fill hält")
         let emptyFill = MatchMath.leftoverNameLockUntilFillHeld(
             held: [fillId: ""],
             until: [:],
@@ -5235,8 +5235,8 @@ enum MatchMathTests {
         ok(MatchMath.cameraMutexPauseChip(remain: 2).hasPrefix("PAUSE"), "Pause Chip")
         ok(MatchMath.cameraMutexPauseArmed(workPending: true), "Pause hält")
         ok(!MatchMath.cameraMutexPauseArmed(workPending: false), "Pause frei")
-        let aged = MatchMath.leftoverHoldChipAppendKind("HOLD", kind: .coast, coastAt: 10, now: 10.30)
-        ok(aged?.contains("coast") == true, "Hold Chip Coast Age")
+        let aged2 = MatchMath.leftoverHoldChipAppendKind("HOLD", kind: .coast, coastAt: 10, now: 10.30)
+        ok(aged2?.contains("coast") == true, "Hold Chip Coast Age")
         ok(MatchMath.leftoverOverlayUniqueRows(["ada", "ada", "bob"]) == ["ada", "bob"], "Overlay Row Dedup")
         ok(!MatchMath.leftoverOverlayKeepsRow(seen: Set(["ada"]), row: "ada"), "Overlay Ada einmal")
         ok(
@@ -5359,12 +5359,12 @@ enum MatchMathTests {
         )
         ok(culled[0][0] != nil && culled[0][1] == nil, "Twin Cull schwächere Spalte")
         ok(culled[1][1] == nil, "Twin Cull Reihe 1")
-        let kept = MatchMath.leftoverAssignTwinYawCull(
+        let kept3 = MatchMath.leftoverAssignTwinYawCull(
             scores: [[0.85, 0.82]],
             boxes: [(0.10, 0.10), (0.80, 0.10)],
             yaws: [0, 0]
         )
-        ok(kept[0][0] != nil && kept[0][1] != nil, "Twin Cull ohne Overlap hält")
+        ok(kept3[0][0] != nil && kept3[0][1] != nil, "Twin Cull ohne Overlap hält")
         ok(MatchMath.leftoverPrintDiversitySkip(cosine: 0.99, sameBin: true), "Diversity 0,99 Skip")
         ok(!MatchMath.leftoverPrintDiversitySkip(cosine: 0.90, sameBin: true), "Diversity 0,90 tot")
         ok(!MatchMath.leftoverPrintDiversitySkip(cosine: 0.99, sameBin: false), "Diversity anderer Bin tot")
@@ -5414,43 +5414,43 @@ enum MatchMathTests {
         ok(MatchMath.nameHistCap(need: 3, dt: 0.125) >= 10, "8 fps Hist ≥ 1,2 s")
         ok(MatchMath.nameHistCap(need: 7, dt: 0.04) >= 19, "24 fps Hist ≥ Familien-Need")
         ok(MatchMath.nameHistCap(need: 3, dt: 0.04) >= 20, "24 fps Hist ≥ 0,8 s")
-        let ones = [Double](repeating: 1.0 / sqrt(64), count: 64)
-        var shifted = ones
+        let ones2 = [Double](repeating: 1.0 / sqrt(64), count: 64)
+        var shifted = ones2
         shifted[0] = 0.2
-        let ema = MatchMath.leftoverPrintEma([ones, ones, shifted])
-        ok(ema.count == 64, "Print-EMA Dim")
+        let ema2 = MatchMath.leftoverPrintEma([ones2, ones2, shifted])
+        ok(ema2.count == 64, "Print-EMA Dim")
         ok(
-            MatchMath.cosine(ema, MatchMath.leftoverPrintEma([shifted, ones, ones])) > 0.999,
+            MatchMath.cosine(ema2, MatchMath.leftoverPrintEma([shifted, ones2, ones2])) > 0.999,
             "Print-EMA gleich Gewicht Reihenfolge"
         )
-        ok(MatchMath.cosine(ema, ones) > MatchMath.cosine(ema, shifted), "Print-EMA 2:1 nicht Glücks-Frame")
-        let med = MatchMath.medianBlend([ones, ones])
-        let blend2 = MatchMath.leftoverPrintBlend([ones, ones])
-        ok(blend2.count == med.count, "Blend < 3 = Median")
-        let blend3 = MatchMath.leftoverPrintBlend([ones, ones, shifted])
+        ok(MatchMath.cosine(ema2, ones2) > MatchMath.cosine(ema2, shifted), "Print-EMA 2:1 nicht Glücks-Frame")
+        let med2 = MatchMath.medianBlend([ones2, ones2])
+        let blend2 = MatchMath.leftoverPrintBlend([ones2, ones2])
+        ok(blend2.count == med2.count, "Blend < 3 = Median")
+        let blend3 = MatchMath.leftoverPrintBlend([ones2, ones2, shifted])
         ok(blend3.count == 64, "Blend ≥ 3 Dim")
-        ok(MatchMath.cosine(blend3, ones) > 0.98, "Glücks-Frame Median hält")
-        let blendAnchor = MatchMath.leftoverPrintBlend([shifted], dt: 0.125, anchor: ones)
-        ok(MatchMath.cosine(blendAnchor, ones) > 0.90, "Gallery-Anker hält Median")
-        ok(MatchMath.leftoverPrintCommitOk(next: ones, sharpness: 0.90), "Commit scharf")
-        ok(!MatchMath.leftoverPrintCommitOk(next: ones, sharpness: 0.01), "Commit Blur tot")
+        ok(MatchMath.cosine(blend3, ones2) > 0.98, "Glücks-Frame Median hält")
+        let blendAnchor = MatchMath.leftoverPrintBlend([shifted], dt: 0.125, anchor: ones2)
+        ok(MatchMath.cosine(blendAnchor, ones2) > 0.90, "Gallery-Anker hält Median")
+        ok(MatchMath.leftoverPrintCommitOk(next: ones2, sharpness: 0.90), "Commit scharf")
+        ok(!MatchMath.leftoverPrintCommitOk(next: ones2, sharpness: 0.01), "Commit Blur tot")
         ok(!MatchMath.leftoverPrintCommitOk(next: [0.1], sharpness: 0.90), "Commit kurz tot")
-        let trailLive = MatchMath.leftoverPrintTrailNext(trail: [ones], next: shifted)
+        let trailLive = MatchMath.leftoverPrintTrailNext(trail: [ones2], next: shifted)
         ok(trailLive.count == 2, "Trail nur next")
-        let trailCap = MatchMath.leftoverPrintTrailNext(trail: [ones, ones, ones, ones, ones], next: shifted, cap: 5)
-        ok(trailCap.count == 5, "Trail Cap 5")
+        let trailCap2 = MatchMath.leftoverPrintTrailNext(trail: [ones2, ones2, ones2, ones2, ones2], next: shifted, cap: 5)
+        ok(trailCap2.count == 5, "Trail Cap 5")
         ok(
             MatchMath.leftoverCoastPrintMerge(
-                stored: [liveOld: ones],
+                stored: [liveOld: ones2],
                 live: [liveOld: shifted],
                 skipPrints: false,
                 commitIds: []
             )[liveOld] != nil && MatchMath.cosine(MatchMath.leftoverCoastPrintMerge(
-                stored: [liveOld: ones],
+                stored: [liveOld: ones2],
                 live: [liveOld: shifted],
                 skipPrints: false,
                 commitIds: []
-            )[liveOld] ?? [], ones) > 0.99,
+            )[liveOld] ?? [], ones2) > 0.99,
             "Coast Merge ohne Commit hält"
         )
         ok(MatchMath.leftoverPrintEmaNeed() == 3, "EMA 3 Frames")
@@ -5514,11 +5514,11 @@ enum MatchMathTests {
         ok(!MatchMath.leftoverAssignBlinkOk(printOk: true, blinkOk: false, alreadyNamed: false), "Neu ohne Blink tot")
         ok(MatchMath.leftoverAssignBlinkOk(printOk: true, blinkOk: true, alreadyNamed: false), "Neu + Blink tauft")
         ok(!MatchMath.leftoverAssignBlinkOk(printOk: false, blinkOk: true, alreadyNamed: false), "Blink ohne Print tot")
-        let boxA = CGRect(x: 0, y: 0, width: 10, height: 10)
-        let boxB = CGRect(x: 10, y: 0, width: 10, height: 10)
-        let lerp = MatchMath.leftoverOverlayLerp(prev: boxA, next: boxB, dt: 0.04)
+        let boxA2 = CGRect(x: 0, y: 0, width: 10, height: 10)
+        let boxB2 = CGRect(x: 10, y: 0, width: 10, height: 10)
+        let lerp = MatchMath.leftoverOverlayLerp(prev: boxA2, next: boxB2, dt: 0.04)
         ok(lerp.minX > 0 && lerp.minX < 10, "Overlay Lerp zwischen")
-        let lerp8 = MatchMath.leftoverOverlayLerp(prev: boxA, next: boxB, dt: 0.125)
+        let lerp8 = MatchMath.leftoverOverlayLerp(prev: boxA2, next: boxB2, dt: 0.125)
         ok(lerp8.minX > lerp.minX, "8 fps Lerp weiter")
         ok(MatchMath.leftoverOverlayLerpKeeps(assignChanged: true), "Lerp unabhängig von Assign")
         ok(
@@ -5574,21 +5574,21 @@ enum MatchMathTests {
             hashTableKeys: ["5.5.4.6#0"]
         )
         ok(remintSteal[twinLive] == nil, "Remint 2 Faces stiehlt nicht")
-        let ghost = MatchMath.leftoverOccupiedLiveOnly(
+        let ghost2 = MatchMath.leftoverOccupiedLiveOnly(
             stored: ["1.2.0.0"], live: ["9.9.9.9"], coastExpired: true
         )
-        ok(ghost == ["9.9.9.9"], "Occupied nach Coast nur Live")
-        let keepGhost = MatchMath.leftoverOccupiedLiveOnly(
+        ok(ghost2 == ["9.9.9.9"], "Occupied nach Coast nur Live")
+        let keepGhost2 = MatchMath.leftoverOccupiedLiveOnly(
             stored: ["1.2.0.0"], live: ["9.9.9.9"], coastExpired: false
         )
-        ok(keepGhost.contains("1.2.0.0") && keepGhost.contains("9.9.9.9"), "Occupied vor Coast hält Ghost")
+        ok(keepGhost2.contains("1.2.0.0") && keepGhost2.contains("9.9.9.9"), "Occupied vor Coast hält Ghost")
         let adaGhost = UUID(), bobLive = UUID()
-        let dropped = MatchMath.leftoverOccupiedGhostDrop(
+        let dropped3 = MatchMath.leftoverOccupiedGhostDrop(
             stored: [(id: adaGhost, hash: "1.2.0.0"), (id: bobLive, hash: "9.9.9.9")],
             liveIDs: [bobLive],
             coastIDs: []
         )
-        ok(dropped == ["9.9.9.9"], "Ghost-UUID Occupied tot")
+        ok(dropped3 == ["9.9.9.9"], "Ghost-UUID Occupied tot")
         let coastKeep = MatchMath.leftoverOccupiedGhostDrop(
             stored: [(id: adaGhost, hash: "1.2.0.0"), (id: bobLive, hash: "9.9.9.9")],
             liveIDs: [bobLive],
@@ -5599,25 +5599,25 @@ enum MatchMathTests {
         let tracks: [UUID: LeftoverTrack] = [
             adaT: LeftoverTrack(id: adaT, hash: "5.5.4.6", peak: 0.82, nameLock: "Ada")
         ]
-        let atomic = MatchMath.leftoverAssignAtomicAll(tracks: tracks, liveToHold: [liveT: adaT])
-        ok(atomic[liveT]?.hold == adaT, "AssignAtomic Hold")
-        ok(atomic[liveT]?.nameLock == "Ada", "AssignAtomic NameLock ein Write")
-        ok(atomic[liveT]?.pairLast == adaT, "AssignAtomic PairLast")
-        ok(atomic[twinT] == nil, "AssignAtomic Twin nicht mitgeschrieben")
-        ok(atomic[adaT] == nil, "AssignAtomic alter Hold-Key tot")
+        let atomic2 = MatchMath.leftoverAssignAtomicAll(tracks: tracks, liveToHold: [liveT: adaT])
+        ok(atomic2[liveT]?.hold == adaT, "AssignAtomic Hold")
+        ok(atomic2[liveT]?.nameLock == "Ada", "AssignAtomic NameLock ein Write")
+        ok(atomic2[liveT]?.pairLast == adaT, "AssignAtomic PairLast")
+        ok(atomic2[twinT] == nil, "AssignAtomic Twin nicht mitgeschrieben")
+        ok(atomic2[adaT] == nil, "AssignAtomic alter Hold-Key tot")
 
-        let bobT = UUID(), adaLive = UUID()
+        let bobT = UUID(), adaLive2 = UUID()
         let withCoast: [UUID: LeftoverTrack] = [
             adaT: LeftoverTrack(id: adaT, hash: "5.5.4.6", peak: 0.82, nameLock: "Ada"),
             bobT: LeftoverTrack(id: bobT, hash: "9.9.9.9", peak: 0.71, nameLock: "Bob", coastAt: 12, kind: "coast")
         ]
-        let keep = MatchMath.leftoverAssignAtomicAll(tracks: withCoast, liveToHold: [adaLive: adaT])
-        ok(keep[adaLive]?.nameLock == "Ada", "AssignAtomic Ada remint")
+        let keep = MatchMath.leftoverAssignAtomicAll(tracks: withCoast, liveToHold: [adaLive2: adaT])
+        ok(keep[adaLive2]?.nameLock == "Ada", "AssignAtomic Ada remint")
         ok(keep[bobT]?.nameLock == "Bob", "AssignAtomic Coast-Bob bleibt")
         ok(keep[bobT]?.kind == "coast", "AssignAtomic Coast-Kind")
         ok(keep[adaT] == nil, "AssignAtomic Ada-Key nach Remint tot")
 
-        let packed = MatchMath.leftoverTracksPack(
+        let packed4 = MatchMath.leftoverTracksPack(
             hashes: [adaT: "5.5.4.6"],
             pairLast: [adaT: adaT],
             peaks: [adaT: 0.82],
@@ -5625,14 +5625,14 @@ enum MatchMathTests {
             coastAt: [:],
             bins: [adaT: -1]
         )
-        ok(packed[adaT]?.hash == "5.5.4.6", "TracksPack Hash")
-        ok(packed[adaT]?.bin == -1, "TracksPack ¾L Bin")
-        let reminted = MatchMath.leftoverAssignAtomicRemint(
-            tracks: packed, remap: [adaT: liveT]
+        ok(packed4[adaT]?.hash == "5.5.4.6", "TracksPack Hash")
+        ok(packed4[adaT]?.bin == -1, "TracksPack ¾L Bin")
+        let reminted3 = MatchMath.leftoverAssignAtomicRemint(
+            tracks: packed4, remap: [adaT: liveT]
         )
-        ok(reminted[liveT]?.hold == adaT, "AssignAtomicRemint stored→live")
-        ok(reminted[adaT] == nil, "AssignAtomicRemint alter Key tot")
-        ok(reminted[liveT]?.pairLast == liveT, "AssignAtomic pairLast Value remint, nicht Hold-Clobber")
+        ok(reminted3[liveT]?.hold == adaT, "AssignAtomicRemint stored→live")
+        ok(reminted3[adaT] == nil, "AssignAtomicRemint alter Key tot")
+        ok(reminted3[liveT]?.pairLast == liveT, "AssignAtomic pairLast Value remint, nicht Hold-Clobber")
         let packedOther = MatchMath.leftoverTracksPack(
             hashes: [adaT: "5.5.4.6"],
             pairLast: [adaT: bobT],
@@ -5652,9 +5652,9 @@ enum MatchMathTests {
         ok(remintedOther[liveT]?.yaw == 0.35, "Tracks Yaw überlebt Remint")
         ok(remintedOther[liveT]?.velX == 0.02, "Tracks Kalman-Vx überlebt Remint")
         ok(remintedOther[liveT]?.blink == true, "Tracks Blink überlebt Remint")
-        let pickedEmpty = MatchMath.leftoverPairLastPick(unpacked: [:], faceMaps: [adaT: bobT])
+        let pickedEmpty = MatchMath.leftoverPairLastPick(unpacked2: [:], faceMaps: [adaT: bobT])
         ok(pickedEmpty[adaT] == bobT, "PairLastPick leer → faceMaps")
-        let pickedUnpack = MatchMath.leftoverPairLastPick(unpacked: [liveT: bobT], faceMaps: [adaT: adaT])
+        let pickedUnpack = MatchMath.leftoverPairLastPick(unpacked2: [liveT: bobT], faceMaps: [adaT: adaT])
         ok(pickedUnpack[liveT] == bobT, "PairLastPick Unpack gewinnt")
 
         let gal = [
@@ -5704,14 +5704,14 @@ enum MatchMathTests {
             coastAt: [bobT: 12],
             bins: [adaT: -1]
         )
-        let unpacked = MatchMath.leftoverTracksUnpack(packedRound)
-        ok(unpacked.hashes[adaT] == "5.5.4.6", "TracksUnpack Hash")
-        ok(unpacked.peaks[adaT] == 0.82, "TracksUnpack Peak")
-        ok(unpacked.nameLock[adaT] == "Ada", "TracksUnpack NameLock")
-        ok(unpacked.bins[adaT] == -1, "TracksUnpack Bin")
-        ok(unpacked.coastAt[bobT] == 12, "TracksUnpack Coast")
-        ok(unpacked.pairLast[adaT] == adaT, "TracksUnpack PairLast Hold")
-        ok(unpacked.yaw.isEmpty, "TracksUnpack ohne Yaw leer")
+        let unpacked3 = MatchMath.leftoverTracksUnpack(packedRound)
+        ok(unpacked3.hashes[adaT] == "5.5.4.6", "TracksUnpack Hash")
+        ok(unpacked3.peaks[adaT] == 0.82, "TracksUnpack Peak")
+        ok(unpacked3.nameLock[adaT] == "Ada", "TracksUnpack NameLock")
+        ok(unpacked3.bins[adaT] == -1, "TracksUnpack Bin")
+        ok(unpacked3.coastAt[bobT] == 12, "TracksUnpack Coast")
+        ok(unpacked3.pairLast[adaT] == adaT, "TracksUnpack PairLast Hold")
+        ok(unpacked3.yaw.isEmpty, "TracksUnpack ohne Yaw leer")
         let moved = MatchMath.leftoverTracksMove(tracks: packedRound, from: adaT, to: liveT)
         ok(moved[liveT]?.nameLock == "Ada", "TracksMove NameLock")
         ok(moved[adaT] == nil, "TracksMove alter Key tot")
@@ -5829,16 +5829,16 @@ enum MatchMathTests {
         ok(!MatchMath.cameraChoiceSkipsBuiltIn("builtIn"), "Built-in bleibt Front")
         near(MatchMath.liveCoastElapsed(now: 5.5, origin: 4.0), 1.0, 0.001, "Coast elapsed cap 1s")
         near(MatchMath.liveCoastElapsed(now: 4.10, origin: 4.0), 0.10, 0.001, "Coast elapsed 100 ms")
-        let idA = UUID()
-        let coast = MatchMath.liveCoastBoxes(
-            kalman: [(id: idA, x: 0.20, y: 0.30, w: 0.10, h: 0.12)],
-            vel: [idA: (vx: 0.40, vy: 0)],
+        let idA2 = UUID()
+        let coast2 = MatchMath.liveCoastBoxes(
+            kalman: [(id: idA2, x: 0.20, y: 0.30, w: 0.10, h: 0.12)],
+            vel: [idA2: (vx: 0.40, vy: 0)],
             dt: 0.10
         )
-        ok(abs((coast.first?.x ?? 0) - 0.24) < 0.02, "Coast Box +vx")
+        ok(abs((coast2.first?.x ?? 0) - 0.24) < 0.02, "Coast Box +vx")
         let far = MatchMath.liveCoastBoxes(
-            kalman: [(id: idA, x: 0.20, y: 0.30, w: 0.10, h: 0.12)],
-            vel: [idA: (vx: 0.40, vy: 0)],
+            kalman: [(id: idA2, x: 0.20, y: 0.30, w: 0.10, h: 0.12)],
+            vel: [idA2: (vx: 0.40, vy: 0)],
             dt: 1.0
         )
         ok(abs((far.first?.x ?? 0) - 0.48) < 0.02, "Coast 1s cap 0,28")
@@ -5889,27 +5889,27 @@ enum MatchMathTests {
         near(MatchMath.overlayTrackTau(reduceMotion: true), 0, 0.001, "Reduce-Motion tau 0")
         near(MatchMath.overlayTrackDt(reduceMotion: true), 1.0 / 24.0, 0.001, "Reduce-Motion 24 Hz")
         ok(MatchMath.overlayTrackUsesVision(), "Track Vision an")
-        let boxA = CGRect(x: 0.20, y: 0.20, width: 0.20, height: 0.24)
-        let boxB = CGRect(x: 0.22, y: 0.21, width: 0.20, height: 0.24)
-        let boxFar = CGRect(x: 0.70, y: 0.70, width: 0.15, height: 0.18)
-        ok(MatchMath.overlayTrackIoU(boxA, boxB) > 0.40, "Track IoU nah")
-        ok(MatchMath.overlayTrackKeeps(track: boxA, detect: boxB), "Track keeps nah")
-        ok(!MatchMath.overlayTrackKeeps(track: boxA, detect: boxFar), "Track drop far")
+        let boxA3 = CGRect(x: 0.20, y: 0.20, width: 0.20, height: 0.24)
+        let boxB3 = CGRect(x: 0.22, y: 0.21, width: 0.20, height: 0.24)
+        let boxFar2 = CGRect(x: 0.70, y: 0.70, width: 0.15, height: 0.18)
+        ok(MatchMath.overlayTrackIoU(boxA3, boxB3) > 0.40, "Track IoU nah")
+        ok(MatchMath.overlayTrackKeeps(track: boxA3, detect: boxB3), "Track keeps nah")
+        ok(!MatchMath.overlayTrackKeeps(track: boxA3, detect: boxFar2), "Track drop far")
         ok(MatchMath.overlayTrackVisionOk(confidence: 0.40), "Track conf ok")
         ok(!MatchMath.overlayTrackVisionOk(confidence: 0.05), "Track conf tot")
-        let stepped = MatchMath.overlayTrackStep(prev: boxA, detect: boxFar, dt: 1.0 / 60.0, tau: 0.05)
-        ok(abs(stepped.minX - boxFar.minX) < 0.001, "Track steal far")
+        let stepped = MatchMath.overlayTrackStep(prev: boxA3, detect: boxFar2, dt: 1.0 / 60.0, tau: 0.05)
+        ok(abs(stepped.minX - boxFar2.minX) < 0.001, "Track steal far")
         ok(MatchMath.peopleAlbumSubtypeRaw == 202, "People albumSyncedFaces")
         ok(MatchMath.peopleAlbumEnrollOk(stills: 3), "People 3 stills")
         ok(!MatchMath.peopleAlbumEnrollOk(stills: 0), "People 0 tot")
         ok(MatchMath.peopleAlbumPersonKey(" Ada ") == "ada", "People key trim")
         ok(MatchMath.peopleAlbumSkipEmpty("  "), "People skip empty")
         let fa = MatchMath.falseAcceptJSONLLine(ts: 10.5, hash: "6.6.4.6", identity: "Ada", cosine: 0.91, decided: "Ben")
-        let parsed = MatchMath.falseAcceptJSONLParse(fa)
-        ok(parsed?.hash == "6.6.4.6", "FA JSONL hash")
-        ok(parsed?.identity == "Ada", "FA JSONL id")
-        ok(parsed?.decided == "Ben", "FA JSONL dec")
-        ok(abs((parsed?.cosine ?? 0) - 0.91) < 0.001, "FA JSONL cos")
+        let parsed2 = MatchMath.falseAcceptJSONLParse(fa)
+        ok(parsed2?.hash == "6.6.4.6", "FA JSONL hash")
+        ok(parsed2?.identity == "Ada", "FA JSONL id")
+        ok(parsed2?.decided == "Ben", "FA JSONL dec")
+        ok(abs((parsed2?.cosine ?? 0) - 0.91) < 0.001, "FA JSONL cos")
         ok(MatchMath.falseAcceptJSONLHits(cosine: 0.91, floor: 0.80, decided: "Ben", expected: "Ada"), "FA hit")
         ok(!MatchMath.falseAcceptJSONLHits(cosine: 0.91, floor: 0.80, decided: "Ada", expected: "Ada"), "FA same tot")
         ok(!MatchMath.falseAcceptJSONLHits(cosine: 0.40, floor: 0.80, decided: "Ben", expected: "Ada"), "FA low tot")
@@ -5988,20 +5988,20 @@ enum MatchMathTests {
         ok(MatchMath.lookalikeNegativePercent(best: 91, second: 88), "Lookalike Prozent")
         let neg = MatchMath.lookalikeRejectedCap([], adding: Array(repeating: 0.1, count: 32))
         ok(neg.count == 1, "Lookalike rejected cap 1")
-        var many: [[Double]] = (0..<8).map { _ in Array(repeating: 0.2, count: 32) }
-        many = MatchMath.lookalikeRejectedCap(many, adding: Array(repeating: 0.3, count: 32), cap: 8)
-        ok(many.count == 8, "Lookalike rejected cap 8")
+        var many2: [[Double]] = (0..<8).map { _ in Array(repeating: 0.2, count: 32) }
+        many2 = MatchMath.lookalikeRejectedCap(many2, adding: Array(repeating: 0.3, count: 32), cap: 8)
+        ok(many2.count == 8, "Lookalike rejected cap 8")
         ok(MatchMath.nightIRPrintSkip(luma: 0.08, continuity: true), "Night IR Continuity skip")
         ok(!MatchMath.nightIRPrintSkip(luma: 0.08, continuity: false), "Night Built-in kein Skip")
         ok(!MatchMath.nightIRPrintSkip(luma: 0.40, continuity: true), "Hell kein Night-Skip")
         ok(MatchMath.nightIRPrintSkip(luma: 0.119, continuity: true), "Night Floor 0,12")
         ok(!MatchMath.nightIRPrintSkip(luma: 0.12, continuity: true), "Night 0,12 hält")
-        let old = Date().addingTimeInterval(-40)
-        ok(MatchMath.guestTTLExpired(isGuest: true, enrolledAt: old, now: Date(), ttl: 30), "Guest TTL 40 s")
-        ok(!MatchMath.guestTTLExpired(isGuest: false, enrolledAt: old, now: Date(), ttl: 30), "Ada kein Guest-TTL")
+        let old2 = Date().addingTimeInterval(-40)
+        ok(MatchMath.guestTTLExpired(isGuest: true, enrolledAt: old2, now: Date(), ttl: 30), "Guest TTL 40 s")
+        ok(!MatchMath.guestTTLExpired(isGuest: false, enrolledAt: old2, now: Date(), ttl: 30), "Ada kein Guest-TTL")
         ok(!MatchMath.guestTTLExpired(isGuest: true, enrolledAt: Date(), now: Date(), ttl: 30), "Guest frisch hält")
         ok(!MatchMath.guestTTLExpired(isGuest: true, enrolledAt: nil, now: Date(), ttl: 30), "Guest ohne Datum hält")
-        ok(!MatchMath.guestTTLExpired(isGuest: true, enrolledAt: old, now: Date(), ttl: 30, lastSeen: Date().timeIntervalSince1970), "Guest live lastSeen hält")
+        ok(!MatchMath.guestTTLExpired(isGuest: true, enrolledAt: old2, now: Date(), ttl: 30, lastSeen: Date().timeIntervalSince1970), "Guest live lastSeen hält")
         ok(MatchMath.peopleAlbumSkipHidden(title: "Hidden"), "Hidden album")
         ok(MatchMath.peopleAlbumSkipHidden(title: "Ausgeblendet"), "Ausgeblendet")
         ok(MatchMath.peopleAlbumSkipHidden(title: "Zuletzt gelöscht"), "Zuletzt gelöscht")
@@ -6014,8 +6014,8 @@ enum MatchMathTests {
         ok(MatchMath.cosineTickMedianNeed() == 3, "Median Need 3")
         let spike = MatchMath.leftoverHoldSmooth(raw: 0.91, prev: 0.70, trail: [0.70, 0.72]) ?? -1
         ok(abs(spike - 0.72) < 0.02, "Smooth Median statt EMA-Spike (ist \(spike))")
-        let ema = MatchMath.leftoverHoldSmooth(raw: 0.70, prev: 0.64) ?? -1
-        near(ema, 0.35 * 0.70 + 0.65 * 0.64, 0.001, "Smooth ohne Trail bleibt EMA")
+        let ema3 = MatchMath.leftoverHoldSmooth(raw: 0.70, prev: 0.64) ?? -1
+        near(ema3, 0.35 * 0.70 + 0.65 * 0.64, 0.001, "Smooth ohne Trail bleibt EMA")
         ok(MatchMath.enrollSMBlocksName(ready: false, alreadyNamed: false), "SM blockt Unnamed")
         ok(!MatchMath.enrollSMBlocksName(ready: true, alreadyNamed: false), "SM ready tauft")
         ok(!MatchMath.enrollSMBlocksName(ready: false, alreadyNamed: true), "Ada bleibt")
@@ -6030,7 +6030,7 @@ enum MatchMathTests {
         ok(MatchMath.mergeUndoHolds(mergedAt: Date().timeIntervalSince1970 - 10, now: Date().timeIntervalSince1970), "Undo 10 s hält")
         ok(!MatchMath.mergeUndoHolds(mergedAt: Date().timeIntervalSince1970 - 40, now: Date().timeIntervalSince1970), "Undo 40 s tot")
         ok(!MatchMath.mergeUndoHolds(mergedAt: nil, now: Date().timeIntervalSince1970), "Undo ohne Stamp tot")
-        ok(MatchMath.mergeUndoChip(kept: "Ada", skipped: "Ada 2") == "UNDO Ada 2→Ada 30s", "Undo chip")
+        ok(MatchMath.mergeUndoChip(kept3: "Ada", skipped: "Ada 2") == "UNDO Ada 2→Ada 30s", "Undo chip")
         ok(MatchMath.mergeUndoNeed() == 30, "Undo 30 s")
         ok(MatchMath.captureQualitySpark(0.20).contains("skip"), "CQ skip")
         ok(MatchMath.captureQualitySpark(0.50) == "CQ 50", "CQ 50")
@@ -6050,8 +6050,8 @@ enum MatchMathTests {
             (expected: "Ada", decided: "Ben")
         ])
         let split = MatchMath.twinAutoSplit(heat: heatSplit)
-        ok(split?.kept == "Ada" && split?.split == "Ben", "Twin-Split Ada/Ben")
-        ok(MatchMath.twinAutoSplitChip(kept: "Ada", split: "Ben") == "SPLIT Ben≠Ada", "Twin-Split chip")
+        ok(split?.kept3 == "Ada" && split?.split == "Ben", "Twin-Split Ada/Ben")
+        ok(MatchMath.twinAutoSplitChip(kept3: "Ada", split: "Ben") == "SPLIT Ben≠Ada", "Twin-Split chip")
         ok(MatchMath.twinAutoSplit(heat: [(pair: "Ada→Ben", n: 2)]) == nil, "Twin-Split 2 tot")
         ok(MatchMath.twinAutoSplitNeed() == 3, "Twin-Split Need 3")
         ok(MatchMath.maskTwinVeto(probeMasked: true, refMasked: false, cosine: 0.64), "Mask 0,64 veto")
@@ -6094,17 +6094,17 @@ enum MatchMathTests {
         ok(MatchMath.enrollYawCompass(yaw: -0.80) == "YAW PL", "Kompass PL")
         ok(MatchMath.twinSplitKey("Ben", "Ada") == "Ada≠Ben", "Twin key sort")
         ok(MatchMath.twinSplitKey("Ada", "Ben") == "Ada≠Ben", "Twin key same")
-        let splits = MatchMath.twinSplitInsert(kept: "Ada", split: "Ben", splits: [])
+        let splits = MatchMath.twinSplitInsert(kept3: "Ada", split: "Ben", splits: [])
         ok(MatchMath.twinSplitBlocks(a: "Ada", b: "Ben", splits: splits), "Twin blocks Ada/Ben")
         ok(MatchMath.twinSplitBlocks(a: "Ben", b: "Ada", splits: splits), "Twin blocks reverse")
         ok(!MatchMath.twinSplitBlocks(a: "Ada", b: "Cara", splits: splits), "Twin Cara frei")
         ok(!MatchMath.twinSplitBlocks(a: "Ada", b: "Ada", splits: splits), "Twin same tot")
-        let culled = MatchMath.twinSplitCull(
+        let culled2 = MatchMath.twinSplitCull(
             remaining: [(0, "Ada"), (1, "Ben"), (2, "Cara")],
             leftoverName: "Ada",
             splits: splits
         )
-        ok(culled == [0, 2], "Twin cull Ben")
+        ok(culled2 == [0, 2], "Twin cull Ben")
         let round = MatchMath.twinSplitDecode(MatchMath.twinSplitEncode(splits))
         ok(round == splits, "Twin persist roundtrip")
         ok(MatchMath.twinSplitStoreKey() == "aegis.twinSplits", "Twin store key")
@@ -6170,8 +6170,8 @@ enum MatchMathTests {
         ok(MatchMath.leftoverPrintCacheHits(hash: "6.6.4.6", yaw: 0, cached: ["6.6.4.6#0"], cam: "iPhone-A-uid"), "Print-Cache legacy ohne @cam")
         near(MatchMath.printYawCoverageBest(cached: ["6.6.4.6#0@iPhone", "6.6.4.6#-1@iPhone", "6.6.4.6#1@iPhone"]), 1.0, 1e-9, "Yaw coverage @cam")
 
-        let old = Date().addingTimeInterval(-12)
-        let remain = MatchMath.guestTTLRemain(isGuest: true, enrolledAt: old, now: Date(), ttl: 30)
+        let old3 = Date().addingTimeInterval(-12)
+        let remain = MatchMath.guestTTLRemain(isGuest: true, enrolledAt: old3, now: Date(), ttl: 30)
         ok((remain ?? 0) > 10 && (remain ?? 0) < 20, "Guest remain ~18 s")
         ok(MatchMath.guestTTLChip(remain: 18)?.hasPrefix("GUEST ") == true, "Guest Chip Countdown")
         ok(MatchMath.guestTTLChip(remain: -1) == "GUEST drop", "Guest Chip drop")
@@ -6250,10 +6250,10 @@ enum MatchMathTests {
         ok(fifo.contains("9.9.9.9#0"), "Print-Cache FIFO hält neuen Key")
         ok(!fifo.contains("6.6.4.0#0"), "Print-Cache FIFO drop ältesten")
         ok(fifo.count == MatchMath.leftoverHashHoldCapN, "Print-Cache FIFO Cap")
-        let med = MatchMath.leftoverHoldSmooth(
+        let med3 = MatchMath.leftoverHoldSmooth(
             raw: 0.91, prev: 0.70, trail: [0.91, 0.88], binTrail: [0.66, 0.64], yawAbs: 0.40
         ) ?? -1
-        ok(abs(med - 0.66) < 0.02, "HoldSmooth intern Bin-Trail nicht Frontal-Median")
+        ok(abs(med3 - 0.66) < 0.02, "HoldSmooth intern Bin-Trail nicht Frontal-Median")
         let frontMed = MatchMath.leftoverHoldSmooth(
             raw: 0.91, prev: 0.70, trail: [0.70, 0.72], yawAbs: 0.05
         ) ?? -1
@@ -6493,7 +6493,7 @@ enum MatchMathTests {
             "Tag 0,62 Laplacian 0,14 tot"
         )
         near(
-            MatchMath.leftoverSessionCapture(old: 0.70, live: [0.18]) ?? -1,
+            MatchMath.leftoverSessionCapture(old3: 0.70, live: [0.18]) ?? -1,
             0.18,
             1e-12,
             "Session Capture Live-Nacht"
@@ -6543,6 +6543,22 @@ enum MatchMathTests {
             ) == [0.70, 0.70, 0.70, 0.70],
             "leftover länger als Box gewinnt"
         )
+        let medCap8Flash = MatchMath.leftoverSessionCaptureBox(
+            old: 0.70,
+            live: 0.18,
+            hist: Array(repeating: 0.70, count: 8)
+        )
+        near(medCap8Flash ?? -1, 0.70, 1e-12, "Cap-8 Median hält AE-Flash 0,18")
+        near(
+            MatchMath.leftoverSessionCapture(old: 0.70, live: [0.70, 0.18]) ?? -1,
+            0.18,
+            1e-12,
+            "Session-min bleibt Frame-Nacht — leftoverPick nutzt Box-Hist"
+        )
+        let jsonlBlob = (0..<8).map { "{\"n\":\($0)}" }.joined(separator: "\n") + "\n"
+        let jsonlKept = MatchMath.falseAcceptJSONLTrim(jsonlBlob, cap: 3)
+        ok(jsonlKept.split(whereSeparator: \.isNewline).count == 3, "JSONL Trim Cap 3")
+        ok(jsonlKept.hasSuffix("\n"), "JSONL Trim Newline")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

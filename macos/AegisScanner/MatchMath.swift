@@ -2651,7 +2651,7 @@ enum MatchMath {
     static func falseAcceptJSONLCap() -> Int { 500 }
 
     static func falseAcceptJSONLTrim(_ text: String, cap: Int = 500) -> String {
-        let lines = text.split(whereSeparator: \.isNewline, omittingEmptySubsequences: true).map(String.init)
+        let lines = text.split(omittingEmptySubsequences: true, whereSeparator: \.isNewline).map(String.init)
         let keep = lines.suffix(max(1, cap))
         if keep.isEmpty { return "" }
         return keep.joined(separator: "\n") + "\n"
@@ -8282,22 +8282,15 @@ enum MatchMath {
     }
 
     static func leftoverPrintSkipHits(face: FaceBox, skipBoxes: [FaceBox], iou: Double = printBudgetIoU, palm: FaceBox? = nil, palms: [FaceBox] = [], palmIou: Double = 0.18) -> Bool {
-        if skipBoxes.contains {
-            boxIoU(
+        for box in skipBoxes {
+            let hit = boxIoU(
                 ax: face.x, ay: face.y, aw: face.width, ah: face.height,
-                bx: $0.x, by: $0.y, bw: $0.width, bh: $0.height
-            ) + 1e-9 >= iou
-        } {
-            return true
-        }
-        if skipBoxes.contains {
-            leftoverPrintSkipBoxIsPalm($0, face: face)
-                && boxIoU(
-                    ax: face.x, ay: face.y, aw: face.width, ah: face.height,
-                    bx: $0.x, by: $0.y, bw: $0.width, bh: $0.height
-                ) + 1e-9 >= palmIou
-        } {
-            return true
+                bx: box.x, by: box.y, bw: box.width, bh: box.height
+            )
+            if hit + 1e-9 >= iou { return true }
+            if leftoverPrintSkipBoxIsPalm(box, face: face), hit + 1e-9 >= palmIou {
+                return true
+            }
         }
         var all = palms
         if let palm { all.insert(palm, at: 0) }

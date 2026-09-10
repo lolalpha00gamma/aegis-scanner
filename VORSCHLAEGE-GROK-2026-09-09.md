@@ -1,4 +1,24 @@
+# Aegis Vorschläge — 2026-09-10 (Pass 53, 2.1.251)
+
+Stand 2.1.251 alpha. Compile-Fix + Developer-ID P12-Key + leftoverPick session Hist. FacePrint bleibt.
+
+## Gelandet in 2.1.251
+
+- leftoverPrintSkipHits for-in (Swift 6).
+- falseAcceptJSONLTrim split-Reihenfolge.
+- MatchMathTests unique lets.
+- leftoverPick sessionCapture leftover-Hist, nicht min der Szene.
+- ci-sign.sh P12 inkl. Key. Xcode höchste Version.
+- AppVersion.display 2.1.251.
+
+## Offen (200 Repos)
+
+FacePrint ist kein 1:N-Recognizer. Nächster Embedder: Vision Detect + 5-Punkt 112×112 + ArcFace/SFace CoreML, Cosine, printRevision-Bump. HasBrain/FaceUnlock, jonnyoo/glance, opencv SFace (Apache-2). Nicht dieser Pass.
+
+CameraBroker XPC. HNSW. LiveCapture off MainActor.
+
 # Aegis Vorschläge — 2026-09-10 (Pass 52, 2.1.250)
+
 
 Stand 2.1.250 alpha. leftoverCaptureHistOf Cap-8 vor Burst-3. Skip-HUD. Developer-ID DMG.
 
