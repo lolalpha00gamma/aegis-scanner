@@ -6,3 +6,5 @@ bench/smoke/
 dmgroot/
 Aegis.dmg
 *.dmg
+__pycache__/
+*.pyc

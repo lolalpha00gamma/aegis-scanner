@@ -109,6 +109,35 @@ jobs:
           swiftc macos/AegisScanner/Models.swift macos/AegisScanner/MatchMath.swift macos/AegisScanner/BenchProtocol.swift macos/AegisScannerTests/MatchMathTests.swift -o /tmp/aegismath
           /tmp/aegismath
 
+      - name: Hugging Face LFW smoke
+        id: hf
+        run: |
+          set +e
+          python3 bench/hf_smoke.py --protocol --download --out bench/data/smoke --per 3
+          rc=$?
+          set -e
+          if [ "$rc" -eq 2 ]; then
+            echo "Hugging Face unreachable — FacePrint skip"
+            echo "skip=1" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "$rc" -ne 0 ]; then
+            exit "$rc"
+          fi
+          echo "skip=0" >> "$GITHUB_OUTPUT"
+          find bench/data/smoke -iname '*.jpg' | wc -l
+
+      - name: FacePrint smoke
+        if: steps.hf.outputs.skip != '1'
+        run: |
+          n=$(find bench/data/smoke -iname '*.jpg' | wc -l | tr -d ' ')
+          if [ "$n" -lt 16 ]; then
+            echo "Smoke-Fotos unvollständig ($n)" >&2
+            exit 1
+          fi
+          swiftc bench/FacePrintSmoke.swift -o /tmp/faceprintsmoke -framework AppKit -framework Vision
+          AEGIS_SMOKE_DIR="$PWD/bench/data/smoke" /tmp/faceprintsmoke
+
       - name: Build Aegis.app
         run: |
           xcodebuild \
@@ -163,6 +192,25 @@ jobs:
             marketing.txt
             signing.txt
           if-no-files-found: error
+
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: LFW protocol + Hugging Face smoke
+        run: |
+          python3 bench/hf_smoke.py
+          set +e
+          python3 bench/hf_smoke.py --protocol --download --out bench/data/smoke --per 3
+          rc=$?
+          set -e
+          if [ "$rc" -eq 2 ]; then
+            echo "Hugging Face unreachable — lokales pairs.txt bleibt die Quelle"
+            exit 0
+          fi
+          exit "$rc"
 
   publish:
     needs: package

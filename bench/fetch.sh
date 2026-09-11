@@ -12,6 +12,14 @@ mkdir -p "$DEST"
 cp -f "$SCRIPT_DIR/pairs.txt" "$DEST/pairs.txt"
 cp -f "$SCRIPT_DIR/smoke-people.txt" "$DEST/smoke-people.txt"
 
+# Nur 12×N Fotos von Hugging Face — kein 170-MB-tgz.
+if [[ "${1:-}" == "smoke" ]]; then
+  python3 "$SCRIPT_DIR/hf_smoke.py" --protocol --download --out "$DEST/smoke"
+  cp -f "$SCRIPT_DIR/pairs.txt" "$DEST/smoke/pairs.txt"
+  echo "In Aegis → Testmodus: $DEST/smoke"
+  exit 0
+fi
+
 TGZ="$DEST/lfw.tgz"
 LFW="$DEST/lfw"
 

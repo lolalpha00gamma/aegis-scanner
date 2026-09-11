@@ -15,7 +15,7 @@ Kein Terminal, kein Git-Clone.
 | Satz | Wofür | Größe | Quelle |
 |------|--------|-------|--------|
 | **LFW View 2** | Verifikation 6000 Paare (3000 gleich, 3000 fremd, 10 Folds) | 13 233 Bilder, 5 749 Personen, ~173 MB | [UMass LFW](http://vis-www.cs.umass.edu/lfw/), Spiegel [figshare/sklearn](https://ndownloader.figshare.com/files/5976018) |
-| **Smoke** | schnell | 12 × 6 | `smoke-people.txt` |
+| **Smoke** | schnell / GitHub CI | 12 × 3 von Hugging Face, lokal 12 × 6 | [`marcelohaps/lfw`](https://huggingface.co/datasets/marcelohaps/lfw) — `bench/hf_smoke.py`, `./bench/fetch.sh smoke` |
 | **ident20** | sklearn-Split, kalibrieren | ~62 Personen × 20 Fotos | alle LFW mit ≥20 Bildern |
 | **ident10** | große Reihe | ~158 × 20 | alle LFW mit ≥10 Bildern |
 | Eigener Ordner | Jede Person = Unterordner mit ≥2 Fotos | beliebig | du |
@@ -28,7 +28,8 @@ Literatur zum Einordnen (ArcFace-Klasse, nicht Aegis): LFW oft > 99 %. CFP-FP 
 
 ```bash
 chmod +x bench/fetch.sh
-./bench/fetch.sh
+./bench/fetch.sh smoke    # 12 Personen × 3 Fotos von Hugging Face (~0,5 MB)
+./bench/fetch.sh          # ganzer LFW-Satz (~170 MB)
 ```
 
 schreibt nach `~/Downloads/AegisBench/`:
@@ -59,9 +60,9 @@ Was die Zahlen heißen:
 
 ```bash
 # Paare zählen (ohne Bilder)
-python3 - <<'PY'
-from pathlib import Path
-text = Path("bench/pairs.txt").read_text()
-print(len(text.splitlines())-1, "Zeilen nach Header")
-PY
+python3 bench/hf_smoke.py
+# plus Hugging Face pairs.csv + 12×3 JPEGs nach bench/data/smoke (gitignore)
+python3 bench/hf_smoke.py --protocol --download --out bench/data/smoke
 ```
+
+GitHub Actions: Ubuntu prüft `pairs.txt` gegen `marcelohaps/lfw` `pairs.csv` und holt den Smoke-Satz. Der bestehende `macos-15`-Job (kein zweites Mac-Image) rechnet FacePrint Genuine vs Impostor, wenn die Fotos landeten. Fotos werden nicht committet.

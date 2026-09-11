@@ -525,6 +525,21 @@ enum MatchMathTests {
             near(tar02.tar, 1, 0.01, "alle Genuine ≥ 60")
         }
         ok(MatchMath.tar(atFar: 0.001, genuine: [90], impostor: Array(repeating: 10.0, count: 50)) == nil, "0,1 % FAR n=50 undefiniert")
+        let lfwGen = Array(repeating: MatchMath.printSigmoid(cosine: 0.75), count: 50)
+        let lfwImp = Array(repeating: MatchMath.printSigmoid(cosine: 0.40), count: 100)
+        if let lfwTar = MatchMath.tar(atFar: 0.01, genuine: lfwGen, impostor: lfwImp) {
+            near(lfwTar.tar, 1, 0.01, "TAR@1%FAR FacePrint-artig 0,75 vs 0,40")
+        } else {
+            ok(false, "TAR@1%FAR LFW-artig")
+        }
+        ok(
+            MatchMath.leftoverPick(candidates: [(0, 0.40, 0.75), (1, 0.40, 0.40)]) == 0,
+            "LFW-artig Genuine 0,75 schlägt Impostor 0,40"
+        )
+        ok(
+            MatchMath.leftoverPick(candidates: [(0, 0.40, 0.40), (1, 0.40, 0.38)]) == nil,
+            "LFW-artig zwei Impostoren kein leftover-Pin"
+        )
 
         let sparkLo = MatchMath.sparkLamps(captures: [0.9, 0.2], sharps: [0.4, 0.08], yaws: [0.05, 0.9])
         ok(sparkLo.capture == .red && sparkLo.sharpness == .red && sparkLo.yaw == .red, "Spark nimmt schlechtesten Frame")
