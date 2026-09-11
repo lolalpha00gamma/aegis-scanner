@@ -3,7 +3,7 @@ import Foundation
 import Vision
 
 /// Standalone FacePrint auf Hugging-Face-LFW-Smoke. Kein ArcFace, kein App-Target.
-/// `swiftc bench/FacePrintSmoke.swift -o /tmp/faceprintsmoke -framework AppKit -framework Vision`
+/// `swiftc -parse-as-library bench/FacePrintSmoke.swift -o /tmp/faceprintsmoke -framework AppKit -framework Vision`
 @main
 enum FacePrintSmoke {
     static func main() {
