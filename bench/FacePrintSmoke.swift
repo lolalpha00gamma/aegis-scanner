@@ -14,8 +14,9 @@ enum FacePrintSmoke {
             fputs("FacePrintSmoke: Ordner fehlt \(root.path)\n", stderr)
             exit(1)
         }
-        guard NSClassFromString("VNGenerateFacePrintRequest") != nil else {
-            fputs("FacePrintSmoke: VNGenerateFacePrintRequest fehlt\n", stderr)
+        loadVision()
+        guard makeFacePrintRequest() != nil else {
+            fputs("FacePrintSmoke: VNGenerateFacePrintRequest fehlt nach Vision-Load\n", stderr)
             exit(1)
         }
 
@@ -96,6 +97,21 @@ enum FacePrintSmoke {
         print("FacePrintSmoke OK")
     }
 
+    static func loadVision() {
+        _ = Bundle(path: "/System/Library/Frameworks/Vision.framework")?.load()
+        _ = VNDetectFaceRectanglesRequest.self
+        _ = VNGenerateImageFeaturePrintRequest.self
+        _ = VNImageRequestHandler.self
+    }
+
+    static func makeFacePrintRequest() -> VNRequest? {
+        loadVision()
+        if let cls = NSClassFromString("VNGenerateFacePrintRequest") as? VNRequest.Type {
+            return cls.init()
+        }
+        return nil
+    }
+
     static func personFolders(_ root: URL) -> [URL] {
         let fm = FileManager.default
         guard let kids = try? fm.contentsOfDirectory(
@@ -127,8 +143,7 @@ enum FacePrintSmoke {
         guard let img = NSImage(contentsOf: url) else { return nil }
         var rect = NSRect(origin: .zero, size: img.size)
         guard let cg = img.cgImage(forProposedRect: &rect, context: nil, hints: nil) else { return nil }
-        guard let cls = NSClassFromString("VNGenerateFacePrintRequest") as? VNRequest.Type else { return nil }
-        let req = cls.init()
+        guard let req = makeFacePrintRequest() else { return nil }
         let handler = VNImageRequestHandler(cgImage: cg, options: [:])
         guard (try? handler.perform([req])) != nil else { return nil }
         for obs in req.results ?? [] {
