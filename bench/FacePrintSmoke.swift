@@ -2,7 +2,7 @@ import AppKit
 import Foundation
 import Vision
 
-/// Standalone FacePrint auf Hugging-Face-LFW-Smoke. Kein ArcFace, kein App-Target.
+/// Standalone Print auf Hugging-Face-LFW-Smoke. Kein ArcFace, kein App-Target.
 /// `swiftc -parse-as-library bench/FacePrintSmoke.swift -o /tmp/faceprintsmoke -framework AppKit -framework Vision`
 @main
 enum FacePrintSmoke {
@@ -15,9 +15,11 @@ enum FacePrintSmoke {
             exit(1)
         }
         loadVision()
-        guard makeFacePrintRequest() != nil else {
-            fputs("FacePrintSmoke: VNGenerateFacePrintRequest fehlt nach Vision-Load\n", stderr)
-            exit(1)
+        let facePrintName = probeFacePrintClass()
+        if let facePrintName {
+            print("print-klasse  \(facePrintName)")
+        } else {
+            print("print-klasse  fehlt — Fallback VNGenerateImageFeaturePrintRequest auf Face-Crop")
         }
 
         let people = personFolders(root)
@@ -31,7 +33,7 @@ enum FacePrintSmoke {
         for folder in people {
             let person = folder.lastPathComponent
             for url in images(in: folder) {
-                if let obs = facePrint(url: url) {
+                if let obs = printOf(url: url, className: facePrintName) {
                     prints.append((person, url.lastPathComponent, obs))
                 } else {
                     noFace += 1
@@ -40,7 +42,7 @@ enum FacePrintSmoke {
         }
         let grouped = Dictionary(grouping: prints, by: \.person)
         let withTwo = grouped.filter { $0.value.count >= 2 }
-        print("FacePrint smoke  \(people.count) Ordner  \(prints.count) Prints  kein Gesicht \(noFace)")
+        print("Print smoke  \(people.count) Ordner  \(prints.count) Prints  kein Gesicht \(noFace)")
         if withTwo.count < 8 {
             fputs("FacePrintSmoke: nur \(withTwo.count) Personen mit ≥2 Prints\n", stderr)
             exit(1)
@@ -49,10 +51,8 @@ enum FacePrintSmoke {
         var genuineDist: [Double] = []
         var genuineCos: [Double] = []
         for (_, items) in withTwo {
-            let a = items[0].obs
-            let b = items[1].obs
-            if let d = distance(a, b) { genuineDist.append(d) }
-            if let c = cosine(a, b) { genuineCos.append(c) }
+            if let d = distance(items[0].obs, items[1].obs) { genuineDist.append(d) }
+            if let c = cosine(items[0].obs, items[1].obs) { genuineCos.append(c) }
         }
 
         let firsts = withTwo.keys.sorted().compactMap { grouped[$0]?.first }
@@ -104,12 +104,22 @@ enum FacePrintSmoke {
         _ = VNImageRequestHandler.self
     }
 
-    static func makeFacePrintRequest() -> VNRequest? {
+    static let facePrintNames = [
+        "VNGenerateFacePrintRequest",
+        "VNGenerateFaceprintRequest",
+        "_VNGenerateFacePrintRequest"
+    ]
+
+    static func probeFacePrintClass() -> String? {
         loadVision()
-        if let cls = NSClassFromString("VNGenerateFacePrintRequest") as? VNRequest.Type {
-            return cls.init()
+        for name in facePrintNames {
+            if NSClassFromString(name) as? VNRequest.Type != nil { return name }
         }
         return nil
+    }
+
+    static func makeRequest(_ className: String) -> VNRequest? {
+        (NSClassFromString(className) as? VNRequest.Type)?.init()
     }
 
     static func personFolders(_ root: URL) -> [URL] {
@@ -139,11 +149,17 @@ enum FacePrintSmoke {
             .map { $0 }
     }
 
-    static func facePrint(url: URL) -> VNFeaturePrintObservation? {
+    static func printOf(url: URL, className: String?) -> VNFeaturePrintObservation? {
         guard let img = NSImage(contentsOf: url) else { return nil }
         var rect = NSRect(origin: .zero, size: img.size)
         guard let cg = img.cgImage(forProposedRect: &rect, context: nil, hints: nil) else { return nil }
-        guard let req = makeFacePrintRequest() else { return nil }
+        if let className, let req = makeRequest(className) {
+            if let fp = runPrint(req, cg: cg) { return fp }
+        }
+        return cropImagePrint(cg)
+    }
+
+    static func runPrint(_ req: VNRequest, cg: CGImage) -> VNFeaturePrintObservation? {
         let handler = VNImageRequestHandler(cgImage: cg, options: [:])
         guard (try? handler.perform([req])) != nil else { return nil }
         for obs in req.results ?? [] {
@@ -155,6 +171,35 @@ enum FacePrintSmoke {
             }
         }
         return nil
+    }
+
+    static func cropImagePrint(_ image: CGImage) -> VNFeaturePrintObservation? {
+        let detect = VNDetectFaceRectanglesRequest()
+        let handler = VNImageRequestHandler(cgImage: image, options: [:])
+        guard (try? handler.perform([detect])) != nil else { return nil }
+        let faces = (detect.results as? [VNFaceObservation]) ?? []
+        guard let best = faces.max(by: { $0.boundingBox.width * $0.boundingBox.height < $1.boundingBox.width * $1.boundingBox.height }) else {
+            return nil
+        }
+        let crop = crop(image, visionBox: best.boundingBox) ?? image
+        let req = VNGenerateImageFeaturePrintRequest()
+        return runPrint(req, cg: crop)
+    }
+
+    static func crop(_ image: CGImage, visionBox: CGRect) -> CGImage? {
+        let w = Double(image.width)
+        let h = Double(image.height)
+        let pad = 0.18
+        var x = (Double(visionBox.origin.x) - pad) * w
+        var y = (1 - Double(visionBox.origin.y) - Double(visionBox.height) - pad) * h
+        var cw = (Double(visionBox.width) + 2 * pad) * w
+        var ch = (Double(visionBox.height) + 2 * pad) * h
+        x = max(0, x)
+        y = max(0, y)
+        cw = min(cw, w - x)
+        ch = min(ch, h - y)
+        guard cw >= 16, ch >= 16 else { return nil }
+        return image.cropping(to: CGRect(x: x, y: y, width: cw, height: ch))
     }
 
     static func distance(_ a: VNFeaturePrintObservation, _ b: VNFeaturePrintObservation) -> Double? {
