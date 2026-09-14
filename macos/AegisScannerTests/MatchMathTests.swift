@@ -6674,6 +6674,27 @@ enum MatchMathTests {
         ok(named5?.count == 5, "named 5-Punkt")
         ok(named5?[0].x == 19 && named5?[2].x == 5, "Auge 19 / Nase 5")
 
+        var tmplA = [Double](repeating: 0, count: 32); tmplA[0] = 1
+        var tmplB = [Double](repeating: 0, count: 32); tmplB[1] = 1
+        var probeT = [Double](repeating: 0, count: 32); probeT[0] = 1
+        let tcos = MatchMath.templateCosine(probe: probeT, templates: [tmplA, tmplB], centroid: tmplA)
+        near(tcos, 1, 1e-6, "Template-Treffer Pose 1,0")
+        let mix = MatchMath.templateCosine(probe: probeT, templates: [tmplB], centroid: tmplA)
+        ok(mix > 0.35 && mix < 0.7, "Centroid zieht ohne Pose-Treffer (ist \(mix))")
+
+        let vMatch = MatchMath.identifyVerdict(cosine: 0.55, margin: 0.12, galleryN: 8, measured: true, factorsAgree: true)
+        ok(vMatch == .match, "0,55/0,12 IDENT")
+        let vLikely = MatchMath.identifyVerdict(cosine: 0.38, margin: 0.06, galleryN: 4, measured: true, factorsAgree: true)
+        ok(vLikely == .likely, "knapp über OP WAHRSCHEINLICH (ist \(vLikely))")
+        let vPoss = MatchMath.identifyVerdict(cosine: 0.30, margin: 0.02, galleryN: 4, measured: true, factorsAgree: true)
+        ok(vPoss == .possible, "0,30 PRÜFEN")
+        let vUnk = MatchMath.identifyVerdict(cosine: 0.12, margin: 0.01, galleryN: 4, measured: true, factorsAgree: true)
+        ok(vUnk == .unknown, "0,12 UNBEKANNT")
+        ok(!MatchMath.identifyAutoName(verdict: .match, mode: .investigate, galleryN: 3), "Akte nie auto")
+        ok(MatchMath.identifyAutoName(verdict: .match, mode: .watchlist, galleryN: 80), "Wache IDENT auto")
+        ok(!MatchMath.identifyAutoName(verdict: .likely, mode: .watchlist, galleryN: 80), "Wache groß: LIKELY nicht auto")
+        ok(MatchMath.identifyAutoName(verdict: .likely, mode: .watchlist, galleryN: 4), "Wache klein: LIKELY auto")
+
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)
             exit(1)

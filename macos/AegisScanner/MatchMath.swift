@@ -10577,5 +10577,82 @@ enum MatchMath {
     }
 
     static func livenessSpoofNote() -> String { "Liveness schwach — keine Auto-Taufe" }
+
+    /// Bestes Template (Pose-Treffer) plus Centroid (Stabilität). Nur Centroid verliert ¾ gegen Frontal-Mittel.
+    static func templateCosine(probe: [Double], templates: [[Double]], centroid: [Double]) -> Double {
+        guard probe.count >= 32 else { return 0 }
+        var best = -1.0
+        for t in templates where t.count == probe.count {
+            let c = cosine(probe, t)
+            if c > best { best = c }
+        }
+        let cent: Double
+        if centroid.count == probe.count {
+            cent = cosine(probe, centroid)
+        } else if best >= 0 {
+            cent = best
+        } else {
+            return 0
+        }
+        if best < 0 { return cent }
+        return 0.60 * best + 0.40 * cent
+    }
+
+    /// OpenCV SFace 1:1-OP 0,363. 1:N braucht Extra-Margin und log10(N).
+    static func identifyMatchCosine(galleryN: Int) -> Double {
+        0.45 + min(0.04, 0.012 * log10(Double(max(4, galleryN))))
+    }
+
+    static func identifyLikelyCosine(galleryN: Int) -> Double {
+        sfaceMatchCosine + min(0.05, 0.014 * log10(Double(max(4, galleryN))))
+    }
+
+    static func identifyPossibleCosine() -> Double { 0.28 }
+
+    static func identifyMarginMatch() -> Double { 0.07 }
+    static func identifyMarginLikely() -> Double { 0.04 }
+
+    static func identifyVerdict(
+        cosine: Double,
+        margin: Double,
+        galleryN: Int,
+        measured: Bool,
+        factorsAgree: Bool
+    ) -> IdentifyVerdict {
+        guard measured, cosine > 0 else { return .unknown }
+        let matchF = identifyMatchCosine(galleryN: galleryN)
+        let likelyF = identifyLikelyCosine(galleryN: galleryN)
+        if cosine >= matchF, margin >= identifyMarginMatch(), factorsAgree { return .match }
+        if cosine >= likelyF, margin >= identifyMarginLikely() { return .likely }
+        if cosine >= identifyPossibleCosine() { return .possible }
+        return .unknown
+    }
+
+    static func identifyVerdictFromPercent(percent: Double, margin: Double, matchFloor: Double) -> IdentifyVerdict {
+        if percent >= 94, margin >= 12 { return .match }
+        if percent >= matchFloor, margin >= 8 { return .likely }
+        if percent >= matchFloor - 8 { return .possible }
+        return .unknown
+    }
+
+    static func identifyAutoName(verdict: IdentifyVerdict, mode: IdentifyMode, galleryN: Int) -> Bool {
+        switch mode {
+        case .investigate:
+            return false
+        case .watchlist:
+            if verdict == .match { return true }
+            if verdict == .likely, galleryN <= 12 { return true }
+            return false
+        }
+    }
+
+    static func identifyVerdictNote(_ v: IdentifyVerdict) -> String {
+        switch v {
+        case .match: return "IDENT — SFace über Operating Point, Abstand klar"
+        case .likely: return "WAHRSCHEINLICH — Kandidat, Wache darf bei kleiner Galerie taufen"
+        case .possible: return "PRÜFEN — in der Kandidatenliste, nicht automatisch"
+        case .unknown: return "UNBEKANNT — unter SFace-OP oder ohne Embedder"
+        }
+    }
 }
 

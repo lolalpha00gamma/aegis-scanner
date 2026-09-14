@@ -2,10 +2,43 @@ import CoreGraphics
 import Foundation
 
 enum AppVersion {
-    static let marketing = "2.2.0"
-    static let build = 277
+    static let marketing = "2.2.1"
+    static let build = 278
     static let channel = "alpha"
-    static let display = "2.2.0 alpha"
+    static let display = "2.2.1 alpha"
+}
+
+enum IdentifyMode: String, CaseIterable, Identifiable {
+    case watchlist
+    case investigate
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .watchlist: return "Wache"
+        case .investigate: return "Akte"
+        }
+    }
+    var blurb: String {
+        switch self {
+        case .watchlist: return "Kleine Galerie / Watchlist: IDENT darf automatisch taufen."
+        case .investigate: return "Große Galerie / Ermittlung: immer Kandidatenliste, nie stille Taufe."
+        }
+    }
+}
+
+enum IdentifyVerdict: String, CaseIterable {
+    case match
+    case likely
+    case possible
+    case unknown
+    var labelDE: String {
+        switch self {
+        case .match: return "IDENT"
+        case .likely: return "WAHRSCHEINLICH"
+        case .possible: return "PRÜFEN"
+        case .unknown: return "UNBEKANNT"
+        }
+    }
 }
 
 enum StrategyTrack: String, CaseIterable, Identifiable {
@@ -394,6 +427,7 @@ struct IdentityScore: Hashable {
     var identityId: UUID
     var percent: Double
     var distance: Double? = nil
+    var cosine: Double? = nil
 }
 
 struct StrategyHit: Hashable {
@@ -408,6 +442,9 @@ struct StrategyHit: Hashable {
     var geoMix: Double? = nil
     /// Centroid-Cosine Look-Sieger vs Zweiter. Close-Pair braucht echte Nähe, nicht nur Look-Delta 8.
     var pairCosine: Double? = nil
+    /// match / likely / possible / unknown
+    var verdict: String = ""
+    var cosine: Double? = nil
 }
 
 struct MatchResult: Hashable {

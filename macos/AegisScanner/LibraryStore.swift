@@ -31,6 +31,7 @@ final class LibraryStore: ObservableObject {
     @Published var leftoverMissNeed: Int = 2
     @Published var kalmanJump: Double = MatchMath.leftoverIoUJump
     @Published var strategy: StrategyID = .aegis
+    @Published var identifyMode: IdentifyMode = .watchlist
     @Published var showAnatomy = true
     @Published var showNMSDebug = false
     @Published var nmsDropped: [FaceBox] = []
@@ -789,11 +790,13 @@ final class LibraryStore: ObservableObject {
         let open = Int(MatchMath.unknownRejectFloor(slider: threshold).rounded())
         let unnamed = leftoverPending.values.filter { $0 == MatchMath.conflictTickNote() || $0.hasPrefix("Gast") }.count
         let named = identities.count
+        let sfaceN = faces.filter { MatchMath.sfaceMeasured($0.sfaceVec) }.count
+        let op = String(format: "SFace IDENT≥%.2f OP≥%.2f", MatchMath.identifyMatchCosine(galleryN: identities.count), MatchMath.identifyLikelyCosine(galleryN: identities.count))
         if named + unnamed > 0, unnamed > 0 {
             let far = MatchMath.liveFAR(impostorAbove: unnamed, totalImpostor: named + unnamed)
-            return "Galerie \(identities.count): Floor \(Int(f.match)) · Solo \(Int(f.solo)) · Open-Set \(open) · \(MatchMath.liveFARLabel(far))"
+            return "Galerie \(identities.count): Floor \(Int(f.match)) · Solo \(Int(f.solo)) · Open-Set \(open) · \(MatchMath.liveFARLabel(far)) · \(op) · SFace \(sfaceN)"
         }
-        return "Galerie \(identities.count): Floor \(Int(f.match)) · Solo \(Int(f.solo)) · Open-Set \(open)"
+        return "Galerie \(identities.count): Floor \(Int(f.match)) · Solo \(Int(f.solo)) · Open-Set \(open) · \(op) · SFace \(sfaceN)/\(faces.count)"
     }
 
     var benchHome: URL { BenchFetch.root() }
@@ -821,6 +824,21 @@ final class LibraryStore: ObservableObject {
     var selectedHits: [StrategyHit] {
         guard let id = selectedFace?.id else { return [] }
         return matches.first { $0.faceId == id }?.hits ?? []
+    }
+
+    func identification(of faceId: UUID) -> StrategyHit? {
+        matches.first { $0.faceId == faceId }?.hits.first { $0.strategy == .aegis }
+    }
+
+    func sfaceRefCount(_ identity: Identity) -> Int {
+        identity.faceIds.filter { id in
+            faces.first { $0.id == id }.map { MatchMath.sfaceMeasured($0.sfaceVec) } ?? false
+        }.count
+    }
+
+    func setIdentifyMode(_ mode: IdentifyMode) {
+        identifyMode = mode
+        rematch()
     }
 
     func selectMedia(_ id: UUID?) {
@@ -1231,7 +1249,8 @@ final class LibraryStore: ObservableObject {
             media: media,
             threshold: threshold,
             enabled: enabled,
-            continuity: liveContinuity
+            continuity: liveContinuity,
+            identifyMode: identifyMode
         )
         AuditTrail.log(matches: matches, identities: identities, galleryN: identities.count)
         if !liveActive {
@@ -1253,7 +1272,8 @@ final class LibraryStore: ObservableObject {
             identities: identities,
             gallery: gallery,
             threshold: threshold,
-            continuity: liveContinuity
+            continuity: liveContinuity,
+            identifyMode: identifyMode
         )
         let probeIds = Set(live.map(\.id))
         matches = matches.filter { !probeIds.contains($0.faceId) } + next

@@ -161,6 +161,17 @@ struct ContentView: View {
                 .disabled(store.matches.isEmpty)
             Button("Labor") { store.exportLab() }
                 .disabled(store.identities.count < 1)
+            Picker("ID", selection: Binding(
+                get: { store.identifyMode },
+                set: { store.setIdentifyMode($0) }
+            )) {
+                ForEach(IdentifyMode.allCases) { m in
+                    Text(m.label).tag(m)
+                }
+            }
+            .pickerStyle(.menu)
+            .frame(width: 88)
+            .help("Wache: IDENT darf taufen. Akte: nur Kandidatenliste.")
             Slider(value: $store.threshold, in: 70 ... 96) { editing in
                 if !editing { store.rematch() }
             }
@@ -384,9 +395,10 @@ struct ContentView: View {
                     VStack(alignment: .leading) {
                         IdentityNameField(store: store, identity: identity)
                         let cov = FaceEngine.poseCoverage(identity: identity, faces: store.faces)
-                        Text("\(identity.faceIds.count) Referenzen · \(MatchMath.poseMeter(frontal: cov.frontal, threeQuarter: cov.threeQuarter, profile: cov.profile))")
+                        let sfaceN = store.sfaceRefCount(identity)
+                        Text("\(identity.faceIds.count) Refs · SFace \(sfaceN) · \(MatchMath.poseMeter(frontal: cov.frontal, threeQuarter: cov.threeQuarter, profile: cov.profile))")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(sfaceN == 0 && !identity.faceIds.isEmpty ? Color.orange : Color.secondary)
                     }
                     Spacer()
                     Button("+") { store.addSelectedTo(identity.id) }
@@ -490,9 +502,10 @@ struct ContentView: View {
                 $0.box.x + $0.box.y * 0.15 < $1.box.x + $1.box.y * 0.15
             }
             let strip = onImage.enumerated().map { index, face -> (index: Int, face: FaceObservation, row: String) in
-                let hit = store.matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == store.strategy }
+                let hit = store.identification(of: face.id)
                 let owner = store.identities.first { $0.faceIds.contains(face.id) }
                 let ident = owner ?? store.identities.first { $0.id == hit?.identityId }
+                    ?? store.identities.first { $0.id == hit?.versus.first?.identityId }
                 let rid = MatchMath.leftoverGalleryRowId(identityId: ident?.id, detectId: face.id)
                 return (index, face, "\(rid.uuidString)#\(index)")
             }
@@ -503,11 +516,13 @@ struct ContentView: View {
                         ForEach(strip, id: \.row) { row in
                             let index = row.index
                             let face = row.face
-                            let hit = store.matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == store.strategy }
+                            let hit = store.identification(of: face.id)
                             let owner = store.identities.first { $0.faceIds.contains(face.id) }
                             let ident = owner ?? store.identities.first { $0.id == hit?.identityId }
+                                ?? store.identities.first { $0.id == hit?.versus.first?.identityId }
                             let pinned = owner != nil
-                            let near = !pinned && ident != nil && (hit?.percent ?? 0) >= store.threshold
+                            let verdict = IdentifyVerdict(rawValue: hit?.verdict ?? "") ?? .unknown
+                            let near = !pinned && ident != nil && (verdict == .match || verdict == .likely)
                             Button {
                                 store.tapOverlay(faceId: face.id)
                             } label: {
@@ -516,12 +531,12 @@ struct ContentView: View {
                                         .font(.caption.monospacedDigit())
                                         .frame(width: 18)
                                     VStack(alignment: .leading, spacing: 2) {
-                                        Text(pinned ? (owner!.name) : (near ? "Nähe \(ident!.name)" : "nicht zugeordnet"))
+                                        Text(pinned ? (owner!.name) : (near ? "\(verdict.labelDE) \(ident!.name)" : verdict.labelDE))
                                             .font(.caption)
                                             .lineLimit(1)
                                         Text(String(format: "%.0f%%", hit?.percent ?? 0))
                                             .font(.caption2.monospacedDigit())
-                                            .foregroundStyle(pinned ? Color.primary : Color.secondary)
+                                            .foregroundStyle(pinned || verdict == .match ? Color.primary : Color.secondary)
                                     }
                                 }
                                 .padding(.horizontal, 8)
@@ -625,23 +640,48 @@ struct ContentView: View {
         ScrollView {
         VStack(alignment: .leading, spacing: 10) {
             if let face = store.selectedFace {
-                let hit = store.selectedHits.first { $0.strategy == store.strategy }
+                let hit = store.identification(of: face.id) ?? store.selectedHits.first { $0.strategy == store.strategy }
+                let sfaceHit = store.selectedHits.first { $0.strategy == .sface }
+                let printHit = store.selectedHits.first { $0.strategy == .featurePrint }
                 let owner = store.identities.first { $0.faceIds.contains(face.id) }
-                let assignedIdent = owner ?? store.identities.first { $0.id == hit?.identityId }
-                let assignedPass = assignedIdent != nil && (owner != nil || ((hit?.measured ?? false) && (hit?.percent ?? 0) >= store.threshold))
-                Text(owner != nil ? "REFERENZ" : (assignedPass ? "NÄHE" : "NICHT ZUGEORDNET"))
+                let assignedIdent = owner
+                    ?? store.identities.first { $0.id == hit?.identityId }
+                    ?? store.identities.first { $0.id == hit?.versus.first?.identityId }
+                let verdict = IdentifyVerdict(rawValue: hit?.verdict ?? "") ?? .unknown
+                let assignedPass = assignedIdent != nil && (owner != nil || verdict == .match || verdict == .likely)
+                Text("IDENTIFIKATION · \(store.identifyMode.label.uppercased())")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .tracking(1.4)
-                Text(owner != nil ? (assignedIdent?.name ?? "") : (assignedPass ? "Nähe \(assignedIdent?.name ?? "")" : "kein Match"))
-                    .font(.title3)
-                if hit?.measured == false {
-                    Text("nicht gemessen")
+                HStack(alignment: .firstTextBaseline) {
+                    Text(verdict.labelDE)
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(
+                            verdict == .match ? Color.green
+                            : verdict == .likely ? Color.orange
+                            : verdict == .possible ? Color.yellow
+                            : Color.secondary
+                        )
+                    if let assignedIdent {
+                        Text(assignedIdent.name)
+                            .font(.title3)
+                    }
+                }
+                if hit?.measured == false, sfaceHit?.measured != true {
+                    Text("SFace nicht gemessen — Galerie neu scannen")
                         .font(.body)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.orange)
                 } else {
-                    Text(String(format: "%.0f%%", hit?.percent ?? 0))
+                    Text(String(format: "%.0f%%  ·  SFace %.0f%%  ·  Print %.0f%%",
+                                hit?.percent ?? 0,
+                                sfaceHit?.percent ?? 0,
+                                printHit?.percent ?? 0))
                         .font(.body.monospacedDigit())
+                    if let c = hit?.cosine ?? sfaceHit?.cosine {
+                        Text(String(format: "SFace-Cosine %.3f  ·  Abstand %.1f Pkt", c, hit?.margin ?? 0))
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 if owner == nil, assignedPass {
                     Text("Noch keine Referenz. Anlegen für eine neue Person, + nur für ein extra Foto von \(assignedIdent?.name ?? "dieser Person").")
@@ -674,6 +714,39 @@ struct ContentView: View {
                             face.quality.frontal * 100))
                     .font(.caption.monospaced())
                     .foregroundStyle(.secondary)
+                if let ranked = sfaceHit?.versus ?? hit?.versus, !ranked.isEmpty {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("KANDIDATEN")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .tracking(1.2)
+                            .padding(.top, 4)
+                        ForEach(Array(ranked.prefix(5).enumerated()), id: \.element.identityId) { i, row in
+                            let name = store.identities.first { $0.id == row.identityId }?.name ?? "—"
+                            let lead = i == 0
+                            HStack {
+                                Text(lead ? name : "\(name)")
+                                    .font(.caption)
+                                    .foregroundStyle(lead ? Color.primary : Color.secondary)
+                                Spacer()
+                                if let c = row.cosine {
+                                    Text(String(format: "%.3f", c))
+                                        .font(.caption2.monospacedDigit())
+                                        .foregroundStyle(.secondary)
+                                }
+                                Text(String(format: "%.0f%%", row.percent))
+                                    .font(.caption.monospacedDigit())
+                                if owner == nil, lead, verdict == .likely || verdict == .possible {
+                                    Button("+") { store.addSelectedTo(row.identityId) }
+                                        .controlSize(.mini)
+                                        .help("Dieses Gesicht der Person als Referenz hinzufügen.")
+                                }
+                            }
+                            ProgressView(value: min(100, row.percent), total: 100)
+                                .opacity(lead ? 1 : 0.45)
+                        }
+                    }
+                }
                 if !face.ratioSheet.isEmpty {
                     let refSheet = referenceSheet(for: face)
                     VStack(alignment: .leading, spacing: 4) {
@@ -883,9 +956,10 @@ struct FaceOverlay: View {
                 var seen = Set<String>()
                 var out: [(face: FaceObservation, row: String)] = []
                 for face in drawnFaces {
-                    let hit = store.matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == store.strategy }
+                    let hit = store.identification(of: face.id)
                     let owner = store.identities.first { $0.faceIds.contains(face.id) }
                     let ident = owner ?? store.identities.first { $0.id == hit?.identityId }
+                        ?? store.identities.first { $0.id == hit?.versus.first?.identityId }
                     let rid = MatchMath.leftoverOverlayRowId(
                         identityId: ident?.id,
                         detectId: face.id,
@@ -912,14 +986,16 @@ struct FaceOverlay: View {
                     .offset(x: ox, y: oy)
                 ForEach(overlayRows, id: \.row) { row in
                     let face = row.face
-                    let hit = store.matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == store.strategy }
+                    let hit = store.identification(of: face.id)
                     let printHit = store.matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == .featurePrint }
-                    let aegisHit = store.matches.first { $0.faceId == face.id }?.hits.first { $0.strategy == .aegis }
+                    let aegisHit = hit
                     let owner = store.identities.first { $0.faceIds.contains(face.id) }
                     let ident = owner ?? store.identities.first { $0.id == hit?.identityId }
+                        ?? store.identities.first { $0.id == hit?.versus.first?.identityId }
                     let pct = hit?.percent ?? 0
                     let pinned = owner != nil
-                    let near = !pinned && ident != nil && (hit?.measured ?? false) && pct >= store.threshold
+                    let idVerdict = IdentifyVerdict(rawValue: hit?.verdict ?? "") ?? .unknown
+                    let near = !pinned && ident != nil && (idVerdict == .match || idVerdict == .likely)
                     let selected = store.selectedFaceId == face.id
                     let printDead = face.featurePrint.isEmpty
                     let gallery: [FaceObservation] = {
@@ -953,12 +1029,15 @@ struct FaceOverlay: View {
                         if let tint = MatchMath.leftoverTwinTint(pairCosine: aegisHit?.pairCosine) {
                             return tint == "red" ? Color.red.opacity(0.95) : Color.orange.opacity(0.95)
                         }
-                        switch kind {
-                        case .selected: return .white
-                        case .enrolled: return Color.green.opacity(0.85)
-                        case .leftover: return Color.orange.opacity(0.95)
-                        case .ghost: return Color.orange.opacity(0.55)
-                        case .unmatched: return Color.white.opacity(0.45)
+                        if kind == .selected { return .white }
+                        if kind == .enrolled { return Color.green.opacity(0.85) }
+                        if kind == .leftover { return Color.orange.opacity(0.95) }
+                        if kind == .ghost { return Color.orange.opacity(0.55) }
+                        switch idVerdict {
+                        case .match: return Color.green.opacity(0.9)
+                        case .likely: return Color.yellow.opacity(0.9)
+                        case .possible: return Color.orange.opacity(0.7)
+                        case .unknown: return Color.white.opacity(0.45)
                         }
                     }()
                     let slotRaw = FaceEngine.poseSlot(face).rawValue
@@ -1229,7 +1308,13 @@ struct FaceOverlay: View {
             return "leftover \(pending)"
         }
         if near, let ident {
-            return "Nähe \(ident.name) \(Int(pct))%"
+            let v = IdentifyVerdict(rawValue: hit?.verdict ?? "") ?? .likely
+            return "\(v.labelDE) \(ident.name) \(Int(pct))%"
+        }
+        if let hit, let guess = store.identities.first(where: { $0.id == hit.versus.first?.identityId }),
+           (IdentifyVerdict(rawValue: hit.verdict) == .possible)
+        {
+            return "PRÜFEN \(guess.name) \(Int(pct))%"
         }
         if let hit, !hit.measured {
             return "nicht gemessen"

@@ -390,7 +390,8 @@ enum FaceEngine {
         media: [MediaItem],
         threshold: Double = 78,
         enabled: Set<StrategyID> = Set(StrategyID.allCases),
-        continuity: Bool = false
+        continuity: Bool = false,
+        identifyMode: IdentifyMode = .watchlist
     ) -> [MatchResult] {
         var tracked = faces
         assignTracks(faces: &tracked, media: media)
@@ -518,10 +519,22 @@ enum FaceEngine {
             hits.append(toHit(.featurePrint, fp, floors: floors, measured: printOn))
 
             let sfaceOn = enabled.contains(.sface) && MatchMath.sfaceMeasured(face.sfaceVec)
-            let sf = rank(models, minMargin: embedMargin, floors: floors) { m in
-                bestSFacePercent(face, m.sfaceMean)
+            var sfaceCos: [UUID: Double] = [:]
+            sfaceCos.reserveCapacity(models.count)
+            for m in models {
+                sfaceCos[m.identity.id] = sfaceTemplateCosine(face, owned: m.meanPrint, mean: m.sfaceMean)
             }
-            hits.append(toHit(.sface, sf, floors: floors, measured: sfaceOn))
+            let sf = rank(models, minMargin: embedMargin, floors: floors) { m in
+                MatchMath.sfaceSigmoid(cosine: sfaceCos[m.identity.id] ?? 0)
+            }
+            var sfaceHit = toHit(.sface, sf, floors: floors, measured: sfaceOn)
+            sfaceHit.versus = sfaceHit.versus.map { row in
+                var r = row
+                r.cosine = sfaceCos[row.identityId]
+                return r
+            }
+            sfaceHit.cosine = sfaceHit.versus.first?.cosine
+            hits.append(sfaceHit)
 
             func pctVs(_ s: StrategyID, _ id: UUID) -> Double {
                 guard enabled.contains(s) else { return 0 }
@@ -645,25 +658,35 @@ enum FaceEngine {
                 printPct: printWin?.percent ?? 0
             )
             let factorsAgree = !neural.review
-            if neural.review {
-                decided.id = MatchMath.autoIdentify(
+            let bestCos = sfaceWin?.cosine ?? 0
+            let secondCos = hits.first { $0.strategy == .sface }?.versus.dropFirst().first?.cosine ?? 0
+            let verdict: IdentifyVerdict = {
+                if sfaceOn {
+                    return MatchMath.identifyVerdict(
+                        cosine: bestCos,
+                        margin: bestCos - secondCos,
+                        galleryN: identities.count,
+                        measured: true,
+                        factorsAgree: factorsAgree
+                    )
+                }
+                return MatchMath.identifyVerdictFromPercent(
                     percent: fusedBest,
                     margin: fusedBest - fusedSecond,
-                    galleryN: identities.count,
-                    factorsAgree: false,
                     matchFloor: aegisFloors.match
+                )
+            }()
+            if neural.review {
+                decided.id = MatchMath.identifyAutoName(
+                    verdict: verdict, mode: identifyMode, galleryN: identities.count
                 ) ? neural.id : nil
                 let clash = MatchMath.neuralWinnerReviewNote()
                 decided.note = decided.note.isEmpty ? clash : clash + ". " + decided.note
-            } else if !MatchMath.autoIdentify(
-                percent: fusedBest,
-                margin: fusedBest - fusedSecond,
-                galleryN: identities.count,
-                factorsAgree: factorsAgree,
-                matchFloor: aegisFloors.match
+            } else if !MatchMath.identifyAutoName(
+                verdict: verdict, mode: identifyMode, galleryN: identities.count
             ) {
                 decided.id = nil
-                let rev = MatchMath.autoIdentifyReviewNote(galleryN: identities.count)
+                let rev = MatchMath.identifyVerdictNote(verdict)
                 decided.note = decided.note.isEmpty ? rev : rev + ". " + decided.note
             }
             let liveNess = Liveness.score(quality: face.quality, blink: false, spark: face.qualitySpark)
@@ -680,7 +703,10 @@ enum FaceEngine {
             let aegisNote = enabled.contains(.aegis)
                 ? decided.note
                 : "Spur ausgeschaltet — keine Namensvergabe."
-            hits.append(toHit(.aegis, aegis, floors: aegisFloors, note: aegisNote, measured: kiOn || shapeOn || enabled.contains(.geom3d)))
+            var aegisHit = toHit(.aegis, aegis, floors: aegisFloors, note: aegisNote, measured: kiOn || shapeOn || enabled.contains(.geom3d))
+            aegisHit.verdict = verdict.rawValue
+            aegisHit.cosine = sfaceOn ? bestCos : nil
+            hits.append(aegisHit)
             if let owner = identities.first(where: { $0.faceIds.contains(face.id) }) {
                 hits = hits.map { h in
                     let selfP = h.versus.first { $0.identityId == owner.id }?.percent ?? h.percent
@@ -693,7 +719,11 @@ enum FaceEngine {
                         margin: selfP - second,
                         versus: h.versus,
                         note: "Referenz dieser Person — gemessene Werte, nicht hochgesetzt.",
-                        measured: h.measured
+                        measured: h.measured,
+                        geoMix: h.geoMix,
+                        pairCosine: h.pairCosine,
+                        verdict: h.verdict,
+                        cosine: h.cosine
                     )
                 }
             }
@@ -707,7 +737,8 @@ enum FaceEngine {
         identities: [Identity],
         gallery: [FaceObservation],
         threshold: Double = 78,
-        continuity: Bool = false
+        continuity: Bool = false,
+        identifyMode: IdentifyMode = .watchlist
     ) -> [MatchResult] {
         let anySFace = probes.contains { MatchMath.sfaceMeasured($0.sfaceVec) }
             || gallery.contains { MatchMath.sfaceMeasured($0.sfaceVec) }
@@ -804,8 +835,9 @@ enum FaceEngine {
                 let geo = MatchMath.ratioPercent(probeRatios, MatchMath.medianComponents(ratioPool))
                 let sMean = meanSFaceVector(owned)
                 let sv = face.sfaceVec
-                let sMeasured = MatchMath.sfaceMeasured(sv) && sMean.count == sv.count
-                let sfacePct = sMeasured ? MatchMath.sfaceSigmoid(cosine: cosine(sv, sMean)) : 0
+                let sMeasured = MatchMath.sfaceMeasured(sv)
+                let sCos = sMeasured ? sfaceTemplateCosine(face, owned: owned, mean: sMean) : 0
+                let sfacePct = sMeasured ? MatchMath.sfaceSigmoid(cosine: sCos) : 0
                 let look = MatchMath.multiFactor(
                     sface: sMeasured ? sfacePct : nil,
                     facePrint: measured ? printPct : nil,
@@ -815,7 +847,7 @@ enum FaceEngine {
                 ).percent
                 versus.append(IdentityScore(identityId: m.id, percent: look))
                 printVersus.append(IdentityScore(identityId: m.id, percent: printPct))
-                sfaceVersus.append(IdentityScore(identityId: m.id, percent: sfacePct))
+                sfaceVersus.append(IdentityScore(identityId: m.id, percent: sfacePct, cosine: sMeasured ? sCos : nil))
                 geoVersus.append((m.id, geo))
             }
             versus.sort { $0.percent > $1.percent }
@@ -939,25 +971,35 @@ enum FaceEngine {
                 printId: pv.count >= 32 ? printWinner?.identityId : nil,
                 printPct: printWinner?.percent ?? 0
             )
-            if neural.review {
-                decidedId = MatchMath.autoIdentify(
+            let liveVerdict: IdentifyVerdict = {
+                if sfaceProbe {
+                    let bc = sfaceWinner?.cosine ?? 0
+                    let sc = sfaceVersus.dropFirst().first?.cosine ?? 0
+                    return MatchMath.identifyVerdict(
+                        cosine: bc,
+                        margin: bc - sc,
+                        galleryN: models.count,
+                        measured: true,
+                        factorsAgree: !neural.review
+                    )
+                }
+                return MatchMath.identifyVerdictFromPercent(
                     percent: best?.percent ?? 0,
                     margin: margin,
-                    galleryN: models.count,
-                    factorsAgree: false,
                     matchFloor: liveFloors.match
+                )
+            }()
+            if neural.review {
+                decidedId = MatchMath.identifyAutoName(
+                    verdict: liveVerdict, mode: identifyMode, galleryN: models.count
                 ) ? neural.id : nil
                 let clash = MatchMath.neuralWinnerReviewNote()
                 note = note.isEmpty ? clash : clash + ". " + note
-            } else if !MatchMath.autoIdentify(
-                percent: best?.percent ?? 0,
-                margin: margin,
-                galleryN: models.count,
-                factorsAgree: true,
-                matchFloor: liveFloors.match
+            } else if !MatchMath.identifyAutoName(
+                verdict: liveVerdict, mode: identifyMode, galleryN: models.count
             ) {
                 decidedId = nil
-                let rev = MatchMath.autoIdentifyReviewNote(galleryN: models.count)
+                let rev = MatchMath.identifyVerdictNote(liveVerdict)
                 note = note.isEmpty ? rev : rev + ". " + note
             }
             let liveNess = Liveness.score(quality: face.quality, blink: false, spark: face.qualitySpark)
@@ -1004,7 +1046,8 @@ enum FaceEngine {
                 margin: (sfaceVersus.first?.percent ?? 0) - (sfaceVersus.dropFirst().first?.percent ?? 0),
                 versus: sfaceVersus,
                 note: sfaceProbe ? "" : "nicht gemessen",
-                measured: sfaceProbe
+                measured: sfaceProbe,
+                cosine: sfaceWinner?.cosine
             )
             let aegisHit = StrategyHit(
                 strategy: .aegis,
@@ -1015,7 +1058,9 @@ enum FaceEngine {
                 note: note,
                 measured: pv.count >= 32 || sfaceProbe,
                 geoMix: geoAvailable ? geoMix : nil,
-                pairCosine: pairCos
+                pairCosine: pairCos,
+                verdict: liveVerdict.rawValue,
+                cosine: sfaceWinner?.cosine
             )
             return MatchResult(faceId: face.id, hits: [sfaceHit, printHit, aegisHit])
         }
@@ -1559,10 +1604,15 @@ enum FaceEngine {
         )
     }
 
-    private static func bestSFacePercent(_ probe: FaceObservation, _ mean: [Double]) -> Double {
+    private static func sfaceTemplateCosine(
+        _ probe: FaceObservation,
+        owned: [FaceObservation],
+        mean: [Double]
+    ) -> Double {
         let pv = probe.sfaceVec
-        guard MatchMath.sfaceMeasured(pv), mean.count == pv.count else { return 0 }
-        return MatchMath.sfaceSigmoid(cosine: cosine(pv, mean))
+        guard MatchMath.sfaceMeasured(pv) else { return 0 }
+        let templates = owned.map(\.sfaceVec).filter { MatchMath.sfaceMeasured($0) && $0.count == pv.count }
+        return MatchMath.templateCosine(probe: pv, templates: templates, centroid: mean)
     }
 
     static func partialEmbedding(of face: FaceObservation) -> [Double] {

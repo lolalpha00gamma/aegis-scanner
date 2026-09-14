@@ -1,4 +1,4 @@
-# Aegis **2.2.0 alpha**
+# Aegis **2.2.1 alpha**
 
 
 
@@ -8,6 +8,16 @@ Direkt laden:
 - [Releases](https://github.com/lolalpha00gamma/aegis-scanner/releases)
 
 Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
+## Neu in 2.2.1 alpha
+
+Identifikation ist die Hauptspur, nicht mehr „irgendeine Strategie“.
+
+- **Template-Re-Rank.** SFace gegen alle Refs der Person (0,60 bestes Template + 0,40 Centroid) — ¾-Pose trifft die ¾-Ref, nicht nur das Frontal-Mittel.
+- **Operating Points.** IDENT / WAHRSCHEINLICH / PRÜFEN / UNBEKANNT aus SFace-Cosine + Margin + log10(N). OpenCV-OP 0,363 = WAHRSCHEINLICH, IDENT härter.
+- **Wache / Akte.** Wache darf IDENT (kleine Galerie auch LIKELY) taufen. Akte zeigt nur die Kandidatenliste.
+- **UI.** Identifikationskarte, Top-5 mit Cosine, Overlay-Farbe nach Verdict, Strip und Box nutzen Aegis nicht mehr die Diagnose-Spur.
+- Tests + VERSION = Models = MARKETING 2.2.1 (Build 278). Schema 15 bleibt.
+
 ## Neu in 2.2.0 alpha
 
 200-Repo-Abgleich: Detect → 5-Punkt 112×112 → trainierter Embedder. SFace (Apache-2, OpenCV Zoo) ist der 1:N-Recognizer, Face-Print bleibt unabhängige 2D-Spur, 2D-Maße und 3D-Pose stützen — sie vetoen keinen starken Embedder mehr still.

@@ -310,14 +310,18 @@ enum IdentityDesk {
 
     static func topCandidate(faceId: UUID, matches: [MatchResult]) -> IdentityScore? {
         let hits = matches.first { $0.faceId == faceId }?.hits ?? []
-        let row = hits.first { $0.strategy == .aegis } ?? hits.first { $0.strategy == .featurePrint }
+        let row = hits.first { $0.strategy == .aegis }
+            ?? hits.first { $0.strategy == .sface }
+            ?? hits.first { $0.strategy == .featurePrint }
         return row?.versus.first
     }
 
     static func rankedCandidates(faceId: UUID, matches: [MatchResult]) -> [IdentityScore] {
         let hits = matches.first { $0.faceId == faceId }?.hits ?? []
-        let row = hits.first { $0.strategy == .aegis } ?? hits.first { $0.strategy == .featurePrint }
-        return Array((row?.versus ?? []).prefix(3))
+        let row = hits.first { $0.strategy == .sface }
+            ?? hits.first { $0.strategy == .aegis }
+            ?? hits.first { $0.strategy == .featurePrint }
+        return Array((row?.versus ?? []).prefix(5))
     }
 
     /// Centroid 0,89–0,94: Merge-Vorschlag, nie still taufen.
