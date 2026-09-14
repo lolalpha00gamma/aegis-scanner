@@ -1,0 +1,15 @@
+AegisTest — Ordnerformat
+
+Desktop/AegisTest/
+  PersonName/
+    foto1.jpg
+    foto2.jpg
+    foto3.jpg
+
+Regeln:
+- Ein Unterordner = eine Person. Ordnername = Anzeigename (_ wird Leerzeichen).
+- JPEG oder PNG. Mindestens 2 Fotos pro Person für Prozent-Feedback.
+- Vorderansicht, andere Pose, anderes Licht — je unterschiedlicher, desto ehrlicher der Test.
+- Keine Mischordner, keine Videos in diesem Pack.
+
+Quelle dieser Dateien: LFW (University of Massachusetts), nur Testdaten.

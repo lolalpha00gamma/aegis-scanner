@@ -6694,6 +6694,11 @@ enum MatchMathTests {
         ok(MatchMath.identifyAutoName(verdict: .match, mode: .watchlist, galleryN: 80), "Wache IDENT auto")
         ok(!MatchMath.identifyAutoName(verdict: .likely, mode: .watchlist, galleryN: 80), "Wache groß: LIKELY nicht auto")
         ok(MatchMath.identifyAutoName(verdict: .likely, mode: .watchlist, galleryN: 4), "Wache klein: LIKELY auto")
+        ok(
+            MatchMath.sfaceMeasured([Double](repeating: 0.1, count: 128)),
+            "SFace 128-d gemessen"
+        )
+        ok(!MatchMath.sfaceMeasured([Double](repeating: 0.1, count: 16)), "kurzer Vec kein SFace")
 
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)

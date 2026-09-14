@@ -192,6 +192,69 @@ enum LabReport {
         return out.joined(separator: "\n")
     }
 
+    /// Kurz: Prozent je Person + Genuine/Impostor-Mittel. Für Desktop-Test.
+    static func percentCard(
+        faces: [FaceObservation],
+        identities: [Identity],
+        media: [MediaItem],
+        enabled: Set<StrategyID>,
+        threshold: Double
+    ) -> String {
+        var genuine: [Double] = []
+        var impostor: [Double] = []
+        var per: [(String, Double, Double)] = []
+        for identity in identities {
+            let owned = faces.filter { identity.faceIds.contains($0.id) }
+            guard owned.count >= 2 else { continue }
+            var g: [Double] = []
+            var imp: [Double] = []
+            for (i, probe) in owned.enumerated() {
+                var held = identities
+                if let idx = held.firstIndex(where: { $0.id == identity.id }) {
+                    held[idx].faceIds = owned.enumerated().compactMap { $0.offset == i ? nil : $0.element.id }
+                    if held[idx].faceIds.isEmpty { continue }
+                }
+                let rows = FaceEngine.match(
+                    faces: [probe],
+                    identities: held,
+                    media: media,
+                    threshold: threshold,
+                    enabled: enabled
+                )
+                let hits = rows.first?.hits ?? []
+                let versus = (hits.first { $0.strategy == .sface } ?? hits.first { $0.strategy == .aegis })?.versus ?? []
+                let selfP = versus.first { $0.identityId == identity.id }?.percent ?? 0
+                g.append(selfP)
+                genuine.append(selfP)
+                for v in versus where v.identityId != identity.id {
+                    imp.append(v.percent)
+                    impostor.append(v.percent)
+                }
+            }
+            guard !g.isEmpty else { continue }
+            let gm = g.reduce(0, +) / Double(g.count)
+            let im = imp.isEmpty ? 0 : imp.reduce(0, +) / Double(imp.count)
+            per.append((identity.name, gm, im))
+        }
+        var out = ["Aegis \(AppVersion.display) — Prozent"]
+        if per.isEmpty {
+            out.append("Zu wenig Referenzen: je Person mindestens 2 Fotos mit erkanntem Gesicht.")
+            return out.joined(separator: "\n")
+        }
+        out.append(String(format: "Genuine mittel  %.0f%%", genuine.reduce(0, +) / Double(genuine.count)))
+        if !impostor.isEmpty {
+            out.append(String(format: "Impostor mittel %.0f%%  (andere Personen)", impostor.reduce(0, +) / Double(impostor.count)))
+        }
+        out.append(String(format: "Rang-1 ≥ %.0f%%   %.0f%% der echten Proben", threshold, 100 * frac(genuine, threshold)))
+        out.append("")
+        out.append("Person                  dieselbe   andere")
+        for row in per {
+            let pad = row.0.padding(toLength: 22, withPad: " ", startingAt: 0)
+            out.append(String(format: "%@  %5.0f%%    %5.0f%%", pad, row.1, row.2))
+        }
+        return out.joined(separator: "\n")
+    }
+
     private static func tarLines(genuine: [Double], impostor: [Double], label: String, into out: inout [String]) {
         if impostor.count < 200 || Double(impostor.count) * 0.001 < 1,
            let t = MatchMath.tarBootstrap(atFar: 0.001, genuine: genuine, impostor: impostor) {

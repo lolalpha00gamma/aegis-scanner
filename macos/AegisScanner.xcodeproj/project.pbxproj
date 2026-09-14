@@ -29,6 +29,7 @@
 		AA0000000000000000000062 /* GalleryIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000052 /* GalleryIndex.swift */; };
 		AA0000000000000000000063 /* AuditTrail.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000053 /* AuditTrail.swift */; };
 		AA0000000000000000000064 /* Liveness.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000054 /* Liveness.swift */; };
+		AA0000000000000000000066 /* DesktopPack.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000056 /* DesktopPack.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -56,6 +57,7 @@
 		AA0000000000000000000052 /* GalleryIndex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryIndex.swift; sourceTree = "<group>"; };
 		AA0000000000000000000053 /* AuditTrail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuditTrail.swift; sourceTree = "<group>"; };
 		AA0000000000000000000054 /* Liveness.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Liveness.swift; sourceTree = "<group>"; };
+		AA0000000000000000000056 /* DesktopPack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesktopPack.swift; sourceTree = "<group>"; };
 		AA0000000000000000000055 /* SFace.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = Models/SFace.mlmodel; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -109,6 +111,7 @@
 				AA0000000000000000000052 /* GalleryIndex.swift */,
 				AA0000000000000000000053 /* AuditTrail.swift */,
 				AA0000000000000000000054 /* Liveness.swift */,
+				AA0000000000000000000056 /* DesktopPack.swift */,
 				AA0000000000000000000055 /* SFace.mlmodel */,
 				AA0000000000000000000040 /* pairs.txt */,
 				AA0000000000000000000026 /* Assets.xcassets */,
@@ -208,6 +211,7 @@
 				AA0000000000000000000062 /* GalleryIndex.swift in Sources */,
 				AA0000000000000000000063 /* AuditTrail.swift in Sources */,
 				AA0000000000000000000064 /* Liveness.swift in Sources */,
+				AA0000000000000000000066 /* DesktopPack.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -252,7 +256,7 @@
 				CODE_SIGN_ENTITLEMENTS = AegisScanner.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 278;
+				CURRENT_PROJECT_VERSION = 279;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = AegisScanner/Info.plist;
@@ -264,7 +268,7 @@
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 2.2.1;
+				MARKETING_VERSION = 2.2.2;
 				PRODUCT_BUNDLE_IDENTIFIER = app.aegis.scanner;
 				PRODUCT_NAME = Aegis;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -279,7 +283,7 @@
 				CODE_SIGN_ENTITLEMENTS = AegisScanner.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 278;
+				CURRENT_PROJECT_VERSION = 279;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = AegisScanner/Info.plist;
@@ -291,7 +295,7 @@
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 2.2.1;
+				MARKETING_VERSION = 2.2.2;
 				PRODUCT_BUNDLE_IDENTIFIER = app.aegis.scanner;
 				PRODUCT_NAME = Aegis;
 				SWIFT_EMIT_LOC_STRINGS = YES;

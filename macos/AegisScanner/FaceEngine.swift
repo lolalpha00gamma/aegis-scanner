@@ -2721,22 +2721,24 @@ enum FaceEngine {
     }
 
     static func referenceRejected(_ face: FaceObservation, asFirstReference: Bool = false, continuity: Bool = false) -> String? {
-        if face.featurePrint.isEmpty {
-            return "Kein Face-Print — Referenz würde die Galerie vergiften."
+        let sfaceOn = MatchMath.sfaceMeasured(face.sfaceVec)
+        if face.featurePrint.isEmpty, !sfaceOn {
+            return "Kein Embedder — SFace und Face-Print fehlen. Foto neu scannen."
         }
         let floor = MatchMath.activeSharpnessFloor(continuity: continuity)
         if face.quality.sharpness < floor {
             return String(format: "Unscharf %.0f %% — mindestens %.0f %% für eine Referenz.", face.quality.sharpness * 100, floor * 100)
         }
-        if face.quality.capture < (asFirstReference ? 0.40 : 0.28) {
+        let captureNeed = (asFirstReference && !sfaceOn) ? 0.40 : 0.28
+        if face.quality.capture < captureNeed {
             return String(
                 format: "Aufnahme %.0f %% — mindestens %.0f %% für eine Referenz.",
                 face.quality.capture * 100,
-                (asFirstReference ? 0.40 : 0.28) * 100
+                captureNeed * 100
             )
         }
-        // Profil als erste Referenz verdreht den L2-Centroid; spätere ¾-Shots sind ok.
-        if asFirstReference, MatchMath.printQualityBlocksEnroll(yawAbs: face.quality.yaw) {
+        // Profil als erste Face-Print-Referenz verdreht den Centroid. SFace-Templates dürfen ¾.
+        if asFirstReference, !sfaceOn, MatchMath.printQualityBlocksEnroll(yawAbs: face.quality.yaw) {
             return String(
                 format: "Profil (Yaw %.0f°) — erste Referenz muss frontal sein, sonst verdreht der Centroid.",
                 face.quality.yaw * 180 / .pi

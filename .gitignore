@@ -10,3 +10,4 @@ __pycache__/
 *.pyc
 models/*.onnx
 macos/AegisScanner/Models/*.mlmodelc
+*.DS_Store

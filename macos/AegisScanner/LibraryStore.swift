@@ -32,6 +32,7 @@ final class LibraryStore: ObservableObject {
     @Published var kalmanJump: Double = MatchMath.leftoverIoUJump
     @Published var strategy: StrategyID = .aegis
     @Published var identifyMode: IdentifyMode = .watchlist
+    @Published var testReport: String = ""
     @Published var showAnatomy = true
     @Published var showNMSDebug = false
     @Published var nmsDropped: [FaceBox] = []
@@ -826,6 +827,23 @@ final class LibraryStore: ObservableObject {
         return matches.first { $0.faceId == id }?.hits ?? []
     }
 
+    var canEnroll: Bool {
+        let name = newPersonName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return false }
+        return FaceEngine.faceForNewIdentity(
+            selected: selectedFace,
+            visibleMediaId: selectedMediaId,
+            faces: faces,
+            identities: identities
+        ) != nil
+    }
+
+    func suggestPersonName() {
+        if newPersonName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            newPersonName = "Person \(identities.count + 1)"
+        }
+    }
+
     func identification(of faceId: UUID) -> StrategyHit? {
         matches.first { $0.faceId == faceId }?.hits.first { $0.strategy == .aegis }
     }
@@ -1220,11 +1238,13 @@ final class LibraryStore: ObservableObject {
         rematch()
         if let mediaId = selectedMediaId {
             if selectedFaceId == nil || !(faces.contains { $0.id == selectedFaceId && $0.mediaId == mediaId }) {
-                selectedFaceId = faces.first { $0.mediaId == mediaId }?.id
+                selectedFaceId = FaceEngine.unnamedFace(on: mediaId, faces: faces, identities: identities)?.id
+                    ?? faces.first { $0.mediaId == mediaId }?.id
             }
         } else if selectedFaceId == nil {
             selectedFaceId = faces.first?.id
         }
+        suggestPersonName()
         let emptyPrints = faces.filter { $0.featurePrint.isEmpty }.count
         let skipNote = ingestSkipped > 0 ? " · \(ingestSkipped) Burst-Kopien übersprungen" : ""
         let emptySFace = faces.filter { !MatchMath.sfaceMeasured($0.sfaceVec) }.count
@@ -1504,7 +1524,9 @@ final class LibraryStore: ObservableObject {
             dropOrphanSnapshot(face, original: raw)
             return
         }
-        if MatchMath.printQualityBlocksEnroll(yawAbs: abs(face.quality.yaw)) {
+        if !MatchMath.sfaceMeasured(face.sfaceVec),
+           MatchMath.printQualityBlocksEnroll(yawAbs: abs(face.quality.yaw))
+        {
             status = String(
                 format: "Profil (Yaw %.0f°) — erste Person frontal anlegen, sonst verdreht der Centroid.",
                 face.quality.yaw * 180 / .pi
@@ -5325,6 +5347,62 @@ final class LibraryStore: ObservableObject {
             return
         }
         fetchBenchData(thenStart: true)
+    }
+
+    /// Schreibtisch/AegisTest — Download vom Release falls fehlend, dann Prozent in der App.
+    func runDesktopTest() {
+        scanGeneration += 1
+        let gen = scanGeneration
+        busy = true
+        testReport = ""
+        status = "Desktop-Test …"
+        Task {
+            do {
+                let root = try await DesktopPack.ensure { msg in
+                    Task { @MainActor in
+                        if gen == self.scanGeneration { self.status = msg }
+                    }
+                }
+                if gen != self.scanGeneration {
+                    self.busy = false
+                    return
+                }
+                try DesktopPack.validate(root)
+                self.retainAccess([root, DesktopPack.desktop()])
+                let people = DesktopPack.people(in: root)
+                var urls: [URL] = []
+                for person in people {
+                    urls.append(contentsOf: BenchProtocol.images(in: person, limit: 8))
+                }
+                self.media = []
+                self.faces = []
+                self.identities = []
+                self.matches = []
+                self.status = "Desktop-Test · \(urls.count) Fotos, \(people.count) Personen"
+                await self.ingestAndScan(urls: urls, generation: gen)
+                if gen != self.scanGeneration {
+                    self.busy = false
+                    return
+                }
+                self.identities = Benchmark.identitiesFromFolders(media: self.media, faces: self.faces)
+                self.rematch()
+                let card = LabReport.percentCard(
+                    faces: self.faces,
+                    identities: self.identities,
+                    media: self.media,
+                    enabled: self.enabled,
+                    threshold: self.threshold
+                )
+                self.testReport = card
+                self.suggestPersonName()
+                self.persist()
+                self.status = "Desktop-Test fertig · \(self.identities.count) Personen — Prozent unten"
+                self.busy = false
+            } catch {
+                self.busy = false
+                self.status = error.localizedDescription
+            }
+        }
     }
 
     func pickBenchmark() {

@@ -182,6 +182,12 @@ jobs:
           if [ -f dmgroot/signing.txt ] && [ ! -f signing.txt ]; then
             cp dmgroot/signing.txt signing.txt
           fi
+          if [ -f testdata/AegisTest.zip ]; then
+            cp testdata/AegisTest.zip AegisTest.zip
+          else
+            (cd testdata && zip -r -q ../AegisTest.zip AegisTest)
+          fi
+          test -f AegisTest.zip
 
       - name: Upload Aegis.dmg artifact
         uses: actions/upload-artifact@v4
@@ -189,6 +195,7 @@ jobs:
           name: dmg-macos-15
           path: |
             Aegis.dmg
+            AegisTest.zip
             marketing.txt
             signing.txt
           if-no-files-found: error
@@ -255,6 +262,7 @@ jobs:
               SIGN_NOTE="Die Datei ist ad-hoc signiert (kein Zertifikat im Runner). Beim ersten Start: Rechtsklick auf Aegis → Öffnen."
               ;;
           esac
+          TESTZIP=$(find dist -name 'AegisTest.zip' | head -n 1)
           NOTES="$(cat <<EOF
           Aegis ${MARKETING} alpha — macOS-Image, kein Xcode, kein Python, kein Browser.
 
@@ -262,12 +270,19 @@ jobs:
           2. Aegis in den Ordner Programme ziehen
           3. ${SIGN_NOTE}
 
+          Desktop-Test: AegisTest.zip auf den Schreibtisch legen (oder in der App Desktop-Test — lädt das Release selbst). Entpacken zu Desktop/AegisTest/PersonName/*.jpg. Ein Klick, Prozent dieselbe Person vs andere.
+
           Signatur: ${SIGN_MODE}.
           EOF
           )"
+          ASSETS=(Aegis.dmg)
+          if [ -n "$TESTZIP" ] && [ -f "$TESTZIP" ]; then
+            cp "$TESTZIP" AegisTest.zip
+            ASSETS+=(AegisTest.zip)
+          fi
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" Aegis.dmg --clobber
+            gh release upload "$TAG" "${ASSETS[@]}" --clobber
             gh release edit "$TAG" --title "$TITLE" --notes "$NOTES" --latest
           else
-            gh release create "$TAG" Aegis.dmg --title "$TITLE" --latest --notes "$NOTES"
+            gh release create "$TAG" "${ASSETS[@]}" --title "$TITLE" --latest --notes "$NOTES"
           fi

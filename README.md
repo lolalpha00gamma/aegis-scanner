@@ -1,4 +1,4 @@
-# Aegis **2.2.1 alpha**
+# Aegis **2.2.2 alpha**
 
 
 
@@ -8,6 +8,10 @@ Direkt laden:
 - [Releases](https://github.com/lolalpha00gamma/aegis-scanner/releases)
 
 Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
+## Neu in 2.2.2 alpha
+
+Anlegen ging nicht, wenn Face-Print leer war — SFace reicht jetzt. **Desktop-Test:** `AegisTest.zip` vom Release auf den Schreibtisch, oder in der App ein Klick (lädt selbst). Ordner `PersonName/*.jpg`, mindestens 2 Fotos. Prozent: dieselbe Person vs andere, in der App.
+
 ## Neu in 2.2.1 alpha
 
 Identifikation ist die Hauptspur, nicht mehr „irgendeine Strategie“.

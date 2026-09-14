@@ -1,7 +1,7 @@
 # Aegis
 
 Lokaler Image- & Video-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**  
-Version **2.2.1 alpha**.
+Version **2.2.2 alpha**.
 
 ## Image-Datei
 
@@ -12,6 +12,10 @@ Version **2.2.1 alpha**.
 3. Beim ersten Start: bei Developer-ID + Notarize direkt öffnen, sonst Rechtsklick → **Öffnen**
 
 macOS 14 Sonoma oder neuer. CI signiert mit Developer ID, wenn die Secrets sitzen (`docs/SIGNING.md`).
+
+## Neu in 2.2.2 alpha
+
+Anlegen mit SFace. Desktop-Test: `AegisTest.zip` auf den Schreibtisch, Prozent in der App.
 
 ## Neu in 2.2.1 alpha
 

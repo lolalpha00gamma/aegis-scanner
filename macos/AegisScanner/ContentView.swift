@@ -356,12 +356,15 @@ struct ContentView: View {
                     .onSubmit { store.createIdentity() }
                 Button("Anlegen", action: store.createIdentity)
                     .keyboardShortcut(.defaultAction)
-                    .disabled(store.selectedFace == nil || store.newPersonName.isEmpty)
+                    .disabled(!store.canEnroll)
             }
+            Button("Desktop-Test") { store.runDesktopTest() }
+                .disabled(store.busy)
+                .help("Legt ~/Desktop/AegisTest an (Download vom Release) und zeigt Prozent: dieselbe Person vs andere.")
             HStack {
                 Button("Testdaten holen") { store.fetchBenchData() }
                     .disabled(store.busy)
-                    .help("Lädt LFW einmalig nach Downloads/AegisBench (~170 MB). Nicht auf GitHub — Lizenz.")
+                    .help("Großes LFW nach Downloads/AegisBench (~170 MB). Für den schnellen Test: Desktop-Test.")
                 Button("Test starten") { store.startDefaultBenchmark() }
                     .disabled(store.busy)
                     .help("ident20. Fehlen die Daten, wird zuerst geladen.")
@@ -387,9 +390,20 @@ struct ContentView: View {
                 }
                 .help("Centroid 0,89–0,94. Mehrere Paare: Button mehrmals. Nie still taufen.")
             }
-            Text("Anlegen = neue Person (zweites Mal bestätigt, wenn Cosine ≥ 0,82). + = extra Foto derselben Person. Dritter gleicher Slot blockt, solange Frontal oder ¾ fehlt. Live speichert eine Kopie.")
+            Text("Anlegen = Person (Name + Gesicht). Erstes Foto darf SFace statt Face-Print sein. Desktop-Test: Ordner AegisTest auf den Schreibtisch, ein Klick, Prozent.")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
+            if !store.testReport.isEmpty {
+                ScrollView {
+                    Text(store.testReport)
+                        .font(.system(.caption, design: .monospaced))
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(maxHeight: 180)
+                .padding(8)
+                .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.05)))
+            }
             List(store.identities) { identity in
                 HStack {
                     VStack(alignment: .leading) {
