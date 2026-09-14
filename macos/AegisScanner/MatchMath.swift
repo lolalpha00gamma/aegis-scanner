@@ -9,6 +9,19 @@ enum MatchMath {
     static let printSigmoidMid = 0.55
     static let printSigmoidSlope = 14.0
     static let printRevision = "VNGenerateFacePrint/1"
+    /// Trainierter Embedder neben Face-Print. Schema bleibt 15 (Feld additiv).
+    static let embedderRevision = "SFace/2021dec"
+    /// OpenCV-Match bei Cosine 0,363 ≈ 78 % Aegis-Floor. Impostor 0,20 ≈ 20 %.
+    static let sfaceSigmoidMid = 0.285
+    static let sfaceSigmoidSlope = 16.27
+    static let sfaceMatchCosine = 0.363
+    static let sfaceDim = 128
+    static let largeGalleryN = 48
+    static let reviewTopK = 32
+    /// SFace-Anteil wenn Face-Print auch gemessen. SFace ist der Recognizer.
+    static let sfaceBlend = 0.72
+    static let factorDisagreeMargin = 12.0
+    static let livenessIdentifyFloor = 0.28
     static let familyCosineLo = 0.80
     static let familyFloorBump = 4.0
     static let rejectCosine = 0.90
@@ -10309,5 +10322,260 @@ enum MatchMath {
         return "iou \(n)"
     }
 
+    // MARK: - SFace / 5-Punkt / Multi-Faktor / große Galerie
+
+    /// InsightFace / OpenCV SFace 112×112, y nach unten.
+    static let arcfaceTemplate112: [Point2] = [
+        Point2(x: 38.2946, y: 51.6963),
+        Point2(x: 73.5318, y: 51.5014),
+        Point2(x: 56.0252, y: 71.7366),
+        Point2(x: 41.5493, y: 92.3655),
+        Point2(x: 70.7299, y: 92.2041),
+    ]
+
+    /// 2D-Similarity ohne Spiegelung: x' = a x − b y + tx, y' = b x + a y + ty.
+    static func umeyamaSimilarity(src: [Point2], dst: [Point2]) -> (a: Double, b: Double, tx: Double, ty: Double)? {
+        let n = min(src.count, dst.count)
+        guard n >= 2 else { return nil }
+        let nd = Double(n)
+        var msx = 0.0, msy = 0.0, mdx = 0.0, mdy = 0.0
+        for i in 0 ..< n {
+            msx += src[i].x; msy += src[i].y
+            mdx += dst[i].x; mdy += dst[i].y
+        }
+        msx /= nd; msy /= nd; mdx /= nd; mdy /= nd
+        var varSrc = 0.0
+        var cov00 = 0.0, cov01 = 0.0, cov10 = 0.0, cov11 = 0.0
+        for i in 0 ..< n {
+            let sx = src[i].x - msx, sy = src[i].y - msy
+            let dx = dst[i].x - mdx, dy = dst[i].y - mdy
+            varSrc += sx * sx + sy * sy
+            cov00 += dx * sx; cov01 += dx * sy
+            cov10 += dy * sx; cov11 += dy * sy
+        }
+        varSrc /= nd
+        cov00 /= nd; cov01 /= nd; cov10 /= nd; cov11 /= nd
+        let aa = cov00 + cov11
+        let bb = cov10 - cov01
+        let r = hypot(aa, bb)
+        guard r > 1e-12, varSrc > 1e-12 else { return nil }
+        let scale = r / varSrc
+        let cosT = aa / r
+        let sinT = bb / r
+        let a = scale * cosT
+        let b = scale * sinT
+        let tx = mdx - a * msx + b * msy
+        let ty = mdy - b * msx - a * msy
+        return (a, b, tx, ty)
+    }
+
+    static func applySimilarity(_ p: Point2, a: Double, b: Double, tx: Double, ty: Double) -> Point2 {
+        Point2(x: a * p.x - b * p.y + tx, y: b * p.x + a * p.y + ty)
+    }
+
+    static func fivePoints(from strokes: [LandmarkStroke]) -> [Point2]? {
+        func pts(_ label: String) -> [Point2] {
+            strokes.first { $0.label == label }?.points ?? []
+        }
+        func mean(_ p: [Point2]) -> Point2? {
+            guard !p.isEmpty else { return nil }
+            return Point2(
+                x: p.map(\.x).reduce(0, +) / Double(p.count),
+                y: p.map(\.y).reduce(0, +) / Double(p.count)
+            )
+        }
+        let eyeL = pts("Auge L")
+        let eyeR = pts("Auge R")
+        guard let left = mean(eyeL), let right = mean(eyeR) else { return nil }
+        let noseAll = pts("Nase") + pts("Nasenrücken")
+        guard !noseAll.isEmpty else { return nil }
+        let nose = noseAll.max { $0.y < $1.y } ?? left
+        let mouth = pts("Mund")
+        let mL = mouth.min { $0.x < $1.x } ?? Point2(x: (left.x + nose.x) / 2, y: nose.y + 20)
+        let mR = mouth.max { $0.x < $1.x } ?? Point2(x: (right.x + nose.x) / 2, y: nose.y + 20)
+        return [left, right, nose, mL, mR]
+    }
+
+    /// namedAligned: 21 Punkte, Indizes wie FaceEngine.namedList (Auge 19/20, Nase 5, Mund 8/9).
+    static func fivePointsFromNamed(_ named: [Point2]) -> [Point2]? {
+        guard named.count >= 21 else { return nil }
+        return [named[19], named[20], named[5], named[8], named[9]]
+    }
+
+    static func sfaceSigmoid(cosine: Double) -> Double {
+        100.0 / (1.0 + exp(-sfaceSigmoidSlope * (cosine - sfaceSigmoidMid)))
+    }
+
+    static func sfaceMeasured(_ vec: [Double]) -> Bool {
+        vec.count >= 100
+    }
+
+    /// SFace führt, Face-Print stützt. Nicht mitteln wenn nur einer gemessen ist.
+    static func neuralBlend(sface: Double?, facePrint: Double?) -> (percent: Double, measured: Bool, close: Bool) {
+        switch (sface, facePrint) {
+        case let (s?, p?):
+            return (sfaceBlend * s + (1 - sfaceBlend) * p, true, abs(s - p) < 18)
+        case let (s?, nil):
+            return (s, true, true)
+        case let (nil, p?):
+            return (p, true, true)
+        default:
+            return (0, false, true)
+        }
+    }
+
+    /// Getrennte Algorithmen, getrennte Sieger. Konflikt → Prüfen, nicht still taufen.
+    static func neuralWinner(
+        sfaceId: UUID?,
+        sfacePct: Double,
+        printId: UUID?,
+        printPct: Double
+    ) -> (id: UUID?, review: Bool) {
+        if sfaceId == nil, printId == nil { return (nil, false) }
+        if sfaceId == printId { return (sfaceId ?? printId, false) }
+        if let s = sfaceId, let p = printId, s != p {
+            if sfacePct >= printPct + factorDisagreeMargin { return (s, true) }
+            if printPct >= sfacePct + factorDisagreeMargin { return (p, true) }
+            return (nil, true)
+        }
+        return (sfaceId ?? printId, false)
+    }
+
+    static func neuralWinnerReviewNote() -> String { "SFace ≠ Face-Print — prüfen" }
+
+    /// Neural ist Identität. 2D/3D stützen, vetoen nicht gegen starken Embedder.
+    static func multiFactor(
+        sface: Double?,
+        facePrint: Double?,
+        geo2d: Double,
+        geo3d: Double,
+        pose: Double
+    ) -> (percent: Double, measured: Bool, note: String) {
+        let neural = neuralBlend(sface: sface, facePrint: facePrint)
+        let geo = geo2d * 0.82 + geo3d * 0.18
+        if !neural.measured {
+            return (geo, false, "nur Geometrie")
+        }
+        let look = lookOf(geo: geo, embed: neural.percent, pose: pose, printMeasured: true)
+        let note: String
+        if sface != nil, facePrint != nil {
+            note = neural.close ? "SFace+Print" : "SFace/Print drift"
+        } else if sface != nil {
+            note = "SFace"
+        } else {
+            note = "Face-Print"
+        }
+        return (look, true, note)
+    }
+
+    /// Große 1:N: Floor steigt mit log10(N). Auto-Name nur mit Margin und Faktor-Einigkeit.
+    static func identificationFloors(gallery: Int, slider: Double, familyBump: Double = 0) -> Floors {
+        let base = floors(gallery: gallery, slider: slider, familyBump: familyBump)
+        let extra: Double
+        if gallery <= 4 { extra = 0 }
+        else { extra = min(10, 2.0 * log10(Double(max(4, gallery)) / 4.0)) }
+        let match = min(96, base.match + extra)
+        return Floors(match: match, solo: min(96, match + 2))
+    }
+
+    static func autoIdentify(
+        percent: Double,
+        margin: Double,
+        galleryN: Int,
+        factorsAgree: Bool,
+        matchFloor: Double
+    ) -> Bool {
+        if !factorsAgree {
+            return percent >= 94 && margin >= 14
+        }
+        if galleryN >= 200 {
+            return percent >= max(matchFloor, 90) && margin >= 12
+        }
+        if galleryN >= largeGalleryN {
+            return percent >= max(matchFloor, 84) && margin >= 10
+        }
+        return true
+    }
+
+    static func autoIdentifyReviewNote(galleryN: Int) -> String {
+        if galleryN >= largeGalleryN {
+            return "Kandidatenliste — nicht automatisch getauft"
+        }
+        return "Faktoren uneinig — prüfen"
+    }
+
+    static func qualityCentroid(
+        _ rows: [(vec: [Double], capture: Double, sharpness: Double, frontal: Double, yaw: Double)]
+    ) -> [Double] {
+        var acc: [Double] = []
+        var wsum = 0.0
+        for r in rows {
+            guard r.vec.count >= 32 else { continue }
+            let w = centroidWeight(
+                capture: r.capture,
+                sharpness: r.sharpness,
+                frontal: r.frontal,
+                yawAbs: r.yaw
+            )
+            if acc.isEmpty {
+                acc = r.vec.map { $0 * w }
+            } else if acc.count == r.vec.count {
+                for i in acc.indices { acc[i] += r.vec[i] * w }
+            } else {
+                continue
+            }
+            wsum += w
+        }
+        guard wsum > 0, !acc.isEmpty else { return [] }
+        let inv = 1.0 / wsum
+        for i in acc.indices { acc[i] *= inv }
+        var s = 0.0
+        for x in acc { s += x * x }
+        let n = sqrt(s)
+        guard n > 1e-12 else { return acc }
+        return acc.map { $0 / n }
+    }
+
+    static func topKCosine(
+        probe: [Double],
+        ids: [UUID],
+        matrix: [Float],
+        dim: Int,
+        k: Int
+    ) -> [(id: UUID, cosine: Double)] {
+        guard dim > 0, probe.count == dim, ids.count * dim == matrix.count, k > 0 else { return [] }
+        let p = probe.map { Float($0) }
+        var scored: [(Int, Double)] = []
+        scored.reserveCapacity(ids.count)
+        for i in 0 ..< ids.count {
+            var acc: Float = 0
+            let off = i * dim
+            for d in 0 ..< dim {
+                acc += matrix[off + d] * p[d]
+            }
+            scored.append((i, Double(acc)))
+        }
+        scored.sort { $0.1 > $1.1 }
+        return scored.prefix(k).map { (ids[$0.0], $0.1) }
+    }
+
+    static func livenessScore(
+        capture: Double,
+        sharpness: Double,
+        frontal: Double,
+        blink: Bool,
+        sparkVar: Double
+    ) -> Double {
+        let base = 0.34 * clamp01(capture) + 0.28 * clamp01(sharpness) + 0.18 * clamp01(frontal)
+        let motion = min(0.12, sparkVar * 4)
+        let eye = blink ? 0.16 : 0.04
+        return clamp01(base + motion + eye)
+    }
+
+    static func livenessBlocksIdentify(_ score: Double) -> Bool {
+        score < livenessIdentifyFloor
+    }
+
+    static func livenessSpoofNote() -> String { "Liveness schwach — keine Auto-Taufe" }
 }
 

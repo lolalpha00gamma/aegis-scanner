@@ -1,0 +1,8 @@
+SFace.mlmodel is converted from OpenCV Zoo face_recognition_sface_2021dec.onnx.
+
+SFace: Sigmoid-Constrained Hypersphere Loss for Robust Face Recognition
+https://github.com/opencv/opencv_zoo/tree/main/models/face_recognition_sface
+License: Apache-2.0
+
+This is the commercial-safe 1:N embedder. InsightFace buffalo_l/ArcFace is
+research-only and is not bundled.

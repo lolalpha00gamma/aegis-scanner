@@ -1209,10 +1209,15 @@ final class LibraryStore: ObservableObject {
         }
         let emptyPrints = faces.filter { $0.featurePrint.isEmpty }.count
         let skipNote = ingestSkipped > 0 ? " · \(ingestSkipped) Burst-Kopien übersprungen" : ""
+        let emptySFace = faces.filter { !MatchMath.sfaceMeasured($0.sfaceVec) }.count
         if !FaceEngine.facePrintAvailable {
             status = "Fertig · \(faces.count) Gesichter · Face-Print nicht verfügbar — nur Geometrie\(skipNote)"
         } else if !faces.isEmpty, emptyPrints == faces.count {
             status = "Fertig · \(faces.count) Gesichter · Face-Print leer — nur Geometrie\(skipNote)"
+        } else if FaceEngine.sfaceAvailable, emptySFace < faces.count {
+            status = "Fertig · \(faces.count) Gesichter · SFace+Print\(skipNote)"
+        } else if !FaceEngine.sfaceAvailable {
+            status = "Fertig · \(faces.count) Gesichter · SFace-Modell fehlt (scripts/convert_sface.py)\(skipNote)"
         } else {
             status = "Fertig · \(faces.count) Gesichter\(skipNote)"
         }
@@ -1228,6 +1233,7 @@ final class LibraryStore: ObservableObject {
             enabled: enabled,
             continuity: liveContinuity
         )
+        AuditTrail.log(matches: matches, identities: identities, galleryN: identities.count)
         if !liveActive {
             refreshMergeHint()
         }

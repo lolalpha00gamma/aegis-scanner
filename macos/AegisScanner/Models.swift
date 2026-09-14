@@ -2,10 +2,10 @@ import CoreGraphics
 import Foundation
 
 enum AppVersion {
-    static let marketing = "2.1.251"
-    static let build = 276
+    static let marketing = "2.2.0"
+    static let build = 277
     static let channel = "alpha"
-    static let display = "2.1.251 alpha"
+    static let display = "2.2.0 alpha"
 }
 
 enum StrategyTrack: String, CaseIterable, Identifiable {
@@ -13,7 +13,7 @@ enum StrategyTrack: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var label: String {
         switch self {
-        case .ki: return "KI / Face-Print"
+        case .ki: return "KI / Embedder"
         case .geo2d: return "2D-Geometrie"
         case .geo3d: return "3D (Pose-Anhebung)"
         case .fusion: return "Fusion"
@@ -36,6 +36,7 @@ enum StrategyID: String, CaseIterable, Identifiable, Codable {
     case qualityGate
     case temporal
     case featurePrint
+    case sface
     case terFusion
     case aegis
 
@@ -43,7 +44,7 @@ enum StrategyID: String, CaseIterable, Identifiable, Codable {
 
     var track: StrategyTrack {
         switch self {
-        case .photosStyle, .visionBox, .qualityGate, .temporal, .featurePrint: return .ki
+        case .photosStyle, .visionBox, .qualityGate, .temporal, .featurePrint, .sface: return .ki
         case .landmarkGeo, .ratios, .faceShape, .eyeRegion, .midface, .jawline, .graphBio, .texture: return .geo2d
         case .geom3d: return .geo3d
         case .terFusion, .aegis: return .fusion
@@ -72,6 +73,7 @@ enum StrategyID: String, CaseIterable, Identifiable, Codable {
         case .qualityGate: return "Quality-Gate"
         case .temporal: return "Temporal"
         case .featurePrint: return "Feature Print"
+        case .sface: return "SFace (2D AI)"
         case .terFusion: return "TER-Fusion"
         case .aegis: return "Aegis Ensemble"
         }
@@ -107,10 +109,12 @@ enum StrategyID: String, CaseIterable, Identifiable, Codable {
             return "Nächstes Video-Feature-Print über Tracks, ohne Kreuzer zu tauschen."
         case .featurePrint:
             return "Gesichts-Print (VNGenerateFacePrintRequest) auf dem ganzen Foto. Kein Bild-Print von Jacke/Hintergrund."
+        case .sface:
+            return "OpenCV SFace 128-d nach 5-Punkt 112×112. Apache-2, 1:N-Recognizer. Unabhängig vom Face-Print."
         case .terFusion:
             return "Diagnose: aktive Spuren → Total Error Rate. Default aus — `.aegis` tauft über lookOf."
         case .aegis:
-            return "Fusion der eingeschalteten Spuren. Print führt, Geometrie stützt und vetoiert. Aus = keine Namensvergabe."
+            return "SFace führt, Face-Print und 2D/3D stützen. Uneinige Algorithmen → Prüfen, keine stille Taufe. Aus = keine Namensvergabe."
         }
     }
 }
@@ -230,6 +234,8 @@ struct FaceObservation: Identifiable, Hashable, Codable {
     /// Live-EMA des Print-Vektors. Nicht persistiert — der archivierte
     /// `featurePrint` bleibt die Quelle auf Disk.
     var printVec: [Double] = []
+    /// SFace 128-d, L2. Persistiert. Leer = Embedder aus oder Modell fehlt.
+    var sfaceVec: [Double] = []
     /// Stirn/Augen-Print bei okkludierter unterer Hälfte. Persistiert, Vec nicht.
     var partialPrint: Data = Data()
     var partialVec: [Double] = []
@@ -243,7 +249,7 @@ struct FaceObservation: Identifiable, Hashable, Codable {
     enum CodingKeys: String, CodingKey {
         case id, mediaId, box, score, landmarks, aligned, featurePrint
         case appearance, graph, geom3d, quality, trackId, strokes, namedAligned, ratioSheet
-        case partialPrint, forcedPartial, enrolledAt
+        case partialPrint, forcedPartial, enrolledAt, sfaceVec
     }
 
     init(
@@ -263,6 +269,7 @@ struct FaceObservation: Identifiable, Hashable, Codable {
         namedAligned: [Point2] = [],
         ratioSheet: [NamedRatio] = [],
         printVec: [Double] = [],
+        sfaceVec: [Double] = [],
         partialPrint: Data = Data(),
         partialVec: [Double] = [],
         forcedPartial: Bool = false,
@@ -284,6 +291,7 @@ struct FaceObservation: Identifiable, Hashable, Codable {
         self.namedAligned = namedAligned
         self.ratioSheet = ratioSheet
         self.printVec = printVec
+        self.sfaceVec = sfaceVec
         self.partialPrint = partialPrint
         self.partialVec = partialVec
         self.forcedPartial = forcedPartial
@@ -328,6 +336,7 @@ struct FaceObservation: Identifiable, Hashable, Codable {
         partialPrint = try c.decodeIfPresent(Data.self, forKey: .partialPrint) ?? Data()
         forcedPartial = try c.decodeIfPresent(Bool.self, forKey: .forcedPartial) ?? false
         enrolledAt = try c.decodeIfPresent(Date.self, forKey: .enrolledAt)
+        sfaceVec = try c.decodeIfPresent([Double].self, forKey: .sfaceVec) ?? []
     }
 
     func encode(to encoder: Encoder) throws {
@@ -350,6 +359,7 @@ struct FaceObservation: Identifiable, Hashable, Codable {
         try c.encode(partialPrint, forKey: .partialPrint)
         if forcedPartial { try c.encode(forcedPartial, forKey: .forcedPartial) }
         try c.encodeIfPresent(enrolledAt, forKey: .enrolledAt)
+        if !sfaceVec.isEmpty { try c.encode(sfaceVec, forKey: .sfaceVec) }
     }
 }
 

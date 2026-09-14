@@ -6581,6 +6581,99 @@ enum MatchMathTests {
         ok(jsonlKept.split(whereSeparator: \.isNewline).count == 3, "JSONL Trim Cap 3")
         ok(jsonlKept.hasSuffix("\n"), "JSONL Trim Newline")
 
+        let sfaceImp = MatchMath.sfaceSigmoid(cosine: 0.20)
+        ok(sfaceImp > 15 && sfaceImp < 25, "SFace Impostor 0,20 ≈ 20 % (ist \(sfaceImp))")
+        let sfaceOp = MatchMath.sfaceSigmoid(cosine: MatchMath.sfaceMatchCosine)
+        near(sfaceOp, 78, 1.5, "SFace Operating Point 0,363 ≈ 78 %")
+        let sfaceGen = MatchMath.sfaceSigmoid(cosine: 0.55)
+        ok(sfaceGen > 95, "SFace Genuine 0,55 über 95 % (ist \(sfaceGen))")
+
+        let src = [Point2(x: 0, y: 0), Point2(x: 2, y: 0), Point2(x: 0, y: 2)]
+        let dst = [Point2(x: 10, y: 4), Point2(x: 14, y: 4), Point2(x: 10, y: 8)]
+        let tf = MatchMath.umeyamaSimilarity(src: src, dst: dst)
+        ok(tf != nil, "Umeyama existiert")
+        if let tf {
+            near(tf.a, 2, 1e-6, "Umeyama Scale a")
+            near(tf.b, 0, 1e-6, "Umeyama keine Rotation")
+            near(tf.tx, 10, 1e-6, "Umeyama tx")
+            near(tf.ty, 4, 1e-6, "Umeyama ty")
+            let p = MatchMath.applySimilarity(Point2(x: 2, y: 2), a: tf.a, b: tf.b, tx: tf.tx, ty: tf.ty)
+            near(p.x, 14, 1e-6, "Umeyama Punkt x")
+            near(p.y, 8, 1e-6, "Umeyama Punkt y")
+        }
+        ok(MatchMath.arcfaceTemplate112.count == 5, "ArcFace 5-Punkt Template")
+
+        let onlyS = MatchMath.neuralBlend(sface: 90, facePrint: nil)
+        near(onlyS.percent, 90, 0.01, "nur SFace")
+        let sfaceBlend = MatchMath.neuralBlend(sface: 100, facePrint: 0)
+        near(sfaceBlend.percent, 72, 0.01, "SFace 72 % Blend")
+        ok(!sfaceBlend.close, "100 vs 0 nicht close")
+
+        let sfaceAda = UUID(), sfaceBob = UUID()
+        let neuralSame = MatchMath.neuralWinner(sfaceId: sfaceAda, sfacePct: 88, printId: sfaceAda, printPct: 80)
+        ok(neuralSame.id == sfaceAda && !neuralSame.review, "gleiche Sieger keine Review")
+        let neuralClash = MatchMath.neuralWinner(sfaceId: sfaceAda, sfacePct: 70, printId: sfaceBob, printPct: 71)
+        ok(neuralClash.id == nil && neuralClash.review, "Konflikt ohne klaren Vorsprung")
+        let sfaceLeads = MatchMath.neuralWinner(sfaceId: sfaceAda, sfacePct: 92, printId: sfaceBob, printPct: 70)
+        ok(sfaceLeads.id == sfaceAda && sfaceLeads.review, "SFace führt, trotzdem Review")
+
+        let mf = MatchMath.multiFactor(sface: 90, facePrint: 88, geo2d: 40, geo3d: 40, pose: 1)
+        ok(mf.measured && mf.percent >= 88, "starker SFace bleibt trotz Geo 40 (ist \(mf.percent))")
+        let geoOnlyMF = MatchMath.multiFactor(sface: nil, facePrint: nil, geo2d: 80, geo3d: 20, pose: 1)
+        ok(!geoOnlyMF.measured, "ohne Embedder nicht gemessen")
+        near(geoOnlyMF.percent, 80 * 0.82 + 20 * 0.18, 0.05, "Geo-Mix 2D/3D")
+
+        let small = MatchMath.identificationFloors(gallery: 3, slider: 78)
+        near(small.match, 80, 0.01, "kleine Galerie Floor unverändert")
+        let big = MatchMath.identificationFloors(gallery: 400, slider: 78)
+        ok(big.match > 80 && big.match <= 88, "400 Personen Floor steigt (ist \(big.match))")
+
+        ok(
+            MatchMath.autoIdentify(percent: 82, margin: 8, galleryN: 3, factorsAgree: true, matchFloor: 80),
+            "kleine Galerie: decide() bleibt maßgeblich"
+        )
+        ok(
+            !MatchMath.autoIdentify(percent: 82, margin: 8, galleryN: 80, factorsAgree: true, matchFloor: 80),
+            "große Galerie: 82/8 nicht auto"
+        )
+        ok(
+            MatchMath.autoIdentify(percent: 92, margin: 14, galleryN: 80, factorsAgree: true, matchFloor: 84),
+            "große Galerie: 92/14 auto"
+        )
+        ok(
+            !MatchMath.autoIdentify(percent: 90, margin: 10, galleryN: 12, factorsAgree: false, matchFloor: 80),
+            "Faktor-Konflikt ohne 94/14 nicht auto"
+        )
+
+        var sharp = [Double](repeating: 0, count: 32); sharp[0] = 1
+        var weak = [Double](repeating: 0, count: 32); weak[1] = 1
+        let cent = MatchMath.qualityCentroid([
+            (vec: sharp, capture: 1, sharpness: 1, frontal: 1, yaw: 0),
+            (vec: weak, capture: 0.1, sharpness: 0.1, frontal: 0.1, yaw: 1),
+        ])
+        ok(cent.count == 32, "Centroid Dim")
+        ok(cent[0] > cent[1], "scharfe Ref zieht Centroid")
+
+        let ids = [sfaceAda, sfaceBob]
+        let mat: [Float] = [
+            1, 0, 0,
+            0, 1, 0,
+        ]
+        let top = MatchMath.topKCosine(probe: [1, 0, 0], ids: ids, matrix: mat, dim: 3, k: 1)
+        ok(top.count == 1 && top[0].id == sfaceAda, "Top-1 Ada")
+        near(top[0].cosine, 1, 1e-5, "Top-1 Cosine 1")
+
+        let liveOk = MatchMath.livenessScore(capture: 0.8, sharpness: 0.7, frontal: 0.9, blink: true, sparkVar: 0.04)
+        ok(liveOk > 0.72, "Liveness live (ist \(liveOk))")
+        ok(MatchMath.livenessBlocksIdentify(0.10), "Spoof blockt Taufe")
+        ok(!MatchMath.livenessBlocksIdentify(0.50), "mittlere Liveness blockt nicht")
+
+        let named5 = MatchMath.fivePointsFromNamed(
+            (0..<21).map { Point2(x: Double($0), y: Double($0) + 1) }
+        )
+        ok(named5?.count == 5, "named 5-Punkt")
+        ok(named5?[0].x == 19 && named5?[2].x == 5, "Auge 19 / Nase 5")
+
         if fails > 0 {
             fputs("\(fails) MatchMathTests fehlgeschlagen\n", stderr)
             exit(1)

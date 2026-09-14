@@ -1,4 +1,4 @@
-# Aegis **2.1.251 alpha**
+# Aegis **2.2.0 alpha**
 
 
 
@@ -8,6 +8,20 @@ Direkt laden:
 - [Releases](https://github.com/lolalpha00gamma/aegis-scanner/releases)
 
 Lokaler Image-, Video- und Live-Stream-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**
+## Neu in 2.2.0 alpha
+
+200-Repo-Abgleich: Detect → 5-Punkt 112×112 → trainierter Embedder. SFace (Apache-2, OpenCV Zoo) ist der 1:N-Recognizer, Face-Print bleibt unabhängige 2D-Spur, 2D-Maße und 3D-Pose stützen — sie vetoen keinen starken Embedder mehr still.
+
+- **SFace + 5-Punkt-Align** `FaceAlign` / `FaceEmbedder`. Modell: `scripts/convert_sface.py` → `macos/AegisScanner/Models/SFace.mlmodel`. Ohne Modell läuft Face-Print weiter.
+- **Multi-Faktor** SFace (2D AI) · Face-Print (2D AI) · Landmark-Maße (2D) · Pose-3D. Uneinige Sieger → Prüfen, keine stille Taufe.
+- **Große Galerie** `identificationFloors` log10(N), Top-K Cosine, Auto-Name nur mit Margin. Untersuchung: Kandidatenliste.
+- **Audit-Kette** `~/Library/Application Support/Aegis/audit.jsonl` (Hash-prev).
+- **Liveness-Hinweis** Blink/Schärfe/Frontal — kein zertifiziertes PAD.
+- **Bug** `stampPrints` inneres `i` hat das äußere enumerierte `i` überschrieben.
+- Fenster-Titel `AppVersion.display` = 2.2.0. Tests + VERSION = Models = MARKETING 2.2.0 (Build 277). Schema 15 bleibt (sfaceVec additiv).
+
+Kein NIST-FRVT. Keine Geschlechts-/Ethnizitätsklassifikation. buffalo_l bleibt Research-Drop-in, nicht Default.
+
 ## Neu in 2.1.251 alpha
 
 2.1.250 baute nicht: `leftoverPrintSkipHits` `if skipBoxes.contains { } {` (Swift 6), `falseAcceptJSONLTrim` Argument-Reihenfolge, `MatchMathTests.main` doppelte `let`. Titel zeigte 2.1.249. `sessionCapture` = min aller Live-Lumas — Gast 0,18 senkte Adas Floor. P12-Import `-t cert` ohne Schlüssel. Xcode-Picker landete auf 16.4 statt 26.3.

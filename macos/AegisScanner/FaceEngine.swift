@@ -419,10 +419,14 @@ enum FaceEngine {
                 jaw: owned.compactMap { let r = measures($0).jaw; return r.isEmpty ? nil : r },
                 appearances: owned.map(\.appearance).filter { !$0.isEmpty },
                 graphs: owned.map(\.graph).filter { !$0.isEmpty },
-                geom3ds: owned.map(\.geom3d).filter { !$0.isEmpty }
+                geom3ds: owned.map(\.geom3d).filter { !$0.isEmpty },
+                sfaceMean: meanSFaceVector(owned)
             )
         }
-        let f = MatchMath.floors(gallery: identities.count, slider: threshold)
+        let anySFace = tracked.contains { MatchMath.sfaceMeasured($0.sfaceVec) }
+        let f = anySFace
+            ? MatchMath.identificationFloors(gallery: identities.count, slider: threshold)
+            : MatchMath.floors(gallery: identities.count, slider: threshold)
         let floors = Floors(match: f.match, solo: f.solo)
         func pairFloors(_ a: UUID?, _ b: UUID?) -> Floors {
             guard let a, let b,
@@ -513,6 +517,12 @@ enum FaceEngine {
             }
             hits.append(toHit(.featurePrint, fp, floors: floors, measured: printOn))
 
+            let sfaceOn = enabled.contains(.sface) && MatchMath.sfaceMeasured(face.sfaceVec)
+            let sf = rank(models, minMargin: embedMargin, floors: floors) { m in
+                bestSFacePercent(face, m.sfaceMean)
+            }
+            hits.append(toHit(.sface, sf, floors: floors, measured: sfaceOn))
+
             func pctVs(_ s: StrategyID, _ id: UUID) -> Double {
                 guard enabled.contains(s) else { return 0 }
                 return hits.first { $0.strategy == s }?.versus.first { $0.identityId == id }?.percent ?? 0
@@ -538,11 +548,21 @@ enum FaceEngine {
             }
             func lookOfId(_ id: UUID) -> Double {
                 let geo = geoMixOf(id)
-                let embed = embedOf(id)
+                let s = sfaceOn ? pctVs(.sface, id) : nil
+                let p = (kiOn && printOn) ? embedOf(id) : nil
+                if s != nil || p != nil {
+                    return MatchMath.multiFactor(
+                        sface: s,
+                        facePrint: p,
+                        geo2d: geo,
+                        geo3d: pctVs(.geom3d, id),
+                        pose: poseWeight(face.quality)
+                    ).percent
+                }
                 if kiOn && !printOn {
                     return min(geo, 49)
                 }
-                return lookOf(geo: geo, embed: embed, pose: poseWeight(face.quality), printMeasured: printOn)
+                return lookOf(geo: geo, embed: 0, pose: poseWeight(face.quality), printMeasured: false)
             }
             let ids = models.map(\.identity.id)
             let embedRow = ids.map { embedOf($0) }
@@ -558,7 +578,10 @@ enum FaceEngine {
             }
             if shapeOn { matchers.append(geoRow); weights.append(0.26) }
             if enabled.contains(.graphBio) { matchers.append(graphRow); weights.append(0.14) }
-            if kiOn { matchers.append(embedRow); weights.append(0.12) }
+            if sfaceOn {
+                matchers.append(ids.map { pctVs(.sface, $0) }); weights.append(0.16)
+            }
+            if kiOn { matchers.append(embedRow); weights.append(sfaceOn ? 0.08 : 0.12) }
             if enabled.contains(.geom3d) { matchers.append(geom3dRow); weights.append(0.05) }
             if enabled.contains(.texture) { matchers.append(textureRow); weights.append(0.03) }
             let terFused = terFusion(matchers, weights)
@@ -567,7 +590,7 @@ enum FaceEngine {
                 return i < terFused.count ? terFused[i] : 0
             }, floors: floors))
             func fusedOf(_ id: UUID) -> Double {
-                if printOn {
+                if printOn || sfaceOn {
                     return lookOfId(id)
                 }
                 if enabled.contains(.terFusion),
@@ -597,7 +620,7 @@ enum FaceEngine {
                 ensemble.versus.first?.identityId,
                 ensemble.versus.dropFirst().first?.identityId
             )
-            let decided = decide(
+            var decided = decide(
                 percent: fusedBest,
                 margin: fusedBest - fusedSecond,
                 bestId: ensemble.versus.first?.identityId,
@@ -613,6 +636,42 @@ enum FaceEngine {
                 evidence: fusedBest,
                 floors: aegisFloors
             )
+            let sfaceWin = hits.first { $0.strategy == .sface }?.versus.first
+            let printWin = hits.first { $0.strategy == .featurePrint }?.versus.first
+            let neural = MatchMath.neuralWinner(
+                sfaceId: sfaceOn ? sfaceWin?.identityId : nil,
+                sfacePct: sfaceWin?.percent ?? 0,
+                printId: printOn ? printWin?.identityId : nil,
+                printPct: printWin?.percent ?? 0
+            )
+            let factorsAgree = !neural.review
+            if neural.review {
+                decided.id = MatchMath.autoIdentify(
+                    percent: fusedBest,
+                    margin: fusedBest - fusedSecond,
+                    galleryN: identities.count,
+                    factorsAgree: false,
+                    matchFloor: aegisFloors.match
+                ) ? neural.id : nil
+                let clash = MatchMath.neuralWinnerReviewNote()
+                decided.note = decided.note.isEmpty ? clash : clash + ". " + decided.note
+            } else if !MatchMath.autoIdentify(
+                percent: fusedBest,
+                margin: fusedBest - fusedSecond,
+                galleryN: identities.count,
+                factorsAgree: factorsAgree,
+                matchFloor: aegisFloors.match
+            ) {
+                decided.id = nil
+                let rev = MatchMath.autoIdentifyReviewNote(galleryN: identities.count)
+                decided.note = decided.note.isEmpty ? rev : rev + ". " + decided.note
+            }
+            let liveNess = Liveness.score(quality: face.quality, blink: false, spark: face.qualitySpark)
+            if Liveness.blocksIdentify(liveNess), decided.id != nil {
+                decided.id = nil
+                let spoof = MatchMath.livenessSpoofNote()
+                decided.note = decided.note.isEmpty ? spoof : spoof + ". " + decided.note
+            }
             var aegis = ensemble
             aegis.identityId = enabled.contains(.aegis) ? decided.id : nil
             aegis.percent = fusedBest
@@ -650,7 +709,11 @@ enum FaceEngine {
         threshold: Double = 78,
         continuity: Bool = false
     ) -> [MatchResult] {
-        let f = MatchMath.floors(gallery: identities.count, slider: threshold)
+        let anySFace = probes.contains { MatchMath.sfaceMeasured($0.sfaceVec) }
+            || gallery.contains { MatchMath.sfaceMeasured($0.sfaceVec) }
+        let f = anySFace
+            ? MatchMath.identificationFloors(gallery: identities.count, slider: threshold)
+            : MatchMath.floors(gallery: identities.count, slider: threshold)
         let floors = Floors(match: f.match, solo: f.solo)
         let models: [(id: UUID, name: String, owned: [FaceObservation])] = identities.map { ident in
             let owned = gallery.filter { ident.faceIds.contains($0.id) }
@@ -677,6 +740,8 @@ enum FaceEngine {
             versus.reserveCapacity(models.count)
             var printVersus: [IdentityScore] = []
             printVersus.reserveCapacity(models.count)
+            var sfaceVersus: [IdentityScore] = []
+            sfaceVersus.reserveCapacity(models.count)
             var geoVersus: [(id: UUID, percent: Double)] = []
             geoVersus.reserveCapacity(models.count)
             var modelVec: [UUID: [Double]] = [:]
@@ -737,15 +802,25 @@ enum FaceEngine {
                     ratioCache[key] = ratioPool
                 }
                 let geo = MatchMath.ratioPercent(probeRatios, MatchMath.medianComponents(ratioPool))
-                let look = measured
-                    ? MatchMath.lookOf(geo: geo, embed: printPct, pose: poseW, printMeasured: true)
-                    : 0
+                let sMean = meanSFaceVector(owned)
+                let sv = face.sfaceVec
+                let sMeasured = MatchMath.sfaceMeasured(sv) && sMean.count == sv.count
+                let sfacePct = sMeasured ? MatchMath.sfaceSigmoid(cosine: cosine(sv, sMean)) : 0
+                let look = MatchMath.multiFactor(
+                    sface: sMeasured ? sfacePct : nil,
+                    facePrint: measured ? printPct : nil,
+                    geo2d: geo,
+                    geo3d: 0,
+                    pose: poseW
+                ).percent
                 versus.append(IdentityScore(identityId: m.id, percent: look))
                 printVersus.append(IdentityScore(identityId: m.id, percent: printPct))
+                sfaceVersus.append(IdentityScore(identityId: m.id, percent: sfacePct))
                 geoVersus.append((m.id, geo))
             }
             versus.sort { $0.percent > $1.percent }
             printVersus.sort { $0.percent > $1.percent }
+            sfaceVersus.sort { $0.percent > $1.percent }
             geoVersus.sort { $0.percent > $1.percent }
             let printWinnerEarly = printVersus.first
             let printMarginEarly = (printWinnerEarly?.percent ?? 0) - (printVersus.dropFirst().first?.percent ?? 0)
@@ -798,10 +873,12 @@ enum FaceEngine {
             let liveFloors = Floors(match: min(96, floors.match + bump), solo: min(96, floors.solo + bump))
             let printBest = printVersus.first { $0.identityId == best?.identityId }
             let printWinner = printVersus.first
+            let sfaceWinner = sfaceVersus.first
+            let sfaceProbe = MatchMath.sfaceMeasured(face.sfaceVec)
             let nameAgree = MatchMath.liveNameAgree(
                 lookId: best?.identityId,
-                printId: printWinner?.identityId,
-                printMeasured: pv.count >= 32
+                printId: sfaceProbe ? sfaceWinner?.identityId : printWinner?.identityId,
+                printMeasured: sfaceProbe || pv.count >= 32
             )
             let capNote = MatchMath.lookOfCapNote(geo: geoMix, embed: printBest?.percent ?? 0)
             let decided = decide(
@@ -856,6 +933,39 @@ enum FaceEngine {
                 let lead = MatchMath.liveNamePrintLeadsNote()
                 note = note.isEmpty ? lead : lead + ". " + note
             }
+            let neural = MatchMath.neuralWinner(
+                sfaceId: sfaceProbe ? sfaceWinner?.identityId : nil,
+                sfacePct: sfaceWinner?.percent ?? 0,
+                printId: pv.count >= 32 ? printWinner?.identityId : nil,
+                printPct: printWinner?.percent ?? 0
+            )
+            if neural.review {
+                decidedId = MatchMath.autoIdentify(
+                    percent: best?.percent ?? 0,
+                    margin: margin,
+                    galleryN: models.count,
+                    factorsAgree: false,
+                    matchFloor: liveFloors.match
+                ) ? neural.id : nil
+                let clash = MatchMath.neuralWinnerReviewNote()
+                note = note.isEmpty ? clash : clash + ". " + note
+            } else if !MatchMath.autoIdentify(
+                percent: best?.percent ?? 0,
+                margin: margin,
+                galleryN: models.count,
+                factorsAgree: true,
+                matchFloor: liveFloors.match
+            ) {
+                decidedId = nil
+                let rev = MatchMath.autoIdentifyReviewNote(galleryN: models.count)
+                note = note.isEmpty ? rev : rev + ". " + note
+            }
+            let liveNess = Liveness.score(quality: face.quality, blink: false, spark: face.qualitySpark)
+            if Liveness.blocksIdentify(liveNess) {
+                decidedId = nil
+                let spoof = MatchMath.livenessSpoofNote()
+                note = note.isEmpty ? spoof : spoof + ". " + note
+            }
             let printOk = decidedId != nil
             let geoOk = MatchMath.liveGeoAgrees(
                 printBest: best?.identityId,
@@ -887,6 +997,15 @@ enum FaceEngine {
                 note: decided.note,
                 measured: pv.count >= 32
             )
+            let sfaceHit = StrategyHit(
+                strategy: .sface,
+                identityId: decidedId,
+                percent: sfaceWinner?.percent ?? 0,
+                margin: (sfaceVersus.first?.percent ?? 0) - (sfaceVersus.dropFirst().first?.percent ?? 0),
+                versus: sfaceVersus,
+                note: sfaceProbe ? "" : "nicht gemessen",
+                measured: sfaceProbe
+            )
             let aegisHit = StrategyHit(
                 strategy: .aegis,
                 identityId: decidedId,
@@ -894,11 +1013,11 @@ enum FaceEngine {
                 margin: margin,
                 versus: versus,
                 note: note,
-                measured: pv.count >= 32,
+                measured: pv.count >= 32 || sfaceProbe,
                 geoMix: geoAvailable ? geoMix : nil,
                 pairCosine: pairCos
             )
-            return MatchResult(faceId: face.id, hits: [printHit, aegisHit])
+            return MatchResult(faceId: face.id, hits: [sfaceHit, printHit, aegisHit])
         }
     }
 
@@ -1131,6 +1250,7 @@ enum FaceEngine {
         var appearances: [[Double]]
         var graphs: [[Double]]
         var geom3ds: [[Double]]
+        var sfaceMean: [Double]
     }
 
     private struct Ranked {
@@ -1421,6 +1541,30 @@ enum FaceEngine {
         return printVector(face.featurePrint)
     }
 
+    static func sfaceEmbedding(of face: FaceObservation) -> [Double] {
+        MatchMath.sfaceMeasured(face.sfaceVec) ? face.sfaceVec : []
+    }
+
+    static func meanSFaceVector(_ faces: [FaceObservation]) -> [Double] {
+        MatchMath.qualityCentroid(
+            faces.map {
+                (
+                    vec: $0.sfaceVec,
+                    capture: $0.quality.capture,
+                    sharpness: $0.quality.sharpness,
+                    frontal: $0.quality.frontal,
+                    yaw: $0.quality.yaw
+                )
+            }
+        )
+    }
+
+    private static func bestSFacePercent(_ probe: FaceObservation, _ mean: [Double]) -> Double {
+        let pv = probe.sfaceVec
+        guard MatchMath.sfaceMeasured(pv), mean.count == pv.count else { return 0 }
+        return MatchMath.sfaceSigmoid(cosine: cosine(pv, mean))
+    }
+
     static func partialEmbedding(of face: FaceObservation) -> [Double] {
         if face.partialVec.count >= 32 { return face.partialVec }
         return printVector(face.partialPrint)
@@ -1634,7 +1778,7 @@ enum FaceEngine {
     /// Apple face-identity print on a natural crop. Never image-print.
     /// Vision aligns internally; strong roll (|θ| ≥ 8°) is deskewed first so
     /// the crop isn't sideways before Vision sees it.
-    /// ArcFace 5-Punkt 112×112 wäre der nächste Embedder (printRevision-Bump).
+    /// SFace 5-Punkt 112×112 läuft parallel (FaceEmbedder). Face-Print bleibt unwarped.
     /// Warped 256px patches made FacePrint fail and silently stored a jacket print.
     private static func identityPrint(of image: CGImage?) -> Data? {
         facePrintOnly(of: image)
@@ -1753,11 +1897,11 @@ enum FaceEngine {
             }
             var bestI = -1
             var bestIoU = 0.12
-            for (i, item) in found.enumerated() where !used.contains(i) {
+            for (pi, item) in found.enumerated() where !used.contains(pi) {
                 let o = iou(item.box, face.box)
                 if o > bestIoU {
                     bestIoU = o
-                    bestI = i
+                    bestI = pi
                 }
             }
             if bestI < 0, found.count == 1, faces.count == 1, !used.contains(0) {
@@ -1775,6 +1919,9 @@ enum FaceEngine {
             } else {
                 next.featurePrint = Data()
                 next.printVec = []
+            }
+            if let vec = FaceEmbedder.embed(image: image, face: next) {
+                next.sfaceVec = vec
             }
             if lowerFaceOccluded(next) || next.forcedPartial,
                let crop = upperFaceCrop(image, box: face.box),
@@ -2516,6 +2663,8 @@ enum FaceEngine {
     static var facePrintAvailable: Bool {
         NSClassFromString("VNGenerateFacePrintRequest") != nil
     }
+
+    static var sfaceAvailable: Bool { FaceEmbedder.isAvailable }
 
     static func qualityRejects(_ q: FaceQuality, continuity: Bool = false) -> Bool {
         MatchMath.qualityRejects(capture: q.capture, size: q.size, sharpness: q.sharpness, continuity: continuity)

@@ -1,7 +1,7 @@
 # Aegis
 
 Lokaler Image- & Video-Scanner für macOS. **Kein Xcode, kein Python, kein Browser.**  
-Version **2.1.251 alpha**.
+Version **2.2.0 alpha**.
 
 ## Image-Datei
 
@@ -12,6 +12,10 @@ Version **2.1.251 alpha**.
 3. Beim ersten Start: bei Developer-ID + Notarize direkt öffnen, sonst Rechtsklick → **Öffnen**
 
 macOS 14 Sonoma oder neuer. CI signiert mit Developer ID, wenn die Secrets sitzen (`docs/SIGNING.md`).
+
+## Neu in 2.2.0 alpha
+
+SFace (Apache-2) nach 5-Punkt 112×112 ist der 1:N-Recognizer. Face-Print, 2D-Maße und 3D-Pose sind getrennte Faktoren. Große Galerie: höhere Floors, Kandidatenliste statt stiller Taufe. Audit-JSONL. `scripts/convert_sface.py` erzeugt `Models/SFace.mlmodel`.
 
 ## Neu in 2.1.251 alpha
 

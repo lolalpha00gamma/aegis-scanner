@@ -8,3 +8,5 @@ Aegis.dmg
 *.dmg
 __pycache__/
 *.pyc
+models/*.onnx
+macos/AegisScanner/Models/*.mlmodelc
