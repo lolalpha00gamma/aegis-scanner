@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleName</key>
+	<string>Locus</string>
+	<key>CFBundleDisplayName</key>
+	<string>Locus</string>
+	<key>CFBundleIdentifier</key>
+	<string>gamma.locus</string>
+	<key>CFBundleVersion</key>
+	<string>1.0.0</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0.0</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleExecutable</key>
+	<string>Locus</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>14.0</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSLocationUsageDescription</key>
+	<string>Locus speichert den Standort dieses Macs als Verlaufspunkt.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Locus speichert den Standort dieses Macs als Verlaufspunkt.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Locus pollt den Standort dieses Macs im Hintergrund, solange die App läuft.</string>
+</dict>
+</plist>
